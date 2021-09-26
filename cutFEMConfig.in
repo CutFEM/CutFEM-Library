@@ -1,0 +1,5 @@
+#cmakedefine USE_MPI
+#cmakedefine USE_UMFPACK
+#cmakedefine USE_LAPACK
+#cmakedefine USE_MUMPS
+#cmakedefine USE_OMP
