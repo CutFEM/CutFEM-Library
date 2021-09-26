@@ -17,7 +17,6 @@ option(USE_LAPACK "Found the lapacke library" OFF)
 option(USE_MUMPS "Found the MUMPS library" ON)
 
 
-
 if(USE_MPI)
   set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.1_2/bin/mpicxx")
 endif()
