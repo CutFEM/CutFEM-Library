@@ -420,6 +420,8 @@ template<int N> friend TestFunction<N> Eps(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> grad2(const TestFunction<N> & T);
 
 template<int N> friend TestFunction<N> jump(const TestFunction<N> & T);
+template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const TestFunction<N> & V );
+
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average1(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average2(const TestFunction<N> & T);
@@ -1139,6 +1141,39 @@ TestFunction<d> jump(const TestFunction<d> & T){
   }
   return jumpU;
 }
+
+template <int d>
+TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
+  assert(U.A.M() == 1 && U.A.N() == 1);
+  assert(V.A.M() == 1 && V.A.N() == 1);
+  int N = U.A.N();
+  int M = U.A.M();
+  TestFunction<d> jumpU; jumpU.init(U.A.N(), U.A.M());
+  for(int i=0;i<N;++i) {
+    for(int j=0;j<M;++j) {
+      assert(U.A(i,j)->size() == V.A(i,j)->size());
+      int l = U.A(i,j)->size();
+      jumpU.A(i,j) = new ItemList<d>(2*l);
+      for(int e=0;e<l;++e) {
+        {
+          const ItemTestFunction<d>& v(U.A(i,j)->getItem(e));
+          ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e));
+          u = v;
+          // u.dom = 0;
+        }
+        {
+          const ItemTestFunction<d>& v(V.A(i,j)->getItem(e));
+          ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e+1));
+          u=v;
+          u.c *= -1;
+          // u.dom = 1;
+        }
+      }
+    }
+  }
+  return jumpU;
+}
+
 
 template <int d>
 TestFunction<d> average1(const TestFunction<d> & T){

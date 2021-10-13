@@ -5,7 +5,7 @@
 #include "problem.hpp"
 #include "itemVF.hpp"
 #include "GenericMapping.hpp"
-#include <omp.h>
+// #include <omp.h>
 
 
 
@@ -109,7 +109,11 @@ public:
     this->nDoF += Qh.NbDoF() * IIn.NbDoF();
     this->rhs.resize(this->nDoF); this->rhs = 0.0;
   }
-
+  void add(const FESpace& Qh) {
+    this->mapIdx0[&Qh] = this->nDoF;
+    this->nDoF += Qh.NbDoF();
+    this->rhs.resize(this->nDoF); this->rhs = 0.0;
+  }
 
 
 protected:
