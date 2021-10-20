@@ -27,6 +27,16 @@
 #include "finiteElement.hpp"
 #include "macroElement.hpp"
 
+struct CBorder {
+  CBorder() {}
+};
+const CBorder boundary;
+struct CHyperFace {
+  CHyperFace() {}
+};
+const CHyperFace innerEdge;
+const CHyperFace innerFace;
+
 
 class ShapeOfLinProblem {
 public :

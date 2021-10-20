@@ -197,7 +197,9 @@ public:
 
   std::list<ExpressionFunFEM<M>> expression(int n = -1)const;
 
-  ~FunFEM(){ if(alloc) delete [] data; }
+  ~FunFEM(){
+    if(databf) delete [] databf;
+    if(alloc) delete [] data; }
 
 private:
   FunFEM(const FunFEM& f);

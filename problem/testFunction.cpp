@@ -1,6 +1,14 @@
 #include "testFunction.hpp"
 
 
+void f_id(RNMK_&  x, int cu, int du) {  }
+void f_ln(RNMK_&  x, int cu, int du) {
+  for(int i=0; i<x.N();++i) {
+    x(i, cu, du) = std::log(x(i, cu, du));
+  }
+}
+
+
 string whichOperator(int op) {
   string s;
   if(op == 0)

@@ -135,7 +135,7 @@ private:
       pp[nv] = ndof;
       assert(ndof == kk);
     }
-    Ver_GlobToLoc.init();
+    Ver_GlobToLoc.destroy();
     // idQuadTime++;
   }
   void add(const FESpace& Vh, Fun& levelSet) {
@@ -188,7 +188,7 @@ private:
       pp[nv] = ndof;
       assert(ndof == kk);
     }
-    Ver_GlobToLoc.init();
+    Ver_GlobToLoc.destroy();
   }
 
   void make(const FESpace& Vh, const KN<byte>& levelSet) {
@@ -237,7 +237,7 @@ private:
       pp[nv] = ndof;
       assert(ndof == kk);
     }
-    Ver_GlobToLoc.init();
+    Ver_GlobToLoc.destroy();
    }
   void add (const FESpace& Vh, const KN<byte>& levelSet) {
     const int nbNode = Vh[0].NbNode();
@@ -300,7 +300,7 @@ private :
 
 
 public :
-  int idxGlob2Loc(int i) const { return Ver_GlobToLoc[i];}
+  // int idxGlob2Loc(int i) const { return Ver_GlobToLoc[i];}
   int getTriLocToGlob(int i) const { return Tri_LocToGlob(checkFE(i));}
   int getTriGlobToLoc(int i) const { return checkFE(Tri_GlobToLoc[i]);}
   // int getTriGlobToLoc(int i) const { return Tri_GlobToLoc.find(i)->second;}
@@ -348,6 +348,9 @@ public :
 
   }
 
+  ~DataCutFENodeDF() {
+    delete []sub;
+  }
 };
 
 
@@ -399,7 +402,11 @@ public:
   };
   DataCutFENodeDF BuildDFNumberingCut() {return BuildDFNumberingCut(subDomain);}
 
-  ~SubDomainArray(){}
+  ~SubDomainArray(){
+    if(allocate_memory_subDomain){
+      for(int i=0;i<nSub;++i) delete subDomain(i);
+    }
+  }
 };
 
 
@@ -551,10 +558,10 @@ Vh((*sdomain.begin())->Vh)
     ASSERTION(k>=0 && k < nt);
     return Vh.Th((*this)[k].T);
   }
-  virtual int idxGlob2Loc(int k, int i) const {
-    assert(this->nSub <= 2);
-    return  this->subDomain(i)->idxGlob2Loc(k);
-  }
+  // virtual int idxGlob2Loc(int k, int i) const {
+  //   assert(this->nSub <= 2);
+  //   return  this->subDomain(i)->idxGlob2Loc(k);
+  // }
   virtual const FESpace& getBackSpace() const {return Vh;}
   virtual int whichDomain(int k) const { assert(this->nSub <= 2);return (k >= sub[0].nbElement);}
 

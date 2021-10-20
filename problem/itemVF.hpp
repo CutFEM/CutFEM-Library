@@ -20,6 +20,9 @@ struct ItemVF {
   FESpace const * fespaceU = nullptr;
   FESpace const * fespaceV = nullptr;
 
+  void(*pfunU)(RNMK_&,int,int) = f_id;
+  void(*pfunV)(RNMK_&,int,int) = f_id;
+
   ItemVF()
   : c(0.), cu(-1),du(-1),cv(-1),dv(-1),domu(-1),domv(-1),dtu(-1),dtv(-1){}
   ItemVF(double cc,int i,int j,int k,int l)
@@ -43,7 +46,8 @@ struct ItemVF {
     exprv = U.exprv;
     fespaceU = U.fespaceU;
     fespaceV = U.fespaceV;
-
+    pfunU = U.pfunU;
+    pfunV = U.pfunV;
   }
 
   ItemVF(const ItemTestFunction<N>& U, const ItemTestFunction<N>& V)
@@ -55,11 +59,17 @@ struct ItemVF {
 
     fespaceU = U.fespace;
     fespaceV = V.fespace;
+
+    pfunU = U.pfun;
+    pfunV = V.pfun;
   }
 
   bool on(int d) const {
     return ((domu == domv) && (domu == -1 || domu == d));
   }
+
+  bool same() const {
+    return (fespaceU == fespaceV) && (pfunU == pfunV); }
 
   bool operator==(const ItemVF& F){
     if(cu == F.cu && cv == F.cv && du == F.du && dv == F.dv
@@ -111,6 +121,11 @@ private:
 public:
   R getCoef(const R* normal) const {
     return getCoefU(normal) * getCoefV(normal);
+  }
+
+  void applyFunNL(RNMK_& bfu, RNMK_& bfv) const {
+    pfunU(bfu, cu, du);
+    pfunV(bfv, cv, dv);
   }
 
 

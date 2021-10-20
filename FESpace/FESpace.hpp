@@ -340,7 +340,7 @@ public:
     return Th.ElementAdj(k,j);
   }
 
-  virtual int idxGlob2Loc(int k, int i) const { return k;}
+  // virtual int idxGlob2Loc(int k, int i) const { return k;}
   virtual const GFESpace& getBackSpace() const { return *backSpace;}
   // virtual const  GenericInterface<Mesh>& getInterface(int i) const {assert(0);}
   const Interface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}

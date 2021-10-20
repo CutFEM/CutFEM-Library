@@ -23,6 +23,9 @@ static int D2(int i, int j){
 
 
 
+void f_id(RNMK_&  x, int cu, int du) ;
+void f_ln(RNMK_&  x, int cu, int du) ;
+
 
 template<int N = 2>
 struct ItemTestFunction {
@@ -35,6 +38,7 @@ struct ItemTestFunction {
   int dom;
   const ExpressionVirtual * expru = nullptr;
   GFESpace<Mesh> const * fespace = nullptr;;
+  void (*pfun)(RNMK_&, int , int) = f_id;
 
 
   ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),dom(-1){}
@@ -46,6 +50,11 @@ struct ItemTestFunction {
   : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), dom(F.dom), expru(F.expru), fespace(F.fespace) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
   }
+  ItemTestFunction(const ItemTestFunction& F, void(*f)(RNMK_&,int,int))
+  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), dom(F.dom), expru(F.expru), fespace(F.fespace), pfun(f) {
+    for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
+  }
+
 
   ItemTestFunction& operator = (const ItemTestFunction& L) {
     c = L.c;
@@ -83,6 +92,9 @@ struct ItemTestFunction {
   }
 
 
+
+
+
   friend std::ostream& operator <<(std::ostream& f, const ItemTestFunction & u )
   {
 
@@ -114,7 +126,7 @@ public:
   KN<ItemTestFunction<N>*> U;
 
   ItemList() : U(1) {
-    U(0) = new ItemTestFunction<N>();
+    U(0) = nullptr;//new ItemTestFunction<N>();
   }
   ItemList(double cc,int i,int j, int dd=-1) : U(1) {
     U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<string>());
@@ -130,6 +142,12 @@ public:
   ItemList(const ItemList& L) : U(L.U.size()) {
     for(int i=0;i<U.size();++i) U(i) = new ItemTestFunction<N>(*L.U(i));
   }
+
+  ItemList(const ItemList& L, void(*f)(RNMK_&,int,int)) : U(L.U.size()) {
+    for(int i=0;i<U.size();++i) U(i) = new ItemTestFunction<N>(*L.U(i), f);
+  }
+
+
 
   ItemList(const FESpace& Vh, double cc,int i,int j, int dd=-1) : U(1) {
     U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<string>());
@@ -178,12 +196,18 @@ class TestFunction {
 private :
   TestFunction() {
     A.init(1,1);
-    A(0,0) = new ItemList<dim> ();
+    A(0,0) = nullptr;//new ItemList<dim> ();
   }
   TestFunction(int d) {
     A.init(d,1);
-    for(int i=0;i<d;++i)  A(i,0) = new ItemList<dim> (1,i,0);
+    A = nullptr;
+    // for(int i=0;i<d;++i)  A(i,0) = new ItemList<dim> (1,i,0);
   }
+
+  TestFunction(int d, int l) {
+   A.init(d,l);
+   A = nullptr;
+ }
 
   // TestFunction(int d, int comp0) {
   //   A.init(d,1);
@@ -215,24 +239,33 @@ public:
     for(int i=0;i<A.N();++i) {
       for(int j=0;j<A.M();++j) {
         A(i,j) = new ItemList<dim> (*U.A(i,j));
-        // A(i,j)->fespace = U.A(i,j)->fespace;
       }
     }
-    // A.fespace = U.fespace;
   }
 
-  void init(int d, int l) {
-    destroy();
-    A.init(d,l);
-    for(int i=0;i<d;++i) {
-      for(int j=0;j<l;++j) {
-        A(i,j) = new ItemList<dim> (1,i,0);
+  TestFunction(const TestFunction& U, void(*f)(RNMK_&,int,int)) {
+    A.init(U.A.N(), U.A.M());
+    for(int i=0;i<A.N();++i) {
+      for(int j=0;j<A.M();++j) {
+        A(i,j) = new ItemList<dim> (*U.A(i,j), f);
       }
     }
   }
+
+
+
+  // void init(int d, int l) {
+  //   destroy();
+  //   A.init(d,l);
+  //   for(int i=0;i<d;++i) {
+  //     for(int j=0;j<l;++j) {
+  //       A(i,j) = new ItemList<dim> (1,i,0);
+  //     }
+  //   }
+  // }
 
   TestFunction t() const {
-    TestFunction Ut; Ut.init(A.M(), A.N());
+    TestFunction Ut(A.M(), A.N()); //Ut.init(A.M(), A.N());
     for(int i=0;i<A.N();++i) {
       for(int j=0;j<A.M();++j) {
         Ut.A(j,i) = new ItemList<dim> (A(i,j)->size());
@@ -351,8 +384,8 @@ public:
       assert(A.N() == 1 && A.M() == 1);
       int N = dim;
       int s = 1;
-      TestFunction Un;
-      Un.init(N, N);
+      TestFunction Un(N, N);
+      // Un.init(N, N);
       const int ksum = A(0,0)->size();
 
       for(int i=0;i<N;++i){
@@ -396,7 +429,7 @@ public:
   void destroy() {
     for(int i=0;i<A.N();++i) {
       for(int j=0;j<A.M();++j) {
-        delete A(i,j);
+        if(A(i,j)) delete A(i,j);
       }
     }
   }
@@ -404,7 +437,7 @@ public:
   ~TestFunction(){
     for(int i=0;i<A.N();++i) {
       for(int j=0;j<A.M();++j) {
-        delete A(i,j);
+        if(A(i,j)) delete A(i,j);
       }
     }
   }
@@ -445,27 +478,13 @@ template<int N> friend TestFunction<N> operator * (const CutFEM_R2& cc, const Te
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 template <int N>
 TestFunction<N> operator + (const TestFunction<N>& F1, const TestFunction<N>& F2) {
   int row = max(F1.A.N(),F2.A.N());
   int col = max(F1.A.M(),F2.A.M());
 
 
-  TestFunction<N> sumU; sumU.init(row,col);
+  TestFunction<N> sumU(row,col);// sumU.init(row,col);
   for(int i=0;i<row;++i) {
     for(int j=0;j<col;++j) {
       int s = 0;
@@ -498,7 +517,7 @@ TestFunction<N> operator - (const TestFunction<N>& F1, const TestFunction<N>& F2
   int col = max(F1.A.M(),F2.A.M());
 
 
-  TestFunction<N> sumU; sumU.init(row,col);
+  TestFunction<N> sumU(row,col); //sumU.init(row,col);
   for(int i=0;i<row;++i) {
     for(int j=0;j<col;++j) {
       int s = 0;
@@ -606,6 +625,12 @@ TestFunction<N> operator * (double cc, const TestFunction<N>& F) {
   return multU;
 }
 
+template <int N>
+TestFunction<N> ln(const TestFunction<N>& F) {
+  return TestFunction<N>(F, f_ln);
+}
+
+
 
 // Need to modify that to make it inner product
 // template <int N>
@@ -666,9 +691,9 @@ TestFunction<d> operator * (const CutFEM_R2& cc, const TestFunction<d>& T) {
   int N = T.A.N();
 
   bool scalar = (N==1);
-  TestFunction<d> resU;
+  int r = (scalar)?d:1;
+  TestFunction<d> resU(r,1);
   if(scalar){
-    resU.init(d,1);
     int nitem = T.A(0,0)->size();
 
     for(int j=0;j<d;++j) {
@@ -683,7 +708,6 @@ TestFunction<d> operator * (const CutFEM_R2& cc, const TestFunction<d>& T) {
   }
   else {
     assert(N == d);  // column
-    resU.init(1,1);
     int nitem = 0;
     for(int i=0;i<d;++i) {
       nitem += T.A(i,0)->size();
@@ -742,7 +766,7 @@ TestFunction<d> grad(const TestFunction<d> & T){
   int row = scalar ? d : N;
   int col = scalar ? 1 : d;
 
-  TestFunction<d> gradU; gradU.init(row, col);
+  TestFunction<d> gradU(row, col); //gradU.init(row, col);
   for(int i=0;i<N;++i) {
     int nitem = T.A(i,0)->size();
     for(int j=0;j<d;++j) {
@@ -766,10 +790,10 @@ TestFunction<d> gradS(const TestFunction<d> & T){
 
   int N = T.A.N();
   bool scalar = (N==1);
-  TestFunction<d> gradU;
+  int col = (scalar)?1 : d;
+  TestFunction<d> gradU(d, col);
 
   if(scalar) {
-    gradU.init(d, 1);
     assert(T.A(0,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(0,0)->getItem(0));
 
@@ -796,7 +820,6 @@ TestFunction<d> gradS(const TestFunction<d> & T){
     }
   }
   else {
-    gradU.init(d, d);
     int n = T.A(0, 0)->size();
 
     for(int row=0;row<d;++row) {
@@ -847,7 +870,7 @@ TestFunction<d> dt(const TestFunction<d> & T){
   int row = N;
   int col = 1;
 
-  TestFunction<d> gradU; gradU.init(row, col);
+  TestFunction<d> gradU(row, col); //gradU.init(row, col);
   for(int i=0;i<N;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -869,7 +892,7 @@ TestFunction<d> dx(const TestFunction<d> & T){
   int row = N;
   int col = 1;
 
-  TestFunction<d> gradU; gradU.init(row, col);
+  TestFunction<d> gradU(row, col);// gradU.init(row, col);
   for(int i=0;i<N;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -891,7 +914,7 @@ TestFunction<d> dy(const TestFunction<d> & T){
   int row = N;
   int col = 1;
 
-  TestFunction<d> gradU; gradU.init(row, col);
+  TestFunction<d> gradU(row, col); //gradU.init(row, col);
   for(int i=0;i<N;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -913,7 +936,7 @@ TestFunction<d> dz(const TestFunction<d> & T){
   int row = N;
   int col = 1;
 
-  TestFunction<d> gradU; gradU.init(row, col);
+  TestFunction<d> gradU(row, col); //gradU.init(row, col);
   for(int i=0;i<N;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -932,7 +955,7 @@ TestFunction<d> dxS(const TestFunction<d> & T){
   assert(T.A.M() == 1 && T.A.N() == 1);
   int N = T.A.N();
 
-  TestFunction<d> gradU; gradU.init(N,1);
+  TestFunction<d> gradU(N,1); // gradU.init(N,1);
   for(int i=0;i<N;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -961,7 +984,7 @@ TestFunction<d> dyS(const TestFunction<d> & T){
   assert(T.A.M() == 1 && T.A.N() == 1);
   int N = T.A.N();
 
-  TestFunction<d> gradU; gradU.init(N,1);
+  TestFunction<d> gradU(N,1); // gradU.init(N,1);
   for(int i=0;i<N;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -990,7 +1013,7 @@ TestFunction<d> dzS(const TestFunction<d> & T){
   assert(T.A.M() == 1 && T.A.N() == 1);
   int N = T.A.N();
 
-  TestFunction<d> gradU; gradU.init(N,1);
+  TestFunction<d> gradU(N,1); //gradU.init(N,1);
   for(int i=0;i<N;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -1041,7 +1064,7 @@ template <int d>
 TestFunction<d> Eps(const TestFunction<d> & T){
   assert(T.A.N() == d && T.A.M() == 1);
 
-  TestFunction<d> epsU; epsU.init(d, d);
+  TestFunction<d> epsU(d, d); //epsU.init(d, d);
   for(int i=0;i<d;++i) {
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
@@ -1090,7 +1113,7 @@ TestFunction<d> grad2(const TestFunction<d> & T){
   assert(T.A.N() == d || T.A.N() == 1);
   int N = T.A.N();
 
-  TestFunction<d> DDU; DDU.init(T.A.N(), T.A.M());
+  TestFunction<d> DDU(T.A.N(), T.A.M()); //DDU.init(T.A.N(), T.A.M());
   for(int i=0;i<N;++i) assert(T.A(i,0)->size()==1);
 
 
@@ -1118,7 +1141,7 @@ TestFunction<d> jump(const TestFunction<d> & T){
   // assert(T.A.M() == 1);
   int N = T.A.N();
   int M = T.A.M();
-  TestFunction<d> jumpU; jumpU.init(T.A.N(), T.A.M());
+  TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
   for(int i=0;i<N;++i) {
     for(int j=0;j<M;++j) {
       int l = T.A(i,j)->size();
@@ -1148,7 +1171,7 @@ TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
   assert(V.A.M() == 1 && V.A.N() == 1);
   int N = U.A.N();
   int M = U.A.M();
-  TestFunction<d> jumpU; jumpU.init(U.A.N(), U.A.M());
+  TestFunction<d> jumpU(U.A.N(), U.A.M()); //jumpU.init(U.A.N(), U.A.M());
   for(int i=0;i<N;++i) {
     for(int j=0;j<M;++j) {
       assert(U.A(i,j)->size() == V.A(i,j)->size());
@@ -1179,7 +1202,7 @@ template <int d>
 TestFunction<d> average1(const TestFunction<d> & T){
   assert(T.A.M() == 1);
   int N = T.A.N();
-  TestFunction<d> jumpU; jumpU.init(T.A.N(), T.A.M());
+  TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
   for(int i=0;i<N;++i) {
     int l = T.A(i,0)->size();
     jumpU.A(i,0) = new ItemList<d>(2*l);
@@ -1208,7 +1231,7 @@ template <int d>
 TestFunction<d> average2(const TestFunction<d> & T){
   assert(T.A.M() == 1);
   int N = T.A.N();
-  TestFunction<d> jumpU; jumpU.init(T.A.N(), T.A.M());
+  TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
   for(int i=0;i<N;++i) {
     int l = T.A(i,0)->size();
     jumpU.A(i,0) = new ItemList<d>(2*l);
@@ -1237,7 +1260,7 @@ template <int d>
 TestFunction<d> average(const TestFunction<d> & T){
   assert(T.A.M() == 1);
   int N = T.A.N();
-  TestFunction<d> jumpU; jumpU.init(T.A.N(), T.A.M());
+  TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
   for(int i=0;i<N;++i) {
     int l = T.A(i,0)->size();
     jumpU.A(i,0) = new ItemList<d>(2*l);
