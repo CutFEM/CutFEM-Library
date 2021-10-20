@@ -9,8 +9,8 @@ to install
   -  CMAKE_CXX_COMPILER   (mpi if used)
 ** install lapacke
 ** install one library to solve linear system
-  - MUMPS or UMPPACK
-
+  - MUMPS or UMFPACK
+** If mumps, you will have to link to scotch or parmetis
 ** Set path in FindUMPFPACK or FindMUMPS and FindLAPACK
 
 
