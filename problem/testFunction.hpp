@@ -458,7 +458,7 @@ template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const Tes
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average1(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average2(const TestFunction<N> & T);
-
+template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const CutFEM_Parameter& para);
 template<int N> friend TestFunction<N> dx(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> dy(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> dz(const TestFunction<N> & T);
@@ -1277,6 +1277,33 @@ TestFunction<d> average(const TestFunction<d> & T){
         u=v;
         u.c *= 0.5;
         u.dom = 1;
+      }
+    }
+  }
+  return jumpU;
+}
+
+template <int d>
+TestFunction<d> average(const TestFunction<d> & T, const CutFEM_Parameter& para){
+  assert(T.A.M() == 1);
+  int N = T.A.N();
+  TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
+  for(int i=0;i<N;++i) {
+    int l = T.A(i,0)->size();
+    jumpU.A(i,0) = new ItemList<d>(2*l);
+    for(int e=0;e<l;++e) {
+      const ItemTestFunction<d>& v(T.A(i,0)->getItem(e));
+      {
+        ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
+        u = v;
+        u.dom = 0;
+        u.addParameter(para.name);
+      }
+      {
+        ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
+        u=v;
+        u.dom = 1;
+        u.addParameter(para.name);
       }
     }
   }
