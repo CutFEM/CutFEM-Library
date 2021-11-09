@@ -455,7 +455,7 @@ template<int N> friend TestFunction<N> grad2(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> jump(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const TestFunction<N> & V );
 
-template<int N> friend TestFunction<N> average(const TestFunction<N> & T);
+template<int N> friend TestFunction<N> average(const TestFunction<N> & T, double v1, double v2);
 template<int N> friend TestFunction<N> average1(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average2(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const CutFEM_Parameter& para);
@@ -1257,7 +1257,7 @@ TestFunction<d> average2(const TestFunction<d> & T){
 }
 
 template <int d>
-TestFunction<d> average(const TestFunction<d> & T){
+TestFunction<d> average(const TestFunction<d> & T, double v1=0.5, double v2=0.5){
   assert(T.A.M() == 1);
   int N = T.A.N();
   TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
@@ -1269,13 +1269,13 @@ TestFunction<d> average(const TestFunction<d> & T){
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
         u = v;
-        u.c *= 0.5;
+        u.c *= v1;
         u.dom = 0;
       }
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
         u=v;
-        u.c *= 0.5;
+        u.c *= v2;
         u.dom = 1;
       }
     }
