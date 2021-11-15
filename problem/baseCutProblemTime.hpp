@@ -41,14 +41,13 @@ void BaseCutProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const int k, 
     for(int l=0; l<VF.size();++l) {
       if(!VF[l].on(domain)) continue;
 
-      bool same = (VF[l].fespaceU == VF[l].fespaceV);
       int lastop = getLastop(VF[l].du, VF[l].dv);
 
       const int ku = (VF[l].domu != -1)? VF[l].fespaceU->idxElementFromBackMesh(kb, VF[l].domu) : k;
       const int kv = (VF[l].domv != -1)? VF[l].fespaceV->idxElementFromBackMesh(kb, VF[l].domv) : k;
       const FElement& FKu((*VF[l].fespaceU)[ku]);
       const FElement& FKv((*VF[l].fespaceV)[kv]);
-
+      bool same = (VF[l].fespaceU==VF[l].fespaceV);
       RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
       RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
       What_d Fop = Fwhatd(lastop);

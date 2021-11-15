@@ -336,12 +336,16 @@ public:
   }
 
 
-
   // We need a line vector because N is column
-  TestFunction operator*(const Tangent& T) {
+  TestFunction operator*(const Tangent& N) {
+    // assert(!(A.M() == 1 && A.N() == dim ));// no column accepted
     assert(A.M() == dim || A.M() == 1);
     bool scalar (A.M() == 1 && A.N() == 1);
-    int s = (scalar)? dim : A.N();
+    bool line (A.M() == dim && A.N() == 1);
+    bool column (A.M() == 1 && A.N() == dim);
+
+    int s = (scalar)? dim : ((column)? 1 : A.N());
+
     TestFunction Un(s);
     if(scalar) {
       int ksum=0;
@@ -352,9 +356,21 @@ public:
         for(int ui=0;ui<A(0,0)->size();++ui,++k) {
           ItemTestFunction<dim>& v(A(0,0)->getItem(ui));
           ItemTestFunction<dim>& u(Un.A(i,0)->getItem(k));
-          u=v;
-          u.addTangent(T[i]);
-          // u.fespace = v.fespace;
+          u = v;
+          u.addTangent(N[i]);
+        }
+      }
+    }
+    else if(column){
+      int ksum=0, k=0;
+      for(int i=0;i<A.N();++i) ksum += A(i,0)->size();
+      Un.A(0,0) = new ItemList<dim> (ksum);
+      for(int i=0;i<A.N();++i){
+        for(int ui=0;ui<A(i,0)->size();++ui,++k) {
+          ItemTestFunction<dim>& v(A(i,0)->getItem(ui));
+          ItemTestFunction<dim>& u(Un.A(0,0)->getItem(k));
+          u = v;
+          u.addTangent(N[i]);
         }
       }
     }
@@ -367,9 +383,8 @@ public:
           for(int ui=0;ui<A(i,j)->size();++ui,++k) {
             ItemTestFunction<dim>& v(A(i,j)->getItem(ui));
             ItemTestFunction<dim>& u(Un.A(i,0)->getItem(k));
-            u=v;
-            u.addTangent(T[j]);
-            // u.fespace = v.fespace;
+            u = v;
+            u.addTangent(N[j]);
           }
         }
       }

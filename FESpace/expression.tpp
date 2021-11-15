@@ -19,7 +19,9 @@ double FunFEM<M>::eval(const int k, const R* x, int cu, int op) const{
 
 template<typename M>
 double FunFEM<M>::eval(const int k, const R* x, const R t, int cu, int op, int opt) const{
+
   if(!In) return eval(k,x,cu,op);
+
   const FElement& FK((*Vh)[k]);
   int ndf = FK.NbDoF();
   RNMK_ w(databf, ndf,Vh->N,op_dz+1);
@@ -28,12 +30,14 @@ double FunFEM<M>::eval(const int k, const R* x, const R t, int cu, int op, int o
   FK.BF(FK.T.toKref(x), w);
   In->BF(In->T.toKref(t), wt );
 
+
   double val = 0.;
   for(int jt=0; jt<In->NbDoF();++jt) {
     for(int j=FK.dfcbegin(cu);j<FK.dfcend(cu);++j){
       val += v[FK(j)+jt*Vh->NbDoF()]*w(j,cu,op)*wt(jt,0,opt);
     }
   }
+
   return val;
 }
 
@@ -55,7 +59,9 @@ double FunFEM<M>::evalOnBackMesh(const int kb, const R* x, int cu, int op, int d
 
 template<typename M>
 double FunFEM<M>::evalOnBackMesh(const int kb, const R* x, const R t, int cu, int op, int opt, int dom) const{
+
   int k = Vh->idxElementFromBackMesh(kb,dom);
+
   return eval(k, x, t, cu, op, opt);
 }
 

@@ -434,7 +434,7 @@ void Paraview<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name, MacroE
 
       int kf = fh.idxElementFromBackMesh(kback, domain);
       if(!macro.isRootFat(k)) {
-        kf = macro.small_or_fat_K[k];
+        kf = macro.getIndexRootElement(k);
       }
 
       if(the_part == NoElement) continue;
@@ -509,7 +509,7 @@ void Paraview<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string n
       int kback = Vh.idxElementInBackMesh(k);
 
       if(!macro.isRootFat(k)) {
-        int kk = macro.small_or_fat_K[k];
+        int kk = macro.getIndexRootElement(k);
         kback = Vh.idxElementInBackMesh(kk);
       }
 

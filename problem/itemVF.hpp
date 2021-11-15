@@ -106,7 +106,13 @@ struct ItemVF {
            *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, t, normal) : 1);
   }
 
-private:
+  double fx_backMesh_U(int k, int dom, Rd mip, const R* normal = nullptr) const {
+    return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1);
+  }
+  double fx_backMesh_V(int k, int dom, Rd mip, const R* normal = nullptr) const {
+    return ((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
+  }
+public:
   R getCoefU(const R* normal) const {
     R val = 1;
     for(int i=0;i<ar_nu.size();++i) val *= normal[ar_nu(i)];

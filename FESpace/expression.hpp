@@ -276,6 +276,13 @@ public:
     ar_normal.resize(l+1);
     ar_normal(l) = i;
   }
+  void addTangent(int Ni) {
+    int l = ar_normal.size();
+    ar_normal.resize(l+1);
+    ar_normal(l) = Ni;
+    if(Ni == 1) cu*=-1;  //(-b,a) with (a,b) normal
+  }
+
 
   virtual void whoAmI() const {std::cout << " I am virtual class Expression" << std::endl;}
 
@@ -294,7 +301,6 @@ public:
   : ExpressionVirtual(cc, opp, oppt), fun(fh) {}
   ExpressionFunFEM(const FunFEM<M> & fh, int cc, int opp, int oppt, int dom)
   : ExpressionVirtual(cc, opp, oppt,dom), fun(fh) {}
-
 
 
   R operator()(long i) const { return fun(i);}
@@ -381,12 +387,13 @@ ExpressionMultConst operator*(const ExpressionVirtual& f1, const double& cc);
 ExpressionMultConst operator*(const double& cc, const ExpressionVirtual& f1);
 
 
+
+
 class ExpressionAbs : public ExpressionVirtual {
   const ExpressionVirtual & fun1;
 public:
   ExpressionAbs(const ExpressionVirtual & fh1)
   : fun1(fh1){
-    // std::cout << " create multConst " << std::endl;
   }
 
   R operator()(long i) const {fabs(fun1(i));}
@@ -407,7 +414,7 @@ public:
 
   ~ExpressionAbs(){}
 };
-ExpressionAbs fabs(const ExpressionVirtual& f1);
+ ExpressionAbs fabs(const ExpressionVirtual& f1);
 
 
 class ExpressionProduct : public ExpressionVirtual {
@@ -494,6 +501,86 @@ public:
   ~ExpressionDif(){}
 };
 ExpressionDif operator-(const ExpressionVirtual& f1, const ExpressionVirtual& f2);
+
+
+
+class ExpressionNormal2 : public ExpressionVirtual {
+  typedef Mesh2 M;
+  const FunFEM<M>& fun;
+  ExpressionFunFEM<M> uxnx, uyny;
+
+public:
+  ExpressionNormal2(const FunFEM<M> & fh1)
+  : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
+  {
+    assert(fh1.Vh->N !=1);
+    uxnx.addNormal(0); uyny.addNormal(1);
+  }
+
+  R operator()(long i) const {assert(0);};
+
+  R eval(const int k, const R* x)const  {
+    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+    assert(0);
+    return 0;
+  }
+  R eval(const int k, const R* x, const R t)const  {
+    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+    assert(0);
+    return 0;
+  }
+
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal)const  {
+    assert(normal);
+    return uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal);
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    assert(normal);
+    return uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal);
+  }
+  ~ExpressionNormal2(){}
+};
+ExpressionNormal2 operator*(const FunFEM<Mesh2>& f1, const Normal& n);
+
+class ExpressionTangent2 : public ExpressionVirtual {
+  typedef Mesh2 M;
+  const FunFEM<M>& fun;
+  ExpressionFunFEM<M> uxnx, uyny;
+
+public:
+  ExpressionTangent2(const FunFEM<M> & fh1)
+  : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
+  {
+    assert(fh1.Vh->N !=1);
+    uxnx.addTangent(1); uyny.addTangent(0);
+  }
+
+  R operator()(long i) const {assert(0);};
+
+  R eval(const int k, const R* x)const  {
+    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+    assert(0);
+    return 0;
+  }
+  R eval(const int k, const R* x, const R t)const  {
+    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+    assert(0);
+    return 0;
+  }
+
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal)const  {
+    assert(normal);
+    return uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal);
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    assert(normal);
+    return uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal);
+  }
+  ~ExpressionTangent2(){}
+};
+ExpressionTangent2 operator*(const FunFEM<Mesh2>& f1, const Tangent& n);
+
+
 
 
 // divS for 2d

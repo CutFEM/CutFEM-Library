@@ -127,14 +127,14 @@ struct FaceInterface {
 };
 
 template<>
-struct FaceInterface<2> : public  SortArray<Uint, 2>,
-		    public Label {
+struct FaceInterface<2> : public  SortArray<Uint, 2>, public Label {
   typedef SortArray<Uint, 2> FaceIdx;
 
   FaceInterface(const Uint& a0,const Uint &a1, int l=0)
   : FaceIdx(a0,a1), Label(l) {}
   FaceInterface(Uint *a, int l =0)   : FaceIdx(a), Label(l) {}
   FaceInterface() : FaceIdx(), Label(0) {}
+
 
 };
 template<>
@@ -162,7 +162,7 @@ public :
   typedef typename Mesh::RefPatch RefPatch;
   typedef typename TypeCutData<Rd::d>::CutData CutData;
   // typedef SortArray<Uint, nve> FaceIdx;
-  // typedef SortArray<Uint, nve> Face;
+  // typedef SortArray<Uint, 2> Spair;
   typedef FaceInterface<nve> FaceIdx;
   typedef FaceInterface<nve> Face;
 
@@ -184,6 +184,7 @@ public :
   std::vector<Rd> outward_normal_;
   std::vector<bool> is_boundary_face_;     // True, if triangle face of one of the tetras
   std::map<int, int> face_of_element_;
+  std::vector<Uint> edge_of_node_;
 private :
   const FaceIdx  make_face (const typename RefPatch::FaceIdx& ref_tri,
 			    const typename Mesh::Element& K,
@@ -252,6 +253,7 @@ public :
   #endif
 
 	double distance(Rd P) const;
+  // int getNeighborElement()
 
 	~GenericInterface() {}
 private:
@@ -287,7 +289,7 @@ void GenericInterface<M>::make_patch(const KN<double>& ls) {
   double loc_ls[nb_vertex_K];
   byte   loc_ls_sign[nb_vertex_K];
 
-   for (int k=0; k<backMesh->nbElmts(); k++) {                      // loop over elements
+  for (int k=0; k<backMesh->nbElmts(); k++) {                      // loop over elements
 
     const typename Mesh::Element & K(cpyMesh[k]);
 
@@ -301,15 +303,20 @@ void GenericInterface<M>::make_patch(const KN<double>& ls) {
     if (cut.empty()) continue;
 
     for (typename RefPatch::const_face_iterator it= cut.face_begin(), end= cut.face_end();
-    	 it != end; ++it) {
-         face_of_element_[k] = element_of_face_.size();
-         faces_.push_back( make_face(*it, K, loc_ls, zero_vertex_uses));
-         element_of_face_.push_back(k);
-         outward_normal_.push_back(make_normal(K, loc_ls));
+    it != end; ++it) {
+      face_of_element_[k] = element_of_face_.size();
+      faces_.push_back( make_face(*it, K, loc_ls, zero_vertex_uses));
+      element_of_face_.push_back(k);
+      outward_normal_.push_back(make_normal(K, loc_ls));
     }
+  }
 
-
-   }
+  // for(int i=0; i < edge_of_node_.size(); ++i){
+  // //   std::cout << "( " << it->first[0] << ", " << it->first[1] << " ) \t => \t"
+  // //             << "( " << it->second.first << ", " << it->second.second << " )" << std::endl;
+  // std::cout << i << "\t" << edge_of_node_[i] << std::endl;
+  // }
+  // getchar();
 
 }
 
@@ -339,6 +346,7 @@ GenericInterface<M>::make_face (const typename RefPatch::FaceIdx& ref_tri,
 
   Uint loc_vert_num;
   Uint triIdx[nve];
+  // int idxK = (*backMesh)(K);
 
   for (Uint j= 0; j < nve; ++j) {
     loc_vert_num= ref_tri[j];
@@ -348,7 +356,7 @@ GenericInterface<M>::make_face (const typename RefPatch::FaceIdx& ref_tri,
       Rd Q = (*backMesh)(idx);
       vertices_.push_back(Q);
       triIdx[j] = vertices_.size() - 1;
-
+      assert(0);
     }
     else { // genuine edge vertex
 
@@ -359,6 +367,18 @@ GenericInterface<M>::make_face (const typename RefPatch::FaceIdx& ref_tri,
       vertices_.push_back(Q);
       triIdx[j] = vertices_.size() - 1;
 
+      edge_of_node_.push_back(loc_vert_num - K.nv);
+      // int idx0 = (*backMesh)(idxK, i0);
+      // int idx1 = (*backMesh)(idxK, i1);
+      // auto it = element_of_node_.find(Spair(idx0,idx1));
+      // if( it != element_of_node_.end()){
+      //   // already existing
+      //   it->second.second = idxK;
+      // }
+      // else {
+      //   // first time
+      //   element_of_node_[Spair(idx0,idx1)] = make_pair(idxK, -1);
+      // }
     }
   }
   return FaceIdx(triIdx);

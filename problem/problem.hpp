@@ -36,7 +36,10 @@ struct CHyperFace {
 };
 const CHyperFace innerEdge;
 const CHyperFace innerFace;
-
+struct CNode {
+  CNode() {}
+};
+const CNode nodeEvaluation;
 
 class ShapeOfLinProblem {
 public :

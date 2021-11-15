@@ -23,6 +23,12 @@ ExpressionSum operator+(const ExpressionVirtual& f1, const ExpressionVirtual& f2
 ExpressionDif operator-(const ExpressionVirtual& f1, const ExpressionVirtual& f2) {
   return ExpressionDif(f1, f2);
 }
+ExpressionNormal2 operator*(const FunFEM<Mesh2>& f1, const Normal& n){
+  return ExpressionNormal2(f1);
+}
+ExpressionTangent2 operator*(const FunFEM<Mesh2>& f1, const Tangent& n){
+  return ExpressionTangent2(f1);
+}
 const int Normal::idx[3] = {0,1,2};
 const int Tangent::idx[3] = {1,0,2}; // only in 2D
 

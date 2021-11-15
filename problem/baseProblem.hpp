@@ -138,16 +138,21 @@ void addDiagonal(double epsilon_machine);
 // Classic FEM
 void addBilinear(const ListItemVF<Rd::d>& VF);
 void addLinear(const ListItemVF<Rd::d>& VF);
-
 void addBilinearFormBorder(const ListItemVF<Rd::d>& VF, list<int> label = {});
+void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return addBilinearFormBorder(VF, label); };
 void addLinearFormBorder(const ListItemVF<Rd::d>& VF  , list<int> label = {});
+void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b  , list<int> label = {}){ return addLinearFormBorder(VF, label); };;
+
 void addStrongBC(const ExpressionVirtual& gh, list<int> label = {});
 void addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh, list<int> label={});
 
 void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val) ;
 
 void addEdgeIntegral(const ListItemVF<Rd::d>& VF);
+void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return addEdgeIntegral(VF); };
+
 void addEdgeIntegral(const ListItemVF<Rd::d>& VF, const MacroElement& macro);
+void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const MacroElement& macro){ return BaseProblem<M>::addEdgeIntegral(VF, macro); };
 
 
 
@@ -172,6 +177,8 @@ public:
   void addElementLagrange(const ListItemVF<Rd::d>& VF , const Interface& gamma, const int k,const Mapping& mapping);
   void addElementLagrange(const ListItemVF<Rd::d>& VF , const Interface& gamma, const int k,const TimeSlab& In, double tq,const Mapping& mapping);
 
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval);
+  void addElementMat(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface,const CNode& nodeEval);
 
 
 // Time integrals
@@ -350,7 +357,6 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const int k) {
   // const int kb = Vh->Th(FK.T);
 
   for(int l=0; l<VF.size();++l) {
-    bool same = (VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
 
     const int ku = VF[l].fespaceU->idxElementFromBackMesh(k, VF[l].domu);
@@ -359,6 +365,7 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const int k) {
     // const int kv = (VF[l].domv != -1)? VF[l].fespaceV->idxElementFromBackMesh(kb, VF[l].domv) : k;
     const FElement& FKu((*VF[l].fespaceU)[ku]);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
+    bool same = (VF[l].fespaceU==VF[l].fespaceV);
 
     RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
@@ -376,6 +383,7 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const int k) {
 
       FKu.BF(Fop, ip, fu); // need point in local reference element
       if(!same) FKv.BF(Fop,ip, fv);
+      VF[l].applyFunNL(fu,fv);
 
       double val = VF[l].fxu(ku, mip);
       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
@@ -446,7 +454,6 @@ void BaseProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const int 
 
   for(int l=0; l<VF.size();++l) {
 
-    bool same = (VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
     What_d Fop = Fwhatd(lastop);
 
@@ -454,6 +461,7 @@ void BaseProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const int 
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb,dom);
     const FElement& FKu((*VF[l].fespaceU)[ku]);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
+    bool same = (VF[l].fespaceU==VF[l].fespaceV);
 
     RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
@@ -678,7 +686,6 @@ void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF) {
 
   for(int k=Sh.first_element(); k<Sh.last_element(); k+= Sh.next_element()) {
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
-
       addElementMatEdge(VF, k, ifac);
 
     }
@@ -717,7 +724,6 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
 
   int ifacn = ifac;
   int kn = Vhu.getNeighborElement(k, ifacn, the_domain);
-
   if(kn == -1) return;         // border edge
   if(k > kn) return;           // only compute one time
 
@@ -739,6 +745,7 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
     const FElement& FKu(Vhu[ku]);
     const FElement& FKv(Vhv[kv]);
     this->initIndex(FKu, FKv);
+    int kback = Vh->Th(FKu.T);
 
     RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
@@ -752,11 +759,13 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
 
       FKu.BF(Fop,FKu.T.toKref(mip), fu); // need point in local reference element
       if(!same)FKv.BF(Fop,FKv.T.toKref(mip), fv); // need point in local reference element
+      double val = VF[l].fxu_backMesh(kback,the_domain, mip, normal);
+      double Cst = Cint * VF[l].c  * val * coef;
 
 
       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
         for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
-          this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef * VF[l].c * fu(j,VF[l].cu,VF[l].du)*fv(i,VF[l].cv,VF[l].dv);
+          this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cst* fu(j,VF[l].cu,VF[l].du)*fv(i,VF[l].cv,VF[l].dv);
         }
       }
     }
@@ -877,7 +886,7 @@ void BaseProblem<M>::setElementStrongBC(int ifac, const ExpressionVirtual& gh) {
 //
 //       const int ku = (VF[l].domu == 0)? k : kn;
 //       const int kv = (VF[l].domv == 0)? k : kn;
-//       bool same = (ku == kv);
+//       bool same = (ku == kv && VF[l].fespaceU==VF[l].fespaceV);
 //       const FElement& FKu(Sh[ku]);
 //       const FElement& FKv(Sh[kv]);
 //       this->initIndex(FKu, FKv);

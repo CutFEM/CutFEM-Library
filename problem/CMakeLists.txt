@@ -1,6 +1,7 @@
 
 
 set(PROBLEM_SOURCES
+  problem.cpp
   levelSet.cpp
   reinitialization.cpp
   #cutLevelSet.cpp

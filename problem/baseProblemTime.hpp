@@ -28,14 +28,13 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const int k, con
   In.BF(tq.x, basisFunTime);                  // compute time basic funtions
 
   for(int l=0; l<VF.size();++l) {
-    bool same = (VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
 
     const int ku = VF[l].fespaceU->idxElementFromBackMesh(k, VF[l].domu);
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(k, VF[l].domv);
     const FElement& FKu((*VF[l].fespaceU)[ku]);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
-
+    bool same = (VF[l].fespaceU==VF[l].fespaceV);
     RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
     What_d Fop = Fwhatd(lastop);
@@ -211,7 +210,6 @@ void BaseProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const int 
   In.BF(tq.x, basisFunTime);
 
   for(int l=0; l<VF.size();++l) {
-    bool same = (VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
     What_d Fop = Fwhatd(lastop);
 
@@ -219,7 +217,7 @@ void BaseProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const int 
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb,0);
     const FElement& FKu((*VF[l].fespaceU)[ku]);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
-
+    bool same = (VF[l].fespaceU==VF[l].fespaceV);
     RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
 

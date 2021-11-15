@@ -175,14 +175,17 @@ namespace gnuplot {
 
   void save(const MacroElement & macro) {
 
-    std::ofstream plot1, plot2;
+    std::ofstream plot1, plot2, plot3, plot4;
     plot1.open("small1.dat", std::ofstream::out);
     plot2.open("small2.dat", std::ofstream::out);
+    plot3.open("macroElement1.dat", std::ofstream::out);
+    plot4.open("macroElement2.dat", std::ofstream::out);
 
     const int nve = macro.Vh.Th[0].nv;
-    for(int k=0; k<macro.idx_small_K.size();++k) {
+    for(auto it=macro.small_element.begin(); it<macro.small_element.end();++it) {
 
-      int idxC = macro.idx_small_K[k].first;  // index in cutSpace
+      int idxC = it->index;  // index in cutSpace
+
       int domain = macro.Vh.whichDomain(idxC);
       int idx = macro.Vh.idxElementInBackMesh(idxC);
 
@@ -206,6 +209,38 @@ namespace gnuplot {
     }
     plot1.close();
     plot2.close();
+    // int icolor = 0;
+    // for(auto it=macro.macro_element.begin(); it<macro.macro_element.end();++it) {
+    //
+    //   for(int i=0;i<it->idx_element.size();++i) {
+    //
+    //     int idxC = it->idx_element[i];
+    //     int domain = macro.Vh.whichDomain(idxC);
+    //     int idx = macro.Vh.idxElementInBackMesh(idxC);
+    //
+    //     if(domain == 0){
+    //
+    //       for(int i=0;i<nve;++i) {
+    //         plot3 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
+    //       }
+    //       plot3 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
+    //       plot3 << std::endl;
+    //       plot3 << std::endl;
+    //     }
+    //     else {
+    //       for(int i=0;i<nve;++i) {
+    //         plot4 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
+    //       }
+    //       plot4 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
+    //       plot4 << std::endl;
+    //       plot4 << std::endl;
+    //     }
+    //   }
+    //   icolor+= 3;
+    // }
+    // plot3.close();
+    // plot4.close();
+
   }
 
 

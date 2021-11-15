@@ -48,16 +48,27 @@ public:
   void initialSolution(Rn&);
 
 public :
+// integral on element
   void addBilinear(const ListItemVF<Rd::d>& VF);
   void addLinear(const ListItemVF<Rd::d>& VF);
   void addBilinearFormExtDomain(const ListItemVF<Rd::d>& VF,  const R epsE = 0); // [default epsE = 0]
   void addLinearFormExtDomain(const ListItemVF<Rd::d>& VF, const R epsE = 0);
+
+  // face stabilization
   void addFaceStabilization(const ListItemVF<Rd::d>& VF);
+
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val,const int itq = 0);
-
-
   void addMacroElementStabilization(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
+
+  // integral on macro element
   void addBilinear(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
+
+  // integral on the boundary
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addBilinearFormBorder(VF, label); };
+  void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addLinearFormBorder(VF, label); };
+
+  // integral on inner Edge/Face
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addEdgeIntegral(VF); };
 
 
 
@@ -94,6 +105,7 @@ private:
 public:
   // FEM on surface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addBilinear(VF, gamma, mapping);};
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval){return BaseProblem<M>::addBilinear(VF, gamma, nodeEval);};
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface& gamma, const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addLinear(VF, gamma, mapping);};
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma, double val, const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addLagrangeMultiplier(VF, gamma, val, mapping);};
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma,  const TimeSlab& In, double tq, double val, const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addLagrangeMultiplier(VF, gamma, In, tq, val, mapping);};
@@ -133,6 +145,7 @@ public:
     R tt0 = MPIcf::Wtime();
     if(this->NL.size() > 0 || this->pmat == &this->NL) {
       // add DF to NL
+
       R t2 = CPUtime();
       this->addMapToMap();
       std::cout << " Add Non Linear Problem in solver \t" << CPUtime() - t2 << std::endl;
@@ -237,13 +250,12 @@ void BaseCutProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const int k, 
     for(int l=0; l<VF.size();++l) {
       if(!VF[l].on(domain)) continue;
 
-      bool same = (VF[l].fespaceU == VF[l].fespaceV);
       int lastop = getLastop(VF[l].du, VF[l].dv);
       const int ku = (VF[l].domu != -1)? VF[l].fespaceU->idxElementFromBackMesh(kb, VF[l].domu) : k;
       const int kv = (VF[l].domv != -1)? VF[l].fespaceV->idxElementFromBackMesh(kb, VF[l].domv) : k;
       const FElement& FKu((*VF[l].fespaceU)[ku]);
       const FElement& FKv((*VF[l].fespaceV)[kv]);
-
+      bool same = (VF[l].fespaceU==VF[l].fespaceV);
       RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
       RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
       What_d Fop = Fwhatd(lastop);
@@ -398,7 +410,6 @@ void BaseCutProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const i
 
     for(int l=0; l<VF.size();++l) {
 
-      bool same = (VF[l].fespaceU == VF[l].fespaceV);
       int lastop = getLastop(VF[l].du, VF[l].dv);
       What_d Fop = Fwhatd(lastop);
 
@@ -406,7 +417,7 @@ void BaseCutProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const i
       const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb,dom);
       const FElement& FKu((*VF[l].fespaceU)[ku]);
       const FElement& FKv((*VF[l].fespaceV)[kv]);
-
+      bool same = (VF[l].fespaceU==VF[l].fespaceV);
       RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
       RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
 
@@ -517,7 +528,6 @@ template<typename M>
 void BaseCutProblem<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF) {
 typedef typename Mesh::Element Element;
 const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
-
   for(int k=Sh.first_element(); k<Sh.last_element(); k+= Sh.next_element()) {
 
     if(!Sh.isCut(k)) continue;
@@ -542,16 +552,15 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
   const FESpace& Vhu = *VF[0].fespaceU;
   const FESpace& Vhv = *VF[0].fespaceV;
   const FElement& FK(Vhu[k]);
-  const int kb = Vh->Th(FK.T);
+  const int kb = Vhu.idxElementInBackMesh(k); 
+
   CutData cutData(Vh->getInterface(0).getCutData(kb));
 
-  if(!Vh->isCutSpace() || cutData.edge_isnot_cut(ifac)){
+  if(!Vhu.isCutSpace() || cutData.edge_isnot_cut(ifac)){
   // if(cutData.edge_isnot_cut(ifac)){
     BaseProblem<M>::addElementMatEdge(VF, k, ifac);
     return;
   }
-
-
   double ss = 0.;
   // for(int the_domain=0;the_domain<2;++the_domain){
   int the_domain = FK.whichDomain();
@@ -568,7 +577,7 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
   const R measK = cutK.mesure(the_domain);
   const R h = FK.T.lenEdge(ifac);
   const R meas = cutK.mesureEdge(ifac, the_domain);
-ss += meas;
+  ss += meas;
   for(int l=0; l<VF.size();++l) {
 
     assert(VF[l].fespaceU == VF[l].fespaceV);
@@ -580,6 +589,7 @@ ss += meas;
     const FElement& FKu(Vhu[ku]);
     const FElement& FKv(Vhv[kv]);
     this->initIndex(FKu, FKv);
+    int kback = Vh->Th(FKu.T);
 
     bool same = (ku == kv );
     What_d Fop = Fwhatd(lastop);
@@ -596,7 +606,7 @@ ss += meas;
       FKu.BF(Fop,FKu.T.toKref(mip), fu); // need point in local reference element
       if(!same)FKv.BF(Fop,FKv.T.toKref(mip), fv); // need point in local reference element
 
-      double val = VF[l].fxu(ku, mip);
+      double val = VF[l].fxu_backMesh(kback,the_domain, mip, normal);
       double Cst = Cint * VF[l].c  * val * coef;
 
       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
@@ -625,8 +635,7 @@ void BaseCutProblem<M>::addMacroElementStabilization(const ListItemVF<Rd::d>& VF
   lastop += 1;
 
   KNMK<double> basisFunMat(nbDof,Vh->N,lastop);
-  // MacroElement bigMac(*Vh, C);
-  for(std::vector<std::pair<int,int>>::iterator it = bigMac.edges_to_stabilize.begin(); it != bigMac.edges_to_stabilize.end(); ++it){
+  for(auto it = bigMac.edges_to_stabilize.begin(); it != bigMac.edges_to_stabilize.end(); ++it){
 
     int k = it->first;
     int ifac = it->second;
@@ -760,6 +769,13 @@ void BaseCutProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF , const i
     }
   }
 }
+
+
+
+
+
+
+
 
 inline int getIdDomain(int id0, int domain) {
   if(domain == -1) return id0;

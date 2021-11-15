@@ -41,7 +41,6 @@ void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& g
 
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
     addElementMat(VF, gamma, iface,mapping);
-
   }
 }
 
@@ -67,13 +66,14 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
   const Partition& cutK =  Partition(Vh->backSpace->Th[kb], cutData);
 
   for(int l=0; l<VF.size();++l) {
+    bool same = (VF[l].fespaceU==VF[l].fespaceV);
 
-    bool same = (VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
 
 
     const int ku = VF[l].fespaceU->idxElementFromBackMesh(kb,VF[l].domu);
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb,VF[l].domv);
+
     const FElement& FKu((*VF[l].fespaceU)[ku]);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
     double measK = FKu.getMeasure();
@@ -106,10 +106,12 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
 
       mapping.transform(FKu, fu, invJ);
       if(!same) mapping.transform(FKv, fv, invJ);
+      R val_fh = VF[l].fxu_backMesh(kb, 0, mip, normal);
+
       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
         for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
           // (*this)(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef *  VF[l].c * Cnormal * fv(i,VF[l].cv,VF[l].dv)*fu(j,VF[l].cu,VF[l].du);
-          this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef *  VF[l].c * Cnormal * fv(i,VF[l].cv,VF[l].dv)*fu(j,VF[l].cu,VF[l].du);
+          this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef * val_fh * VF[l].c * Cnormal * fv(i,VF[l].cv,VF[l].dv)*fu(j,VF[l].cu,VF[l].du);
         }
       }
     }
@@ -329,6 +331,104 @@ void BaseProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF, const Inter
 }
 
 
+template<typename M>
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval) {
+
+  for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
+    addElementMat(VF, gamma, iface,nodeEval);
+  }
+}
+
+template<typename M>
+void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface0,const CNode& nodeEval) {
+
+  typedef typename QFB::QuadraturePoint QuadraturePoint;
+  typedef typename FElement::RdHatBord RdHatBord;
+  typedef typename Mesh::Partition Partition;
+  typedef typename TypeCutData<Rd::d>::CutData CutData;
+  const Mesh& Th(*interface.backMesh);
+
+  const int kb = interface.idxElementOfFace(iface0);   // idx on
+  const typename Interface::FaceIdx& face0 = interface[iface0];  // the face
+
+  CutData cutData(interface.getCutData(kb));     // get the cut data
+  const Partition& cutK =  Partition(Vh->backSpace->Th[kb], cutData);
+
+
+  for(int inode=0;inode<2;++inode) {
+
+    int idx_node = face0[inode];
+    int e0 = interface.edge_of_node_[idx_node];
+    int e1 = e0;
+    int knb = Th.ElementAdj(kb,e1);
+    const Rd mip = interface(idx_node);
+
+    if(kb > knb) continue;  //only does evaluation once;
+
+    int iface1 = interface.face_of_element_.find(knb)->second;
+    const typename Interface::FaceIdx& face1 = interface[iface1];  // the face
+    int inode1 = (interface.edge_of_node_[face1[0]]==e1)? 0 : 1;
+
+    const Rd normal0(-interface.normal(iface0));
+    const Rd normal1(-interface.normal(iface1));
+
+    Rd conormal0 = normal0;//interface(face0[inode]) - interface(face0[(inode==0)]);
+    // conormal0 /= conormal0.norm();
+
+    Rd conormal1 = normal1;//interface(face1[inode1]) - interface(face1[(inode1==0)]);
+    // conormal1 /= conormal1.norm();
+
+    // std::cout << conormal0 << "\n" << conormal1 << std::endl;
+    // getchar();
+
+    for(int l=0; l<VF.size();++l) {
+      assert(!VF[l].fespaceU->isCutSpace());
+      assert(VF[l].fespaceU==VF[l].fespaceV);
+      int lastop = getLastop(VF[l].du, VF[l].dv);
+      this->initIndex(VF[l].fespaceU, VF[l].fespaceV);
+
+      const int kbu = (VF[l].domu == 0)? kb : knb;
+      const int kbv = (VF[l].domv == 0)? kb : knb;
+
+      const int ku = VF[l].fespaceU->idxElementFromBackMesh(kbu);
+      const int kv = VF[l].fespaceV->idxElementFromBackMesh(kbv);
+      bool same = (ku == kv);
+
+      const FElement& FKu((*VF[l].fespaceU)[ku]);
+      const FElement& FKv((*VF[l].fespaceV)[kv]);
+
+
+      RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+      RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
+      What_d Fop = Fwhatd(lastop);
+
+
+      FKu.BF(Fop,FKu.T.toKref(mip), fu);//basisFunMat); // need point in local reference element
+      if(!same) FKv.BF(Fop,FKv.T.toKref(mip), fv);
+
+      R coef = computeCoefInterface(VF[l],0,0,0 );
+
+      R val_fh = VF[l].fx_backMesh_U(kbu, 0, mip, conormal0)
+                *VF[l].fx_backMesh_V(kbv, 0, mip, conormal1);
+      double Cnormal = VF[l].getCoefU(conormal0)*VF[l].getCoefV(conormal1);
+
+      double Cst = Cnormal*coef*val_fh*VF[l].c;
+
+      for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
+        for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
+          (*this)(FKv.loc2glb(i),FKu.loc2glb(j)) += Cst*fv(i,VF[l].cv,VF[l].dv)*fu(j,VF[l].cu,VF[l].du);
+        }
+      }
+      this->resetIndex();
+    }
+  }
+
+}
+
+
+
+
+
 /*
         INTEGRATION SPACE AND TIME  \int_\Omega(t) f(x,t) dx dt
 */
@@ -384,8 +484,8 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const TimeInterf
   const Partition& cutK =  Partition(Vh->backSpace->Th[kb], cutData);
 
   for(int l=0; l<VF.size();++l) {
+    bool same = (VF[l].fespaceU==VF[l].fespaceV);
 
-    bool same = (VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
 
     const int ku = VF[l].fespaceU->idxElementFromBackMesh(kb, VF[l].domu);
@@ -393,6 +493,7 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const TimeInterf
     const FElement& FKu((*VF[l].fespaceU)[ku]);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
     double measK = FKu.getMeasure();
+
 
     RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction

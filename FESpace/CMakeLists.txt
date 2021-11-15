@@ -6,6 +6,7 @@ set(FESPACE_SOURCES
   P1dc.cpp
   P2.cpp
   P2dc.cpp
+  P3dc.cpp
   P3.cpp
   RT0.cpp
   RT1.cpp
@@ -15,6 +16,7 @@ set(FESPACE_SOURCES
   FESpace.cpp
   CutFESpace.cpp
   expression.cpp
+  macroElement.cpp
 #  integrationFunFEM.cpp
 #  funFEM.cpp
 #  funCutFEM.cpp
