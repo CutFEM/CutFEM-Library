@@ -159,7 +159,7 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
     int kk = k;
     if(macro){
       if(!macro->isRootFat(k)) {
-        kk = macro->small_or_fat_K[k];
+        kk = macro->getIndexRootElement(k);
       }
     }
 
@@ -260,7 +260,6 @@ double L2normCut( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M
 
   return sqrt(val);
 }
-
 
 
 template<typename M>
@@ -383,22 +382,24 @@ double L2normCutLoc_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpac
   // 2. Remove from elements_to_integrate when isSmall or neighbor
   // 3. Standard L2 error, but only over elements_to_integrate
 
-  for (auto it=bigMac.edges_to_stabilize.begin(); it<bigMac.edges_to_stabilize.end(); it++) {
 
-    int k = it->first;
-    int ifac = it->second;
-    //
-    int ifacn = ifac;
-    // for(int ifac=0;ifac<3;++ifac){
-      // int ifacn = ifac;
-
-      int k_back  = Vh.Th(Vh[k].T);
-      int kn_back = Vh.Th.ElementAdj(k_back,ifacn);
-      if(kn_back == -1) kn_back = k_back;
-      int kn = Vh.idxElementFromBackMesh(kn_back, domain);
-      if(kn == -1) kn = k;
-      elements_to_integrate[k] = 0;
-  }
+assert(0);
+  // for (auto it=bigMac.edges_to_stabilize.begin(); it<bigMac.edges_to_stabilize.end(); it++) {
+  //
+  //   int k = it->first;
+  //   int ifac = it->second;
+  //   //
+  //   int ifacn = ifac;
+  //   // for(int ifac=0;ifac<3;++ifac){
+  //     // int ifacn = ifac;
+  //
+  //     int k_back  = Vh.Th(Vh[k].T);
+  //     int kn_back = Vh.Th.ElementAdj(k_back,ifacn);
+  //     if(kn_back == -1) kn_back = k_back;
+  //     int kn = Vh.idxElementFromBackMesh(kn_back, domain);
+  //     if(kn == -1) kn = k;
+  //     elements_to_integrate[k] = 0;
+  // }
 
 
 
