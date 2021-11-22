@@ -98,7 +98,7 @@ int main(int argc, char** argv )
   CutFEM_Parameter kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
   CutFEM_Parameter kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
   CutFEM_Parameter penalty1("penalty1", kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);
-  CutFEM_Parameter penalty2("penalty2", kappaTilde1*lambda_btemp, kappaTilde2*lambda_btemp);
+  CutFEM_Parameter penalty2("penalty2", kappaTilde1*tau_b1, kappaTilde2*tau_b2);
 
   // CONSTRUCTION OF THE MESH
   // =====================================================
@@ -168,6 +168,19 @@ int main(int argc, char** argv )
   //  Need to retrieve h somehow for the penalty terms.
   //  Ask about penalty parameters tau's
 
+  // convdiff.addBilinear(
+  //   // - innerProduct(A0*average(gradS(u0)*t),jump(v0))
+  //   // - innerProduct(A0*jump(u0), average(gradS(v0)*t))
+  //   // - innerProduct(jump((vel*t)*u0),    average(v0))*0.5
+  //   // - innerProduct(tau_a0*A0/h*jump(u0),jump(v0))
+  //   // - innerProduct(lambda_btemp*jump(u0),jump(v0))
+  //   , interface
+  //   , nodeEvaluation
+  // );
+  // matlab::Export(convdiff.mat, "matA.dat");
+  // return 0;
+
+
 
   // Integral on element for bulk variables
   convdiff.addBilinear(
@@ -176,17 +189,21 @@ int main(int argc, char** argv )
            - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5
   );
   // integral on Edges for bulk variables
-  convdiff.addEdgeIntegral(
+  convdiff.addBilinear(
     - innerProduct(kappaTildeA*average(grad(u)*n),jump(v))
     - innerProduct(kappaTildeA*jump(u), average(grad(v)*n))
     + innerProduct((vel*n)*average(u), kappaTilde*jump(v))*0.5
     - innerProduct((vel*n)*jump(u),    kappaTilde*average(v))*0.5
+    , innerEdge
   );
   // add penalty parameters
   // need to check the penalty2 with Sara
-  convdiff.addEdgeIntegral(
-    -innerProduct(penalty1*jump(u),kappaTilde*jump(v))
-    -innerProduct(penalty2*jump(u),kappaTilde*jump(v))
+  convdiff.addBilinear(
+    // -innerProduct(penalty1*jump(u),kappaTilde*jump(v))
+    // -innerProduct(penalty2*jump(u),kappaTilde*jump(v))
+     innerProduct(penalty1*jump(u),jump(v))
+    +innerProduct(penalty2*jump(u)*fabs(vel*n),jump(v))
+    , innerEdge
   );
 
 
@@ -199,6 +216,7 @@ int main(int argc, char** argv )
    );
 
    // Need to implement point evaluation
+   // here t is the conormal
    // convdiff.addBilinear(
    //   - innerProduct(A0*average(gradS(u0)*t),jump(v0))
    //   - innerProduct(A0*jump(u0), average(gradS(v0)*t))
@@ -226,7 +244,7 @@ int main(int argc, char** argv )
   // what are those macro elements. Then we could see with
   // each other what to write
   MacroElement macro(Wh, 1e-1);
-  convdiff.addMacroElementStabilization(
+  convdiff.addFaceStabilization(
       innerProduct(1e-2*1./h *jump(u)      , kappaTilde*jump(v))
     + innerProduct(1e-2*   h *jump(grad(u)), kappaTilde*jump(grad(v)))
     , macro
@@ -235,13 +253,14 @@ int main(int argc, char** argv )
   // Stabilization of the SURFACE
   // Here you will have to implement something
   // because it involve point evaluation again
-  MacroElementSurface macroInterface(interface, 0.5);
-  convdiff.addEdgeIntegral(
+  // MacroElementSurface macroInterface(interface, 0.5);
+  convdiff.addBilinear(
       innerProduct(1e-2*1./h/h*jump(u0), jump(v0))
     + innerProduct(1e-2*jump(grad(u0)), jump(grad(v0)))
+    , innerEdge
   );
   convdiff.addBilinear(
-    innerProduct(1e-2*h*h*grad(u0)*n, grad(v0)*n)
+      innerProduct(1e-2*h*h*grad(u0)*n, grad(v0)*n)
     , interface
   );
 

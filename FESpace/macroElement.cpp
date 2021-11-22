@@ -1,7 +1,7 @@
 #include "MacroElement.hpp"
 #include "../common/SparseMatMap.hpp"
 
-MacroElement::MacroElement(const FESpace2& vh, const double C) : Vh(vh) {//}, small_or_fat_K(vh.nbElement){
+MacroElement::MacroElement(const FESpace2& vh, const double C) : Vh(vh) {
   double h = Vh[0].T.lenEdge(0);
   double meas = Vh[0].T.mesure();
   nb_element_0 = 0;
@@ -81,9 +81,9 @@ void MacroElement::find_root_element(){
         int kn_tmp = Vh.idxElementFromBackMesh(kn_back, the_domain);   // not in the domain
         if(kn_tmp ==-1) continue;
 
-        if(small_or_fat_K[kn_tmp] == kn_tmp) {
+        if(small_or_fat_K[kn_tmp] == kn_tmp) {   // means kn_tmp is a root fat
           kn = kn_tmp;
-          ie = ifac;
+          ie = (k < kn)? ifac : ifacn;
           chain_position[k] = 1;
           Ks.setChainPosition(1);
           found_fat_neigh = true;
@@ -92,11 +92,11 @@ void MacroElement::find_root_element(){
           macro_element.push_back(MElement(kn, k, ie));
           break;
         }
-        else if((small_or_fat_K[kn_tmp] != small)) {
+        else if((small_or_fat_K[kn_tmp] != small)) {  // means it is a new fat
 
           if(chain_position[k] == 0 ||  chain_position[k] > chain_position[kn_tmp]){
             kn = kn_tmp;
-            ie = ifac;
+            ie = (k < kn)? ifac : ifacn;;
             chain_position[k] = chain_position[kn_tmp]+1;
             Ks.setChainPosition(chain_position[kn_tmp]+1);
             found_fat_neigh = true;
@@ -107,7 +107,7 @@ void MacroElement::find_root_element(){
 
       // if(isFat(kn)) {
       if(found_fat_neigh) {
-        edges_to_stabilize.push_back(std::make_pair(k, ie));
+        int kk = (k<kn)? k:kn;
         small_or_fat_K[k] = small_or_fat_K[kn];
         idx_small_K_temp.erase(idx_small_K_temp.begin()+i); // remove the element.
         Ks.setRoot(small_or_fat_K[kn]);
@@ -115,12 +115,12 @@ void MacroElement::find_root_element(){
         if(chain_position[k] != 1){
           int idx_root = small_or_fat_K[kn];
           int idx_ME = idxRoot2idxMElement[idx_root];
-          macro_element[idx_ME].add(k, ie);
+          macro_element[idx_ME].add(kk, ie);
         }
       }
+    }
+    ii++;
   }
-  ii++;
-}
 }
 
 void MacroElement::do_extension(const std::map<std::pair<int,int>,int>::const_iterator& it){
@@ -551,7 +551,7 @@ void MacroElementSurface::find_root_element(){
       it->second.setEdgeDirection(1);
     }
 
-    std::cout << iface << "\t" << chain_position << std::endl;
+    // std::cout << iface << "\t" << chain_position << std::endl;
 
   }
 

@@ -56,9 +56,10 @@ public :
 
   // face stabilization
   void addFaceStabilization(const ListItemVF<Rd::d>& VF);
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
+
 
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val,const int itq = 0);
-  void addMacroElementStabilization(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
 
   // integral on macro element
   void addBilinear(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
@@ -535,7 +536,19 @@ const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
       BaseProblem<M>::addElementMatEdge(VF, k, ifac);
     }
   }
+}
 
+template<typename M>
+void BaseCutProblem<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac) {
+
+  for(auto me=bigMac.macro_element.begin(); me!=bigMac.macro_element.end();++me) {
+    for(auto it=me->inner_edge.begin(); it!=me->inner_edge.end();++it){
+
+      int k = it->first;
+      int ifac = it->second;
+      BaseProblem<M>::addElementMatEdge(VF, k, ifac);
+    }
+  }
 }
 
 /*
@@ -552,7 +565,7 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
   const FESpace& Vhu = *VF[0].fespaceU;
   const FESpace& Vhv = *VF[0].fespaceV;
   const FElement& FK(Vhu[k]);
-  const int kb = Vhu.idxElementInBackMesh(k); 
+  const int kb = Vhu.idxElementInBackMesh(k);
 
   CutData cutData(Vh->getInterface(0).getCutData(kb));
 
@@ -623,85 +636,63 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
 }
 
 
-/*
-   Add macro stabilization
-*/
-template<typename M>
-void BaseCutProblem<M>::addMacroElementStabilization(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac) {
-
-  const int nbDof = (*Vh)[0].NbDoF(); // same local dof for every element
-  int lastop = 0;
-  for(int i=0;i<VF.size();++i) lastop = Max(lastop, VF[i].du, VF[i].dv);
-  lastop += 1;
-
-  KNMK<double> basisFunMat(nbDof,Vh->N,lastop);
-  for(auto it = bigMac.edges_to_stabilize.begin(); it != bigMac.edges_to_stabilize.end(); ++it){
-
-    int k = it->first;
-    int ifac = it->second;
-
-    addElementMatEdge(basisFunMat,VF, k, ifac);
-
-  }
-}
-
-
-template<typename M>
-void BaseCutProblem<M>::addElementMatEdge(KNMK<double>& basisFunMat,const ListItemVF<Rd::d>& VF, const int k, int ifac) {
-
-  typedef typename QFB::QuadraturePoint QuadraturePoint;
-  typedef typename FElement::RdHatBord RdHatBord;
-  typedef typename Mesh::Element Element;
-
-  KNMK<double> bfn = basisFunMat;
-  What_d Fop = Fwhatd(basisFunMat.K());
-  const FElement& FK((*Vh)[k]);
-  const Element & K = FK.T;                  // the triangle
-  int k_back = this->Vh->Th(K);
-  int the_domain = FK.whichDomain();
-  const R h = FK.T.lenEdge(0);
-
-  int ifacn = ifac;
-  int kn_back = Vh->Th.ElementAdj(k_back,ifacn);
-  int kn = Vh->idxElementFromBackMesh(kn_back, the_domain);   // not in the domain
-
-  const FElement & FKn((*Vh)[kn]);                     // the neighboor finite element
-  Rd normal = FK.T.N(ifac);
-
-  const R meas = FK.T.mesureBord( ifac);
-  const R measK = FK.getMeasure();
-
-  for(int l=0; l<VF.size();++l) {
-
-    R coef = BaseProblem<M>::computeCoef(VF[l],h,meas, measK,the_domain) * VF[l].getCoef(normal);
-
-    const int ku = (VF[l].domu == 0)? k : kn;
-    const int kv = (VF[l].domv == 0)? k : kn;
-    const FElement& FKu((*Vh)[ku]);
-    const FElement& FKv((*Vh)[kv]);
-    this->initIndex(FKu, FKv);
-
-    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-
-      QuadraturePoint ip(qfb[ipq]); // integration point
-      const Rd mip = K(K.toKref((RdHatBord)ip, ifac));
-      const R Cint = meas * ip.getWeight();
-
-      FKu.BF(Fop,FKu.T.toKref(mip), basisFunMat); // need point in local reference element
-      FKv.BF(Fop,FKv.T.toKref(mip), bfn); // need point in local reference element
-
-      for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
-        for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
-          // (*this)(FKv.loc2glb(i),FKu.loc2glb(j))  +=  Cint * coef *  VF[l].c * bfn(i,VF[l].cv,VF[l].dv) * basisFunMat(j,VF[l].cu,VF[l].du);
-          this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef *  VF[l].c * bfn(i,VF[l].cv,VF[l].dv) * basisFunMat(j,VF[l].cu,VF[l].du);
-
-        }
-      }
-    }
-  }
-  this->resetIndex();
-  this->addLocalContribution();
-}
+//
+// template<typename M>
+// void BaseCutProblem<M>::addElementMatEdge(KNMK<double>& basisFunMat,const ListItemVF<Rd::d>& VF, const int k, int ifac) {
+//
+//   typedef typename QFB::QuadraturePoint QuadraturePoint;
+//   typedef typename FElement::RdHatBord RdHatBord;
+//   typedef typename Mesh::Element Element;
+//
+//   KNMK<double> bfn = basisFunMat;
+//   What_d Fop = Fwhatd(basisFunMat.K());
+//   const FElement& FK((*Vh)[k]);
+//   const Element & K = FK.T;                  // the triangle
+//   int k_back = this->Vh->Th(K);
+//   int the_domain = FK.whichDomain();
+//   const R h = FK.T.lenEdge(0);
+//
+//   int ifacn = ifac;
+//   int kn_back = Vh->Th.ElementAdj(k_back,ifacn);
+//   int kn = Vh->idxElementFromBackMesh(kn_back, the_domain);   // not in the domain
+//
+//   const FElement & FKn((*Vh)[kn]);                     // the neighboor finite element
+//   Rd normal = FK.T.N(ifac);
+//
+//   const R meas = FK.T.mesureBord( ifac);
+//   const R measK = FK.getMeasure();
+//
+//   for(int l=0; l<VF.size();++l) {
+//
+//     R coef = BaseProblem<M>::computeCoef(VF[l],h,meas, measK,the_domain) * VF[l].getCoef(normal);
+//
+//     const int ku = (VF[l].domu == 0)? k : kn;
+//     const int kv = (VF[l].domv == 0)? k : kn;
+//     const FElement& FKu((*Vh)[ku]);
+//     const FElement& FKv((*Vh)[kv]);
+//     this->initIndex(FKu, FKv);
+//
+//     for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+//
+//       QuadraturePoint ip(qfb[ipq]); // integration point
+//       const Rd mip = K(K.toKref((RdHatBord)ip, ifac));
+//       const R Cint = meas * ip.getWeight();
+//
+//       FKu.BF(Fop,FKu.T.toKref(mip), basisFunMat); // need point in local reference element
+//       FKv.BF(Fop,FKv.T.toKref(mip), bfn); // need point in local reference element
+//
+//       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
+//         for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
+//           // (*this)(FKv.loc2glb(i),FKu.loc2glb(j))  +=  Cint * coef *  VF[l].c * bfn(i,VF[l].cv,VF[l].dv) * basisFunMat(j,VF[l].cu,VF[l].du);
+//           this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef *  VF[l].c * bfn(i,VF[l].cv,VF[l].dv) * basisFunMat(j,VF[l].cu,VF[l].du);
+//
+//         }
+//       }
+//     }
+//   }
+//   this->resetIndex();
+//   this->addLocalContribution();
+// }
 
 /*
 Add Lagrange multiplier

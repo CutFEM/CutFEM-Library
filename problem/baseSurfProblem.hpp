@@ -122,7 +122,6 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
   }
 }
 
-
 template<typename M>
 void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const Mapping& mapping) {
 
@@ -189,7 +188,6 @@ void BaseProblem<M>::addElementRHS(const ListItemVF<Rd::d>& VF, const Interface&
   }
 
 }
-
 
 template<typename M>
 void BaseProblem<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma, double val,const Mapping& mapping) {
@@ -369,17 +367,22 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
     const typename Interface::FaceIdx& face1 = interface[iface1];  // the face
     int inode1 = (interface.edge_of_node_[face1[0]]==e1)? 0 : 1;
 
-    const Rd normal0(-interface.normal(iface0));
-    const Rd normal1(-interface.normal(iface1));
+    // here the normal can be inward or outward since it is only squared in the gradient
+    // then we can define the normal that will give the tangent to be the outward conormal
+    Rd tangent0 = interface(face0[inode] ) - interface(face0[(inode +1)%2]);
+    Rd tangent1 = interface(face1[inode1]) - interface(face1[(inode1+1)%2]);
+    tangent0 /= tangent0.norm();
+    tangent1 /= tangent1.norm();
+    const Rd normal0(tangent0.y, -tangent0.x);
+    const Rd normal1(tangent1.y, -tangent1.x);
 
-    Rd conormal0 = normal0;//interface(face0[inode]) - interface(face0[(inode==0)]);
-    // conormal0 /= conormal0.norm();
-
-    Rd conormal1 = normal1;//interface(face1[inode1]) - interface(face1[(inode1==0)]);
-    // conormal1 /= conormal1.norm();
-
-    // std::cout << conormal0 << "\n" << conormal1 << std::endl;
-    // getchar();
+    // const Rd mip2 = interface(face1[inode1]);
+    // Rd xx(mip,mip2);
+    // assert(xx.norm() < 1e-14);
+    // Rd n1 = Th[kb].N(e0);
+    // Rd n2 = Th[knb].N(e1);
+    // assert( (n1, tangent0) >0);
+    // assert( (n2, tangent1) >0);
 
     for(int l=0; l<VF.size();++l) {
       assert(!VF[l].fespaceU->isCutSpace());
@@ -389,6 +392,8 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
 
       const int kbu = (VF[l].domu == 0)? kb : knb;
       const int kbv = (VF[l].domv == 0)? kb : knb;
+      const Rd normalu = (VF[l].domu == 0)? normal0 : normal1;
+      const Rd normalv = (VF[l].domv == 0)? normal0 : normal1;
 
       const int ku = VF[l].fespaceU->idxElementFromBackMesh(kbu);
       const int kv = VF[l].fespaceV->idxElementFromBackMesh(kbv);
@@ -397,20 +402,18 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
       const FElement& FKu((*VF[l].fespaceU)[ku]);
       const FElement& FKv((*VF[l].fespaceV)[kv]);
 
-
       RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
       RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
       What_d Fop = Fwhatd(lastop);
-
 
       FKu.BF(Fop,FKu.T.toKref(mip), fu);//basisFunMat); // need point in local reference element
       if(!same) FKv.BF(Fop,FKv.T.toKref(mip), fv);
 
       R coef = computeCoefInterface(VF[l],0,0,0 );
 
-      R val_fh = VF[l].fx_backMesh_U(kbu, 0, mip, conormal0)
-                *VF[l].fx_backMesh_V(kbv, 0, mip, conormal1);
-      double Cnormal = VF[l].getCoefU(conormal0)*VF[l].getCoefV(conormal1);
+      R val_fh = VF[l].fx_backMesh_U(kbu, 0, mip, normalu)
+                *VF[l].fx_backMesh_V(kbv, 0, mip, normalv);
+      double Cnormal = VF[l].getCoefU(normalu)*VF[l].getCoefV(normalv);
 
       double Cst = Cnormal*coef*val_fh*VF[l].c;
 
@@ -422,7 +425,6 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
       this->resetIndex();
     }
   }
-
 }
 
 

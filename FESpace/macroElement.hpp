@@ -20,7 +20,8 @@ public:
 
   void add(int idx_K, int idx_edge) {
     idx_element.push_back(idx_K);
-    inner_edge.push_back(std::make_pair(idx_K, idx_edge));
+    int kk =(idx_root_element < idx_K)? idx_root_element : idx_K;
+    inner_edge.push_back(std::make_pair(kk, idx_edge));
   }
 
   void print() const {
@@ -69,8 +70,7 @@ public:
   enum{small=-1};
   const int good = 0, extension = 1, exhaust = 2;
 
-  vector<std::pair<int,int>> edges_to_stabilize;
-  set<int> dof2rm;
+
   vector<MElement> macro_element;
   map<int, int> idxRoot2idxMElement;
 
@@ -79,6 +79,7 @@ public:
   // for exhaust algo
   std::map<std::pair<int ,int>, int> element_edge_handle;
 
+  set<int> dof2rm;
   std::map<std::pair<int,int>,double> S, St;
   std::map<std::pair<int,int>,double> P, Pt;
 
