@@ -7,7 +7,8 @@ MUMPS::MUMPS(const Solver& s, matmap & AA, Rn & bb)
     :
     //verbose(s.verbose),
     //  reordering(s.reordering),
-      mat(AA), rhs(bb) {
+      mat(AA), rhs(bb)
+      , cleanMatrix(s.clearMatrix){
 
   //    if(MPIcf::size() > 1) assert(0);
     std::cout << " Using sequential MUMPS  " << std::endl;
@@ -105,7 +106,7 @@ void MUMPS::saveMatrixToCSR() {
       JCN_loc(k) = q->first.second + 1;
       A_loc(k)   = q->second;
     }
-  mat.clear();
+  if(cleanMatrix) mat.clear();
 
   mumps_par.irn_loc = IRN_loc;
   mumps_par.jcn_loc = JCN_loc;

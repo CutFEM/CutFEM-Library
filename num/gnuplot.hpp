@@ -175,16 +175,22 @@ namespace gnuplot {
 
   void save(const MacroElement & macro) {
 
-    std::ofstream plot1, plot2, plot3, plot4;
+    std::ofstream plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10;
     plot1.open("small1.dat", std::ofstream::out);
     plot2.open("small2.dat", std::ofstream::out);
     plot3.open("macroElement1.dat", std::ofstream::out);
     plot4.open("macroElement2.dat", std::ofstream::out);
+    plot5.open("extensionEdge1.dat", std::ofstream::out);
+    plot6.open("extensionEdge2.dat", std::ofstream::out);
+    plot7.open("goodEdge1.dat", std::ofstream::out);
+    plot8.open("goodEdge2.dat", std::ofstream::out);
+    plot9.open("innerEdgeME1.dat", std::ofstream::out);
+    plot10.open("innerEdgeME2.dat", std::ofstream::out);
 
     const int nve = macro.Vh.Th[0].nv;
-    for(auto it=macro.small_element.begin(); it<macro.small_element.end();++it) {
+    for(auto it=macro.small_element.begin(); it!=macro.small_element.end();++it) {
 
-      int idxC = it->index;  // index in cutSpace
+      int idxC = it->second.index;  // index in cutSpace
 
       int domain = macro.Vh.whichDomain(idxC);
       int idx = macro.Vh.idxElementInBackMesh(idxC);
@@ -209,39 +215,158 @@ namespace gnuplot {
     }
     plot1.close();
     plot2.close();
-    // int icolor = 0;
-    // for(auto it=macro.macro_element.begin(); it<macro.macro_element.end();++it) {
-    //
-    //   for(int i=0;i<it->idx_element.size();++i) {
-    //
-    //     int idxC = it->idx_element[i];
-    //     int domain = macro.Vh.whichDomain(idxC);
-    //     int idx = macro.Vh.idxElementInBackMesh(idxC);
-    //
-    //     if(domain == 0){
-    //
-    //       for(int i=0;i<nve;++i) {
-    //         plot3 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
-    //       }
-    //       plot3 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
-    //       plot3 << std::endl;
-    //       plot3 << std::endl;
-    //     }
-    //     else {
-    //       for(int i=0;i<nve;++i) {
-    //         plot4 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
-    //       }
-    //       plot4 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
-    //       plot4 << std::endl;
-    //       plot4 << std::endl;
-    //     }
-    //   }
-    //   icolor+= 3;
-    // }
-    // plot3.close();
-    // plot4.close();
+    int icolor = 0;
+    for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+
+      for(int i=0;i<it->second.idx_element.size();++i) {
+
+        int idxC = it->second.idx_element[i];
+        int domain = macro.Vh.whichDomain(idxC);
+        int idx = macro.Vh.idxElementInBackMesh(idxC);
+
+        if(domain == 0){
+
+          for(int i=0;i<nve;++i) {
+            plot3 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
+          }
+          plot3 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
+          plot3 << std::endl;
+          plot3 << std::endl;
+        }
+        else {
+          for(int i=0;i<nve;++i) {
+            plot4 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
+          }
+          plot4 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
+          plot4 << std::endl;
+          plot4 << std::endl;
+        }
+      }
+      icolor+= 3;
+    }
+    plot3.close();
+    plot4.close();
+    for(auto it=macro.element_edge_handle.begin(); it!=macro.element_edge_handle.end();++it) {
+
+      int idxK = it->first.first;
+      int ie = it->first.second;
+      int domain = macro.Vh.whichDomain(idxK);
+      int idx = macro.Vh.idxElementInBackMesh(idxK);
+      int handle = it->second;
+      int i0 = Mesh2::Element::nvedge[ie][0];
+      int i1 = Mesh2::Element::nvedge[ie][1];
+
+      R2 P = 0.5*(((R2) macro.Vh.Th[idx][i0]) + ((R2) macro.Vh.Th[idx][i1]));
+      if(handle == 1) {
+        if(domain == 0){
+          plot5 << P << std::endl;
+        }
+        else {
+          plot6 << P << std::endl;
+        }
+      }
+      else{
+        if(domain == 0){
+          plot7 << P << std::endl;
+        }
+        else {
+          plot8 << P << std::endl;
+        }
+      }
+    }
+    plot5.close();
+    plot6.close();
+    plot7.close();
+    plot8.close();
+    for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+
+      for(int i=0;i<it->second.inner_edge.size();++i) {
+
+        int idxC = it->second.inner_edge[i].first;
+        int ie = it->second.inner_edge[i].second;
+        int domain = macro.Vh.whichDomain(idxC);
+        int idx = macro.Vh.idxElementInBackMesh(idxC);
+
+        int i0 = Mesh2::Element::nvedge[ie][0];
+        int i1 = Mesh2::Element::nvedge[ie][1];
+        R2 P = 0.5*(((R2) macro.Vh.Th[idx][i0]) + ((R2) macro.Vh.Th[idx][i1]));
+
+        if(domain == 0){
+          plot9 << P << std::endl;
+
+        }
+        else {
+          plot10 << P << std::endl;
+        }
+      }
+    }
+    plot9.close();
+    plot10.close();
 
   }
+
+  void save(const MacroElementSurface & macro) {
+    std::ofstream plot;
+    plot.open("small.dat", std::ofstream::out);
+
+    const Mesh2& Th(*macro.interface.backMesh);
+    const int nve = Th[0].nv;
+    for(auto it=macro.small_element.begin(); it!=macro.small_element.end();++it) {
+
+      int idxC = it->first;  // index in cutMesh
+      int idx = macro.interface.idxElementOfFace(idxC);
+
+      for(int i=0;i<nve;++i) {
+        plot << Th[idx][i] << 1 << std::endl;
+      }
+      plot << Th[idx][0] << 1 << std::endl;
+      plot << std::endl;
+      plot << std::endl;
+    }
+    plot.close();
+
+
+    plot.open("macroElement.dat", std::ofstream::out);
+    int icolor = 0;
+    for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+      for(int i=0;i<it->second.idx_element.size();++i) {
+
+        int idxC = it->second.idx_element[i];
+        int idx = macro.interface.idxElementOfFace(idxC);
+
+        for(int i=0;i<nve;++i) {
+          plot << Th[idx][i] << icolor%10 << std::endl;
+        }
+        plot << Th[idx][0] << icolor%10 << std::endl;
+        plot << std::endl;
+        plot << std::endl;
+      }
+      icolor+= 3;
+    }
+    plot.close();
+
+    plot.open("innerEdge.dat", std::ofstream::out);
+    for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+
+      for(int i=0;i<it->second.inner_edge.size();++i) {
+
+        int iface = it->second.inner_edge[i].first;
+        int ie = it->second.inner_edge[i].second;
+        int idx = macro.interface.idxElementOfFace(iface);
+
+        int i0 = Mesh2::Element::nvedge[ie][0];
+        int i1 = Mesh2::Element::nvedge[ie][1];
+        R2 P = 0.5*(((R2) Th[idx][i0]) + ((R2) Th[idx][i1]));
+
+        plot << P << std::endl;
+
+      }
+    }
+    plot.close();
+
+
+  }
+
 
 
 

@@ -157,11 +157,11 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
     ElementSignEnum the_part = cutK.what_part(domain);
 
     int kk = k;
-    if(macro){
-      if(!macro->isRootFat(k)) {
-        kk = macro->getIndexRootElement(k);
-      }
-    }
+    // if(macro){
+    //   if(!macro->isRootFat(k)) {
+    //     kk = macro->getIndexRootElement(k);
+    //   }
+    // }
 
     for(typename Partition::const_element_iterator it = cutK.element_begin(the_part);
     it != cutK.element_end(the_part); ++it){

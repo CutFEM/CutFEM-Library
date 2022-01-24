@@ -37,15 +37,14 @@ struct ItemTestFunction {
   vector<string> coefu;
   int dom;
   const ExpressionVirtual * expru = nullptr;
-  GFESpace<Mesh> const * fespace = nullptr;;
+  GFESpace<Mesh> const * fespace = nullptr;
   void (*pfun)(RNMK_&, int , int) = f_id;
+  bool alloc_expr = false;
 
 
   ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),dom(-1){}
   ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<string> cou)
   : c(cc), cu(i),du(j),dtu(tu), dom(dd){ coefu =cou;}
-  // ItemTestFunction(double cc,int i,int j, int dd)
-  // : c(cc), cu(i),du(j),dtu(-1), dom(dd){}
   ItemTestFunction(const ItemTestFunction& F)
   : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), dom(F.dom), expru(F.expru), fespace(F.fespace) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
@@ -54,9 +53,14 @@ struct ItemTestFunction {
   : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), dom(F.dom), expru(F.expru), fespace(F.fespace), pfun(f) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
   }
+  ItemTestFunction(const FunFEM<Mesh>& ff, int ic) : c(1.), cu(ic),du(op_id),dtu(0),dom(-1),fespace(ff.Vh),alloc_expr(true){
+    expru = new ExpressionFunFEM<Mesh>(ff, ic, op_id);
+  }
+  ItemTestFunction(const GFESpace<Mesh>& vh,  const ExpressionVirtual& ff) : c(1.), cu(ff.cu),du(ff.op),dtu(ff.opt),dom(-1),fespace(&vh){
+    expru = &ff;
+  }
 
-
-  ItemTestFunction& operator = (const ItemTestFunction& L) {
+  ItemTestFunction& operator= (const ItemTestFunction& L) {
     c = L.c;
     cu = L.cu;
     du = L.du;
@@ -66,8 +70,8 @@ struct ItemTestFunction {
     coefu = L.coefu;
     expru = L.expru;
     fespace = L.fespace;
+    assert(!L.alloc_expr);
     return *this;
-
   }
 
   void addNormal(int i) {
@@ -91,17 +95,17 @@ struct ItemTestFunction {
     return *this;
   }
 
+  ItemTestFunction operator*=(const Normal_Component& cc){
+    this->addNormal(cc.component());
+    return *this;
+  }
 
 
-
-
-  friend std::ostream& operator <<(std::ostream& f, const ItemTestFunction & u )
-  {
-
+  friend std::ostream& operator << (std::ostream& f, const ItemTestFunction& u ) {
     string n[3] = {"nx", "ny", "nz"};
     f << " FESpace => " << u.fespace << "\t";
     f << to_string(u.c) << " * "
-      << whichOperator(u.du, u.cu);
+    << whichOperator(u.du, u.cu);
     for(int i=0;i<u.ar_nu.size();++i) f << " * " << n[u.ar_nu(i)];
     // f << "\n";
     for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
@@ -109,6 +113,12 @@ struct ItemTestFunction {
     else f << "\t in Omega";
     f << "\n";
     return f;
+  }
+
+  ~ItemTestFunction(){
+    if(alloc_expr) {
+      delete expru;
+    }
   }
 
 };
@@ -147,7 +157,12 @@ public:
     for(int i=0;i<U.size();++i) U(i) = new ItemTestFunction<N>(*L.U(i), f);
   }
 
-
+  ItemList(const FunFEM<Mesh>& ff, int ic) : U(1) {
+    U(0) = new ItemTestFunction<N>(ff, ic);
+  }
+  ItemList(const FESpace& Vh,const ExpressionVirtual& ff) : U(1) {
+    U(0) = new ItemTestFunction<N>(Vh, ff);
+  }
 
   ItemList(const FESpace& Vh, double cc,int i,int j, int dd=-1) : U(1) {
     U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<string>());
@@ -161,6 +176,10 @@ public:
 
 
   ItemList operator*=(R cc){
+    for(int i=0;i<U.size();++i) *U(i) *= cc;
+    return *this;
+  }
+  ItemList operator*=(const Normal_Component& cc){
     for(int i=0;i<U.size();++i) *U(i) *= cc;
     return *this;
   }
@@ -178,8 +197,6 @@ public:
   }
 
 };
-
-
 
 
 
@@ -252,17 +269,27 @@ public:
     }
   }
 
-
-
-  // void init(int d, int l) {
-  //   destroy();
-  //   A.init(d,l);
-  //   for(int i=0;i<d;++i) {
-  //     for(int j=0;j<l;++j) {
-  //       A(i,j) = new ItemList<dim> (1,i,0);
-  //     }
-  //   }
-  // }
+  TestFunction(const FESpace& Vh, const ExpressionVirtual& ff) {
+    A.init(1,1);
+    for(int i=0;i<1;++i)  A(i,0) = new ItemList<dim> (Vh, ff);
+  }
+  TestFunction(const FESpace& Vh,const ExpressionVirtual& ff, const ExpressionVirtual& gg) {
+    A.init(2,1);
+    A(0,0) = new ItemList<dim> (Vh,ff);
+    A(1,0) = new ItemList<dim> (Vh,gg);
+  }
+  TestFunction(const FESpace& Vh,const ExpressionVirtual& f1, const ExpressionVirtual& f2, const ExpressionVirtual& f3, const ExpressionVirtual& f4) {
+    A.init(4,1);
+    A(0,0) = new ItemList<dim> (Vh,f1);
+    A(1,0) = new ItemList<dim> (Vh,f2);
+    A(2,0) = new ItemList<dim> (Vh,f3);
+    A(3,0) = new ItemList<dim> (Vh,f4);
+  }
+  TestFunction(const FunFEM<Mesh>& ff, int i0, int nb_comp) {
+    int n = nb_comp;
+    A.init(n,1);
+    for(int i=i0,j=0;i<i0+nb_comp;++i,++j)  A(j,0) = new ItemList<dim> (ff, i);
+  }
 
   TestFunction t() const {
     TestFunction Ut(A.M(), A.N()); //Ut.init(A.M(), A.N());
@@ -335,7 +362,6 @@ public:
     return Un;
   }
 
-
   // We need a line vector because N is column
   TestFunction operator*(const Tangent& N) {
     // assert(!(A.M() == 1 && A.N() == dim ));// no column accepted
@@ -392,8 +418,6 @@ public:
     return Un;
   }
 
-
-
   TestFunction operator * (const Projection& Pg ) {
     // Only for scalr right now
       assert(A.N() == 1 && A.M() == 1);
@@ -429,9 +453,7 @@ public:
       return Un;
     }
 
-
-  friend std::ostream& operator <<(std::ostream& f, const TestFunction & u )
-  {
+  friend std::ostream& operator <<(std::ostream& f, const TestFunction & u ) {
     f << u.A.N() << " * " << u.A.M() << std::endl;
     for(int i=0;i<u.A.N();++i) {
       for(int j=0;j<u.A.M();++j) {
@@ -469,6 +491,10 @@ template<int N> friend TestFunction<N> grad2(const TestFunction<N> & T);
 
 template<int N> friend TestFunction<N> jump(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const TestFunction<N> & V );
+template<int N> friend TestFunction<N> jump(const TestFunction<N> & T, int c1, int c2);
+template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const TestFunction<N> & V , int c1, int c2);
+
+
 
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T, double v1, double v2);
 template<int N> friend TestFunction<N> average1(const TestFunction<N> & T);
@@ -573,6 +599,7 @@ TestFunction<N> operator * (const ExpressionVirtual& expr, const TestFunction<N>
   }
   return multU;
 }
+
 template <int N>
 TestFunction<N> operator * (const TestFunction<N>& F, const ExpressionVirtual& expr) {
   TestFunction<N> multU(F);
@@ -639,6 +666,19 @@ TestFunction<N> operator * (double cc, const TestFunction<N>& F) {
   }
   return multU;
 }
+
+template <int N>
+TestFunction<N> operator * (const TestFunction<N>& F, const Normal_Component& c) {
+  TestFunction<N> multU(F);
+  for(int i=0;i<F.A.N();++i) {
+    for(int j=0;j<F.A.M();++j) {
+      *multU.A(i,j) *= c ;
+    }
+  }
+  return multU;
+}
+
+
 
 template <int N>
 TestFunction<N> ln(const TestFunction<N>& F) {
@@ -1152,7 +1192,7 @@ TestFunction<d> grad2(const TestFunction<d> & T){
 
 
 template <int d>
-TestFunction<d> jump(const TestFunction<d> & T){
+TestFunction<d> jump(const TestFunction<d> & T, int c1, int c2){
   // assert(T.A.M() == 1);
   int N = T.A.N();
   int M = T.A.M();
@@ -1166,12 +1206,13 @@ TestFunction<d> jump(const TestFunction<d> & T){
         {
           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e));
           u = v;
+          u.c *= c1;
           u.dom = 0;
         }
         {
           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e+1));
           u=v;
-          u.c *= -1;
+          u.c *= c2;
           u.dom = 1;
         }
       }
@@ -1179,9 +1220,13 @@ TestFunction<d> jump(const TestFunction<d> & T){
   }
   return jumpU;
 }
+template <int d>
+TestFunction<d> jump(const TestFunction<d> & T){
+  return jump(T, 1, -1);
+}
 
 template <int d>
-TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
+TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V, int c1, int c2){
   assert(U.A.M() == 1 && U.A.N() == 1);
   assert(V.A.M() == 1 && V.A.N() == 1);
   int N = U.A.N();
@@ -1197,13 +1242,14 @@ TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
           const ItemTestFunction<d>& v(U.A(i,j)->getItem(e));
           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e));
           u = v;
+          u.c *= c1;
           // u.dom = 0;
         }
         {
           const ItemTestFunction<d>& v(V.A(i,j)->getItem(e));
           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e+1));
           u=v;
-          u.c *= -1;
+          u.c *= c2;
           // u.dom = 1;
         }
       }
@@ -1211,6 +1257,12 @@ TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
   }
   return jumpU;
 }
+
+template <int d>
+TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
+  return jump(U, V, 1, -1);
+}
+
 
 
 template <int d>

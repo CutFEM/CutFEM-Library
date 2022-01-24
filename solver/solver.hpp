@@ -59,6 +59,7 @@ double get_Time() const {return CPUtime();}
 
 public :
 int verbose = 0;
+bool clearMatrix = true;
 //   std::string reordering = "none";
   //std::string solver = "umfpack";
 

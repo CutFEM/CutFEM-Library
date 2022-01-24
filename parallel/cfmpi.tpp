@@ -1,25 +1,25 @@
 
-template<typename T> 
+template<typename T>
 inline
 long MPIcf::Bcast(T &a, int who, int size) {
   return WBcast(&a, size, who,Communicator_);}
 
-template<typename T> 
+template<typename T>
 inline
 long MPIcf::Bcast(T &a, int who, int size, const MPI_Comm& comm){
   return WBcast(&a, size, who,comm);
 }
 
 
-template<typename T> 
+template<typename T>
 inline long MPIcf::Bcast(const KN<T> &a, int who)  {
-  assert(&a); 
+  assert(&a);
   CheckContigueKN(a);
   return WBcast((T *) a, a.N(), who,Communicator_);
 }
 template<typename T>
 inline long MPIcf::Bcast(const KN<T> &a, int who, const MPI_Comm& comm )  {
-  assert(&a); 
+  assert(&a);
   CheckContigueKN(a);
   return WBcast((T *) a, a.N(), who, comm);
 }
@@ -54,7 +54,13 @@ inline void MPIcf::AllReduce(const T& myData, T& globalData, int size,
 		  MPI_TYPE<T>::TYPE(), op, Communicator_); }
 
 template <typename T>
-inline void MPIcf::AllReduce(const KN<T>& myData, KN<T>& globalData, 
+inline void MPIcf::AllReduce(const T* myData, T* globalData, int size,
+  const MPI_Op& op)
+  { MPI_Allreduce(myData, globalData, size,
+    MPI_TYPE<T>::TYPE(), op, Communicator_); }
+
+template <typename T>
+inline void MPIcf::AllReduce(const KN<T>& myData, KN<T>& globalData,
 			     const MPI_Op& op)
   {
     CheckContigueKN(myData);

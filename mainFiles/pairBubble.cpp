@@ -83,7 +83,7 @@ int main(int argc, char** argv )
 
   int nx = 120;
   int ny = 40;
-   Mesh2 Th(nx, ny, -4., -1., 8., 2.);
+  Mesh2 Th(nx, ny, -4., -1., 8., 2.);
   // double meshSize = 6./nx;
   // double meshSize(6./nx);
   // Mesh2 Th("../mesh/extensionMesh4040_6030.msh");
@@ -127,12 +127,12 @@ int main(int argc, char** argv )
 
 
   myCout << " SIMULATION OF 2 BUBBLE IN EXTENSION FLOW. \n"
-            << " We consider the navier Stokes equations coupled to the insoluble surfactant problem.\n"
-            << " We solve the non linear system using the Newton method \n"
-            << " We approximate the surfactant concentration using P1/P1 space time finite elements  \n"
-            << " We are using the levelSet P2 with a reinitializtion step every 5 time iterations \n"
-            << " We are using P1 finite element in time, with the Simpson rule as quadrature rule "
-            << std::endl << std::endl;
+  << " We consider the navier Stokes equations coupled to the insoluble surfactant problem.\n"
+  << " We solve the non linear system using the Newton method \n"
+  << " We approximate the surfactant concentration using P1/P1 space time finite elements  \n"
+  << " We are using the levelSet P2 with a reinitializtion step every 5 time iterations \n"
+  << " We are using P1 finite element in time, with the Simpson rule as quadrature rule "
+  << std::endl << std::endl;
 
 
   myCout << " Mesh size \t" << meshSize << std::endl;
@@ -148,7 +148,7 @@ int main(int argc, char** argv )
 
 
   // Set parameters for paraview PLOTTING
-  const bool writeVTKFiles = true;
+  const bool writeVTKFiles = false;
   const bool saveStokesVTK = true;
   const bool saveSurfactantVTK = true;
   const bool curvatureVTKFile = false;
@@ -226,17 +226,17 @@ int main(int argc, char** argv )
 
 
   myCout << "\n Parameters of the problem : \n"
-            << " mu_1 = " << mu.val1 << " and mu_2 = "<< mu.val2 << " \n"
-            << " rho_1 = "<< rho.val1 << " and rho_2 = " << rho.val2 << " \n"
-            << " the surface tension sigma = " << sigma0 << " \n"
-            << " beta = " << beta
-            << std::endl;
+  << " mu_1 = " << mu.val1 << " and mu_2 = "<< mu.val2 << " \n"
+  << " rho_1 = "<< rho.val1 << " and rho_2 = " << rho.val2 << " \n"
+  << " the surface tension sigma = " << sigma0 << " \n"
+  << " beta = " << beta
+  << std::endl;
 
-            myCout << " \n Beginning of the time iteration \n"
-            << " --------------------------------------- \n " << std::endl;
+  myCout << " \n Beginning of the time iteration \n"
+  << " --------------------------------------- \n " << std::endl;
 
   int iter = 0, iterfig = 0;
-  while( iter < GTime::total_number_iteration ) {
+  while( iter < 1){//GTime::total_number_iteration ) {
 
     GTime::current_iteration = iter;
     const TimeSlab& In(Ih[iter]);
@@ -254,11 +254,11 @@ int main(int argc, char** argv )
       // projection(ls_k[i], ls[i]);
       if(iter%frequencyReinitialization == 0 && i == 1 && iter > 0) {
         // reinitialization.perform(ls_k[i], ls[i]);
-	if(iter%50 == 0) {
-	  reinitialization.number_iteration = 30;
-	}
+        if(iter%50 == 0) {
+          reinitialization.number_iteration = 30;
+        }
         reinitialization.perform(ls[i]);
-	if(iter%50 == 0) {
+        if(iter%50 == 0) {
           reinitialization.number_iteration = 2;
         }
       }
@@ -281,9 +281,9 @@ int main(int argc, char** argv )
     FESpace2 cutWh(cutThTime, interface, DataFE<Mesh2>::P1);   // FE for surfactant
     cutWh.backSpace = &Lh;  // svae backSpace to save solution
 
-/*
-                PROBLEM DEFINITION
-*/
+    /*
+    PROBLEM DEFINITION
+    */
     Normal n;
     FunTest du(Wh,d), dp(Wh,1,d), v(Wh,d), q(Wh,1,d), dp1(Wh,1,d,0);
     FunTest Eun = (Eps(du)*n);
@@ -364,7 +364,7 @@ int main(int argc, char** argv )
         #ifdef FORMULATION1
         stokes.addBilinear(
           innerProduct(dt(ds), r)
-        + innerProduct(epsilon_surfactant*gradS(ds), gradS(r))
+          + innerProduct(epsilon_surfactant*gradS(ds), gradS(r))
           , interface
           , In
         );
@@ -391,7 +391,7 @@ int main(int argc, char** argv )
         R h3 = pow(meshSize,3);
 
         stokes.addFaceStabilization(
-            innerProduct(1e-2*h *jump(grad(du)*n), rho*mu*jump(grad(v)*n))
+          innerProduct(1e-2*h *jump(grad(du)*n), rho*mu*jump(grad(v)*n))
           + innerProduct(1e-2*h3*jump(D2nu)      , rho*mu*jump(D2nv))
           ,In
         );
@@ -444,7 +444,7 @@ int main(int argc, char** argv )
           // -(sigma(w)k , <v.n>) = -(s0*Bw, <v.n>)
           // +(dSsigma(w) , <v> ) =
           stokes.addBilinear(
-              innerProduct(Kx*ds    , average2(vx))*beta*sigma0
+            innerProduct(Kx*ds    , average2(vx))*beta*sigma0
             + innerProduct(Ky*ds    , average2(vy))*beta*sigma0
             + innerProduct(gradS(ds), average2(v) )*beta*sigma0
             , interface
@@ -452,10 +452,10 @@ int main(int argc, char** argv )
           );
         }
         stokes.addLinear(
-            - innerProduct(Kx  , average2(vx))*sigma0
-            - innerProduct(Ky  , average2(vy))*sigma0
-            , interface
-            , i , In
+          - innerProduct(Kx  , average2(vx))*sigma0
+          - innerProduct(Ky  , average2(vy))*sigma0
+          , interface
+          , i , In
         );
         if(iter%frequencyPlottingTheSolution == 0 && curvatureVTKFile && i == 0){
           Fun_h solMC(cutVh, curvature.rhs);
@@ -520,12 +520,12 @@ int main(int argc, char** argv )
         ,In
       );
       stokes.addLinear(
-          innerProduct(u1*dx(u1) + u2*dy(u1), rho*v1)
+        innerProduct(u1*dx(u1) + u2*dy(u1), rho*v1)
         + innerProduct(u1*dx(u2) + u2*dy(u2), rho*v2)
         , In
       );
 
-#ifdef FORMULATION2
+      #ifdef FORMULATION2
       stokes.addBilinear(
         - innerProduct(ds*u1 , dx(r)) - innerProduct(ds*u2 , dy(r))
         - innerProduct(s*du , grad(r))
@@ -538,9 +538,9 @@ int main(int argc, char** argv )
         , interface
         , In
       );
-#else
+      #else
       stokes.addBilinear(
-          innerProduct(u1  *dx(ds) + u2  *dy(ds) , r)
+        innerProduct(u1  *dx(ds) + u2  *dy(ds) , r)
         + innerProduct(du1*dx(s)  + du2*dy(s)  , r)
         + innerProduct(ds*divS(uh)   , r)
         + innerProduct(s *dxS(du1) + s *dyS(du2) , r)
@@ -548,13 +548,13 @@ int main(int argc, char** argv )
         , In
       );
       stokes.addLinear(
-          innerProduct(u1*dx(s)   + u2*dy(s)  , r)
+        innerProduct(u1*dx(s)   + u2*dy(s)  , r)
         + innerProduct(s *dxS(uh) + s *dyS(uh), r)
         , interface
         , In
       );
 
-#endif
+      #endif
       myCout << " Time assembly NL \t" << CPUtime() - tt0 << std::endl;
       tt0 = CPUtime();
 
@@ -593,7 +593,7 @@ int main(int argc, char** argv )
 
       iterNewton+=1;
 
-      if(iterNewton == 5 || max(dist, dists) < 1e-10  ) {
+      if(iterNewton == 1 || max(dist, dists) < 1e-10  ) {
         stokes.saveSolution(data_sol);
         stokes.cleanMatrix();
         break;
@@ -632,13 +632,13 @@ int main(int argc, char** argv )
 
 
       outputData << GTime::current_time()+dT << "\t"
-                 << centerOfMass << "\t"
-                 << circularity << "\t"
-                 << riseVelocity << "\t"
-                 << areaBubble <<  "\t"
-                 << qend << "\t"
-                 << fabs(q - qend) << "\t"
-                 << fabs(qend - initialConcentrationSurfactant) << std::endl;
+      << centerOfMass << "\t"
+      << circularity << "\t"
+      << riseVelocity << "\t"
+      << areaBubble <<  "\t"
+      << qend << "\t"
+      << fabs(q - qend) << "\t"
+      << fabs(qend - initialConcentrationSurfactant) << std::endl;
 
     }
 

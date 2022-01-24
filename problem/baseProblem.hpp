@@ -128,6 +128,9 @@ protected:
     this->index_i0 = mapIdx0[&FKv.Vh];
     this->index_j0 = mapIdx0[&FKu.Vh];
   }
+  void initIndex( const FElement& FKv) {
+    this->index_i0 = mapIdx0[&FKv.Vh];
+  }
 
   virtual void solve();
   virtual void assembly() {assert(0);};
@@ -150,9 +153,11 @@ void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val) ;
 
 void addEdgeIntegral(const ListItemVF<Rd::d>& VF);
 void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return addEdgeIntegral(VF); };
+void addLinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b);
 
-void addEdgeIntegral(const ListItemVF<Rd::d>& VF, const MacroElement& macro);
-void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const MacroElement& macro){ return BaseProblem<M>::addEdgeIntegral(VF, macro); };
+
+void addEdgeIntegral(const ListItemVF<Rd::d>& VF, const GMacro& macro);
+void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro){ return BaseProblem<M>::addEdgeIntegral(VF, macro); };
 
 
 
@@ -163,14 +168,17 @@ protected:
   virtual void addElementRHSBorder(const ListItemVF<Rd::d>& VF, const int k, int dom = 0);
   void setElementStrongBC(int ifac, const ExpressionVirtual& gh);
   virtual void addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k, const int ifac);
+  virtual void addElementRHSEdge(const ListItemVF<Rd::d>& VF, const int k, const int ifac);
   virtual void addElementLagrange(const ListItemVF<Rd::d>& VF , const int k);
 
 
 public:
   // FEM on surface
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const Mapping& mapping = DataMapping<Mesh>::Id);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,list<int> label = {}, const Mapping& mapping = DataMapping<Mesh>::Id);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const GMacro& macro, list<int> label = {}, const Mapping& mapping = DataMapping<Mesh>::Id);
+
   void addElementMat(const ListItemVF<Rd::d>& VF, const Interface& gamma, const int ifac,const Mapping& mapping);
-  void addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const Mapping& mapping = DataMapping<Mesh>::Id);
+  void addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, list<int> label = {},const Mapping& mapping = DataMapping<Mesh>::Id);
   void addElementRHS(const ListItemVF<Rd::d>& VF, const Interface& gamma, const int ifac,const Mapping& mapping);
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma, double val, const Mapping& mapping = DataMapping<Mesh>::Id) ;
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma,  const TimeSlab& In, double tq, double val, const Mapping& mapping = DataMapping<Mesh>::Id) ;
@@ -179,6 +187,9 @@ public:
 
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval);
   void addElementMat(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface,const CNode& nodeEval);
+
+  void addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CBorder& b, list<int> label = {});
+  void addElementRHSBorder(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface);
 
 
 // Time integrals
@@ -252,6 +263,14 @@ public:
     R t1 = CPUtime();
     // std::cout << " Time Solver \t \t " << t1 - t0 << std::endl;
   }
+
+  void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
+    R tt0 = MPIcf::Wtime();
+    Solver::solve(A, b);
+    std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+
+  }
+
 };
 
 template<typename M>
@@ -611,7 +630,7 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const int 
       FKv.BF(Fop,FKv.T.toKref(mip), fv);
 
       double cst_normal = VF[l].getCoef(normal);
-      double val_fh = VF[l].fxu_backMesh(kb, dom, mip);
+      double val_fh = VF[l].fxu_backMesh(kb, dom, mip, normal);
 
       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
         (*this)(FKv.loc2glb(i)) +=  Cint * coef * cst_normal * val_fh * VF[l].c * fv(i,VF[l].cv,VF[l].dv);
@@ -692,17 +711,15 @@ void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF) {
   }
 }
 
-
 template<typename M>
-void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF, const MacroElement& macro) {
+void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF, const GMacro& macro) {
 
   for(auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
 
-    for(int i=0;i<it->inner_edge.size();++i){
-      int k = it->inner_edge[i].first;
-      int ie = it->inner_edge[i].second;
+    for(int i=0;i<it->second.inner_edge.size();++i){
+      int k = it->second.inner_edge[i].first;
+      int ie = it->second.inner_edge[i].second;
       addElementMatEdge(VF, k, ie);
-
     }
   }
 }
@@ -717,7 +734,6 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
   assert(VF[0].fespaceU && VF[0].fespaceV);
   const FESpace& Vhu = *VF[0].fespaceU;
   const FESpace& Vhv = *VF[0].fespaceV;
-
   const FElement& FK(Vhu[k]);
   const Element & K = FK.T;                  // the triangle
   int the_domain = FK.whichDomain();
@@ -726,6 +742,7 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
   int kn = Vhu.getNeighborElement(k, ifacn, the_domain);
   if(kn == -1) return;         // border edge
   if(k > kn) return;           // only compute one time
+  // std::cout << k << "\t" << ifac << "\t" << kn << std::endl;
 
   const Rd normal = FK.T.N(ifac);
   const R meas    = FK.T.mesureBord(ifac);
@@ -737,7 +754,6 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
     assert(VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
     double coef = BaseProblem<M>::computeCoef(VF[l],h,meas,measK,the_domain) * VF[l].getCoef(normal) ;
-
     const int ku = (VF[l].domu == 0)? k : kn;
     const int kv = (VF[l].domv == 0)? k : kn;
     bool same = (ku == kv);
@@ -745,7 +761,8 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
     const FElement& FKu(Vhu[ku]);
     const FElement& FKv(Vhv[kv]);
     this->initIndex(FKu, FKv);
-    int kback = Vh->Th(FKu.T);
+    int kuback = Vh->idxElementInBackMesh(ku);
+    int kvback = Vh->idxElementInBackMesh(kv);
 
     RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
@@ -759,7 +776,8 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
 
       FKu.BF(Fop,FKu.T.toKref(mip), fu); // need point in local reference element
       if(!same)FKv.BF(Fop,FKv.T.toKref(mip), fv); // need point in local reference element
-      double val = VF[l].fxu_backMesh(kback,the_domain, mip, normal);
+      double val = VF[l].fx_backMesh_U(kuback,the_domain, mip, normal)
+                  *VF[l].fx_backMesh_V(kvback,the_domain, mip, normal);
       double Cst = Cint * VF[l].c  * val * coef;
 
 
@@ -774,7 +792,76 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
   this->addLocalContribution();
 }
 
+template<typename M>
+void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b) {
+  typedef typename Mesh::Element Element;
+  const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
 
+  for(int k=Sh.first_element(); k<Sh.last_element(); k+= Sh.next_element()) {
+    for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
+      addElementRHSEdge(VF, k, ifac);
+    }
+  }
+}
+
+template<typename M>
+void BaseProblem<M>::addElementRHSEdge(const ListItemVF<Rd::d>& VF, const int k, const int ifac) {
+
+  typedef typename QFB::QuadraturePoint QuadraturePoint;
+  typedef typename FElement::RdHatBord RdHatBord;
+  typedef typename Mesh::Element Element;
+
+  assert(VF[0].fespaceV);
+  const FESpace& Vhv = *VF[0].fespaceV;
+
+  const FElement& FK(Vhv[k]);
+  const Element & K = FK.T;                  // the triangle
+  int the_domain = FK.whichDomain();
+
+  int ifacn = ifac;
+  int kn = Vhv.getNeighborElement(k, ifacn, the_domain);
+  if(kn == -1) return;         // border edge
+  if(k > kn) return;           // only compute one time
+
+  const Rd normal = FK.T.N(ifac);
+  const R meas    = FK.T.mesureBord(ifac);
+  const R measK   = FK.getMeasure();
+  const R h       = FK.T.lenEdge(ifac);//meas;
+
+  for(int l=0; l<VF.size();++l) {
+    int lastop = getLastop(0,VF[l].dv);
+    double coef = BaseProblem<M>::computeCoef(VF[l],h,meas,measK,the_domain) * VF[l].getCoef(normal) ;
+
+    const int kf = (VF[l].domu == 0)? k : kn;
+    const int kv = (VF[l].domv == 0)? k : kn;
+
+    const FElement& FKv(Vhv[kv]);
+    this->initIndex(FKv);
+    int kback  = Vh->idxElementInBackMesh(kv);
+    int kfback = Vh->idxElementInBackMesh(kf);
+
+    RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+    What_d Fop = Fwhatd(lastop);
+
+    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+
+      QuadraturePoint ip(qfb[ipq]); // integration point
+      const Rd mip = K(K.toKref((RdHatBord)ip, ifac));
+      const R Cint = meas * ip.getWeight();
+
+      FKv.BF(Fop,FKv.T.toKref(mip), fv); // need point in local reference element
+      double val =
+                  VF[l].fx_backMesh_U(kfback,the_domain, mip, normal)
+                  *
+                  VF[l].fx_backMesh_V(kback ,the_domain, mip, normal);
+      double Cst = Cint * VF[l].c  * val * coef;
+      for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
+        (*this)(FKv.loc2glb(i)) += Cst*fv(i,VF[l].cv,VF[l].dv);
+      }
+    }
+  }
+  this->resetIndex();
+}
 
 /*
      ADD STRONG BC

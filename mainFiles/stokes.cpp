@@ -96,7 +96,8 @@ int main(int argc, char** argv )
 
     stokes.addBilinear(
       contractProduct(2*mu*Eps(u),Eps(v))
-      - innerProduct(p, div(v)) + innerProduct(div(u), q)
+      - innerProduct(p, div(v))
+      + innerProduct(div(u), q)
     );
     // a(u,v)_dOmega
     stokes.addBilinearFormBorder(

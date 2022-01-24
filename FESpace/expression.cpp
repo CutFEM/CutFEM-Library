@@ -1,18 +1,36 @@
 #include "expression.hpp"
+#include "../problem/CutFEM_Parameter.hpp"
 
 
-ExpressionMultConst operator*(const ExpressionVirtual& f1, const double& cc) {
+ExpressionMultConst operator*(const ExpressionVirtual& f1, double cc) {
   return ExpressionMultConst(f1, cc);
 }
-ExpressionMultConst operator*(const double& cc, const ExpressionVirtual& f1) {
+ExpressionMultConst operator*(double cc, const ExpressionVirtual& f1) {
   return ExpressionMultConst(f1, cc);
 }
+ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Component_X& cc){
+  return ExpressionMultConst(f1, cc);
+}
+ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Component_Y& cc){
+  return ExpressionMultConst(f1, cc);
+}
+ExpressionMultConst operator*(const CutFEM_Parameter& v, const ExpressionVirtual& f1){
+  return ExpressionMultConst(f1, R2(v.val1, v.val2));
+}
+
 ExpressionAbs fabs(const ExpressionVirtual& f1) {
   return ExpressionAbs(f1);
 }
 
+ExpressionSqrt sqrt(const ExpressionVirtual& f1) {
+  return ExpressionSqrt(f1);
+}
+
 ExpressionProduct operator*(const ExpressionVirtual& f1, const ExpressionVirtual& f2) {
   return ExpressionProduct(f1, f2);
+}
+ExpressionDivision operator/(const ExpressionVirtual& f1, const ExpressionVirtual& f2) {
+  return ExpressionDivision(f1, f2);
 }
 
 ExpressionSum operator+(const ExpressionVirtual& f1, const ExpressionVirtual& f2) {

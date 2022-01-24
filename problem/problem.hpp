@@ -5,6 +5,7 @@
 #include <map>
 #include <list>
 //#include "../parallel/cfmpi.hpp"
+#include "../common/geometry.hpp"
 #include "../common/marker.hpp"
 #include "../common/timeInterface.hpp"
 #include "../common/GTime.hpp"
@@ -26,6 +27,7 @@
 #include "../util/cputime.h"
 #include "finiteElement.hpp"
 #include "macroElement.hpp"
+
 
 struct CBorder {
   CBorder() {}
@@ -96,9 +98,15 @@ public :
     A.addMatMul(uuh, F);
   }
 
+  void setMatrixTo(std::map<std::pair<int,int>,R>& A) {
+    pmat = &A;
+  }
+
+  void reset() {
+    pmat = &DF;
+  }
   void saveMatrix() {
     pmat = &NL;
-
   }
   void cleanMatrix() {
     DF.clear(); NL.clear();

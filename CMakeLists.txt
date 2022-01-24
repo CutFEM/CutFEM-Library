@@ -49,6 +49,69 @@ add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 list(APPEND EXTRA_LIBS -lstdc++fs)
 
+#
+set(EX_NAME stokesRT)
+add_executable(${EX_NAME}  mainFiles/stokesRT.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+set(EX_NAME limiter)
+add_executable(${EX_NAME}  mainFiles/test_limiter.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+#
+set(EX_NAME filter)
+add_executable(${EX_NAME}  mainFiles/test_filter.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+#
+
+set(EX_NAME test_levelSet)
+add_executable(${EX_NAME}  mainFiles/test_levelSet.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+#
+set(EX_NAME burger2)
+add_executable(${EX_NAME}  mainFiles/burger2.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+#
+set(EX_NAME euler)
+add_executable(${EX_NAME}  mainFiles/euler.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+
+set(EX_NAME poissonFEM)
+add_executable(${EX_NAME}  mainFiles/poissonFEM.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+
+#
+set(EX_NAME convDiff)
+add_executable(${EX_NAME}  mainFiles/statConvectionDiffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
+set(EX_NAME poissonCutFEM)
+add_executable(${EX_NAME}  mainFiles/poissonCutFEM.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          ${EXTRA_INCLUDES})
 
 set(EX_NAME showMesh)
 add_executable(${EX_NAME}  mainFiles/showMesh.cpp )

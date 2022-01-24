@@ -58,7 +58,7 @@ class TypeOfFE_BDM1_2d : 	public GTypeOfFE<Mesh2> {
       for (int p = 0; p < QFE.n; ++p) {
         R l0 = QFE[p].x, l1 = 1 - QFE[p].x;
         R p0 = eOrientation;                 // poly othogonaux to \lambda_1
-        R p1 = -3 * (l0 - l1);    // poly othogonaux to \lambda_0
+        R p1 = -3 * (l0 - l1);   // poly othogonaux to \lambda_0
         R cc0 = p0 * QFE[p].a;    //
         R cc1 = p1 * QFE[p].a;    //
         v[k++] = cc0 * E.x;
@@ -108,6 +108,9 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
       R eOrientation = K.EdgeOrientation(e);
       R2 f1 = (X - Q[e]) * eOrientation / cK;
       R2 f2 = -(Dl[e1] * refBaryc[e2] + Dl[e2] * refBaryc[e1]).perp( );
+
+      // R2 f1 = 1./Dl[e].norm()*(Q[e1] - Q[e])*refBaryc[e1];
+      // R2 f2 = 1./Dl[e].norm()*(Q[e2] - Q[e])*refBaryc[e2];
 
       bfMat(df, ortho0, op_id) = f1.x;
       bfMat(df++, ortho1, op_id) = s1ortho * f1.y;

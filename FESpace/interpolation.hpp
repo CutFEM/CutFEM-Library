@@ -96,7 +96,7 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
  - output : fh contains the values
  */
 template<typename F>
-void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i, int domain ) ){
+void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int ii, int dom ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
   // assert(0);
   typedef typename F::Rd Rd;
@@ -125,13 +125,12 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
 
     K.Pi_h(Vpf,ggf);
 
-
     for (int df=0;df<nbdf;df++) {
       fh[K(df)] =  ggf[df] ;
     }
   }
 
-  // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
+// MPIcf::AllReduce(fhSend, fh, MPI_MIN);
 }
 
 /*

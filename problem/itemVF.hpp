@@ -90,6 +90,13 @@ struct ItemVF {
     return false;
   }
 
+
+  double fxU(int k, Rd mip, const R* normal = nullptr) const {
+    return ((expru)? expru->eval(k, mip, normal) : 1);
+  }
+  double fxV(int k, Rd mip, const R* normal = nullptr) const {
+    return ((exprv)? exprv->eval(k, mip, normal) : 1);
+  }
   double fxu(int k, Rd mip) const {
     return ((expru)? expru->eval(k, mip) : 1)*((exprv)? exprv->eval(k, mip) : 1);
   }
@@ -305,7 +312,6 @@ ListItemVF<d> operator,(const TestFunction<d>& uu, const TestFunction<d>& vv) {
   return item;
 }
 
-
 // only for vectors
 template <int d>
 ListItemVF<d> operator,(const R c, const TestFunction<d>& F) {
@@ -400,8 +406,6 @@ ListItemVF<d> operator,(const Projection& c, const TestFunction<d>& F) {
   return item;
 }
 
-
-
 template <int d>
 ListItemVF<d> operator,(const ExpressionVirtual& fh, const TestFunction<d>& F) {
   int l = 0;
@@ -430,9 +434,6 @@ ListItemVF<d> operator,(const ExpressionVirtual& fh, const TestFunction<d>& F) {
   item.reduce();
   return item;
 }
-
-
-
 
 template <int d>
 ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*> fh, const TestFunction<d>& F) {
@@ -468,6 +469,8 @@ ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*>
   item.reduce();
   return item;
 }
+
+
 
 template <int d>
 ListItemVF<d> innerProduct(double c, const TestFunction<d>& F) {

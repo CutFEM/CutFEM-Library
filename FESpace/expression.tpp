@@ -1,3 +1,95 @@
+
+template<typename M>
+FunFEM<M>::FunFEM(const FESpace& vh, const ExpressionVirtual& fh) :
+alloc(true), Vh(&vh),
+data(new double[vh.NbDoF()]),
+v(data, vh.NbDoF()) ,
+databf(new double[10*vh[0].NbDoF()*vh.N*4])
+{
+  assert(Vh->N == 1);
+  double dataSend[Vh->nbDoF];
+  Rn_ fhSend(dataSend,Vh->nbDoF); fhSend = 1e+50;
+  const int d = Vh->N;
+  const int nve = Vh->TFE(0)->NbPtforInterpolation;
+  KNM<R>   Vpf(nve,d);                       // value of f at the interpolation points
+  KN<R> ggf(Vh->MaxNbDFPerElement);           // stock the values of the dof of the interpolate
+
+  for(int k=Vh->first_element(); k<Vh->last_element(); k+= Vh->next_element()) {
+
+    const FElement& FK((*Vh)[k]);
+    const int nbdf = FK.NbDoF();            // nof local
+    const int domain = FK.whichDomain();
+    const int kb = Vh->idxElementInBackMesh(k);
+
+    for (int p=0;p<FK.tfe->NbPtforInterpolation;p++) {      // all interpolation points
+      const Rd & P(FK.Pt(p));       // the coordinate of P in K hat
+      for(int i=0;i<d;++i) {
+        Vpf(p,i) = fh.evalOnBackMesh(kb, domain, P);
+      }
+    }
+    std::cout << Vpf << std::endl;
+    FK.Pi_h(Vpf,ggf);
+    for (int df=0;df<nbdf;df++) {
+      fhSend(FK.loc2glb(df)) = ggf[df] ;
+      // fh[K(df)] =  ggf[df] ;
+    }
+    // for(int j=FK.dfcbegin(0);j<FK.dfcend(0);++j) {
+    //   Rd mip = FK.Pt(j);
+    //   fhSend(FK.loc2glb(j)) = fh.evalOnBackMesh(kb, domain, mip);
+    //   // v(FK.loc2glb(j)) = fh.evalOnBackMesh(kb, domain, mip);
+    // }
+    getchar();
+  }
+  MPIcf::AllReduce(dataSend, data, fhSend.size(),MPI_MIN);
+}
+
+template<typename M>
+FunFEM<M>::FunFEM(const FESpace& vh, const ExpressionVirtual& fh1, const ExpressionVirtual& fh2) :
+alloc(true), Vh(&vh),
+data(new double[vh.NbDoF()]),
+v(data, vh.NbDoF()) ,
+databf(new double[10*vh[0].NbDoF()*vh.N*4])
+{
+  assert(Vh->N == 2);
+  double dataSend[Vh->nbDoF];
+  Rn_ fhSend(dataSend,Vh->nbDoF); fhSend = 1e+50;
+  const int d = Vh->N;
+  const int nve = Vh->TFE(0)->NbPtforInterpolation;
+  KNM<R>   Vpf(nve,d);                       // value of f at the interpolation points
+  KN<R> ggf(Vh->MaxNbDFPerElement);           // stock the values of the dof of the interpolate
+
+  for(int k=Vh->first_element(); k<Vh->last_element(); k+= Vh->next_element()) {
+
+    const FElement& FK((*Vh)[k]);
+    const int nbdf = FK.NbDoF();            // nof local
+    const int domain = FK.whichDomain();
+    const int kb = Vh->idxElementInBackMesh(k);
+
+
+    for (int p=0;p<FK.tfe->NbPtforInterpolation;p++) {      // all interpolation points
+      const Rd & P(FK.Pt(p));       // the coordinate of P in K hat
+      for(int i=0;i<d;++i) {
+        const ExpressionVirtual& fh = (d==0)?fh1 : fh2;
+        Vpf(p,i) = fh.evalOnBackMesh(kb, domain, P);
+      }
+    }
+    // std::cout << Vpf << std::endl;
+    FK.Pi_h(Vpf,ggf);
+    for (int df=0;df<nbdf;df++) {
+      fhSend(FK.loc2glb(df)) = ggf[df] ;
+      // fh[K(df)] =  ggf[df] ;
+    }
+    // for(int i=0, j=FK.dfcbegin(ci);j<FK.dfcend(ci);++j,++i) {
+    //   Rd mip = FK.Pt(i);
+    //   fhSend(FK.loc2glb(j)) = fh.evalOnBackMesh(kb, domain, mip);
+    // }
+
+  }
+  MPIcf::AllReduce(dataSend, data, fhSend.size(),MPI_MIN);
+}
+
+
+
 template<typename M>
 void FunFEM<M>::print() const{
   std::cout << v << std::endl;
@@ -76,3 +168,19 @@ std::list<ExpressionFunFEM<M>> FunFEM<M>::expression(int n)const{
   }
   return l;
 }
+
+// template<typename M>
+// std::list<ExpressionFunFEM<M>> LaxFriedrichs_flux(const std::list<ExpressionFunFEM<M>>& U, int cu)
+// {
+//   std::list<ExpressionFunFEM<M>> tt;
+//   auto it=U.begin();
+//   std::list<ExpressionFunFEM<M>> l;
+//   const ExpressionFunFEM<M>& rho(*it);
+//   l.push_back(rho*rho);
+//   l.push_back(rho*rho);
+//   return l;
+//   // auto it=U.begin();
+//   // if(cu == 0) {
+//   //   return {*(it+1) , *(it+2)};
+//   // }
+// }

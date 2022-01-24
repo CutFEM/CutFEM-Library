@@ -12,7 +12,7 @@ class Interface2 : public GenericInterface<Mesh2>
 public:
   Interface2() : GenericInterface<Mesh2>() {}
   Interface2(const Mesh & MM) : GenericInterface<Mesh2>(MM) {}
-  Interface2(const Mesh & MM, const KN<double>& ls) : GenericInterface<Mesh2>(MM, ls) {}
+  Interface2(const Mesh & MM, const KN<double>& ls, int label = 0) : GenericInterface<Mesh2>(MM, ls, label) {}
 
   R2 mapToFace(const FaceIdx& f, const R1 PHat ) const  {
     return (1-PHat.x)*vertices_[f[0]] + PHat.x*vertices_[f[1]];
@@ -23,10 +23,12 @@ public:
   virtual CutData getCutData(const int k) const {
     assert(backMesh);
     const Element& K((*backMesh)[k]);
+
     byte loc_sign[3];
     R2 point[2];
     int array_edge[3] = {-1,-1,-1};
     for(int i=0;i<Element::nv;++i) {
+
       loc_sign[i] = ls_sign((*backMesh)(k, i));
     }
 
@@ -60,9 +62,6 @@ public:
     else
     return CutData(loc_sign);
   }
-
-
-
 
 private:
   Interface2(const Interface2 &); // pas de construction par copie

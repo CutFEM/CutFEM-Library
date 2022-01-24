@@ -17,6 +17,7 @@ set(FESPACE_SOURCES
   CutFESpace.cpp
   expression.cpp
   macroElement.cpp
+  limiter.cpp
 #  integrationFunFEM.cpp
 #  funFEM.cpp
 #  funCutFEM.cpp

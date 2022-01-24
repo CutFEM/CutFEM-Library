@@ -13,6 +13,7 @@ set(COMMON_SOURCES
   Interface2dn.cpp
   Interface3dn.cpp
   SparseMatMap.cpp
+  geometry.cpp
 )
 
 add_library(common SHARED ${COMMON_SOURCES})

@@ -127,8 +127,8 @@ typedef CutData3 CutData;
 public:
   Interface3() : GenericInterface<Mesh3>() {}
   Interface3(const Mesh & MM) : GenericInterface<Mesh3>(MM) {}
-  Interface3(const Mesh & MM, const KN<double>& ls)
-  : GenericInterface<Mesh3>(MM, ls) {}
+  Interface3(const Mesh & MM, const KN<double>& ls, int label=0)
+  : GenericInterface<Mesh3>(MM, ls, label) {}
 
   R3 mapToFace(const FaceIdx& f, const R2 PHat ) const {
     return (1-PHat.x- PHat.y)*vertices_[f[0]] + PHat.x *vertices_[f[1]]

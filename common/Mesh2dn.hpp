@@ -99,7 +99,7 @@ public:
 
 private:
   FaceIdx face_[1];      ///< at most two triangles
-  Ubyte size_;                 ///< number of triangles
+  Ubyte size_;             ///< number of triangles
   Ubyte is_boundary_face_; ///< true if the triangle is one of the tetra's faces.
 
   Ubyte num_elements (const SignPatternTrait2& cut) const {

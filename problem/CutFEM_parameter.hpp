@@ -28,6 +28,7 @@ class Parameter { public:
   static CutFEM_Parameter lambdaB;
   static CutFEM_Parameter lambdaB3;
   static CutFEM_Parameter meas;
+  static CutFEM_Parameter invmeas;
 };
 
 // struct CutFEM_double {
@@ -131,6 +132,7 @@ public:
   }
 
   Pow_Par(const CutFEM_Parameter& A, int n) {
+    assert(n>=0);
     for(int i=0;i<n;++i) list_name.push_back(A.getName());
   }
 

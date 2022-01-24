@@ -14,6 +14,10 @@ class FunFEM;
 template<class F>
 class FEMTimeFunction;
 
+static double paraviewFormat( double x) {
+  return (fabs(x) < 1e-20)? 0.: x;
+}
+
 /*
  *   Only write P1 solution on the mesh provided
  *
@@ -290,14 +294,14 @@ void Paraview<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string n
           for(int i=0;i<Element::nv;++i) {
             Rd x(cutK.get_Vertex(it,i));
             R1 val = fh.evalOnBackMesh(kback, domain, x);
-            data << val << std::endl;;
+            data << paraviewFormat(val) << std::endl;;
           }
         }
       }
       else{
         for(int i=0;i<Element::nv;++i) {
           R1 val = fh.evalOnBackMesh(kback, domain, FK.T[i]);
-          data << val.x << std::endl;
+          data << paraviewFormat(val.x) << std::endl;
         }
       }
     }
@@ -308,7 +312,7 @@ void Paraview<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string n
       int kback = Vh.idxElementInBackMesh(k);
       for(int i=0;i<Element::nv;++i){
         R1 val = fh.evalOnBackMesh(kback, -1, FK.T[i]);
-        data << val.x << std::endl;
+        data << paraviewFormat(val.x) << std::endl;
       }
     }
   }
@@ -349,7 +353,7 @@ void Paraview<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name){
             Rd x(cutK.get_Vertex(it,i));
             for(int  dd=0;dd<Rd::d;++dd){
               R val = fh.eval(kf, x, c0+dd);
-              data << val << "\t" ;
+              data << paraviewFormat(val) << "\t" ;
             }
             if (Rd::d==2) data << "0.0";
             data << std::endl;
@@ -378,7 +382,7 @@ void Paraview<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name){
       for(int i=0;i<Element::nv;++i){
         for(int  dd=0;dd<Rd::d;++dd){
           R val = fh.eval(kf, FK.T[i], c0+dd);
-          data << val << "\t" ;
+          data << paraviewFormat(val) << "\t" ;
         }
         if (Rd::d==2) data << "0.0";
         data << std::endl;
@@ -446,7 +450,7 @@ void Paraview<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name, MacroE
             Rd x(cutK.get_Vertex(it,i));
             for(int  dd=0;dd<Rd::d;++dd){
               R val = fh.eval(kf, x, c0+dd);
-              data << val << "\t" ;
+              data << paraviewFormat(val) << "\t" ;
             }
             if (Rd::d==2) data << "0.0";
             data << std::endl;
@@ -457,7 +461,7 @@ void Paraview<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name, MacroE
       for(int i=0;i<Element::nv;++i) {
         for(int  dd=0;dd<Rd::d;++dd){
           R val = fh.eval(kf, FK.T[i], c0+dd);
-          data << val << "\t" ;
+          data << paraviewFormat(val) << "\t" ;
         }
         if (Rd::d==2) data << "0.0";
         data << std::endl;
@@ -475,7 +479,7 @@ void Paraview<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name, MacroE
       for(int i=0;i<Element::nv;++i){
         for(int  dd=0;dd<Rd::d;++dd){
           R val = fh.eval(kf, FK.T[i], c0+dd);
-          data << val << "\t" ;
+          data << paraviewFormat(val) << "\t" ;
         }
         if (Rd::d==2) data << "0.0";
         data << std::endl;
@@ -522,14 +526,14 @@ void Paraview<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string n
             Rd x(cutK.get_Vertex(it,i));
             R1 val = fh.evalOnBackMesh(kback, domain, x);
             // if(!macro.isRootFat(k)) val = (2*domain-1)*1e7;
-            data << val << std::endl;;
+            data << paraviewFormat(val) << std::endl;;
           }
         }
       }
       else{
         for(int i=0;i<Element::nv;++i) {
           R1 val = fh.evalOnBackMesh(kback, domain, FK.T[i]);
-          data << val.x << std::endl;
+          data << paraviewFormat(val.x) << std::endl;
         }
       }
     }
@@ -540,7 +544,7 @@ void Paraview<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string n
       int kback = Vh.idxElementInBackMesh(k);
       for(int i=0;i<Element::nv;++i){
         R1 val = fh.evalOnBackMesh(kback, -1, FK.T[i]);
-        data << val.x << std::endl;
+        data << paraviewFormat(val.x) << std::endl;
       }
     }
   }

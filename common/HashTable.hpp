@@ -25,6 +25,7 @@ struct SortArray<T,1> {
   bool operator<(const SortArray<T,1> & t)  const
   {  return v[0] < t.v[0]  ;}
   size_t hash() const {return (size_t) v[0];}
+
 };
 
 

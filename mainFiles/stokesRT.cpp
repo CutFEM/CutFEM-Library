@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include "util/cputime.h"
+#include "../util/cputime.h"
 #ifdef USE_MPI
 #  include "cfmpi.hpp"
 #endif
@@ -11,7 +11,7 @@
 #include "finiteElement.hpp"
 #include "baseCutProblem.hpp"
 
-#include "num/gnuplot.hpp"
+#include "../num/gnuplot.hpp"
 
 
 #define PROBLEM_STOKES_DIV
@@ -40,46 +40,42 @@ imposed. "
 namespace Erik_Data_StokesDiv {
 
   // R fun_rhs(const R2 P, int i) {
-  //   R mu=2;
-  //   if(i==0) return 120*P.x*P.y*(1-mu);
-  //   else if(i==1) return 60*(P.x*P.x-P.y*P.y)*(1-mu);
-  //   else return 0;
+  //   return 0;
   // }
   // R fun_exact(const R2 P, int i) {
-  //   if(i==0) return 20*P.x*pow(P.y,3);
-  //   else if(i==1) return 5*pow(P.x,4)-5*pow(P.y,4);
-  //   else return 60*P.x*P.x*P.y-20*P.y*P.y*P.y-5;
+  //   if(i==0) return 0;
+  //   else if(i==1) return P.x;
+  //   else return 0;
   // }
 
   R fun_rhs(const R2 P, int i) {
-    R mu=1;
     R x = P.x;
     R y = P.y;
-    if(i==0) return -2*mu*(pow(x,4)*(6*y-3)+pow(x,3)*(6-12*y)+3*pow(x,2)*(4*pow(y,3)-6*pow(y,2)+4*y-1)-6*x*y*(2*pow(y,2)-3*y+1)+y*(2*pow(y,2)-3*y+1)) + 10*(3*pow(x-0.5,2)*pow(y,2)-3*pow(1-x,2)*pow(y-0.5,3));
-    else if(i==1) return 2*mu*(2*pow(x,3)*(6*pow(y,2)-6*y+1)-3*pow(x,2)*(6*pow(y,2)-6*y+1)+x*(6*pow(y,4)-12*pow(y,3)+12*pow(y,2)-6*y+1)-3*pow(y-1,2)*pow(y,2)) + 10*(2*pow(x-0.5,3)*y+3*pow(1-x,3)*pow(y-0.5,2));
+    if(i==0) return -4*(6*x*x - 6*x + 1)*y*(2*y*y - 3*y + 1) - 12*(x-1)*(x-1)*x*x*(2*y - 1);
+    else if(i==1) return 4*x*(2*x*x - 3 *x + 1)*(6*y*y - 6*y + 1) + 12*(2*x - 1)*(y - 1)*(y-1)*y*y;
     else return 0;
   }
   R fun_exact(const R2 P, int i) {
     R x = P.x;
     R y = P.y;
-    if(i==0) return pow(x,2)*pow(1-x,2)*y*(1-y)*(1-2*y);
-    else if(i==1) return (-x)*(1-x)*(1-2*x)*pow(y,2)*pow(1-y,2);
-    else return 10*(pow(x-0.5,3)*pow(y,2)+pow(1-x,3)*pow(y-0.5,3));
+    if(i==0) return 2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
+    else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
+    else return 0;
   }
   // R fun_rhs(const R2 P, int i) {
   //   R mu=1;
   //   R x = P.x;
   //   R y = P.y;
-  //   if(i==0) return -4*mu*(pow(x,3)*(6 - 12*y) + pow(x,4)*(-3 + 6*y) + y*(1 - 3*y + 2*pow(y,2)) - 6*x*y*(1 - 3*y + 2*pow(y,2)) + 3*pow(x,2)*(-1 + 4*y - 6*pow(y,2) + 4*pow(y,3)));
-  //   else if(i==1) return 4*mu*(-3*pow(-1 + y,2)*pow(y,2) - 3*pow(x,2)*(1 - 6*y + 6*pow(y,2)) + 2*pow(x,3)*(1 - 6*y + 6*pow(y,2)) + x*(1 - 6*y + 12*pow(y,2) - 12*pow(y,3) + 6*pow(y,4)));
+  //   if(i==0) return -2*mu*(pow(x,4)*(6*y-3)+pow(x,3)*(6-12*y)+3*pow(x,2)*(4*pow(y,3)-6*pow(y,2)+4*y-1)-6*x*y*(2*pow(y,2)-3*y+1)+y*(2*pow(y,2)-3*y+1)) + 10*(3*pow(x-0.5,2)*pow(y,2)-3*pow(1-x,2)*pow(y-0.5,3));
+  //   else if(i==1) return 2*mu*(2*pow(x,3)*(6*pow(y,2)-6*y+1)-3*pow(x,2)*(6*pow(y,2)-6*y+1)+x*(6*pow(y,4)-12*pow(y,3)+12*pow(y,2)-6*y+1)-3*pow(y-1,2)*pow(y,2)) + 10*(2*pow(x-0.5,3)*y+3*pow(1-x,3)*pow(y-0.5,2));
   //   else return 0;
   // }
   // R fun_exact(const R2 P, int i) {
   //   R x = P.x;
   //   R y = P.y;
-  //   if(i==0) return -2*x*y*(x-1)*(y-1)*x*(x-1)*(2*y-1);
-  //   else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
-  //   else return 0;
+  //   if(i==0) return pow(x,2)*pow(1-x,2)*y*(1-y)*(1-2*y);
+  //   else if(i==1) return (-x)*(1-x)*(1-2*x)*pow(y,2)*pow(1-y,2);
+  //   else return 10*(pow(x-0.5,3)*pow(y,2)+pow(1-x,3)*pow(y-0.5,3));
   // }
 }
 
@@ -91,10 +87,10 @@ int main(int argc, char** argv )
   typedef FunFEM<Mesh2> Fun_h;
 
   const double cpubegin = CPUtime();
-  //MPIcf cfMPI(argc,argv);
+  MPIcf cfMPI(argc,argv);
 
-  int nx = 2;
-  int ny = 2;
+  int nx = 10;
+  int ny = 10;
   // int d = 2;
 
   vector<double> ul2,pl2,h, convu, convp;
@@ -103,22 +99,25 @@ int main(int argc, char** argv )
 
     std::cout << "\n ------------------------------------- " << std::endl;
     Mesh2 Th(nx, ny, 0., 0., 1., 1.);
+    // Mesh2 Th("../mesh/RTmesh100.msh");
+
 
     KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT0;
-    arrayFE(1) = &DataFE<Mesh2>::P0;
+    arrayFE(0) = &DataFE<Mesh2>::RT1;
+    arrayFE(1) = &DataFE<Mesh2>::P1dc;
     GTypeOfFESum<Mesh2> mixedFE(arrayFE);
     FESpace2 mixedSpace(Th, mixedFE); // (Vh,Qh)
     mixedSpace.info();
 
-    FESpace2 Vh(Th, DataFE<Mesh2>::RT0); // REMOVE THESE TWO LATER
+    FESpace2 Vh(Th, DataFE<Mesh2>::RT1); // REMOVE THESE TWO LATER
     FESpace2 Qh(Th, DataFE<Mesh2>::P0); // FOR MIXEDSPACE
 
     const R meshSize = Th[0].lenEdge(0);
-    const R penaltyParam = 1e8/meshSize;
-    const R sigma = 100; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
+    const R penaltyParam = 1e1/meshSize;
+    const R sigma = 10; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
 
     Fun_h fh(Vh, fun_rhs); // interpolates fun_rhs to fh of type Fun_h
+    Fun_h gh(Vh, fun_exact);
     // Fun_h gh(Qh, fun_div); // THIS IS IF div u != 0
 
     FEM<Mesh2> stokesDiv(mixedSpace);
@@ -129,24 +128,31 @@ int main(int argc, char** argv )
     FunTest (fem space, #components, place in space)
     */
     FunTest u(mixedSpace,2,0), p(mixedSpace,1,2), v(mixedSpace,2,0), q(mixedSpace,1,2);
+
     R mu = 1;
     const CutFEM_Parameter& invh(Parameter::invh);
+    const CutFEM_Parameter& invlEdge(Parameter::invmeas);
 
-    std::cout << "grad?" << std::endl;
     // a_h(u,v)
-    stokesDiv.addBilinearFormDomain(
+    stokesDiv.addBilinear(
       contractProduct(mu*grad(u),grad(v))
+      - innerProduct(p,div(v))
+      + innerProduct(div(u),q)
     );
-    stokesDiv.addEdgeIntegral(
-      - innerProduct(average0(grad(u.t()*t).t()*n), jump(v.t()*t))
-      - innerProduct(jump(u.t()*t), average0(grad(v.t()*t).t()*n))
-      + innerProduct(sigma*invh*jump(u.t()*t), jump(v.t()*t))
+    stokesDiv.addBilinear(
+      - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
+      + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
+      + innerProduct(invlEdge*(sigma*jump(u*t)), jump(v*t))
+      , innerEdge
     );
 
-    stokesDiv.addBilinearFormBorder(
-      - innerProduct(grad(u.t()*t).t()*n, v.t()*t)
-      - innerProduct(u.t()*t, grad(v.t()*t).t()*n)
-      + innerProduct(sigma*invh*u.t()*t, v.t()*t)
+    stokesDiv.addBilinear(
+      - innerProduct(grad(u*t)*n, v*t)
+      + innerProduct(u*t, grad(v*t)*n)
+      + innerProduct(invlEdge*sigma*(u*t), v*t)
+      + innerProduct(p, v*n)
+      - innerProduct(u*n, q)
+      , boundary
     );
     // stokesDiv.addBilinearFormBorder(
     //   innerProduct(penaltyParam*u.t()*n,v.t()*n)
@@ -154,17 +160,23 @@ int main(int argc, char** argv )
     // stokesDiv.addBilinearFormBorder(
     //   innerProduct(penaltyParam*u, v)
     // );
-    std::cout<< "div?" << std::endl;
     // b(v,p), b(u,q)
-    stokesDiv.addBilinearFormDomain(
-      - innerProduct(p,div(v))
-      - innerProduct(div(u),q)
-    );
+    // stokesDiv.addBilinear(
+    //   - innerProduct(p,div(v))
+    //   - innerProduct(div(u),q)
+    // );
+
+
+    // stokesDiv.addLinear(
+    //     innerProduct(gh.expression(2), invh*v)
+    //   - innerProduct(gh.expression(2), grad(v)*n)
+    //   - innerProduct(gh.expression(2), p*n)
+    //   , boundary
+    // );
 
     // l(v)_Omega
-    stokesDiv.addLinearFormDomain(
-      innerProduct(fh,v)
-      // + innerProduct(gh,q)
+    stokesDiv.addLinear(
+      innerProduct(fh.expression(2),v)
     );
 
     // Sets uniqueness of the pressure
@@ -172,27 +184,36 @@ int main(int argc, char** argv )
       innerProduct(1.,p), 0.
     );
 
-    stokesDiv.imposeStrongBC(
-      +0
-    );
+    // stokesDiv.imposeStrongBC(
+    //   +0
+    // );
 
     stokesDiv.solve();
 
-    Fun2 sol(mixedSpace, stokesDiv.rhs);
-    VTKwriter2 writerS(sol, "stokesDiv"+to_string(i)+".vtk");
-    writerS.add("velocity", 0, 2);
-    writerS.add("pressure", 2, 1);
+    Fun_h sol(mixedSpace, stokesDiv.rhs);
+
+    Paraview2 writerS(mixedSpace, "stokesDivN"+to_string(i)+".vtk");
+    writerS.add(sol, "uh", 0, 2);
+    writerS.add(sol, "ph", 2, 1);
 
     Rn solExVec(mixedSpace.NbDoF());
     interpolate(mixedSpace, solExVec, fun_exact);
-    R errU = stokesDiv.L2norm(solExVec,0,2);
-    R errP = stokesDiv.L2norm(solExVec,2,1);
+    R errU = L2norm(sol,fun_exact,0,2);
+    R errP = L2norm(sol,fun_exact,2,1);
 
-    // uex -= poissonMixed.rhs;
-    Fun2 solEx(mixedSpace, solExVec);
-    VTKwriter2 writerS2(solEx, "stokesDivEx"+to_string(i)+".vtk");
-    writerS2.add("velocity", 0, 2);
-    writerS2.add("pressure", 2, 1);
+
+    // solExVec -= stokesDiv.rhs;
+    for(int i=0;i<solExVec.size();++i){
+      solExVec(i) = fabs(solExVec(i)-stokesDiv.rhs(i));
+    }
+
+    Fun_h solEx(mixedSpace, solExVec);
+    writerS.add(solEx,"uh_err", 0, 2);
+
+    // writerS.add(solEx,"uh_ex", 0, 2);
+    // writerS.add(solEx,"ph_ex", 2, 1);
+
+
 
     ul2.push_back(errU);
     pl2.push_back(errP);

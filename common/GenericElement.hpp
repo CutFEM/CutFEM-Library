@@ -148,6 +148,11 @@ public:
     for(int i=0;i<ne;++i) h += lenEdge(i);
     return h / ne;
   }
+  R hMax() const {
+    double h = 0;
+    for(int i=0;i<ne;++i) h = max(h, lenEdge(i));
+    return h;
+  }
   R  mesure() const {return mes;}
 
 

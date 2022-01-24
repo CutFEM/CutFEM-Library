@@ -50,6 +50,7 @@ template<class R> class Sub_KN_;
 template<class R> class Mulc_KN_;
 template<class R> class Add_Mulc_KN_;
 template<class R> class Mul_KNM_KN_;
+template<class R> class DotMul_KN_;
 
 
 
@@ -144,25 +145,25 @@ public:
 
   R operator,(const KN_<const_R> & v) const; // dot  product
 
-  KN_& operator  =(const KN_<const_R> & u)  ;
-  KN_& operator +=(const KN_<const_R> & u)  ;
-  KN_& operator -=(const KN_<const_R> & u)  ;
+  KN_& operator=(const KN_<const_R> & u)  ;
+  KN_& operator+=(const KN_<const_R> & u)  ;
+  KN_& operator-=(const KN_<const_R> & u)  ;
 
-  KN_& operator *=(const KN_<const_R> & u)  ;
-  KN_& operator /=(const KN_<const_R> & u)  ;
+  KN_& operator*=(const KN_<const_R> & u)  ;
+  KN_& operator/=(const KN_<const_R> & u)  ;
 
 
-  KN_& operator = (const_R  a) ;
-  KN_& operator +=(const_R  a) ;
-  KN_& operator -=(const_R  a) ;
-  KN_& operator /=(const_R  a) ;
-  KN_& operator *=(const_R  a) ;
+  KN_& operator= (const_R  a) ;
+  KN_& operator+=(const_R  a) ;
+  KN_& operator-=(const_R  a) ;
+  KN_& operator/=(const_R  a) ;
+  KN_& operator*=(const_R  a) ;
 
-  KN_& operator  = (R*  a) { return operator =(KN_<R>(a,n));}
-  KN_& operator += (R*  a) { return operator+=(KN_<R>(a,n));}
-  KN_& operator -= (R*  a) { return operator-=(KN_<R>(a,n));}
-  KN_& operator *= (R*  a) { return operator*=(KN_<R>(a,n));}
-  KN_& operator /= (R*  a) { return operator/=(KN_<R>(a,n));}
+  KN_& operator= (R*  a) { return operator =(KN_<R>(a,n));}
+  KN_& operator+= (R*  a) { return operator+=(KN_<R>(a,n));}
+  KN_& operator-= (R*  a) { return operator-=(KN_<R>(a,n));}
+  KN_& operator*= (R*  a) { return operator*=(KN_<R>(a,n));}
+  KN_& operator/= (R*  a) { return operator/=(KN_<R>(a,n));}
 
 
 
@@ -181,37 +182,42 @@ public:
   void map(R (*f)(R )); // apply the f fonction a all element of the array
   void map(R (*f)(const  R& )); // apply the f fonction a all element of the array
 
-  KN_& operator =(const Add_KN_<R> & u) ;
+  KN_& operator=(const Add_KN_<R> & u) ;
    KN_& operator+=(const Add_KN_<R> & u) ;
    KN_& operator-=(const Add_KN_<R> & u) ;
    KN_& operator*=(const Add_KN_<R> & u) ;
    KN_& operator/=(const Add_KN_<R> & u) ;
 
 
-   KN_& operator =(const Sub_KN_<R> & u) ;
+   KN_& operator=(const Sub_KN_<R> & u) ;
    KN_& operator-=(const Sub_KN_<R> & u) ;
    KN_& operator+=(const Sub_KN_<R> & u) ;
    KN_& operator*=(const Sub_KN_<R> & u) ;
    KN_& operator/=(const Sub_KN_<R> & u) ;
 
-   KN_& operator =(const Mulc_KN_<R> & u) ;
+   KN_& operator=(const Mulc_KN_<R> & u) ;
    KN_& operator+=(const Mulc_KN_<R> & u) ;
    KN_& operator-=(const Mulc_KN_<R> & u) ;
    KN_& operator*=(const Mulc_KN_<R> & u) ;
    KN_& operator/=(const Mulc_KN_<R> & u) ;
 
-   KN_& operator =(const Add_Mulc_KN_<R> & u) ;
+   KN_& operator=(const Add_Mulc_KN_<R> & u) ;
    KN_& operator+=(const Add_Mulc_KN_<R> & u) ;
    KN_& operator-=(const Add_Mulc_KN_<R> & u) ;
    KN_& operator*=(const Add_Mulc_KN_<R> & u) ;
    KN_& operator/=(const Add_Mulc_KN_<R> & u) ;
 
-   KN_& operator =(const Mul_KNM_KN_<R> & u) ;
+   KN_& operator=(const Mul_KNM_KN_<R> & u) ;
    KN_& operator+=(const Mul_KNM_KN_<R> & u) ;
    KN_& operator-=(const Mul_KNM_KN_<R> & u) ;
    KN_& operator*=(const Mul_KNM_KN_<R> & u) ;
    KN_& operator/=(const Mul_KNM_KN_<R> & u) ;
 
+   KN_& operator= (const DotMul_KN_<R> & u) ;
+   KN_& operator+=(const DotMul_KN_<R> & u) ;
+   KN_& operator-=(const DotMul_KN_<R> & u) ;
+   KN_& operator*=(const DotMul_KN_<R> & u) ;
+   KN_& operator/=(const DotMul_KN_<R> & u) ;
 
  friend   ostream & operator<< <R>(ostream & f,const KN_<const_R> & v)  ;
 
@@ -266,12 +272,15 @@ class KNM_: public KN_<R> {
   KNM_(KN_<R> u,long n,long m)
              : KN_<R>(u,ShapeOfArray(m*n)),shapei(n,1,n),shapej(m,n,1){ }
 
-  KNM_(const KN_<R> &u,const ShapeOfArray & si,const ShapeOfArray & sj,long offset=0)
-             : KN_<R>(&u[offset],si.last()+sj.last()+1,u.step),shapei(si),shapej(sj)
-             {K_throwassert( offset>=0 && this->n+ (this->v-(R*)u) <= u.n);}
-  KNM_(const KN_<R> &u,const ShapeOfArray & si,const ShapeOfArray & sj,long offset,long nnext)
-             : KN_<R>(&u[offset],si.last()+sj.last()+1,u.step,nnext),shapei(si),shapej(sj)
-             {K_throwassert( offset>=0 && this->n+ (this->v-(R*)u) <= u.n);}
+  KNM_(const KN_<R>& u,const ShapeOfArray& si,const ShapeOfArray& sj,long offset=0)
+             : KN_<R>(&u[offset],si.last()+sj.last()+1,u.step),shapei(si),shapej(sj) {
+               K_throwassert( offset>=0 && this->n+ (this->v-(R*)u) <= u.n);
+             }
+
+  KNM_(const KN_<R>& u,const ShapeOfArray& si,const ShapeOfArray& sj,long offset,long nnext)
+             : KN_<R>(&u[offset],si.last()+sj.last()+1,u.step,nnext),shapei(si),shapej(sj){
+               K_throwassert( offset>=0 && this->n+ (this->v-(R*)u) <= u.n);
+             }
 
   KNM_(const KNM_<R> & u)
              :KN_<R>(u),shapei(u.shapei),shapej(u.shapej) {}
@@ -312,8 +321,8 @@ class KNM_: public KN_<R> {
   KNM_<R> t() const
     { return KNM_<R>(this->v,*this,shapej,shapei);}
 
-   KNM_& operator =(const KNM_<const_R> & u) ;
-   KNM_& operator =(const_R a)               ;
+   KNM_& operator=(const KNM_<const_R> & u) ;
+   KNM_& operator=(const_R a)               ;
    KNM_& operator+=(const_R a)               ;
    KNM_& operator-=(const_R a)               ;
    KNM_& operator/=(const_R a)               ;
@@ -491,7 +500,8 @@ class KN :public KN_<R> { public:
   { if(this->unset()) this->set(new R[u.a.N()],u.a.N());KN_<R>::operator=(u);return *this;}
   KN& operator =(const Mul_KNM_KN_<R> & u)
   { if(this->unset()) this->set(new R[u.b.N()],u.b.N());KN_<R>::operator=(u);return *this;}
-
+  KN& operator =(const DotMul_KN_<R> & u)
+  { if(this->unset()) this->set(new R[u.a.N()],u.a.N());KN_<R>::operator=(u);return *this;}
 
    KN& operator -=(const_R a)
         { KN_<R>::operator-=(a);return *this;}
@@ -500,6 +510,8 @@ class KN :public KN_<R> { public:
    KN& operator -=(const Add_KN_<R> & u)
         { KN_<R>::operator-=(u);return *this;}
    KN& operator -=(const Sub_KN_<R> & u)
+        { KN_<R>::operator-=(u);return *this;}
+   KN& operator -=(const DotMul_KN_<R> & u)
         { KN_<R>::operator-=(u);return *this;}
    KN& operator -=(const Mulc_KN_<R> & u)
         { KN_<R>::operator-=(u);return *this;}
@@ -522,7 +534,8 @@ class KN :public KN_<R> { public:
         { KN_<R>::operator+=(u);return *this;}
    KN& operator +=(const Mul_KNM_KN_<R> & u)
         { KN_<R>::operator+=(u);return *this;}
-
+   KN& operator +=(const DotMul_KN_<R> & u)
+        { KN_<R>::operator+=(u);return *this;}
 
    KN& operator/=(const_R a)
         { KN_<R>::operator/=(a);return *this;}
@@ -537,6 +550,8 @@ class KN :public KN_<R> { public:
    KN& operator /=(const Add_Mulc_KN_<R> & u)
         { KN_<R>::operator/=(u);return *this;}
    KN& operator /=(const Mul_KNM_KN_<R> & u)
+        { KN_<R>::operator/=(u);return *this;}
+   KN& operator /=(const DotMul_KN_<R> & u)
         { KN_<R>::operator/=(u);return *this;}
 
    KN& operator*=(const_R a)
@@ -553,7 +568,8 @@ class KN :public KN_<R> { public:
         { KN_<R>::operator*=(u);return *this;}
    KN& operator *=(const Mul_KNM_KN_<R> & u)
         { KN_<R>::operator*=(u);return *this;}
-
+   KN& operator *=(const DotMul_KN_<R> & u)
+        { KN_<R>::operator*=(u);return *this;}
 
   static void fill0(R *v,int n) { if(n && v) for(int i=0;i<n;++i) v[i]=R();}
   void init(long nn) {
@@ -724,6 +740,13 @@ class Sub_KN_{public:
     : a(aa),b(bb) { K_throwassert(SameShape(a,b));}
  };
 
+ template<class R>
+ class DotMul_KN_{public:
+   const KN_<const_R>  a; const KN_<const_R>  b;
+   DotMul_KN_(const KN_<const_R> & aa,const KN_<const_R> & bb)
+     : a(aa),b(bb) { K_throwassert(SameShape(a,b));}
+  };
+
 template<class R>
 class Mulc_KN_ { public:
   const KN_<const_R>  a;  const_R  b;
@@ -743,7 +766,6 @@ class Add_Mulc_KN_ { public:
   Add_Mulc_KN_(const KN_<const_R> & aa,const R caa,const KN_<const_R> & bb,const R cbb)
         : a(aa),b(bb),ca(caa),cb(cbb) { K_throwassert(SameShape(a,b));}
  };
-
 
 template<class R>
 class Mul_KNM_KN_ { public:
@@ -776,7 +798,8 @@ template<class R> inline Mulc_KN_<R> operator*(const R &b,const KN_<const_R> &a)
     { return Mulc_KN_<R>(a,b);}
 template<class R> inline Mulc_KN_<R> operator-(const KN_<const_R> &a)
     { return Mulc_KN_<R>(a,-1);}
-
+template<class R> inline DotMul_KN_<R> operator*(const KN_<const_R> &a,const KN_<const_R> &b)
+{ return DotMul_KN_<R>(a,b);}
 
 
 template<class R> inline Add_Mulc_KN_<R> operator+(const  Mulc_KN_<R>& a,const Mulc_KN_<R> &b)

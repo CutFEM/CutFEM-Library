@@ -154,32 +154,14 @@ int main(int argc, char** argv )
 
   Fun_h fh (Wh, fun_rhsBulk); // create a FE-function on the cutSpace [v1,v2]
   Fun_h fh0(Sh, fun_rhs0);  // create a function on the cutMesh [v0]
+  Fun_h uex (Wh, fun_uBulk);
+  Fun_h g (Wh, fun_uBulk);
 
   //Fun_h betah(Wh, fun_beta);
   FunTest u(Wh,1), v(Wh,1); // Omega (both subdomains)
   FunTest u0(Sh,1), v0(Sh,1);   // Omega 0, i.e on the interface. Maybe?
   FunTest u1(Wh,1,0,0), v1(Wh,1,0,0); // Omega1
   FunTest u2(Wh,1,0,1), v2(Wh,1,0,1); // Omega2
-
-  // Assembly of the linear system
-  // TODO:
-  //  Figure out which average operators to use - YES WE NEED TO DOUBLE CHECK
-  //  Implement beta incl. scalar product: Should it have its own space?
-  //  Need to retrieve h somehow for the penalty terms.
-  //  Ask about penalty parameters tau's
-
-  // convdiff.addBilinear(
-  //   // - innerProduct(A0*average(gradS(u0)*t),jump(v0))
-  //   // - innerProduct(A0*jump(u0), average(gradS(v0)*t))
-  //   // - innerProduct(jump((vel*t)*u0),    average(v0))*0.5
-  //   // - innerProduct(tau_a0*A0/h*jump(u0),jump(v0))
-  //   // - innerProduct(lambda_btemp*jump(u0),jump(v0))
-  //   , interface
-  //   , nodeEvaluation
-  // );
-  // matlab::Export(convdiff.mat, "matA.dat");
-  // return 0;
-
 
 
   // Integral on element for bulk variables
@@ -206,6 +188,19 @@ int main(int argc, char** argv )
     , innerEdge
   );
 
+  convdiff.addBilinear(
+    - innerProduct(kappaTildeA*grad(u)*n,v)
+    - innerProduct(kappaTildeA*u, grad(v)*n)
+    + innerProduct(penalty1*u,  v)
+    , boundary
+  );
+  convdiff.addLinear(
+    - innerProduct(g.expression(), kappaTildeA*grad(v)*n)
+    + innerProduct(g.expression(), penalty1*v)
+    - innerProduct(g.expression(), (vel*n)*(kappaTilde*v))*0.5
+    , boundary
+  );
+
 
   // Integral on interface for surface variable
    convdiff.addBilinear(
@@ -217,16 +212,16 @@ int main(int argc, char** argv )
 
    // Need to implement point evaluation
    // here t is the conormal
-   // convdiff.addBilinear(
-   //   - innerProduct(A0*average(gradS(u0)*t),jump(v0))
-   //   - innerProduct(A0*jump(u0), average(gradS(v0)*t))
-   //   + innerProduct(average((vel*t)*u0), jump(v0))*0.5
-   //   - innerProduct(jump((vel*t)*u0),    average(v0))*0.5
-   //   - innerProduct(tau_a0*A0/h*jump(u0),jump(v0))
-   //   - innerProduct(lambda_btemp*jump(u0),jump(v0))
-   //   , interface
-   //   , nodeEvaluation
-   // );
+   convdiff.addBilinear(
+     - innerProduct(A0*average(gradS(u0)*t,0.5,-0.5),jump(v0))
+     - innerProduct(A0*jump(u0), average(gradS(v0)*t),0.5,-0.5)
+     + innerProduct(average((vel*t)*u0,0.5,-0.5), jump(v0))*0.5
+     + innerProduct(jump((vel*t)*u0,1,-1), average(v0))*0.5
+     - innerProduct(tau_a0*A0/h*jump(u0),jump(v0))
+     + innerProduct(jump(fabs(vel*t)*u0,1,-1),jump(tau_b0*v0))
+     , interface
+     , nodeEvaluation
+   );
 
   // This seems good!
   // Mixed terms
@@ -287,7 +282,6 @@ int main(int argc, char** argv )
   // PRINT THE SOLUTION TO PARAVIEW
   // =====================================================
   if(MPIcf::IamMaster()){
-    Fun_h uex (Wh, fun_uBulk);
     Paraview2 writer(Wh, levelSet, "convDiff_Bulk.vtk");
     writer.add(uh, "convDiff", 0, 1);
     writer.add(uex,"convDiff_ex", 0, 1);

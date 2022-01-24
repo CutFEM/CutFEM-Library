@@ -174,6 +174,13 @@ public:
     R & operator[](pair<int,int> ij) {R *p=pcoef(ij.first,ij.second);assert(p);return *p;}
     const R & operator[](pair<int,int> ij) const  {R *p=pcoef(ij.first,ij.second);assert(p);return *p;}
 
+    void getRow(int i, Rn& v) const {
+      int n = p[i+1] - p[i];
+      v.resize(n);
+      for(int k=p[i], j=0; k<p[i+1];++k, ++j) {
+        v[j] = a[k];
+      }
+    }
     typedef  typename VirtualMatrice<R>::plusAx plusAx;
     void addMatMul(const  KN_<R>  & x, KN_<R> & Ax) const
     {

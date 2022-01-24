@@ -95,8 +95,8 @@ namespace NumericSurfactantEllipse2D {
 
 }
 
-// #define FORMULATION1;
 #define FORMULATION2;
+// #define FORMULATION2;
 
 using namespace NumericSurfactantEllipse2D ;
 // using namespace NumericSurfactant2D0 ;
@@ -115,11 +115,11 @@ int main(int argc, char** argv )
 
   const double cpubegin = CPUtime();
 
-  int nx = 50;
-  int ny = 50;
+  int nx = 40;
+  int ny = 40;
 
-  std::string pathOutpuFolder = "../../outputFiles/surfactant2/Ellipse/test/";
-  std::string pathOutpuFigure = "../../outputFiles/surfactant2/Ellipse/test/paraview/";
+  std::string pathOutpuFolder = "../../outputFiles/surfactant2/Ellipse/F1h40/";
+  std::string pathOutpuFigure = "../../outputFiles/surfactant2/Ellipse/F1h40/paraview/";
   if(MPIcf::IamMaster()) {
     std::experimental::filesystem::create_directories(pathOutpuFigure);
   }
@@ -130,10 +130,10 @@ int main(int argc, char** argv )
 
   Mesh2 Th(nx, ny, -2, -2, 4., 4.);
   double meshSize = (4./nx);
-  int divisionMeshsize = 8;
+  int divisionMeshsize = 4;
   double dT = meshSize/divisionMeshsize;
   double tfinal = 0.25;
-  GTime::total_number_iteration = 10;//int(tfinal/dT);
+  GTime::total_number_iteration = int(tfinal/dT);
   dT = tfinal / GTime::total_number_iteration;
   GTime::time_step = dT;
 
@@ -155,8 +155,8 @@ int main(int argc, char** argv )
   cout << " path to the output files : "+pathOutpuFolder << std::endl;
   cout << " path to the vtk files : "+pathOutpuFigure << std::endl;
 
-  std::ofstream outputData(pathOutpuFolder+"dataDrop.dat", std::ofstream::out);
-  cout << " Creating the file \"dataDrop1.dat\" to save data" << std::endl;
+  std::ofstream outputData(pathOutpuFolder+"dataDrop_F13P.dat", std::ofstream::out);
+  cout << " Creating the file \"dataDrop.dat\" to save data" << std::endl;
   cout << " Creating the file \"output.txt\" to save cout" << std::endl;
 
 
@@ -172,11 +172,11 @@ int main(int argc, char** argv )
 
 
   // Set parameters for paraview PLOTTING
-  const bool writeVTKFiles = false;//true;
+  const bool writeVTKFiles = false;
   const bool saveSurfactantVTK = true;
   const bool saveVelocityVTK = false;
   const bool saveLevelSetVTK = false;
-  const int frequencyPlottingTheSolution = 1;
+  const int frequencyPlottingTheSolution = 10;
 
   Lagrange2 FEvelocity(2);
   FESpace2 VelVh  (Th, FEvelocity);
@@ -263,6 +263,11 @@ int main(int argc, char** argv )
 	  FESpace2 cutVh(cutTh, interface, DataFE<Mesh2>::P1);
     cutVh.backSpace = &Lh_k;  // save backSpace to save solution
 
+    // FESpace2 cutVh2(cutTh, interface, FEvelocity);
+    // cutVh2.backSpace = &VelVh;
+    // FESpace2 VelVh  (Th, FEvelocity);
+    // Fun_h vel2(cutVh2, In, fun_velocity);
+
 
     surfactant.initSpace(cutVh, In);
 
@@ -305,9 +310,19 @@ int main(int argc, char** argv )
           ,i , In
       );
     }
+      // ExpressionFunFEM<Mesh2> vx(vel2,0,op_id);
+      // ExpressionFunFEM<Mesh2> vy(vel2,1,op_id);
+      // // ExpressionFunFEM<Mesh2> vx(vel,0,op_id);
+      // // ExpressionFunFEM<Mesh2> vy(vel,1,op_id);
+      // surfactant.addBilinear(
+      //       innerProduct(dx(s)*vx + dy(s)*vy, r)
+      //     + innerProduct(s*dxS(vel2) + s*dyS(vel2), r)
+      //     , interface
+      //     , In
+      // );
 
     surfactant.addEdgeIntegral(
-      innerProduct(1e-2*jump(grad(s).t()*n), jump(grad(r).t()*n)),
+      innerProduct(1e-2*jump(grad(s)*n), jump(grad(r)*n)),
       In
     );
 
@@ -340,7 +355,6 @@ int main(int argc, char** argv )
     );
     intF = integralSurf(funrhsp, In, qTime) ;
     intFnp = integralSurf(funrhs, In, qTime);
-
     // for(int i=0;i<nbTime;++i) {
     //
     //   const R1 tq = In.map(qTime(i).x);
@@ -472,7 +486,7 @@ int main(int argc, char** argv )
                  << intFnp << "\t"
                  << ((q_1 -qp_1) - intFnp) << "\t"
                  << q0_1 - q_1 << "\t"
-                 <<  std::endl;
+                 << std::endl;
       qp_1 = q_1;
     }
 
@@ -498,25 +512,25 @@ int main(int argc, char** argv )
   //  -----------------------------------------------------
   //                     PLOTTING
   //  -----------------------------------------------------
-  if(MPIcf::IamMaster() && iter%frequencyPlottingTheSolution == 0 && writeVTKFiles){
-    std::cout << " Plotting " << std::endl;
-
-    if(saveSurfactantVTK) {
-      KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
-      Fun_h sol(cutVh, sols);
-
-      Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
-      writer.add(sol , "surfactant", 0, 1);
-      writer.add(ls[0], "levelSet",  0, 1);
-      writer.add(ls[2], "levelSet2", 0, 1);
-    }
-    if(saveLevelSetVTK) {
-      Paraview2 writerLS(Lh, pathOutpuFigure+"levelSet_"+to_string(iterfig)+".vtk");
-      writerLS.add(ls[0], "levelSet", 0, 1);
-    }
-
-    iterfig++;
-  }
+  // if(MPIcf::IamMaster() && iter%frequencyPlottingTheSolution == 0 && writeVTKFiles){
+  //   std::cout << " Plotting " << std::endl;
+  //
+  //   if(saveSurfactantVTK) {
+  //     KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
+  //     Fun_h sol(cutVh, sols);
+  //
+  //     Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
+  //     writer.add(sol , "surfactant", 0, 1);
+  //     writer.add(ls[0], "levelSet",  0, 1);
+  //     writer.add(ls[2], "levelSet2", 0, 1);
+  //   }
+  //   if(saveLevelSetVTK) {
+  //     Paraview2 writerLS(Lh, pathOutpuFigure+"levelSet_"+to_string(iterfig)+".vtk");
+  //     writerLS.add(ls[0], "levelSet", 0, 1);
+  //   }
+  //
+  //   iterfig++;
+  // }
   for(int i=0;i<nbTime;++i) delete mapping[i];
   iter++;
 

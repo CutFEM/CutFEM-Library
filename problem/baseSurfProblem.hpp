@@ -37,12 +37,34 @@ static R determinant(const KNM_<double>& a) {
         INTEGRATION SPACE  \int_\Omega f(x) dx
 */
 template<typename M>
-void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const Mapping& mapping) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,list<int> label,const Mapping& mapping) {
 
+  bool all_label = (label.size() == 0);
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
-    addElementMat(VF, gamma, iface,mapping);
+    const typename Interface::FaceIdx& face = gamma[iface];  // the face
+    if(contain(label, face.lab) || all_label) {
+      addElementMat(VF, gamma, iface,mapping);
+    }
   }
 }
+
+template<typename M>
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const GMacro& macro, list<int> label,const Mapping& mapping) {
+
+  bool all_label = (label.size() == 0);
+  for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+    for(int i=0;i<it->second.idx_element.size();++i) {
+
+      int iface = it->second.idx_element[i];
+      const typename Interface::FaceIdx& face = gamma[iface];  // the face
+      if(contain(label, face.lab) || all_label) {
+        addElementMat(VF, gamma, iface,mapping);
+      }
+    }
+  }
+}
+
+
 
 template<typename M>
 void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface,const Mapping& mapping) {
@@ -69,7 +91,6 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
     bool same = (VF[l].fespaceU==VF[l].fespaceV);
 
     int lastop = getLastop(VF[l].du, VF[l].dv);
-
 
     const int ku = VF[l].fespaceU->idxElementFromBackMesh(kb,VF[l].domu);
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb,VF[l].domv);
@@ -123,11 +144,13 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
 }
 
 template<typename M>
-void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const Mapping& mapping) {
-
+void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,list<int> label,const Mapping& mapping) {
+  bool all_label = (label.size() == 0);
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
-    addElementRHS(VF, gamma, iface,mapping);
-
+    const typename Interface::FaceIdx& face = gamma[iface];  // the face
+    if(contain(label, face.lab) || all_label) {
+      addElementRHS(VF, gamma, iface,mapping);
+    }
   }
 }
 
@@ -153,8 +176,9 @@ void BaseProblem<M>::addElementRHS(const ListItemVF<Rd::d>& VF, const Interface&
 
   for(int l=0; l<VF.size();++l) {
     int lastop = getLastop(VF[l].dv, VF[l].dv);
-
-
+    // assert(VF[l].fespaceU && VF[l].fespaceV);
+    assert(VF[l].fespaceV);
+    // const int kf = VF[l].fespaceU->idxElementFromBackMesh(kb,VF[l].domu);
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb,VF[l].domv);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
     double measK = FKv.getMeasure();
@@ -178,10 +202,12 @@ void BaseProblem<M>::addElementRHS(const ListItemVF<Rd::d>& VF, const Interface&
 
       FKv.BF(Fop,FKv.T.toKref(mip), fv); // need point in local reference element
       mapping.transform(FKv, fv, invJ);
-      R val_fh = VF[l].fxu_backMesh(kb, 0, mip, normal);
-
+      R val_fh = VF[l].fx_backMesh_V(kb, VF[l].domu, mip, normal)
+      //VF[l].fxU(kf, mip, normal)
+      *VF[l].fx_backMesh_V(kb, VF[l].domv, mip, normal);
+      double Cst = Cint * coef * VF[l].c * Cnormal * val_fh;
       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
-        (*this)(FKv.loc2glb(i)) +=  Cint * coef * VF[l].c * Cnormal *fv(i,VF[l].cv,VF[l].dv) * val_fh;
+        (*this)(FKv.loc2glb(i)) +=  Cst * fv(i,VF[l].cv,VF[l].dv) ;
       }
     }
     this->resetIndex();
@@ -328,7 +354,6 @@ void BaseProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF, const Inter
 
 }
 
-
 template<typename M>
 void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval) {
 
@@ -376,11 +401,6 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
     const Rd normal0(tangent0.y, -tangent0.x);
     const Rd normal1(tangent1.y, -tangent1.x);
 
-    // const Rd mip2 = interface(face1[inode1]);
-    // Rd xx(mip,mip2);
-    // assert(xx.norm() < 1e-14);
-    // Rd n1 = Th[kb].N(e0);
-    // Rd n2 = Th[knb].N(e1);
     // assert( (n1, tangent0) >0);
     // assert( (n2, tangent1) >0);
 
@@ -428,7 +448,90 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
 }
 
 
+template<typename M>
+void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CBorder& b, list<int> label ) {
+  typedef typename Mesh::BorderElement BorderElement;
+  bool all_label = (label.size() == 0);
 
+  for( int ifac = Vh->first_boundary_element(); ifac < Vh->last_boundary_element(); ifac+=Vh->next_boundary_element()) {
+    const BorderElement & face(Vh->Th.be(ifac));
+    if(contain(label, face.lab) || all_label) {
+      int ifaceK;
+      const int kb = Vh->Th.BoundaryElement(ifac, ifaceK);
+      if(gamma.face_of_element_.find(kb) != gamma.face_of_element_.end()){
+        // std::cout << "hey " << face[0] << "\t" << face[1] << std::endl;
+
+        addElementRHSBorder(VF, gamma, ifac);
+
+
+      }
+    }
+  }
+}
+
+template<typename M>
+void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface_B) {
+
+  typedef typename QFB::QuadraturePoint QuadraturePoint;
+  typedef typename FElement::RdHatBord RdHatBord;
+  typedef typename Mesh::Partition Partition;
+  typedef typename TypeCutData<Rd::d>::CutData CutData;
+  typedef typename Mesh::BorderElement BorderElement;
+
+  const Mesh& Th(*interface.backMesh);
+
+
+  // GET THE BOUNDARY FACE
+  int ifaceK;
+  const int kb = Th.BoundaryElement(iface_B, ifaceK);
+  const BorderElement & BE(Th.be(iface_B));
+  // Segment<Rd> segment(BE[0], BE[1]);
+
+  // GET THE INTERFACE FACE
+  int iface_G = interface.idxFaceOfElement(kb);
+  const typename Interface::FaceIdx& face = interface[iface_G];
+
+  // FIND THE POINT OF THE INTERFACE ON THE BOUNDARY
+  int inode = (interface.edge_of_node_[face[0]]==ifaceK)?0:1;
+  int idx_node = face[inode];
+  const Rd mip = interface(idx_node);
+
+
+  for(int l=0; l<VF.size();++l) {
+    assert(!VF[l].fespaceV->isCutSpace());
+    assert(VF[l].fespaceV);
+    int lastop = getLastop(0,VF[l].dv);
+    this->initIndex( VF[l].fespaceV);
+
+    // THE ELEMENT IN THE SURFACE MESH
+    const FESpace& Sh(*VF[l].fespaceU);
+    const int k = Sh.idxElementFromBackMesh(kb);
+    const FElement& FK(Sh[k]);
+
+    // THE NORMAL
+    // Rd normal = FK.T.N(ifaceK);
+    //
+    // // EVALUATE THE BASIS FUNCTION
+    // RNMK_ fv(this->databf,FK.NbDoF(),FK.N,lastop); //  the value for basic fonction
+    // What_d Fop = Fwhatd(lastop);
+    // FK.BF(Fop,FK.T.toKref(mip), fv);
+    //
+    // // COMPUTE COEFFICIENTS
+    // R coef = computeCoefInterface(VF[l],0,0,0 );
+    // R val_fh = VF[l].fx_backMesh_U(kb, 0, mip, normal)
+    // *VF[l].fx_backMesh_V(kb, 0, mip, normal);
+    // double Cnormal = VF[l].getCoefU(normal)*VF[l].getCoefV(normal);
+    // double Cst = Cnormal*coef*val_fh*VF[l].c;
+    //
+    // // FILL THE MATRIX
+    // for(int i = FK.dfcbegin(VF[l].cv); i < FK.dfcend(VF[l].cv); ++i) {
+    //   for(int j = FK.dfcbegin(VF[l].cu); j < FK.dfcend(VF[l].cu); ++j) {
+    //     (*this)(FK.loc2glb(i),FK.loc2glb(j)) += Cst*fv(i,VF[l].cv,VF[l].dv)*fv(j,VF[l].cu,VF[l].du);
+    //   }
+    // }
+    this->resetIndex();
+  }
+}
 
 
 /*

@@ -2,6 +2,7 @@
 std::map<std::string,CutFEM_Parameter*> CutFEM_ParameterList::listParameter = std::map<std::string,CutFEM_Parameter*>();
 
 static double fun_meas(int i, double hh, double meas, double measK, double meas_Cut) {return meas;}
+static double fun_invmeas(int i, double hh, double meas, double measK, double meas_Cut) {return 1./meas;}
 static double fun_h(int i, double hh, double meas, double measK, double meas_Cut) {return hh;}
 static double fun_invh(int i, double hh, double meas, double measK, double meas_Cut) {return 1./hh;}
 static double fun_kappa1(int i, double hh, double meas, double measK, double meas_Cut) {
@@ -72,6 +73,7 @@ CutFEM_Parameter Parameter::kappa2 = CutFEM_Parameter("kappa2", fun_kappa2);
 CutFEM_Parameter Parameter::lambdaG = CutFEM_Parameter("lambdaG", fun_lambdaG);
 CutFEM_Parameter Parameter::lambdaB = CutFEM_Parameter("lambdaB", fun_lambdaB);
 CutFEM_Parameter Parameter::meas = CutFEM_Parameter("meas", fun_meas);
+CutFEM_Parameter Parameter::invmeas = CutFEM_Parameter("invmeas", fun_invmeas);
 CutFEM_Parameter Parameter::lambdaB3 = CutFEM_Parameter("lambdaB3", fun_lambdaB3);
 CutFEM_Parameter Parameter::lambdaG3 = CutFEM_Parameter("lambdaG3", fun_lambdaG3);
 

@@ -6,7 +6,7 @@ class TypeOfFE_P2dcLagrange2d : public GTypeOfFE<Mesh2> {
 
   typedef   Mesh2 Mesh;
   typedef  typename Mesh::Element  E;
-  static const int nbNodeOnItem[4];
+  // static const int nbNodeOnItem[4];
 public:
 
   static const int k = 2;
@@ -34,7 +34,7 @@ public:
   void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
 } ;
 
-const int TypeOfFE_P2dcLagrange2d::nbNodeOnItem[4] = {1,1,0,0};
+// const int TypeOfFE_P2dcLagrange2d::nbNodeOnItem[4] = {1,1,0,0};
 int TypeOfFE_P2dcLagrange2d::Data[] = {
   6, 6, 6, 6, 6, 6,   // the support number  of the node of the df
   0, 1, 2, 3, 4, 5,   // the number of the df on  the node

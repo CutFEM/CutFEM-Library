@@ -10,18 +10,23 @@ public:
 
   int idx_root_element;
   vector<int> idx_element;
-  vector<std::pair<int,int>> inner_edge;
+  vector<std::pair<int,int>> inner_edge; // idx_Element, idx_edge
 
-  MElement(int idx_root=-1, int idx_K=-1, int idx_edge=-1){
+  // MElement(int idx_root=-1, int idx_K=-1, int idx_edge=-1){
+  //   idx_root_element = idx_root;
+  //   idx_element.push_back(idx_root);
+  //   int kk =(idx_root_element < idx_K)? idx_root_element : idx_K;
+  //   this->add(idx_K, std::make_pair(kk, idx_edge));
+  // }
+  MElement(int idx_root = -1){
     idx_root_element = idx_root;
     idx_element.push_back(idx_root);
-    this->add(idx_K, idx_edge);
   }
 
-  void add(int idx_K, int idx_edge) {
+  void add(int idx_K, std::pair<int,int> ke) {
     idx_element.push_back(idx_K);
-    int kk =(idx_root_element < idx_K)? idx_root_element : idx_K;
-    inner_edge.push_back(std::make_pair(kk, idx_edge));
+    // int kk =(idx_root_element < idx_K)? idx_root_element : idx_K;
+    inner_edge.push_back(ke);
   }
 
   void print() const {
@@ -45,15 +50,27 @@ struct SmallElement {
   void setEdgeDirection(int i) { idx_edge_to_root = i;}
 };
 
-class MacroElementSurface{
+
+class GMacro {
+public :
+
+const int small=-1 ;
+const int good = 0, extension = 1, exhaust = 2;
+
+std::map<std::pair<int ,int>, int> element_edge_handle; //(id_element, id_edge) => what_to_do
+
+map<int, MElement>     macro_element;   // idx_root -> idx_macroElement
+map<int, SmallElement> small_element;  // idx_element -> idx_small_element
+double tol;
+
+GMacro() {}
+
+};
+
+class MacroElementSurface : public GMacro {
   typedef typename Interface2::FaceIdx Face;
 public:
   const Interface2& interface;
-
-  map<int, MElement>     macro_element;   // idx_root -> idx_macroElement
-  map<int, SmallElement> small_element;  // idx_element -> idx_small_element
-
-  double tol;
 
   MacroElementSurface(const Interface2& , const double) ;
   void find_small_element() ;
@@ -61,23 +78,12 @@ public:
   int check_direction(const int, const int, int&);
 };
 
-class MacroElement {
+class MacroElement : public GMacro {
 
-const QuadratureFormular1d& QF = QF_GaussLegendre2;
+const QuadratureFormular1d& QF  = QF_GaussLegendre2;
+const QuadratureFormular2d& QFK = QuadratureFormular_T_5;
 
 public:
-
-  enum{small=-1};
-  const int good = 0, extension = 1, exhaust = 2;
-
-
-  vector<MElement> macro_element;
-  map<int, int> idxRoot2idxMElement;
-
-  vector<SmallElement> small_element;
-  map<int, int> idxElement2idxSmallElement;
-  // for exhaust algo
-  std::map<std::pair<int ,int>, int> element_edge_handle;
 
   set<int> dof2rm;
   std::map<std::pair<int,int>,double> S, St;
@@ -91,25 +97,24 @@ public:
   MacroElement(const FESpace2& vh, const double C);
 
   int getIndexRootElement(int k) const {
-    auto it = idxElement2idxSmallElement.find(k);
-    if(it == idxElement2idxSmallElement.end()){
+    auto it = small_element.find(k);
+    if(it == small_element.end()){
       return k;
     }else {
-      return small_element[it->second].index_root;
+      return it->second.index_root;
     }
   }
   const SmallElement& getSmallElement(int k) const {
-    auto it = idxElement2idxSmallElement.find(k);
-    assert(it != idxElement2idxSmallElement.end());
-    return small_element[it->second];
+    auto it = small_element.find(k);
+    assert(it != small_element.end());
+    return it->second;
   }
   bool isRootFat(int k) const {
-    // return (small_or_fat_K[k] == k);
-    return (idxRoot2idxMElement.find(k) != idxRoot2idxMElement.end());
+    return (small_element.find(k) == small_element.end()) && (k!=-1);
   }
 
 private:
-  void find_small_K();
+  void find_small_element();
   void find_root_element();
 
 public:
@@ -118,11 +123,16 @@ public:
 
 private:
   void do_extension(const std::map<std::pair<int,int>,int>::const_iterator& it);
-  void do_extension_P0  (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
+  void do_extension_P0  (const FElement2& Ks, const FElement2& Kf, int ic);
+  void do_extension_P1dc  (const FElement2& Ks, const FElement2& Kf, int ic);
   void do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
   void do_extension_BDM1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
+  void do_extension_RT1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
+
+  void evaluate_dofP1dc(const FElement2& FKs, const FElement2& FKf, Rnm& val, int ic) ;
   void evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) ;
   void evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
+  void evaluate_dofRT1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
 
 public:
   void make_S();

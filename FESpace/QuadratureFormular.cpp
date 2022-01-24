@@ -150,6 +150,36 @@ static GQuadraturePoint<R1> P_QF_Lobatto7[5] = {
   QuadratureFormular1d::QP(pLob_n7_0,R1(1.))};
 const QuadratureFormular1d QF_Lobatto7(7,5,P_QF_Lobatto7);
 
+static GQuadraturePoint<R1> P_QF_Lobatto15[9] = {
+  QuadratureFormular1d::QP(0.013888888888889,R1(0.)),
+  QuadratureFormular1d::QP(0.082747680780403,R1(0.050121002294270)),
+  QuadratureFormular1d::QP(0.137269356250081,R1(0.161406860244631)),
+  QuadratureFormular1d::QP(0.173214255486523,R1(0.318441268086911)),
+  QuadratureFormular1d::QP(0.185759637188209,R1(0.500000000000000)),
+  QuadratureFormular1d::QP(0.173214255486523,R1(0.681558731913089)),
+  QuadratureFormular1d::QP(0.137269356250081,R1(0.838593139755369)),
+  QuadratureFormular1d::QP(0.082747680780403,R1(0.949878997705730)),
+  QuadratureFormular1d::QP(0.013888888888889,R1(1.))
+};
+const QuadratureFormular1d QF_Lobatto15(15,9,P_QF_Lobatto15);
+
+
+
+
+
+
+// explict instantiation
+int exactLobatto_nPt(int n){
+  switch(n) {
+  case 1 : return 1;
+  case 2 : return 1;
+  case 3 : return 3;
+  case 4 : return 5;
+  case 5 : return 7;
+  case 9 : return 15;
+  default: {assert(0); return 0;}
+  }
+};
 
 
 
@@ -163,6 +193,7 @@ const QuadratureFormular1d  * Lobatto(int exact){
   case 5 : return &QF_Lobatto5;
   case 6 : return &QF_Lobatto7;
   case 7 : return &QF_Lobatto7;
+  case 15 : return &QF_Lobatto15;
   default:     return &QF_Lobatto7;
   }
 };

@@ -79,6 +79,7 @@ public:
   R getMeasure() const {return T.mesure();} // mesure felstavat (french spel ;-) ) 
   Rd map(Rd ip) const {return T(ip);}
   int degre() const {return tfe->degre();}
+  int index() const {return number;};
 
 };
 
@@ -338,6 +339,12 @@ public:
 
   virtual int getNeighborElement(int k,int &j, int domain = 0) const {
     return Th.ElementAdj(k,j);
+  }
+  virtual bool containBackElement(int k)const {
+    return true;
+  }
+  virtual int nbDomain() const {
+    return 1;
   }
 
   // virtual int idxGlob2Loc(int k, int i) const { return k;}

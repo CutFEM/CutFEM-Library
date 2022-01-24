@@ -320,9 +320,6 @@ private:
 
 
 
-
-
-
 class DataCutFENodeDF   {
 
 public :
@@ -549,6 +546,12 @@ Vh((*sdomain.begin())->Vh)
     int kk = this->subDomain(i)->getTriGlobToLoc(k);
     return idx0_K[i] + kk;
   }
+  virtual bool containBackElement(int k)const {
+    for(int i=0;i<this->nSub;++i) {
+      if(this->subDomain(i)->FEinSub(k)) return true;
+    }
+    return false;
+  }
   virtual int idxElementFromBackMesh(int k) const {
     std::cout << "need to use a domain id to get element" << std::endl;
     assert(0);
@@ -557,6 +560,9 @@ Vh((*sdomain.begin())->Vh)
   virtual int idxElementInBackMesh(int k) const {
     ASSERTION(k>=0 && k < nt);
     return Vh.Th((*this)[k].T);
+  }
+  virtual int nbDomain() const {
+    return this->nSub;
   }
   // virtual int idxGlob2Loc(int k, int i) const {
   //   assert(this->nSub <= 2);

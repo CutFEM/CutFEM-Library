@@ -182,6 +182,8 @@ public :
   static inline void AllReduce(const T&, T&, int, const MPI_Op&);
   template <typename T>
   static inline void AllReduce(const KN<T>&, KN<T>&,  const MPI_Op&);
+  template <typename T>
+  static inline void AllReduce(const T*, T*, int, const MPI_Op&);
 
   template <typename T>
   static inline void Scan(const T&, T&, const MPI_Op&);

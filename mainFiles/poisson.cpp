@@ -17,9 +17,9 @@
 
 #include "../num/gnuplot.hpp"
 
-// #define PROBLEM_POISSON_LAGRANGE
+#define PROBLEM_POISSON_LAGRANGE
 //#define PROBLEM_POISSON_MIXED
-#define PROBLEM_CUT_POISSON_LAGRANGE
+// #define PROBLEM_CUT_POISSON_LAGRANGE
 // #define PROBLEM_ARTIFICIALCUT_POISSON_LAGRANGE
 //#define PROBLEM_CUT_POISSON_MIXED
 
@@ -66,12 +66,14 @@ int main(int argc, char** argv )
   //        iam, np, MPIcf::my_rank(), MPIcf::size());
   // return 0;
 
-  int nx = 1000; // used to be 10
-  int ny = 1000;
+  int nx = 10; // used to be 10
+  int ny = 10;
   vector<double> ul2,pl2,h, convu, convp, tid;
 
-  std::string pathOutpuFolder = "../../outputFiles/poisson/";
-  std::string pathOutpuFigure = "../../outputFiles/poisson/paraview/";
+  // std::string pathOutpuFolder = "../../outputFiles/poisson/";
+  // std::string pathOutpuFigure = "../../outputFiles/poisson/paraview/";
+  std::string pathOutpuFolder = "";
+  std::string pathOutpuFigure = "";
 
   CoutFileAndScreen myCout(pathOutpuFolder+"output.txt");
 

@@ -57,11 +57,11 @@ int main(int argc, char** argv )
 
 
   // double meshSize(6./nx);
-  // Mesh2 Th("../mesh/shearMesh7530_10040.msh");
+  Mesh2 Th("../mesh/shearMesh7530_10040.msh");
   int nx = 100;
   int ny = 40;
   double meshSize = 10./nx/2;
-  Mesh2 Th(nx, ny, -5., -2., 10., 4.);
+  // Mesh2 Th(nx, ny, -5., -2., 10., 4.);
 
 
   int divisionMeshsize = 4;
@@ -114,7 +114,7 @@ int main(int argc, char** argv )
   myCout << " We are using the Simpson rule (3 quadrature points)" << std::endl;
   myCout << " number of quadrature points in time : \t" << nbTime << std::endl;
   myCout << " number of dof in time per time slab : \t" << ndfTime << std::endl;
-
+  return 0;
 
 
   // Set parameters for paraview PLOTTING

@@ -61,7 +61,7 @@ int main(int argc, char** argv )
 
   // CONSTRUCTION OF THE FE SPACE AND THE CUT SPACE
   // =====================================================
-  FESpace Vh(Th, DataFE<Mesh>::P1dc);
+  FESpace Vh(Th, DataFE<Mesh>::P1);
   CutFESpace2 Wh(Vh, interface, {1,-1});
 
 
@@ -78,58 +78,61 @@ int main(int argc, char** argv )
   // OBJECTS NEEDED FOR THE PROBLEM
   // =====================================================
   CutFEM<Mesh> poisson(Wh);
-  poisson.add(Sh);
+  // poisson.add(Sh);
 
   Normal n;
   Fun_h fh(Wh, fun_rhs);
   Fun_h gh(Wh, fun_boundary);
   FunTest u(Wh,1), v(Wh,1);
 
-  FunTest u1(Wh,1,0,0), u2(Wh,1,0,1); // to specify subdomain. Given in the fourth input
+  // FunTest u1(Wh,1,0,0), u2(Wh,1,0,1); // to specify subdomain. Given in the fourth input
   FunTest u0(Sh,1);
   FunTest Dun = (grad(u)*n), Dvn = (grad(v)*n);
 
 
-  std::cout << jump(u1,u0) << std::endl;
-  std::cout << jump(u2,u0) << std::endl;
-  poisson.addBilinear(
-        innerProduct(jump(u1,u0), u0)
-      + innerProduct(jump(u2,u0), u0)
-    , interface
-  );
+  // std::cout << jump(u1,u0) << std::endl;
+  // std::cout << jump(u2,u0) << std::endl;
+  // poisson.addBilinear(
+  //       innerProduct(jump(u1,u0), u0)
+  //     + innerProduct(jump(u2,u0), u0)
+  //   , interface
+  // );
   // you could do later when you know what are the kappas
   // innerProduct(jump(K1*u1,K0*u0), u0)
   // innerProduct(jump(K2*u2,K0*u0), u0)
-  getchar();
+  // getchar();
 
   // ASSEMBLY OF THE LINEAR SYSTEM
   // =====================================================
-  // poisson.addBilinear(
-  //   innerProduct(mu*grad(u), grad(v))
-  // );
-  // poisson.addLinear(
-  //   innerProduct(fh.expression(1), v)
-  // );
-  // poisson.addBilinear(
-  //   - innerProduct(mu*average1(Dun), jump(v))
-  //   - innerProduct(mu*jump(u), average1(Dvn))
-  //   + innerProduct(lambdaG*jump(u), jump(v))
-  //   , interface
-  // );
-  // poisson.addBilinearFormBorder(
-  //   innerProduct(lambdaB*u, v)
-  // );
-  // poisson.addLinearFormBorder(
-  //   innerProduct(gh.expression(1), lambdaB*v)
-  // );
+  poisson.addBilinear(
+    innerProduct(mu*grad(u), grad(v))
+  );
+  poisson.addLinear(
+    innerProduct(fh.expression(1), v)
+  );
+  poisson.addBilinear(
+    - innerProduct(mu*average1(Dun), jump(v))
+    - innerProduct(mu*jump(u), average1(Dvn))
+    + innerProduct(lambdaG*jump(u), jump(v))
+    , interface
+  );
+  poisson.addBilinear(
+    innerProduct(lambdaB*u, v)
+    , boundary
+  );
+  poisson.addLinear(
+    innerProduct(gh.expression(1), lambdaB*v)
+    , boundary
+  );
 
-  // poisson.addFaceStabilization(
-  //   innerProduct(1e-2*h*jump(grad(u)*n), jump(grad(v)*n))
-  // );
+  poisson.addFaceStabilization(
+    innerProduct(1e-2*h*jump(grad(u)*n), jump(grad(v)*n))
+  );
 
-  // poisson.addEdgeIntegral(
-  //   // - innerProduct(average(beta*u*n), jump(v))
-  //   // - innerProduct(0.5*lambdaE*jump(u)  , jump(v))
+  // poisson.addBilinear(
+    // - innerProduct(average(beta*u*n), jump(v))
+    // - innerProduct(0.5*lambdaE*jump(u)  , jump(v))
+  // , innerEdge
   // );
 
   // RESOLUTION OF THE LINEAR SYSTEM

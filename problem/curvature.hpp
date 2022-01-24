@@ -61,12 +61,14 @@ private:
     this->addBilinear(
       (uu,uu) //+ (gradun,gradun)*1e-2
       , interface
+      , {}
       , mapping
     );
     // l(v)_Omega
     this->addLinear(
       contractProduct(Id,gradSu)
       , interface
+      , {}
       , mapping
     );
 

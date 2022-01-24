@@ -13,6 +13,14 @@ public:
   : GTypeOfFESum<Mesh2>(FEarray(2,FE_[k])){}
 };
 
+class LagrangeDC2 :  public GTypeOfFESum<Mesh2>{
+  typedef KN<const GTypeOfFE<Mesh2>*> FEarray;
+  static const GTypeOfFE<Mesh2>* FE_[4][2];
+public:
+  LagrangeDC2(int k=1)
+  : GTypeOfFESum<Mesh2>(FEarray(2,FE_[k])){}
+};
+
 class TaylorHood2 : public GTypeOfFESum<Mesh2>{
   typedef KN<const GTypeOfFE<Mesh2>*> FEarray;
   static const GTypeOfFE<Mesh2>* FE_[3];

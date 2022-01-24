@@ -16,6 +16,7 @@ class MUMPS {
   static const int JOB_ALL_ = 6;
   static const int JOB_END_ = -2;
   static const int USE_COMM_WORLD_ = -987654;
+  bool cleanMatrix = true;
 
 public:
 

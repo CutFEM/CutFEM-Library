@@ -134,4 +134,6 @@ const GQuadratureFormular<Rd> * QF_Simplex(int exact);
 GQuadraturePoint<R1>  *  GaussLegendre(int nn);
 
 const GQuadratureFormular<R1>  *  Lobatto(int nn);
+int exactLobatto_nPt(int n);
+
 #endif
