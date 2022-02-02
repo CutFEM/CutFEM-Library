@@ -291,6 +291,7 @@ void MacroElement::make_S(){
     if(handle == exhaust){
       //
       // do_exhaust
+      // do_extension(it);
 
     }
   }
@@ -544,29 +545,22 @@ void MacroElement::tag_exhaust_edges() {
 
   element_edge_handle.clear();
   // get all the dof of small Elements
-  std::map<int, std::pair<int, int>> df2fix;
+  std::map<std::pair<int, int>, int>& df2fix(element_edge_handle) ;
   std::set<int> exhaust_element;
   // vector<std::pair<int,int>> small_K_temp = idx_small_K;
 
-  vector<int> small_K_temp(small_element.size());
-  int ii = 0;
-  for(auto it=small_element.begin(); it!= small_element.end();++it) {
-    small_K_temp[ii++] = it->second.index;
-  }
+  // vector<int> small_K_temp(small_element.size());
+  // int ii = 0;
+  // for(auto it=small_element.begin(); it!= small_element.end();++it) {
+  //   small_K_temp[ii++] = it->second.index;
+  // }
 
 
-
+  int artificial_good_df = 0;
   // First set the trivial dof (good and trivial exhaust)
-  // for(auto it = idx_small_K.begin(); it!=idx_small_K.end();++it) {
-  //   int k = it->first;
-  // for (int i=idx_small_K.size()-1;i>=0;--i) {
-  // for (int i=small_element.size()-1;i>=0;--i) {
-    // int k = idx_small_K[i].first;
-    for (auto it=small_element.begin();it!=small_element.end();++it) {
-
-    // int k = small_element[i].index;//.first;
+  for (auto it=small_element.begin();it!=small_element.end();++it) {
     int k = it->second.index;//.first;
-    assert(0);
+
     // need to check this loop using map
     // also need to uncomment erase part a bit further
     const FElement2& FK(Vh[k]);
@@ -574,89 +568,72 @@ void MacroElement::tag_exhaust_edges() {
     bool is_exhaust = false;
     int count = 0;
     int notGoodEdge= -1;
+
+    // LOOP OVER EDGES
     for(int e=0;e<3;++e) {
-      int df = FK.loc2glb(e);
+      // int df = FK.loc2glb(e);
       int je = e;
       int kn = Vh.getNeighborElement(k, je, the_domain);
 
-      auto it = df2fix.find(df);
-      bool df_seen = (it != df2fix.end());
-      if(!df_seen) {
-        df2fix[df] = std::make_pair(k, 3*e+extension);  // default value
-      }
+      // CHECK IF EDGE ALREADY SEEN
+      auto it = df2fix.find(make_pair(kn, je));
+      bool edge_seen = (it != df2fix.end());
+
+      if(edge_seen) continue;
       if(kn == -1) {  // trivial exhaust
-        df2fix[df] = std::make_pair(k, 3*e+exhaust);
+        df2fix[std::make_pair(k, e)] = exhaust;
         notGoodEdge = e;
         is_exhaust = true;
-        continue;
       }
-      if(isRootFat(kn)) {  // triavial good
-        df2fix[df] = std::make_pair(k, 3*e+good);
+      else if(isRootFat(kn)) {  // triavial good
+        df2fix[std::make_pair(k, e)] = good;
         count++;
-        continue;
+      }
+      else {  // default value
+        df2fix[std::make_pair(k, e)] = extension;
+        notGoodEdge = e;
       }
     }
     // set element as exhaust
-    // if(is_exhaust) {
-    //    if(count != 2) exhaust_element.insert(k);
-    //    if(count != 2) small_K_temp.erase(small_K_temp.begin()+i);
-    // }
-    // if(count == 2) {
-    //   int df = FK.loc2glb(notGoodEdge);
-    //   // df2fix.erase(df);
-    //   // df2fix[df] = std::make_pair(k, 3*notGoodEdge+good);
-    //   small_K_temp.erase(small_K_temp.begin()+i);
-    // }
+    if(is_exhaust) {
+       if(count != 2) exhaust_element.insert(k);
+    }
+    if(count == 2) {
+      df2fix[std::make_pair(k, notGoodEdge)] = good;
+      artificial_good_df += 1;
+    }
   }
+  // ALL ELEMENTS MUST BECOME EXHAUST
+  while (exhaust_element.size() < small_element.size() - artificial_good_df) {
+    // LOOP OVER SMALL ELEMENTS
+    for(auto it_small = small_element.begin(); it_small!= small_element.end();++it_small){
+      int k = it_small->second.index;
 
-  // eliminating element when found exhaust edge
-  while (small_K_temp.size() > 0) {
+      // CHECK IF ALREADY EXHAUST
+      auto it_exhaust = exhaust_element.find(k);
+      if(it_exhaust != exhaust_element.end()) continue;
 
-    int nb_of_small_K_left = small_K_temp.size();
-    std::cout << nb_of_small_K_left << std::endl;
-    for (int i=nb_of_small_K_left-1;i>=0;--i) {
-      int k = small_K_temp[i];//first;
-
+      // NOT AN EXHAUST ELEMENT
       const FElement2& FK(Vh[k]);
       int the_domain = FK.whichDomain();
       bool is_exhaust = false;
-      for(int e=0;e<3;++e) {
-        int df = FK.loc2glb(e);
 
+      //CHECK THE NEIGHBOR TO GET THE EXHAUST EDGE
+      for(int e=0;e<3;++e) {
         int je = e;
         int kn = Vh.getNeighborElement(k, je, the_domain);
 
-        auto it_exhaust = exhaust_element.find(kn);
+        it_exhaust = exhaust_element.find(kn);
+
         bool neighIsExhaust = (it_exhaust != exhaust_element.end() ); // is neighbor exhaust?
         if(neighIsExhaust) {  // if my neighbor is exhaust
-          df2fix[df] = std::make_pair(k, 3*e+exhaust);
-          is_exhaust = true;
+          df2fix[std::make_pair(k, e)] = exhaust;
+          exhaust_element.insert(k);
           break;  // can stop now, only one exhaust edge
         }
-
-      }
-      if(is_exhaust) {
-        // then I can be remove from the search list
-        exhaust_element.insert(k);
-        small_K_temp.erase(small_K_temp.begin()+i);
       }
     }
   }
-
-  // create data structure element -> whatToDoOnEdges
-  for(auto it = df2fix.begin(); it!=df2fix.end();++it) {
-    int k = it->second.first;
-    int handle = it->second.second%3;
-    int id_e = it->second.second/3;
-    element_edge_handle[std::make_pair(k, id_e)] = handle;
-  }
-
-  // for(auto it = element_edge_handle.begin(); it!=element_edge_handle.end();++it) {
-  //   std::cout << it->first.first << "\t"
-  //             << it->first.second << ") = \t"
-  //             << it->second << std::endl;
-  //   }
-    // getchar();
 }
 
 MacroElementSurface::MacroElementSurface(const Interface2& gh, const double C) : GMacro() , interface(gh) {

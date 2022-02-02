@@ -61,6 +61,61 @@ namespace gnuplot {
     plot.close();
   }
 
+  void save(const Mesh2 & Th, const Fracture& fracture, std::string filename = "Th_fractured.dat") {
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = Th[0].nv;
+
+    Local_Partition local_partition;
+    for(int k=0; k<Th.nt;++k) {
+
+      // if(fracture.is_cut_element(k)) {
+        fracture.build_local_partition(k, local_partition);
+        std::cout << " element " << k << " cut in " << local_partition.nb_element() << std::endl;
+        for(int i=0; i<local_partition.nb_element();++i){
+          Element2 K = local_partition.get_element(i);
+          for(int j=0;j<nve;++j) {
+            plot << K[j] << std::endl;
+          }
+          plot << K[0] << std::endl;
+          plot << std::endl;
+          plot << std::endl;
+        }
+        // for(int i=0;i<nve;++i) {
+        //   plot << Th[k][i] << std::endl;
+        // }
+        // plot << Th[k][0] << std::endl;
+        // plot << std::endl;
+        // plot << std::endl;
+        // getchar();
+      // }
+
+    }
+    plot.close();
+  }
+
+  void save(const Fracture& Gh, std::string filename = "fracture.dat") {
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = 2;
+    for(int k=0; k<Gh.nb_element();++k) {
+      for(int i=0;i<nve;++i) {
+        plot << Gh(k,i) << std::endl;
+      }
+      plot << std::endl;
+      plot << std::endl;
+    }
+    plot.close();
+
+    // plot.open("normal.dat", std::ofstream::out);
+    // for(int k=0; k<Gh.nbElement();++k) {
+    //   plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
+    // }
+    plot.close();
+
+  }
 
   void save(const Interface2 & Gh, std::string filename = "Gh.dat") {
 
@@ -85,6 +140,7 @@ namespace gnuplot {
     plot.close();
 
   }
+
 
   void save(const Interface3 & Gh, std::string filename = "Gh.dat") {
 
@@ -175,7 +231,7 @@ namespace gnuplot {
 
   void save(const MacroElement & macro) {
 
-    std::ofstream plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10;
+    std::ofstream plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10, plot11, plot12;
     plot1.open("small1.dat", std::ofstream::out);
     plot2.open("small2.dat", std::ofstream::out);
     plot3.open("macroElement1.dat", std::ofstream::out);
@@ -184,6 +240,8 @@ namespace gnuplot {
     plot6.open("extensionEdge2.dat", std::ofstream::out);
     plot7.open("goodEdge1.dat", std::ofstream::out);
     plot8.open("goodEdge2.dat", std::ofstream::out);
+    plot11.open("exhaustEdge1.dat", std::ofstream::out);
+    plot12.open("exhaustEdge2.dat", std::ofstream::out);
     plot9.open("innerEdgeME1.dat", std::ofstream::out);
     plot10.open("innerEdgeME2.dat", std::ofstream::out);
 
@@ -265,7 +323,7 @@ namespace gnuplot {
           plot6 << P << std::endl;
         }
       }
-      else{
+      else if(handle == 0){
         if(domain == 0){
           plot7 << P << std::endl;
         }
@@ -273,11 +331,22 @@ namespace gnuplot {
           plot8 << P << std::endl;
         }
       }
+      else{
+        if(domain == 0){
+          plot11 << P << std::endl;
+        }
+        else {
+          plot12 << P << std::endl;
+        }
+
+      }
     }
     plot5.close();
     plot6.close();
     plot7.close();
     plot8.close();
+    plot11.close();
+    plot12.close();
     for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
 
       for(int i=0;i<it->second.inner_edge.size();++i) {
