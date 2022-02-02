@@ -1,5 +1,5 @@
 #include "expression.hpp"
-#include "../problem/CutFEM_Parameter.hpp"
+#include "../problem/CutFEM_parameter.hpp"
 
 
 ExpressionMultConst operator*(const ExpressionVirtual& f1, double cc) {
@@ -47,8 +47,8 @@ ExpressionNormal2 operator*(const FunFEM<Mesh2>& f1, const Normal& n){
 ExpressionTangent2 operator*(const FunFEM<Mesh2>& f1, const Tangent& n){
   return ExpressionTangent2(f1);
 }
-const int Normal::idx[3] = {0,1,2};
-const int Tangent::idx[3] = {1,0,2}; // only in 2D
+// const int Normal::idx[3] = {0,1,2};
+// const int Tangent::idx[3] = {1,0,2}; // only in 2D
 
 
 ExpressionDSx2  dxS (const FunFEM<Mesh2>& f1){return ExpressionDSx2(f1);}

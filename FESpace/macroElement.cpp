@@ -1,4 +1,4 @@
-#include "MacroElement.hpp"
+#include "macroElement.hpp"
 #include "../common/SparseMatMap.hpp"
 
 MacroElement::MacroElement(const FESpace2& vh, const double C) : GMacro() , Vh(vh) {
@@ -288,6 +288,11 @@ void MacroElement::make_S(){
     if(handle == extension) {
       do_extension(it);
     }
+    if(handle == exhaust){
+      //
+      // do_exhaust
+
+    }
   }
   std::cout << " removing \t" << dof2rm.size() << "  dof " << std::endl;
 }
@@ -515,7 +520,7 @@ void MacroElement::tag_extension_edges() {
       else{
         int pos_kn = (kn == -1) ? pos_k + 1 : small_element[kn].chain_position;
         if (pos_kn > pos_k || (pos_kn == pos_k && kn > k) ){
-          df2fix.push_back(std::make_pair(k, 3*e+extension));  // default value
+            df2fix.push_back(std::make_pair(k, 3*e+extension));  // default value
         }
       }
     }

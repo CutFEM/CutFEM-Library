@@ -79,7 +79,8 @@ struct ItemTestFunction {
     ar_nu.resize(l+1);
     ar_nu(l) = i;
   }
-  void addTangent(int Ni) {
+  void addTangent(int i) {
+    int Ni = (i==0); // which normal component
     int l = ar_nu.size();
     ar_nu.resize(l+1);
     ar_nu(l) = Ni;
@@ -327,7 +328,7 @@ public:
           ItemTestFunction<dim>& v(A(0,0)->getItem(ui));
           ItemTestFunction<dim>& u(Un.A(i,0)->getItem(k));
           u = v;
-          u.addNormal(N[i]);
+          u.addNormal(i);
         }
       }
     }
@@ -340,7 +341,7 @@ public:
           ItemTestFunction<dim>& v(A(i,0)->getItem(ui));
           ItemTestFunction<dim>& u(Un.A(0,0)->getItem(k));
           u = v;
-          u.addNormal(N[i]);
+          u.addNormal(i);
         }
       }
     }
@@ -354,7 +355,7 @@ public:
             ItemTestFunction<dim>& v(A(i,j)->getItem(ui));
             ItemTestFunction<dim>& u(Un.A(i,0)->getItem(k));
             u = v;
-            u.addNormal(N[j]);
+            u.addNormal(j);
           }
         }
       }
@@ -383,7 +384,7 @@ public:
           ItemTestFunction<dim>& v(A(0,0)->getItem(ui));
           ItemTestFunction<dim>& u(Un.A(i,0)->getItem(k));
           u = v;
-          u.addTangent(N[i]);
+          u.addTangent(i);
         }
       }
     }
@@ -396,7 +397,7 @@ public:
           ItemTestFunction<dim>& v(A(i,0)->getItem(ui));
           ItemTestFunction<dim>& u(Un.A(0,0)->getItem(k));
           u = v;
-          u.addTangent(N[i]);
+          u.addTangent(i);
         }
       }
     }
@@ -410,7 +411,7 @@ public:
             ItemTestFunction<dim>& v(A(i,j)->getItem(ui));
             ItemTestFunction<dim>& u(Un.A(i,0)->getItem(k));
             u = v;
-            u.addTangent(N[j]);
+            u.addTangent(j);
           }
         }
       }
@@ -486,6 +487,10 @@ public:
 template<int N> friend TestFunction<N> grad(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> gradS(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> div(const TestFunction<N> & T);
+template<int N> friend TestFunction<N> divS(const TestFunction<N> & T);
+template<int N> friend TestFunction<N> divT(const TestFunction<N> & T);
+
+
 template<int N> friend TestFunction<N> Eps(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> grad2(const TestFunction<N> & T);
 
@@ -615,7 +620,7 @@ TestFunction<N> operator * (const TestFunction<N>& F, const ExpressionVirtual& e
 }
 
 template <int N>
-TestFunction<N> operator , (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {
+TestFunction<N> operator, (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {
   assert(F.A.M() == 1);
   assert(F.A.N() == N);
   TestFunction<N> multU(1);
@@ -916,6 +921,94 @@ TestFunction<d> gradS(const TestFunction<d> & T){
   return gradU;
 }
 
+
+template <int d>
+TestFunction<d> div(const TestFunction<d> & T){
+  assert(T.A.M() == 1);
+  assert(T.A.N() == d);
+  int N = T.A.N();
+
+  TestFunction<d> divU(1);
+  int k = 0,ksum=0;
+  for(int i=0;i<N;++i) ksum += T.A(i,0)->size();
+  divU.A(0,0) = new ItemList<d>(ksum);
+
+  for(int i=0;i<N;++i) {
+    assert(T.A(i,0)->size() == 1);
+    const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
+    ItemTestFunction<d>& u(divU.A(0,0)->getItem(k));
+    u = v;
+    u.du = D(i);
+    k++;
+  }
+  return divU;
+}
+
+template <int d>
+TestFunction<d> divS(const TestFunction<d> & T){
+  assert(T.A.M() == 1);
+  assert(T.A.N() == d);
+  int N = T.A.N();
+
+  TestFunction<d> divU(1);
+  int k = 0,ksum=0;
+  for(int i=0;i<N;++i) ksum += T.A(i,0)->size();
+  divU.A(0,0) = new ItemList<d>(ksum*(d+1));
+
+  for(int i=0;i<N;++i) {
+    assert(T.A(i,0)->size() == 1);
+    const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
+
+    ItemTestFunction<d>& u(divU.A(0,0)->getItem(k));
+    u=v;
+    u.du = D(i);
+    k++;
+
+    for(int j=0;j<d;++j) {
+      ItemTestFunction<d>& u(divU.A(0,0)->getItem(k));
+      u=v;
+      u.c *= -1;
+      u.du = D(j);
+      u.addNormal(i);
+      u.addNormal(j);
+      k++;
+    }
+  }
+  return divU;
+}
+
+template <int d>
+TestFunction<d> divT(const TestFunction<d> & T){
+  assert(T.A.M() == 1);
+  assert(T.A.N() == d);
+  assert(d == 2);
+  int N = T.A.N();
+
+  TestFunction<d> divU(1);
+  int k = 0,ksum=0;
+  for(int i=0;i<N;++i) ksum += T.A(i,0)->size();
+  divU.A(0,0) = new ItemList<d>(ksum*(d));
+
+  for(int i=0;i<N;++i) {
+    assert(T.A(i,0)->size() == 1);
+    const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
+
+
+    for(int j=0;j<d;++j) {
+      int ii = (i==0);
+      int jj = (j==0);
+      ItemTestFunction<d>& u(divU.A(0,0)->getItem(k));
+      u=v;
+      u.c *= (ii==jj)?1 : -1;
+      u.du = D(j);
+      u.addNormal(jj);
+      u.addNormal(ii);
+      k++;
+    }
+  }
+  return divU;
+}
+
 // time gradient
 template <int d>
 TestFunction<d> dt(const TestFunction<d> & T){
@@ -1092,27 +1185,6 @@ TestFunction<d> dzS(const TestFunction<d> & T){
   return gradU;
 }
 
-template <int d>
-TestFunction<d> div(const TestFunction<d> & T){
-  assert(T.A.M() == 1);
-  assert(T.A.N() == d);
-  int N = T.A.N();
-
-  TestFunction<d> divU(1);
-  int k = 0,ksum=0;
-  for(int i=0;i<N;++i) ksum += T.A(i,0)->size();
-  divU.A(0,0) = new ItemList<d>(ksum);
-
-  for(int i=0;i<N;++i) {
-    assert(T.A(i,0)->size() == 1);
-    const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
-    ItemTestFunction<d>& u(divU.A(0,0)->getItem(k));
-    u = v;
-    u.du = D(i);
-    k++;
-  }
-  return divU;
-}
 
 
 template <int d>

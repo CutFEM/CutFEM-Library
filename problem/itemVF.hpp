@@ -23,6 +23,9 @@ struct ItemVF {
   void(*pfunU)(RNMK_&,int,int) = f_id;
   void(*pfunV)(RNMK_&,int,int) = f_id;
 
+  CutFEM_ParameterList parameterList;
+
+
   ItemVF()
   : c(0.), cu(-1),du(-1),cv(-1),dv(-1),domu(-1),domv(-1),dtu(-1),dtv(-1){}
   ItemVF(double cc,int i,int j,int k,int l)
@@ -135,6 +138,65 @@ public:
   R getCoef(const R* normal) const {
     return getCoefU(normal) * getCoefV(normal);
   }
+  R computeNormal(const R* normal) const {
+    return getCoef(normal);
+  }
+
+  R computeCoef(double h, double meas, double measK, int domain) const {
+    R val = 1;
+    for(int l=0;l<2;++l) {
+      const vector<string>& listCoef = (l==0)?coefu : coefv;
+      for(int i=0;i<listCoef.size();++i) {
+        string coef = listCoef[i];
+
+        if(parameterList.find(coef)) {
+          CutFEM_Parameter& p(*parameterList.listParameter[coef]);
+          val *= p(domain, h, meas, measK);
+        }
+      }
+    }
+    return val;
+  }
+  R computeCoefInterface( double h, double meas, double measK) const {
+    R val = 1;
+    for(int l=0;l<2;++l) {
+      const vector<string>& listCoef = (l==0)?coefu : coefv;
+      int domCoef = (l==0)?domu : domv;
+      if(domCoef == -1) domCoef = 0;
+      assert(domCoef == 0 || domCoef == 1);
+      for(int i=0;i<listCoef.size();++i) {
+        string coef = listCoef[i];
+
+        if(this->parameterList.find(coef)) {
+          CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
+          val *= p(domCoef, h, meas, measK);
+        }
+      }
+    }
+    return val;
+  }
+  R computeCoef(int domain, const typename Mesh::Partition& cutK) const {
+    R val = 1;
+    double h = cutK.getEdgeLength();
+    double meas = cutK.mesure(domain);
+    double measK = cutK.T.mesure();
+    for(int l=0;l<2;++l) {
+      const vector<string>& listCoef = (l==0)?coefu : coefv;
+      int domCoef = domain;
+      for(int i=0;i<listCoef.size();++i) {
+        string coef = listCoef[i];
+
+        if(this->parameterList.find(coef)) {
+          CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
+          val *= p(domCoef, h, meas, measK);
+        }
+      }
+    }
+    return val;
+  }
+
+
+
 
   void applyFunNL(RNMK_& bfu, RNMK_& bfv) const {
     pfunU(bfu, cu, du);
@@ -280,6 +342,24 @@ ListItemVF<d> jump(const ListItemVF<d>& L) {
   return item;
 }
 
+template <int d>
+ListItemVF<d> average(const ListItemVF<d>& L, int v1, int v2) {
+  int n0 = L.VF.size();
+  int n = 2*n0;
+
+  ListItemVF<d> item(n);
+  for(int i=0;i<n0;++i) {
+    item(i) = L(i);
+    item(i).c *= v1;
+    item(i).domu = 0; item(i).domv = 0;
+  }
+  for(int i=n0,j=0;i<n;++i,++j) {
+    item(i) = L(j);
+    item(i).c *= v2;
+    item(i).domu = 1; item(i).domv = 1;
+  }
+  return item;
+}
 
 
 // only for vectors

@@ -64,8 +64,6 @@ void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& g
   }
 }
 
-
-
 template<typename M>
 void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface,const Mapping& mapping) {
 
@@ -202,7 +200,7 @@ void BaseProblem<M>::addElementRHS(const ListItemVF<Rd::d>& VF, const Interface&
 
       FKv.BF(Fop,FKv.T.toKref(mip), fv); // need point in local reference element
       mapping.transform(FKv, fv, invJ);
-      R val_fh = VF[l].fx_backMesh_V(kb, VF[l].domu, mip, normal)
+      R val_fh = VF[l].fx_backMesh_U(kb, VF[l].domu, mip, normal)
       //VF[l].fxU(kf, mip, normal)
       *VF[l].fx_backMesh_V(kb, VF[l].domv, mip, normal);
       double Cst = Cint * coef * VF[l].c * Cnormal * val_fh;
@@ -480,12 +478,10 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF,const Inter
 
   const Mesh& Th(*interface.backMesh);
 
-
   // GET THE BOUNDARY FACE
   int ifaceK;
   const int kb = Th.BoundaryElement(iface_B, ifaceK);
   const BorderElement & BE(Th.be(iface_B));
-  // Segment<Rd> segment(BE[0], BE[1]);
 
   // GET THE INTERFACE FACE
   int iface_G = interface.idxFaceOfElement(kb);
@@ -496,6 +492,10 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF,const Inter
   int idx_node = face[inode];
   const Rd mip = interface(idx_node);
 
+  Rd tangent = interface(face[inode] ) - interface(face[(inode +1)%2]);
+  tangent /= tangent.norm();
+  Rd normal(tangent.y, -tangent.x);
+
 
   for(int l=0; l<VF.size();++l) {
     assert(!VF[l].fespaceV->isCutSpace());
@@ -504,31 +504,30 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF,const Inter
     this->initIndex( VF[l].fespaceV);
 
     // THE ELEMENT IN THE SURFACE MESH
-    const FESpace& Sh(*VF[l].fespaceU);
+    const FESpace& Sh(*VF[l].fespaceV);
     const int k = Sh.idxElementFromBackMesh(kb);
     const FElement& FK(Sh[k]);
 
     // THE NORMAL
     // Rd normal = FK.T.N(ifaceK);
-    //
-    // // EVALUATE THE BASIS FUNCTION
-    // RNMK_ fv(this->databf,FK.NbDoF(),FK.N,lastop); //  the value for basic fonction
-    // What_d Fop = Fwhatd(lastop);
-    // FK.BF(Fop,FK.T.toKref(mip), fv);
-    //
-    // // COMPUTE COEFFICIENTS
-    // R coef = computeCoefInterface(VF[l],0,0,0 );
-    // R val_fh = VF[l].fx_backMesh_U(kb, 0, mip, normal)
-    // *VF[l].fx_backMesh_V(kb, 0, mip, normal);
-    // double Cnormal = VF[l].getCoefU(normal)*VF[l].getCoefV(normal);
-    // double Cst = Cnormal*coef*val_fh*VF[l].c;
-    //
-    // // FILL THE MATRIX
-    // for(int i = FK.dfcbegin(VF[l].cv); i < FK.dfcend(VF[l].cv); ++i) {
-    //   for(int j = FK.dfcbegin(VF[l].cu); j < FK.dfcend(VF[l].cu); ++j) {
-    //     (*this)(FK.loc2glb(i),FK.loc2glb(j)) += Cst*fv(i,VF[l].cv,VF[l].dv)*fv(j,VF[l].cu,VF[l].du);
-    //   }
-    // }
+
+    // EVALUATE THE BASIS FUNCTION
+    RNMK_ fv(this->databf,FK.NbDoF(),FK.N,lastop); //  the value for basic fonction
+    What_d Fop = Fwhatd(lastop);
+    FK.BF(Fop,FK.T.toKref(mip), fv);
+
+    // COMPUTE COEFFICIENTS
+    R coef = computeCoefInterface(VF[l],0,0,0 );
+    R val_fh = VF[l].fx_backMesh_U(kb, 0, mip, normal)
+    *VF[l].fx_backMesh_V(kb, 0, mip, normal);
+    double Cnormal = VF[l].getCoefU(normal)*VF[l].getCoefV(normal);
+    double Cst = Cnormal*coef*val_fh*VF[l].c;
+    // std::cout << Cnormal << "\t" << val_fh << std::endl;
+    // std::cout << Cst << std::endl;
+    // FILL THE MATRIX
+    for(int i = FK.dfcbegin(VF[l].cv); i < FK.dfcend(VF[l].cv); ++i) {
+      (*this)(FK.loc2glb(i)) += Cst*fv(i,VF[l].cv,VF[l].dv);
+    }
     this->resetIndex();
   }
 }

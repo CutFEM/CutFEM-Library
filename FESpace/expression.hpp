@@ -14,22 +14,22 @@ struct Normal_Component_Y : public Normal_Component {
 };
 
 struct Normal {
-  static const int idx[3];
+  // static const int idx[3];
   Normal_Component_X x;
   Normal_Component_Y y;
-  int operator[](int i) const {return idx[i];}
+  // int operator[](int i) const {return idx[i];}
 };
 
 // compute tangent from normal
 struct Tangent {
-  static const int idx[3];
-  int operator[](int i) const {return idx[i];}
+  // static const int idx[3];
+  // int operator[](int i) const {return idx[i];}
 };
 
 struct Projection {
   Normal normal;
   KN<int> operator()(int i, int j) const {
-    KN<int> ar(2); ar(0) = normal[i]; ar(1) = normal[j];
+    KN<int> ar(2); ar(0) = i; ar(1) = j;
     return ar;
   }
 };
