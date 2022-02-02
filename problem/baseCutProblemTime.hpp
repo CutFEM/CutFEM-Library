@@ -297,30 +297,22 @@ void BaseCutProblem<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, doubl
   int ndf = this->rhs.size();
   this->rhs.resize(ndf+1);
   this->rhs(ndf) = MPIcf::IamMaster()*val;
-  // this->nDoF += 1;
-  const int nbDof = (*Vh)[0].NbDoF(); // same local dof for every element
-  int lastop = 0;
-  for(int i=0;i<VF.size();++i) lastop = Max(lastop, VF[i].du, VF[i].dv);
-  lastop += 1;
-
-  KNMK<double> basisFunMat(nbDof,Vh->N,lastop);
   GTime::iter_step_quadrature = itq;               // define which time quad point
   for(int k=Vh->first_element(); k<Vh->last_element(); k+= Vh->next_element()) {
 
-    addElementLagrange(basisFunMat,VF, k, In);
+    addElementLagrange(VF, k, In);
 
   }
 }
 
 template<typename M>
-void BaseCutProblem<M>::addElementLagrange(KNMK<double>& basisFunMat,const ListItemVF<Rd::d>& VF , const int k, const TimeSlab& In){
+void BaseCutProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF , const int k, const TimeSlab& In){
 
   typedef typename Mesh::Partition Partition;
   typedef typename QF::QuadraturePoint QuadraturePoint;
   int nend = this->rhs.size()-1;
   const int itq = GTime::iter_step_quadrature;
 
-  What_d Fop = Fwhatd(basisFunMat.K());
   const FElement& FK((*Vh)[k]);
   const int domain = FK.whichDomain();
 
@@ -340,21 +332,27 @@ void BaseCutProblem<M>::addElementLagrange(KNMK<double>& basisFunMat,const ListI
 
     const R meas = cutK.mesure(it);
 
-    for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+    for(int l=0; l<VF.size();++l) {
+      if(VF[l].on(domain)){
+        const FESpace& Wh(*VF[l].fespaceV);
 
-      QuadraturePoint ip(qf[ipq]); // integration point
-      Rd mip = cutK.toK(it, ip);
-      const R Cint = meas * ip.getWeight();
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+        What_d Fop = Fwhatd(lastop);
+        RNMK_ fv(this->databf,FK.NbDoF(),FK.N,lastop); //  the value for basic fonction
+        R coef = computeCoef(VF[l],domain,cutK);
 
-      FK.BF(Fop,FK.T.toKref(mip), basisFunMat); // need point in local reference element
+        for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
 
-      for(int l=0; l<VF.size();++l) {
-        if(VF[l].on(domain)){
-          R coef = computeCoef(VF[l],domain,cutK);
+          QuadraturePoint ip(qf[ipq]); // integration point
+          Rd mip = cutK.toK(it, ip);
+          const R Cint = meas * ip.getWeight();
+
+          FK.BF(Fop,FK.T.toKref(mip), fv);
+
           for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {
             for(int j = FK.dfcbegin(VF[l].cv); j < FK.dfcend(VF[l].cv); ++j) {
-              (*this)(nend, FK.loc2glb(j,it)) +=  Cint * coef * VF[l].c * basisFunMat(j,VF[l].cv,VF[l].dv)*basisFunTime(it,0,VF[l].dtv);
-              (*this)(FK.loc2glb(j,it), nend) +=  Cint * coef * VF[l].c * basisFunMat(j,VF[l].cv,VF[l].dv)*basisFunTime(it,0,VF[l].dtv);
+              (*this)(nend, FK.loc2glb(j,it)+this->mapIdx0[&Wh]) +=  Cint * coef * VF[l].c * fv(j,VF[l].cv,VF[l].dv)*basisFunTime(it,0,VF[l].dtv);
+              (*this)(FK.loc2glb(j,it)+this->mapIdx0[&Wh], nend) +=  Cint * coef * VF[l].c * fv(j,VF[l].cv,VF[l].dv)*basisFunTime(it,0,VF[l].dtv);
             }
           }
         }

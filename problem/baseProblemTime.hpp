@@ -157,7 +157,7 @@ void BaseProblem<M>::setElementStrongBC(int ifac, const TimeSlab& In, const Expr
 
 
 template<typename M>
-void BaseProblem<M>::addBilinearFormBorder(const ListItemVF<Rd::d>& VF, const TimeSlab& In, list<int> label) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In, const CBorder& b , list<int> label) {
   typedef typename Mesh::BorderElement BorderElement;
   bool all_label = (label.size() == 0);
 
@@ -253,7 +253,7 @@ void BaseProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const int 
 
 
 template<typename M>
-void BaseProblem<M>::addLinearFormBorder(const ListItemVF<Rd::d>& VF, const TimeSlab& In, list<int> label) {
+void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In, const CBorder& b , list<int> label) {
   typedef typename Mesh::BorderElement BorderElement;
   bool all_label = (label.size() == 0);
 
@@ -342,7 +342,7 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const int 
 
 
 template<typename M>
-void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF, const TimeSlab& In) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In, const CHyperFace& b) {
   typedef typename Mesh::Element Element;
   const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
 
@@ -430,78 +430,3 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
     }
   }
 }
-
-// template<typename M>
-// void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In) {
-//
-//   typedef typename QFB::QuadraturePoint QuadraturePoint;
-//   typedef typename FElement::RdHatBord RdHatBord;
-//   typedef typename Mesh::Element Element;
-//
-//   const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
-//   this->initIndex(VF[0].fespaceU, VF[0].fespaceV);
-//   GQuadraturePoint<R1> tq((qTime)[GTime::iter_step_quadrature]);
-//
-//   KNMK<double> basisFunTime(In.NbDoF(),1,op_dz+1);
-//   In.BF(tq.x, basisFunTime);
-//
-//   const FElement& FK(Sh[k]);
-//   const Element & K = FK.T;                  // the triangle
-//   const R measK = FK.getMeasure();
-//
-//   for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
-//     int ifacn = ifac;
-//     int kn = Sh.Th.ElementAdj(k,ifacn);
-//     if(kn == -1) continue;
-//     if(k > kn) continue;      // only compute one time
-//
-//     const R h = FK.T.lenEdge(ifac);
-//
-//     const FElement & FKn(Sh[kn]);                     // the neighboor finite element
-//     Rd normal = (k < kn)? FK.T.N(ifac) : FKn.T.N(ifacn);
-//
-//     const R meas = FK.T.mesureBord( ifac);
-//
-//     for(int l=0; l<VF.size();++l) {
-//
-//       assert(VF[l].fespaceU == VF[l].fespaceV);
-//       int lastop = getLastop(0, VF[l].dv);
-//
-//       double coef = computeCoef(VF[l],h,meas, measK) * VF[l].getCoef(normal);
-//
-//       const int ku = (VF[l].domu == 0)? k : kn;
-//       const int kv = (VF[l].domv == 0)? k : kn;
-//       bool same = (ku == kv);
-//       const FElement& FKu(Sh[ku]);
-//       const FElement& FKv(Sh[kv]);
-//       this->initIndex(FKu, FKv);
-//
-//       RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
-//       RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
-//       What_d Fop = Fwhatd(lastop);
-//
-//       for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-//
-//         QuadraturePoint ip(qfb[ipq]); // integration point
-//         const Rd mip = K(K.toKref((RdHatBord)ip, ifac));
-//         const R Cint = meas * ip.getWeight() * In.T.mesure()* tq.a;
-//
-//         FKu.BF(Fop,FKu.T.toKref(mip), fu);//basisFunMat); // need point in local reference element
-//         if(!same) FKv.BF(Fop,FKv.T.toKref(mip), fv);
-//
-//         for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {
-//           for(int jt=In.dfcbegin(0); jt<In.dfcend(0); ++jt) {
-//             const R tval = basisFunTime(it,0,VF[l].dtv)*basisFunTime(jt,0,VF[l].dtu);
-//             for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
-//               for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
-//                 // (*this)(FKv.loc2glb(i,it),FKu.loc2glb(j,jt))  += Cint * coef * tval * VF[l].c * fu(j,VF[l].cu,VF[l].du)*fv(i,VF[l].cv,VF[l].dv);
-//                 this->addToLocalContribution(FKv.loc2glb(i,it),FKu.loc2glb(j,jt))  += Cint * coef * tval * VF[l].c * fu(j,VF[l].cu,VF[l].du)*fv(i,VF[l].cv,VF[l].dv);
-//
-//               }
-//             }
-//           }
-//         }
-//       }
-//     }
-//   }
-// }

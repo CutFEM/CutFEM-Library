@@ -138,27 +138,24 @@ public :
 
 void addDiagonal(double epsilon_machine);
 
-// Classic FEM
+// STANDARD FEM
+// -----------------------------------------------------------------------------------
+// on element
 void addBilinear(const ListItemVF<Rd::d>& VF);
 void addLinear(const ListItemVF<Rd::d>& VF);
-void addBilinearFormBorder(const ListItemVF<Rd::d>& VF, list<int> label = {});
-void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return addBilinearFormBorder(VF, label); };
-void addLinearFormBorder(const ListItemVF<Rd::d>& VF  , list<int> label = {});
-void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b  , list<int> label = {}){ return addLinearFormBorder(VF, label); };;
-
+// on boundary
+void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {});
+void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b  , list<int> label = {});
 void addStrongBC(const ExpressionVirtual& gh, list<int> label = {});
 void addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh, list<int> label={});
-
-void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val) ;
-
-void addEdgeIntegral(const ListItemVF<Rd::d>& VF);
-void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return addEdgeIntegral(VF); };
+// on innerEdge
+void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b);
 void addLinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b);
+void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro);
 
 
-void addEdgeIntegral(const ListItemVF<Rd::d>& VF, const GMacro& macro);
-void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro){ return BaseProblem<M>::addEdgeIntegral(VF, macro); };
-
+// lagrange multiplier
+void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val) ;
 
 
 protected:
@@ -173,34 +170,43 @@ protected:
 
 
 public:
-  // FEM on surface
+  // SURFACE FEM
+  // ---------------------------------------------------
+  // on element
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,list<int> label = {}, const Mapping& mapping = DataMapping<Mesh>::Id);
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const GMacro& macro, list<int> label = {}, const Mapping& mapping = DataMapping<Mesh>::Id);
-
-  void addElementMat(const ListItemVF<Rd::d>& VF, const Interface& gamma, const int ifac,const Mapping& mapping);
   void addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, list<int> label = {},const Mapping& mapping = DataMapping<Mesh>::Id);
-  void addElementRHS(const ListItemVF<Rd::d>& VF, const Interface& gamma, const int ifac,const Mapping& mapping);
+  // on boundary
+  void addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CBorder& b, list<int> label = {});
+  // on inner edges => node eval in 2D
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CHyperFace& b);
+  // lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma, double val, const Mapping& mapping = DataMapping<Mesh>::Id) ;
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma,  const TimeSlab& In, double tq, double val, const Mapping& mapping = DataMapping<Mesh>::Id) ;
+
+
+
+private:
+  void addElementMat(const ListItemVF<Rd::d>& VF, const Interface& gamma, const int ifac,const Mapping& mapping);
+  void addElementRHS(const ListItemVF<Rd::d>& VF, const Interface& gamma, const int ifac,const Mapping& mapping);
+  void addElementMatEdge(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface);
+  void addElementRHSBorder(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface);
   void addElementLagrange(const ListItemVF<Rd::d>& VF , const Interface& gamma, const int k,const Mapping& mapping);
   void addElementLagrange(const ListItemVF<Rd::d>& VF , const Interface& gamma, const int k,const TimeSlab& In, double tq,const Mapping& mapping);
 
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval);
-  void addElementMat(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface,const CNode& nodeEval);
 
-  void addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CBorder& b, list<int> label = {});
-  void addElementRHSBorder(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface);
-
-
-// Time integrals
+// STANDART TIME FEM
 public:
+  // on element
   void addBilinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In);
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In);
-  void addBilinearFormBorder(const ListItemVF<Rd::d>& VF, const TimeSlab& In, list<int> label = {});
+  // on boundary
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In, const CBorder& b, list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF  , const TimeSlab& In, const CBorder& b, list<int> label = {});
   void addStrongBC(const ExpressionVirtual& gh, const TimeSlab& In, list<int> label = {});
   void addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh, const TimeSlab& In, list<int> label={});
-  void addLinearFormBorder(const ListItemVF<Rd::d>& VF  , const TimeSlab& In, list<int> label = {});
-  void addEdgeIntegral(const ListItemVF<Rd::d>& VF, const TimeSlab& In);
+  // on inner edges
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In, const CHyperFace& b);
 
 protected:
   virtual void addElementMat(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
@@ -208,28 +214,30 @@ protected:
   void addElementMatBorder(const ListItemVF<Rd::d>& VF, const int ifac, const TimeSlab& In);
   void addElementRHSBorder(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
   void setElementStrongBC(int ifac, const TimeSlab& In, const ExpressionVirtual& gh);
-  // virtual void addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
   virtual void addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k, const int ifac, const TimeSlab& In);
 
+
 public:
-  // FEM Space Time on surface
+  // SURFACE TIME FEM
+  // on elements
   void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& gamma, const TimeSlab& In, KN<const Mapping*> mapping = {});
   void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& gamma, int itq, const TimeSlab& In, KN<const Mapping*> mapping = {});
-  void addElementMat(const ListItemVF<Rd::d>& VF, const TimeInterface<M>&  interface, const int iface, const TimeSlab& In, const Mapping& mapping);
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& gamma, const TimeSlab& In, KN<const Mapping*> mapping = {});
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& gamma, int itq, const TimeSlab& In, KN<const Mapping*> mapping = {});
-  void addElementRHS(const ListItemVF<Rd::d>& VF, const TimeInterface<M>&  interface, const int iface, const TimeSlab& In, const Mapping& mapping);
 
-
+  // lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& gamma, const TimeSlab& In, double val, KN<const Mapping*> mapping = {}) ;
+
+
+private:
+  void addElementMat(const ListItemVF<Rd::d>& VF, const TimeInterface<M>&  interface, const int iface, const TimeSlab& In, const Mapping& mapping);
+  void addElementRHS(const ListItemVF<Rd::d>& VF, const TimeInterface<M>&  interface, const int iface, const TimeSlab& In, const Mapping& mapping);
   void addElementLagrange(const ListItemVF<Rd::d>& VF , const TimeInterface<M>& gamma, const int k, const TimeSlab& In, const Mapping& mapping);
+
 
 public:
   virtual R computeCoef(const ItemVF<Rd::d>&, double, double, double, int d = 0) const;
   R computeCoefInterface(const ItemVF<Rd::d>& item, double h, double meas, double measK) const;
-
-
-  // R computeCoefBorder(const ItemVF<Rd::d>&, double, double, double) const;
 
 
 
@@ -299,7 +307,6 @@ R BaseProblem<M>::computeCoef(const ItemVF<Rd::d>& item, double h, double meas, 
   }
   return val;
 }
-
 
 template<typename M>
 R BaseProblem<M>::computeCoefInterface(const ItemVF<Rd::d>& item, double h, double meas, double measK) const {
@@ -431,7 +438,7 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF, const int k) {
 */
 
 template<typename M>
-void BaseProblem<M>::addBilinearFormBorder(const ListItemVF<Rd::d>& VF, list<int> label) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label) {
   typedef typename Mesh::BorderElement BorderElement;
   bool all_label = (label.size() == 0);
 
@@ -571,7 +578,7 @@ void BaseProblem<M>::addElementRHS(const ListItemVF<Rd::d>& VF, const int k) {
      ADD LINEAR FORM BORDER
 */
 template<typename M>
-void BaseProblem<M>::addLinearFormBorder(const ListItemVF<Rd::d>& VF, list<int> label) {
+void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label) {
   typedef typename Mesh::BorderElement BorderElement;
   bool all_label = (label.size() == 0);
 
@@ -651,7 +658,7 @@ void BaseProblem<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double v
 
   int ndf = rhs.size();
   rhs.resize(ndf+1);
-  rhs(ndf) = val;
+  rhs(ndf) = MPIcf::IamMaster()*val;
   // nDoF += 1;
 
   for(int k=Vh->first_element(); k<Vh->last_element(); k+= Vh->next_element()) {
@@ -699,7 +706,7 @@ void BaseProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF , const int 
      ADD EDGE STABILIZATION
 */
 template<typename M>
-void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF,  const CHyperFace& b) {
   typedef typename Mesh::Element Element;
   const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
 
@@ -712,7 +719,7 @@ void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF) {
 }
 
 template<typename M>
-void BaseProblem<M>::addEdgeIntegral(const ListItemVF<Rd::d>& VF, const GMacro& macro) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF,  const CHyperFace& b, const GMacro& macro) {
 
   for(auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
 

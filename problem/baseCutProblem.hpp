@@ -48,35 +48,26 @@ public:
   void initialSolution(Rn&);
 
 public :
+// STANDARD CUTFEM
 // integral on element
   void addBilinear(const ListItemVF<Rd::d>& VF);
   void addLinear(const ListItemVF<Rd::d>& VF);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const MacroElement&);
   void addBilinearFormExtDomain(const ListItemVF<Rd::d>& VF,  const R epsE = 0); // [default epsE = 0]
   void addLinearFormExtDomain(const ListItemVF<Rd::d>& VF, const R epsE = 0);
-
+  // integral on the boundary
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addBilinear(VF, b, label); };
+  void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addLinear(VF, b, label); };
+  // integral on inner Edge/Face
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addBilineair(VF,b); };
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro){ return BaseProblem<M>::addBilinear(VF, b,macro); };
+  void addLinear  (const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addLinear(VF, b); };
   // face stabilization
   void addFaceStabilization(const ListItemVF<Rd::d>& VF);
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
-
-
+  // lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val,const int itq = 0);
 
-  // integral on macro element
-  void addBilinear(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
-
-  // integral on the boundary
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addBilinearFormBorder(VF, label); };
-  void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addLinearFormBorder(VF, label); };
-
-  // integral on inner Edge/Face
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addEdgeIntegral(VF); };
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro){ return BaseProblem<M>::addEdgeIntegral(VF, macro); };
-  void addLinear  (const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addLinear(VF, b); };
-
-
-
-  R L2norm(const Rn& uex,int c0=0, int nbcomp = -1) ;
-  // R H1norm(const Rn& uex,int c0=0, int nbcomp = -1) ;
   protected :
 
   void addElementMat         (const ListItemVF<Rd::d>& VF , const int k,const bool extend=false, const R epsE = 0);
@@ -89,28 +80,29 @@ public :
   void addElementRHSBorder   (const ListItemVF<Rd::d>& VF, const int ifac, int dom = 0);
 
 
-
-
-  // Time integrals
 public:
+  // TIME CUTFEM
+  // on element
   void addBilinear   (const ListItemVF<Rd::d>& VF, const TimeSlab& In);
   void addLinear     (const ListItemVF<Rd::d>& VF, const TimeSlab& In);
+  // stabilization
   void addFaceStabilization    (const ListItemVF<Rd::d>& VF, const TimeSlab& In) ;
+  // lagrange multiplier
   void addLagrangeMultiplier   (const ListItemVF<Rd::d>& VF, double val, const TimeSlab& In) ;
   void addLagrangeMultiplier   (const ListItemVF<Rd::d>& VF, double val, int itq, const TimeSlab& In) ;
 
 private:
-  void addElementMat         (const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
-  void addElementRHS         (const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
+  void addElementMat      (const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
+  void addElementRHS      (const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
   void addElementMatEdge  (const ListItemVF<Rd::d>& VF, const int k, const int ifac, const TimeSlab& In);
-  void addElementLagrange  (KNMK<double>& basisFunMat,const ListItemVF<Rd::d>& VF , const int k, const TimeSlab& In);
+  void addElementLagrange (const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
 
 
 public:
   // FEM on surface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, list<int> label = {},const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addBilinear(VF, gamma, label, mapping);};
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const GMacro& macro, list<int> label = {},const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addBilinear(VF, gamma, macro, label, mapping);};
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval){return BaseProblem<M>::addBilinear(VF, gamma, nodeEval);};
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CHyperFace& b){return BaseProblem<M>::addBilinear(VF, gamma, b);};
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface& gamma, list<int> label = {}, const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addLinear(VF, gamma, label, mapping);};
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface& gamma, const CBorder& b, list<int> label = {}) {return BaseProblem<M>::addLinear(VF, gamma, b, label);};
 
@@ -732,64 +724,6 @@ void BaseCutProblem<M>::addElementRHSEdge(const ListItemVF<Rd::d>& VF, const int
   }
   this->resetIndex();
 }
-
-//
-// template<typename M>
-// void BaseCutProblem<M>::addElementMatEdge(KNMK<double>& basisFunMat,const ListItemVF<Rd::d>& VF, const int k, int ifac) {
-//
-//   typedef typename QFB::QuadraturePoint QuadraturePoint;
-//   typedef typename FElement::RdHatBord RdHatBord;
-//   typedef typename Mesh::Element Element;
-//
-//   KNMK<double> bfn = basisFunMat;
-//   What_d Fop = Fwhatd(basisFunMat.K());
-//   const FElement& FK((*Vh)[k]);
-//   const Element & K = FK.T;                  // the triangle
-//   int k_back = this->Vh->Th(K);
-//   int the_domain = FK.whichDomain();
-//   const R h = FK.T.lenEdge(0);
-//
-//   int ifacn = ifac;
-//   int kn_back = Vh->Th.ElementAdj(k_back,ifacn);
-//   int kn = Vh->idxElementFromBackMesh(kn_back, the_domain);   // not in the domain
-//
-//   const FElement & FKn((*Vh)[kn]);                     // the neighboor finite element
-//   Rd normal = FK.T.N(ifac);
-//
-//   const R meas = FK.T.mesureBord( ifac);
-//   const R measK = FK.getMeasure();
-//
-//   for(int l=0; l<VF.size();++l) {
-//
-//     R coef = BaseProblem<M>::computeCoef(VF[l],h,meas, measK,the_domain) * VF[l].getCoef(normal);
-//
-//     const int ku = (VF[l].domu == 0)? k : kn;
-//     const int kv = (VF[l].domv == 0)? k : kn;
-//     const FElement& FKu((*Vh)[ku]);
-//     const FElement& FKv((*Vh)[kv]);
-//     this->initIndex(FKu, FKv);
-//
-//     for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-//
-//       QuadraturePoint ip(qfb[ipq]); // integration point
-//       const Rd mip = K(K.toKref((RdHatBord)ip, ifac));
-//       const R Cint = meas * ip.getWeight();
-//
-//       FKu.BF(Fop,FKu.T.toKref(mip), basisFunMat); // need point in local reference element
-//       FKv.BF(Fop,FKv.T.toKref(mip), bfn); // need point in local reference element
-//
-//       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
-//         for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
-//           // (*this)(FKv.loc2glb(i),FKu.loc2glb(j))  +=  Cint * coef *  VF[l].c * bfn(i,VF[l].cv,VF[l].dv) * basisFunMat(j,VF[l].cu,VF[l].du);
-//           this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef *  VF[l].c * bfn(i,VF[l].cv,VF[l].dv) * basisFunMat(j,VF[l].cu,VF[l].du);
-//
-//         }
-//       }
-//     }
-//   }
-//   this->resetIndex();
-//   this->addLocalContribution();
-// }
 
 /*
 Add Lagrange multiplier

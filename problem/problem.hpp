@@ -8,6 +8,7 @@
 #include "../common/geometry.hpp"
 #include "../common/marker.hpp"
 #include "../common/timeInterface.hpp"
+#include "../common/fracture.hpp"
 #include "../common/GTime.hpp"
 #include "../common/SparseMatMap.hpp"
 #include "../common/DA.hpp"
@@ -38,10 +39,6 @@ struct CHyperFace {
 };
 const CHyperFace innerEdge;
 const CHyperFace innerFace;
-struct CNode {
-  CNode() {}
-};
-const CNode nodeEvaluation;
 
 class ShapeOfLinProblem {
 public :

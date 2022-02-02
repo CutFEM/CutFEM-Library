@@ -353,15 +353,15 @@ void BaseProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF, const Inter
 }
 
 template<typename M>
-void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma,const CNode& nodeEval) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CHyperFace& b) {
 
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
-    addElementMat(VF, gamma, iface,nodeEval);
+    addElementMatEdge(VF, gamma, iface);
   }
 }
 
 template<typename M>
-void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface0,const CNode& nodeEval) {
+void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF,const Interface& interface, const int iface0) {
 
   typedef typename QFB::QuadraturePoint QuadraturePoint;
   typedef typename FElement::RdHatBord RdHatBord;
