@@ -396,18 +396,24 @@ void BaseCutProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const i
   typedef typename FElement::RdHatBord RdHatBord;
   typedef typename Mesh::Element Element;
 
+
+  if(!Vh->isCutSpace()){
+    BaseProblem<M>::addElementMatBorder(VF, ifac, dddd);
+    return;
+  }
+
   const BorderElement & BE(Vh->Th.be(ifac)); // The face
   int e; // index of face of triangle corresp to edge (0,1,2)
   const int kb = Vh->Th.BoundaryElement(ifac, e); // index of element (triangle), ifaceK gets modified inside
+  if(!Vh->containBackElement(kb)) return;
 
   CutData cutData(Vh->getInterface(0).getCutData(kb));     // get the cut data
-  if(cutData.edge_isnot_cut(e)){
+  if(cutData.edge_isnot_cut(e) ){
     int domain = (cutData.sign[0] == -1)? 1 : 0;
     BaseProblem<M>::addElementMatBorder(VF, ifac, domain);
     return;
   }
-
-  // std::cout << BE[0] << "\t" << BE[1] << std::endl;
+  return;
 
 
   const Partition& cutK =  Partition(Vh->Th[kb], cutData);  // build the cut
@@ -482,23 +488,29 @@ void BaseCutProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const i
   typedef typename FElement::RdHatBord RdHatBord;
   typedef typename Mesh::Element Element;
 
+  if(!Vh->isCutSpace()){
+    BaseProblem<M>::addElementRHSBorder(VF, ifac, dom);
+    return;
+  }
+
+
   const BorderElement & BE(Vh->Th.be(ifac)); // The face
   int e; // index of face of triangle corresp to edge (0,1,2)
   const int kb = Vh->Th.BoundaryElement(ifac, e); // index of element (triangle), ifaceK gets modified inside
+  if(!Vh->containBackElement(kb)) return;
 
   CutData cutData(Vh->getInterface(0).getCutData(kb));     // get the cut data
-
-  if(!Vh->containBackElement(kb)) return;
-  // std::cout << "hey" << std::endl;
-  // std::cout << kb << std::endl;
-  if(cutData.edge_isnot_cut(e)){
+  if(cutData.edge_isnot_cut(e) ){
     int domain = (cutData.sign[(e+1)%3] == -1)? 1 : 0;
     if(domain >= Vh->nbDomain()) return;
     BaseProblem<M>::addElementRHSBorder(VF, ifac, domain);
     return;
   }
-  const Partition& cutK =  Partition(Vh->Th[kb], cutData);  // build the cut
 
+
+
+  const Partition& cutK =  Partition(Vh->Th[kb], cutData);  // build the cut
+  double val = 0.;
   // integration on both domain
   for(int dom=0; dom<Vh->nbDomain(); ++dom) {
     const int k = Vh->idxElementFromBackMesh(kb, dom);
@@ -507,7 +519,6 @@ void BaseCutProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const i
     const R measK = cutK.mesure(dom);
     const R h = FK.T.lenEdge(e);
     const R meas = cutK.mesureEdge(e, dom);
-
 
     for(int l=0; l<VF.size();++l) {
       int lastop = getLastop(0, VF[l].dv);
@@ -525,7 +536,7 @@ void BaseCutProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const i
         QuadraturePoint ip(qfb[ipq]); // integration point
         const Rd mip = cutK.toEdge(e, (RdHatBord)ip, dom); // mip is in the global edge
         const R Cint = meas * ip.getWeight();
-
+// val += Cint;
         FKv.BF(Fop,FK.T.toKref(mip), fv);
 
         double cst_normal = VF[l].getCoef(normal);

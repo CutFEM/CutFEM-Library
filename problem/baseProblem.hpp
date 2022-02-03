@@ -586,6 +586,7 @@ void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, li
 
     const BorderElement & face(Vh->Th.be(ifac)); // The face
     if(contain(label, face.lab) || all_label) {
+
       addElementRHSBorder(VF, ifac);
     }
   }
@@ -616,7 +617,7 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const int 
   }
   assert(nb_face_onB > 0);
   double measOnB = nb_face_onB*meas;
-
+  double val = 0.;
   for(int l=0; l<VF.size();++l) {
     int lastop = getLastop(0, VF[l].dv);
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb, dom);
@@ -639,6 +640,7 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const int 
       double cst_normal = VF[l].getCoef(normal);
       double val_fh = VF[l].fxu_backMesh(kb, dom, mip, normal);
 
+      val += Cint;
       for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
         (*this)(FKv.loc2glb(i)) +=  Cint * coef * cst_normal * val_fh * VF[l].c * fv(i,VF[l].cv,VF[l].dv);
       }
