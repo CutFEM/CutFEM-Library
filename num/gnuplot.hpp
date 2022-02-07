@@ -229,7 +229,7 @@ namespace gnuplot {
 
 
 
-  void save(const MacroElement & macro) {
+  void save(const MacroElement & macro, const Extension& extension) {
 
     std::ofstream plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10, plot11, plot12;
     plot1.open("small1.dat", std::ofstream::out);
@@ -285,17 +285,17 @@ namespace gnuplot {
         if(domain == 0){
 
           for(int i=0;i<nve;++i) {
-            plot3 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
+            plot3 << (R2)macro.Vh.Th[idx][i] << "\t" << icolor%10 << std::endl;
           }
-          plot3 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
+          plot3 << (R2)macro.Vh.Th[idx][0] << "\t" << icolor%10 << std::endl;
           plot3 << std::endl;
           plot3 << std::endl;
         }
         else {
           for(int i=0;i<nve;++i) {
-            plot4 << macro.Vh.Th[idx][i] << icolor%10 << std::endl;
+            plot4 << (R2)macro.Vh.Th[idx][i] << "\t" << icolor%10 << std::endl;
           }
-          plot4 << macro.Vh.Th[idx][0] << icolor%10 << std::endl;
+          plot4 << (R2)macro.Vh.Th[idx][0] << "\t" << icolor%10 << std::endl;
           plot4 << std::endl;
           plot4 << std::endl;
         }
@@ -304,7 +304,7 @@ namespace gnuplot {
     }
     plot3.close();
     plot4.close();
-    for(auto it=macro.element_edge_handle.begin(); it!=macro.element_edge_handle.end();++it) {
+    for(auto it=extension.element_edge_handle.begin(); it!=extension.element_edge_handle.end();++it) {
 
       int idxK = it->first.first;
       int ie = it->first.second;

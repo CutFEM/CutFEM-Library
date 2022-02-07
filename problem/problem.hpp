@@ -62,6 +62,7 @@ public :
 class ShapeOfNonLinProblem {
   public :
   Ulint nDoF;
+  Ulint nt;
   std::map<std::pair<int,int>,R> DF;     // the matrix
   std::map<std::pair<int,int>,R> NL;     // for optimizition when doing Newton
   std::map<std::pair<int,int>,R> *pmat;  // for optimization with Newton
@@ -76,8 +77,8 @@ class ShapeOfNonLinProblem {
   //index for sum of FESpace
   int index_i0 = 0, index_j0 = 0;
 public :
-  ShapeOfNonLinProblem() : nDoF(0) { pmat = &DF;};
-  ShapeOfNonLinProblem(long n) : nDoF(n) {
+  ShapeOfNonLinProblem() : nDoF(0), nt(0){ pmat = &DF;};
+  ShapeOfNonLinProblem(long n) : nDoF(n),nt(0) {
     pmat = &DF;
     F.resize(n); F=0.;
   }

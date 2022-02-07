@@ -5,6 +5,8 @@
 #include "CutFESpace.hpp"
 #include<set>
 
+class Extension;
+
 struct MElement {
 public:
 
@@ -57,13 +59,29 @@ public :
 const int small=-1 ;
 const int good = 0, extension = 1, exhaust = 2;
 
-std::map<std::pair<int ,int>, int> element_edge_handle; //(id_element, id_edge) => what_to_do
 
 map<int, MElement>     macro_element;   // idx_root -> idx_macroElement
 map<int, SmallElement> small_element;  // idx_element -> idx_small_element
 double tol;
 
 GMacro() {}
+
+int getIndexRootElement(int k) const {
+  auto it = small_element.find(k);
+  if(it == small_element.end()){
+    return k;
+  }else {
+    return it->second.index_root;
+  }
+}
+const SmallElement& getSmallElement(int k) const {
+  auto it = small_element.find(k);
+  assert(it != small_element.end());
+  return it->second;
+}
+bool isRootFat(int k) const {
+  return (small_element.find(k) == small_element.end()) && (k!=-1);
+}
 
 };
 
@@ -80,14 +98,7 @@ public:
 
 class MacroElement : public GMacro {
 
-const QuadratureFormular1d& QF  = QF_GaussLegendre2;
-const QuadratureFormular2d& QFK = QuadratureFormular_T_5;
-
 public:
-
-  set<int> dof2rm;
-  std::map<std::pair<int,int>,double> S, St;
-  std::map<std::pair<int,int>,double> P, Pt;
 
   const FESpace2& Vh;
 
@@ -96,49 +107,17 @@ public:
 
   MacroElement(const FESpace2& vh, const double C);
 
-  int getIndexRootElement(int k) const {
-    auto it = small_element.find(k);
-    if(it == small_element.end()){
-      return k;
-    }else {
-      return it->second.index_root;
-    }
-  }
-  const SmallElement& getSmallElement(int k) const {
-    auto it = small_element.find(k);
-    assert(it != small_element.end());
-    return it->second;
-  }
-  bool isRootFat(int k) const {
-    return (small_element.find(k) == small_element.end()) && (k!=-1);
-  }
+
 
 private:
   void find_small_element();
   void find_root_element();
 
-public:
-  void tag_extension_edges();
-  void tag_exhaust_edges() ;
 
-private:
-  void do_extension(const std::map<std::pair<int,int>,int>::const_iterator& it);
-  void do_extension_P0  (const FElement2& Ks, const FElement2& Kf, int ic);
-  void do_extension_P1dc  (const FElement2& Ks, const FElement2& Kf, int ic);
-  void do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
-  void do_extension_BDM1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
-  void do_extension_RT1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
-
-  void evaluate_dofP1dc(const FElement2& FKs, const FElement2& FKf, Rnm& val, int ic) ;
-  void evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) ;
-  void evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
-  void evaluate_dofRT1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
-
-public:
-  void make_S();
-  void precond(std::map<std::pair<int,int>,double>& A, Rn & rhs);
-  void removeDF( int N, std::map<std::pair<int,int>,double>& A, Rn& b);
-
+friend class Extension;
 };
+
+
+
 
 #endif
