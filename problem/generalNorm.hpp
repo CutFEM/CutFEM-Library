@@ -66,6 +66,59 @@ double integralCut(const ListItemVF<Mesh::Rd::d>& VF, const FunFEM<Mesh>& f,cons
 
 
 
+template<typename Mesh>
+double integral(const ListItemVF<Mesh::Rd::d>& VF, const FunFEM<Mesh>& f,const FunFEM<Mesh>& g, const GenericInterface<Mesh>& interface) {
+
+  // TYPEDEF NAMES OF TEMPLATE CLASSES
+  typedef CutGFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement  FElement;
+  typedef typename TypeCutData<Mesh::Rd::d>::CutData CutData;
+  typedef typename Mesh::Partition Partition;
+  typedef typename FElement::QFB QFB;
+  typedef typename FElement::RdHatBord RdHatBord;
+  typedef GenericInterface<Mesh> Interface;
+  typedef typename Mesh::Rd Rd;
+
+
+  const QFB& qf(*QF_Simplex<typename FElement::RdHatBord>(5));
+  double val = 0.;
+
+  for(int iface=interface.first_element(); iface<interface.last_element(); iface+=interface.next_element()) {
+
+    // COMPUTE THE PARTITION OF THE ELEMENT
+    const int kb = interface.idxElementOfFace(iface);   // idx on
+    const typename Interface::FaceIdx& face = interface[iface];  // the face
+    const R meas = interface.computeDx(face).norm();
+    const Rd normal(-interface.normal(iface));
+    const double h = meas;
+      // LOOP OVER TERMS IN THE WEAK FORMULATION
+      for(int l=0; l<VF.size();++l) {
+
+        double measK = (*interface.backMesh)[kb].mesure();
+
+        R coef = VF[l].computeCoefInterface(h,meas,measK );
+        double Cnormal = VF[l].getCoef(normal);
+
+        for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+          typename QFB::QuadraturePoint ip(qf[ipq]);
+          Rd mip = interface.mapToFace(face,(RdHatBord)ip);
+
+          double Cint = meas * ip.getWeight() * coef* VF[l].c * Cnormal;
+
+          double val_fh = f.evalOnBackMesh(kb, mip, VF[l].cu, VF[l].du, VF[l].domu);
+          double val_gh = g.evalOnBackMesh(kb, mip, VF[l].cv, VF[l].dv, VF[l].domv);
+          val += Cint * val_fh * val_gh ;
+        }
+      }
+    }
+
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_SUM);
+  return sqrt(val_receive);
+}
+
+
 
 
 
