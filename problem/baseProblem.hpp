@@ -32,6 +32,8 @@ public:
   const QFB &qfb;
   const QuadratureFormular1d& qTime;
   std::map<const FESpace*,int> mapIdx0;
+  std::map<const FESpace*,int> mapIdx0_K;
+
 
   double* databf = nullptr;
   double tgv = 1e9;
@@ -46,6 +48,8 @@ public:
    {
     databf = new double[20*vh[0].NbDoF()*vh.N*4]; //4 <=> op_dz
     mapIdx0[Vh] = 0;
+    mapIdx0_K[Vh] = 0;
+    this->nt = Vh->NbElement();
   }
 
   BaseProblem(const list<FESpace*>& vh) :
@@ -59,11 +63,14 @@ public:
    this->mapIdx0.clear();
    this->nDoF = 0;
    int NN = 0; int df = 0;
+   this->nt=0;
    for(auto it = vh.begin();it!=vh.end();++it) {
      this->mapIdx0[*it] = this->nDoF;
+     mapIdx0_K[Vh] = nt;
      this->nDoF += (*it)->NbDoF();
      NN += (*it)->N;
      df += (**it)[0].NbDoF();
+     this->nt += (*it)->NbElement();
    }
    this->rhs.init(this->nDoF); rhs=0.;
    databf = new double[20*df*NN*op_DDall];
@@ -80,6 +87,9 @@ public:
  {
     databf = new double[20*vh[0].NbDoF()*vh.N*4]; //4 <=> op_dz
     mapIdx0[Vh] = 0;
+    mapIdx0_K[Vh] = 0;
+    this->nt=0;
+
   }
 
 
@@ -102,16 +112,23 @@ public:
 
     this->mapIdx0.clear();
     this->mapIdx0[Vh] = 0;
+    this->mapIdx0_K[Vh] = 0;
+    this->nt=0;
+
   }
 
   void add(const FESpace& Qh, const TimeSlab& IIn) {
     this->mapIdx0[&Qh] = this->nDoF;
     this->nDoF += Qh.NbDoF() * IIn.NbDoF();
     this->rhs.resize(this->nDoF); this->rhs = 0.0;
+    this->mapIdx0_K[&Qh] = this->nt;
+    this->nt += Qh.NbElement();
   }
   void add(const FESpace& Qh) {
     this->mapIdx0[&Qh] = this->nDoF;
     this->nDoF += Qh.NbDoF();
+    this->mapIdx0_K[&Qh] = this->nt;
+    this->nt += Qh.NbElement();
     this->rhs.resize(this->nDoF); this->rhs = 0.0;
   }
 
