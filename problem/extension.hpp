@@ -7,6 +7,8 @@
 #include<set>
 
 
+
+
 class Extension {
 public:
   const int good = 0, extension = 1, exhaust = 2;
@@ -35,13 +37,18 @@ public:
   }
 
   public:
-    void tag_extension_edges(const MacroElement& macro);
+    void tag_extension_edges(const MacroElement& macro) {return tag_extension_edges(macro, macro.Vh);};
+    void tag_extension_edges(const MacroElement& macro, const FESpace2& Vh);
     void tag_extension_edges(const MacroElement& macro, const CHyperFace& b);
+    void tag_extension_edges(const MacroElement& macro, const CHyperFace& ed, const CBorder& bo);
+
     void tag_exhaust_edges(const MacroElement& macro) ;
     void solve();
     void do_extension();
   private:
-    void do_extension(const std::map<std::pair<int,int>,int>::const_iterator& it);
+    void do_extension_edge(const std::map<std::pair<int,int>,int>::const_iterator& it);
+    void do_extension_element(const SmallElement&);
+
     void do_extension_P0  (const FElement2& Ks, const FElement2& Kf, int ic);
   //   void do_extension_P1dc  (const FElement2& Ks, const FElement2& Kf, int ic);
     void do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
@@ -50,7 +57,7 @@ public:
   //
   //   void evaluate_dofP1dc(const FElement2& FKs, const FElement2& FKf, Rnm& val, int ic) ;
     void evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) ;
-  //   void evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
+    void evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
   //   void evaluate_dofRT1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
 
 
@@ -85,6 +92,9 @@ private:
     void precond(Rn& rhs);
     void removeDF( int N, std::map<std::pair<int,int>,double>& A, Rn& b);
     void reconstruct(Rn& b);
+public:
+    void erase_rows_to_fix_RT0();
+    void erase_rows_to_fix_BDM1();
 // friend void save(const MacroElement & macro, const Extension& extension) ;
 };
 

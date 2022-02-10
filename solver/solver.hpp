@@ -61,7 +61,7 @@ public :
 int verbose = 0;
 bool clearMatrix = true;
 //   std::string reordering = "none";
-  //std::string solver = "umfpack";
+std::string solver_name = "umfpack";
 
   void solve(std::map<std::pair<int,int>,R> & A, Rn & b) ;
 

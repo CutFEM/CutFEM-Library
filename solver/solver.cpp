@@ -37,19 +37,27 @@
 void Solver::solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
 
   double tsolver = this->get_Time();
-
-  // if(solver == "MUMPS")
-  #ifdef USE_MUMPS
-  // std::cout << " use mumps" << std::endl;
-  MUMPS(*this, A, b);
-  #else
-  #ifdef USE_UMFPACK
-  solver::umfpack(A,b);
-  #else
-  assert(0);
-  #endif
-  #endif
-  // else
+  if(solver_name == "mumps"){
+    #ifdef USE_MUMPS
+    MUMPS(*this, A, b);
+    #else
+    #ifdef USE_UMFPACK
+    solver::umfpack(A,b);
+    #else
+    assert(0);
+    #endif
+    #endif
+  }
+  else if(solver_name == "umfpack"){
+    #ifdef USE_UMFPACK
+    solver::umfpack(A,b);
+    #else
+    assert(0);
+    #endif
+  }
+  else {
+    assert(0);
+  }
   // solver::umfpack(A,b);
 
   tsolver = this->get_Time() - tsolver;

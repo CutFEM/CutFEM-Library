@@ -99,7 +99,7 @@ public:
 class MacroElement : public GMacro {
 
 public:
-
+  
   const FESpace2& Vh;
 
   R tol;
@@ -114,7 +114,7 @@ private:
   void find_root_element();
 
 
-friend class Extension;
+  friend class Extension;
 };
 
 

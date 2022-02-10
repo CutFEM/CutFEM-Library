@@ -1,11 +1,11 @@
 #include "extension.hpp"
 
 
-void Extension::tag_extension_edges(const MacroElement& macro) {
+void Extension::tag_extension_edges(const MacroElement& macro, const FESpace2& Vh) {
 
   // get all the dof of small Elements
   std::vector<std::pair<int, int>> df2fix;
-  const FESpace2& Vh(macro.Vh);
+  // const FESpace2& Vh(macro.Vh);
   mapMacro[&Vh] = &macro;
   int k0 = k_begin(Vh);
 
@@ -41,12 +41,6 @@ void Extension::tag_extension_edges(const MacroElement& macro) {
     int id_e = it->second/3;
     element_edge_handle[std::make_pair(k+k0, id_e)] = handle;
   }
-
-  // for(auto it = element_edge_handle.begin(); it!=element_edge_handle.end();++it) {
-  //   std::cout << it->first.first << "\t"
-  //             << it->first.second << ") = \t"
-  //             << it->second << std::endl;
-  //   }
 }
 void Extension::tag_extension_edges(const MacroElement& macro, const CHyperFace& b) {
 
@@ -56,6 +50,7 @@ void Extension::tag_extension_edges(const MacroElement& macro, const CHyperFace&
   mapMacro[&Vh] = &macro;
   int k0 = k_begin(Vh);
 
+  // INNER EDGES
   for(auto it = macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
     for( int ie=0; ie<it->second.inner_edge.size(); ++ie) {
 
@@ -67,7 +62,39 @@ void Extension::tag_extension_edges(const MacroElement& macro, const CHyperFace&
   }
 
 }
+void Extension::tag_extension_edges(const MacroElement& macro, const CHyperFace& ed, const CBorder& bo) {
 
+  element_edge_handle.clear();
+  const FESpace2& Vh(macro.Vh);
+  mapMacro[&Vh] = &macro;
+  int k0 = k_begin(Vh);
+
+  // INNER EDGES
+  for(auto it = macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+    for( int ie=0; ie<it->second.inner_edge.size(); ++ie) {
+
+      int k = it->second.inner_edge[ie].first;
+      int e = it->second.inner_edge[ie].second;
+
+      element_edge_handle[std::make_pair(k+k0, e)] = extension;
+    }
+  }
+
+  // BOUNDARY EDGES
+  for(auto it = macro.small_element.begin(); it!=macro.small_element.end();++it) {
+    int k = it->second.index;
+    const FElement2& FK(Vh[k]);
+    int the_domain = FK.whichDomain();
+
+    for(int e=0;e<3;++e) {
+      int je = e;
+      int kn = Vh.getNeighborElement(k, je, the_domain);
+      if (kn == -1){
+        element_edge_handle[std::make_pair(k+k0, e)] = extension;
+      }
+    }
+  }
+}
 void Extension::tag_exhaust_edges(const MacroElement& macro) {
 
   const FESpace2& Vh(macro.Vh);
@@ -76,13 +103,6 @@ void Extension::tag_exhaust_edges(const MacroElement& macro) {
   // get all the dof of small Elements
   std::map<std::pair<int, int>, int>& df2fix(element_edge_handle) ;
   std::set<int> exhaust_element;
-  // vector<std::pair<int,int>> small_K_temp = idx_small_K;
-
-  // vector<int> small_K_temp(small_element.size());
-  // int ii = 0;
-  // for(auto it=small_element.begin(); it!= small_element.end();++it) {
-  //   small_K_temp[ii++] = it->second.index;
-  // }
 
 
   int artificial_good_df = 0;
@@ -129,15 +149,19 @@ void Extension::tag_exhaust_edges(const MacroElement& macro) {
     }
     // set element as exhaust
     if(is_exhaust) {
-       if(count != 2) exhaust_element.insert(k);
+       // if(count != 2) 
+       exhaust_element.insert(k);
     }
     if(count_exhaust == 2 ) {
       // boundary element
       df2fix[std::make_pair(k, exhaustEdge)] = extension;
     }
     if(count == 2 ) {
-      df2fix[std::make_pair(k, notGoodEdge)] = good;
-      artificial_good_df += 1;
+      // df2fix[std::make_pair(k, notGoodEdge)] = good;
+      // artificial_good_df += 1;
+      // df2fix[std::make_pair(k, notGoodEdge)] = exhaust;
+      // artificial_good_df += 1;
+      // exhaust_element.insert(k);
     }
   }
   // ALL ELEMENTS MUST BECOME EXHAUST
@@ -183,31 +207,204 @@ void Extension::make_S(){
   }
   dof2rm.clear();
 
+  // for handeling RT0,1 and BDM1
   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
-
-    int idx_Ks = it->first.first;
-    int id_e = it->first.second;
     int handle = it->second;
-
-
     if(handle == good) {
       continue;         // do nothing
     }
     if(handle == extension) {
-      do_extension(it);
+      do_extension_edge(it);
     }
     if(handle == exhaust){
       //
       // do_exhaust
-      // do_extension(it);
-
+      do_extension_edge(it);
     }
   }
+
+  // loop over small elements to extend other bf
+  // for handeling RT0,1 and BDM1
+  // for(auto it_macro = mapMacro.begin(); it_macro != mapMacro.end();++it_macro){
+  //   const GMacro& macro(*it_macro->second);
+  //   for(auto it=macro.small_element.begin(); it !=macro.small_element.end();++it) {
+  //
+  //     // if(handle == good) {
+  //     //   continue;         // do nothing
+  //     // }
+  //     // if(handle == extension) {
+  //     do_extension_element(it->second);
+  //     // }
+  //     // if(handle == exhaust){
+  //     //   //
+  //     //   // do_exhaust
+  //     //   // do_extension(it);
+  //     // }
+  //   }
+  // }
   std::cout << " removing \t" << dof2rm.size() << "  dof " << std::endl;
+
+}
+void Extension::erase_rows_to_fix_RT0(){
+  typedef typename Mesh2::Partition Partition;
+  typedef CutData2 CutData;
+
+  // 1) setting the rows we wanna fixe to zero doing S*A
+  for(int i=0; i<problem.nDoF; ++i){
+    S[std::make_pair(i ,i)] = 1;
+  }
+
+  //FOR RT0 - FIND DOF corresponding to edge marked
+  // this has to become different for different element
+  for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+    int handle = it->second;
+    int idxG_Ks = it->first.first;
+    int k_begin = 0;
+    const FESpace2& Vh(get_space_from_idxK(idxG_Ks, k_begin));
+    int idx_Ks = idxG_Ks - k_begin;
+    int id_e = it->first.second;
+    const FElement2& Ks(Vh[idx_Ks]);
+    int df = Ks.loc2glb(id_e) + problem.mapIdx0[&Ks.Vh];  // ONLY FOR RT0
+    if(handle == extension || handle == exhaust) {
+      S[std::make_pair(df ,df)] = 0;
+    }
+  }
+
+  // 2) DO THE MULTIPLICATION TO ERASE ROWS
+  int N = problem.nDoF;
+  std::map<std::pair<int,int>,double> R;
+  multiply(N, S, problem.mat, R);
+
+  problem.mat = R;
+
+  // 3) modify A Matrix
+  for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+    int handle = it->second;
+    int idxG_Ks = it->first.first;
+    int k_begin = 0;
+    const FESpace2& Vh(get_space_from_idxK(idxG_Ks, k_begin));
+    int idx_Ks = idxG_Ks ;//- k_begin;
+    int id_e = it->first.second;
+
+    const GMacro& macro(get_macro(Vh));
+    int idx_Kf = macro.getIndexRootElement(idx_Ks);
+    const FElement2& Kf(Vh[idx_Kf]);
+    const FElement2& Ks(Vh[idx_Ks]);
+    int ig0 = 0;//problem.mapIdx0[&Ks.Vh];
+    int df = Ks.loc2glb(id_e) + ig0;  // ONLY FOR RT0
+
+    if(handle == extension ) {  // [extend this dof]
+      problem.mat[std::make_pair(df,df)] = 1; // [no orientation??]
+      int ndof = Kf.NbDoF();
+      KNM<double> val(1, ndof);
+      evaluate_dofRT0(Ks, id_e, Kf, val);
+
+      for(int i = Kf.dfcbegin(0); i < Kf.dfcend(0); ++i) {
+        problem.mat[std::make_pair(df,Kf.loc2glb(i))]  = -val(0,i);        // 1st component small element
+      }
+      problem.rhs[df] = 0;
+    }
+    else if( handle == exhaust) {
+      // [pressure]
+      int idx0 = 3;
+      problem.mat[std::make_pair(df,Ks.loc2glb(idx0))] = 1;
+      problem.mat[std::make_pair(df,Kf.loc2glb(idx0))] = -1;
+      problem.rhs[df] = 0;
+    }
+
+  }
+
+}
+void Extension::erase_rows_to_fix_BDM1(){
+  typedef typename Mesh2::Partition Partition;
+  typedef CutData2 CutData;
+
+  // 1) setting the rows we wanna fixe to zero doing S*A
+  for(int i=0; i<problem.nDoF; ++i){
+    S[std::make_pair(i ,i)] = 1;
+  }
+
+  //FOR RT0 - FIND DOF corresponding to edge marked
+  // this has to become different for different element
+  for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+    int handle = it->second;
+    int idxG_Ks = it->first.first;
+    int k_begin = 0;
+    const FESpace2& Vh(get_space_from_idxK(idxG_Ks, k_begin));
+    int idx_Ks = idxG_Ks - k_begin;
+    int id_e = it->first.second;
+    const FElement2& Ks(Vh[idx_Ks]);
+    int ndofOnEdge = Ks.tfe->ndfonEdge;
+
+    // if(handle == extension || handle == exhaust) {
+    if( handle == exhaust) {
+
+      for(int i=0;i< ndofOnEdge;++i){
+        int df = Ks.loc2glb(ndofOnEdge*id_e+i) + problem.mapIdx0[&Ks.Vh];  // ONLY FOR RT0
+        S[std::make_pair(df ,df)] = 0;
+      }
+    }
+  }
+
+  // 2) DO THE MULTIPLICATION TO ERASE ROWS
+  int N = problem.nDoF;
+  std::map<std::pair<int,int>,double> R;
+  multiply(N, S, problem.mat, R);
+
+  problem.mat = R;
+
+  // 3) modify A Matrix
+  for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+    int handle = it->second;
+    int idxG_Ks = it->first.first;
+    int k_begin = 0;
+    const FESpace2& Vh(get_space_from_idxK(idxG_Ks, k_begin));
+    int idx_Ks = idxG_Ks - k_begin;
+    int id_e = it->first.second;
+
+    const GMacro& macro(get_macro(Vh));
+    int idx_Kf = macro.getIndexRootElement(idx_Ks);
+    const FElement2& Kf(Vh[idx_Kf]);
+    const FElement2& Ks(Vh[idx_Ks]);
+    int ig0 = 0;//problem.mapIdx0[&Ks.Vh];
+    int ndofOnEdge = Kf.tfe->ndfonEdge;
+
+    if(handle == extension ) {  // [extend this dof]
+      // int ndof = Kf.NbDoF();
+      // KNM<double> val(ndofOnEdge, ndof);
+      // evaluate_dofBDM1(Ks, id_e, Kf, val);
+      //
+      // for(int df=0;df< ndofOnEdge;++df){
+      //   int id_df = Ks.loc2glb(ndofOnEdge*id_e+df) +ig0;
+      //   problem.mat[std::make_pair(id_df,id_df)] = 1; // [no orientation??]
+      //
+      //   for(int i = Kf.dfcbegin(0); i < Kf.dfcend(0); ++i) {
+      //     problem.mat[std::make_pair(id_df,Kf.loc2glb(i))]  = -val(df,i);        // 1st component small element
+      //   }
+      //   problem.rhs[id_df] = 0;
+      // }
+    }
+    else if( handle == exhaust) {
+      // [pressure]
+      int idx0 = 6;//Kf.dfcbegin(2);
+      for(int df=0;df< ndofOnEdge;++df){
+        // for(int df=0;df< 1;++df){
+
+        int id_df = Ks.loc2glb(ndofOnEdge*id_e+df) + ig0;
+        // problem.mat[std::make_pair(id_df,id_df)] = 1; // [no orientation??]
+
+        problem.mat[std::make_pair(id_df,Ks.loc2glb(idx0))] = 1;
+        problem.mat[std::make_pair(id_df,Kf.loc2glb(idx0))] = -1;
+        problem.rhs[id_df] = 0;
+      }
+    }
+
+  }
+
 }
 
 
-void Extension::do_extension(const std::map<std::pair<int,int>,int>::const_iterator& it){
+void Extension::do_extension_edge(const std::map<std::pair<int,int>,int>::const_iterator& it){
   int idxG_Ks = it->first.first;
   int k_begin;
   const FESpace2& Vh(get_space_from_idxK(idxG_Ks, k_begin));
@@ -245,7 +442,45 @@ void Extension::do_extension(const std::map<std::pair<int,int>,int>::const_itera
     ic0 += Kf.tfe->Sub_ToFE[ic]->N;
   }
 }
+void Extension::do_extension_element(const SmallElement& small_K){
+  std::cout << small_K.index << "\t" << small_K.index_root << std::endl;
+  // int idxG_Ks = it->first.first;
+  // int k_begin;
+  // const FESpace2& Vh(get_space_from_idxK(idxG_Ks, k_begin));
+  // int idx_Ks = idxG_Ks - k_begin;
+  // int id_e = it->first.second;
+  // int handle = it->second;
+  // const GMacro& macro(get_macro(Vh));
+  // int idx_Kf = macro.getIndexRootElement(idx_Ks);
+  // // getchar();
+  // const FElement2& Ks(Vh[idx_Ks]);
+  // const FElement2& Kf(Vh[idx_Kf]);
 
+  //
+  // int ic0 = 0;
+  //
+  // for(int ic=0;ic< Kf.tfe->Sub_ToFE.size();++ic){
+  //   if(Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::RT0){
+  //     do_extension_RT0(Ks,Kf,id_e,ic);
+  //   }
+  //   else if (Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::BDM1){
+  //     // do_extension_BDM1(Ks,Kf,id_e,ic);
+  //   }
+  //   else if (Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::RT1){
+  //     // do_extension_RT1(Ks,Kf,id_e,ic0);
+  //   }
+  //   else if (Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::P0){
+  //     do_extension_P0(Ks,Kf,ic0);
+  //   }
+  //   else if (Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::P1dc){
+  //     // do_extension_P1dc(Ks,Kf,ic0);
+  //   }
+  //   else {
+  //     assert(0);
+  //   }
+  //   ic0 += Kf.tfe->Sub_ToFE[ic]->N;
+  // }
+}
 
 
 void Extension::do_extension_P0   (const FElement2& Ks, const FElement2& Kf, int ic){
@@ -298,23 +533,34 @@ void Extension::evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FK
     }
   }
 }
-// void MacroElement::do_extension_P1dc (const FElement2& Ks, const FElement2& Kf, int ic){
-//   int idx0 = Kf.dfcbegin(ic);   // the pressure index
-//   if (S[std::make_pair(Ks.loc2glb(idx0),Ks.loc2glb(idx0))] == 0) return;
-//
-//   int ndof = Kf.NbDoF();
-//   KNM<double> val(3, 3);
-//   evaluate_dofP1dc(Kf, Ks, val, ic);
-//   for(int id_df = Ks.dfcbegin(ic),df=0 ; id_df < Ks.dfcend(ic); ++id_df,++df) {
-//     S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
-//     St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
-//     for(int i = Kf.dfcbegin(ic),j=0; i < Kf.dfcend(ic); ++i,++j) {
-//       S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,j);        // 1st component small element
-//       St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,j);        // 1st component small element
-//     }
-//     dof2rm.insert(Ks.loc2glb(id_df));
-//   }
-// }
+void Extension::evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) {
+  val = 0.;
+  KNMK<double> bf(FKf.NbDoF(),FKf.N,1); //  the value for basic fonction
+  What_d Fop = Fwhatd(0);
+  double meas = FKs.T.lenEdge(e);
+  R2 normal = -FKs.T.Edge(e).perp(); // contain the mesure of edge
+  // R2 normal = FKs.T.EdgeOrientation(e)*FKs.T.N(e);
+
+
+
+  for(int iq=0;iq<QF.getNbrOfQuads();++iq) {
+
+    QuadraturePoint1d ip_1d(QF[iq]);
+    R2 ip_KsHat = FKs.T.toKref(ip_1d, e);
+    R2 mip_Ks   = FKs.map(ip_KsHat);
+    R2 ip_KfHat = FKf.T.toKref(mip_Ks);
+
+    FKf.BF(Fop_D0, ip_KfHat, bf);
+
+    for(int i=0;i<6;++i) {
+      val(0,i) += FKs.T.EdgeOrientation(e)*ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
+      val(1,i) += (-6*ip_1d.x+3)          *ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
+    }
+  }
+
+}
+
+
 // void MacroElement::do_extension_BDM1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic){
 //   int ndofOnEdge = Kf.tfe->ndfonEdge;
 //   int ndof = Kf.NbDoF();
@@ -342,6 +588,26 @@ void Extension::evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FK
 //   }
 //
 // }
+
+
+// void MacroElement::do_extension_P1dc (const FElement2& Ks, const FElement2& Kf, int ic){
+//   int idx0 = Kf.dfcbegin(ic);   // the pressure index
+//   if (S[std::make_pair(Ks.loc2glb(idx0),Ks.loc2glb(idx0))] == 0) return;
+//
+//   int ndof = Kf.NbDoF();
+//   KNM<double> val(3, 3);
+//   evaluate_dofP1dc(Kf, Ks, val, ic);
+//   for(int id_df = Ks.dfcbegin(ic),df=0 ; id_df < Ks.dfcend(ic); ++id_df,++df) {
+//     S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
+//     St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
+//     for(int i = Kf.dfcbegin(ic),j=0; i < Kf.dfcend(ic); ++i,++j) {
+//       S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,j);        // 1st component small element
+//       St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,j);        // 1st component small element
+//     }
+//     dof2rm.insert(Ks.loc2glb(id_df));
+//   }
+// }
+
 // void MacroElement::do_extension_RT1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic){
 //   int ndofOnEdge = Kf.tfe->ndfonEdge;
 //   int ndof = Kf.NbDoF();
@@ -376,6 +642,8 @@ void Extension::evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FK
 
 
 
+
+
 // void MacroElement::evaluate_dofP1dc(const FElement2& FKs, const FElement2& FKf, Rnm& val, int ic) {
 //
 //   val = 0.;
@@ -394,32 +662,7 @@ void Extension::evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FK
 //   }
 // }
 
-// void MacroElement::evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) {
-//   val = 0.;
-//   KNMK<double> bf(FKf.NbDoF(),FKf.N,1); //  the value for basic fonction
-//   What_d Fop = Fwhatd(0);
-//   double meas = FKs.T.lenEdge(e);
-//   R2 normal = -FKs.T.Edge(e).perp(); // contain the mesure of edge
-//   // R2 normal = FKs.T.EdgeOrientation(e)*FKs.T.N(e);
-//
-//
-//
-//   for(int iq=0;iq<QF.getNbrOfQuads();++iq) {
-//
-//     QuadraturePoint1d ip_1d(QF[iq]);
-//     R2 ip_KsHat = FKs.T.toKref(ip_1d, e);
-//     R2 mip_Ks   = FKs.map(ip_KsHat);
-//     R2 ip_KfHat = FKf.T.toKref(mip_Ks);
-//
-//     FKf.BF(Fop_D0, ip_KfHat, bf);
-//
-//     for(int i=0;i<6;++i) {
-//       val(0,i) += FKs.T.EdgeOrientation(e)*ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
-//       val(1,i) += (-6*ip_1d.x+3)          *ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
-//     }
-//   }
-//
-// }
+
 // void MacroElement::evaluate_dofRT1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) {
 //   val = 0.;
 //   int ndf = FKf.NbDoF();
@@ -573,3 +816,50 @@ void Extension::reconstruct(Rn& b){
   multiply(N,M, Pt, b, tmp);  // get back the original size
   multiply(N,N, S, tmp, problem.rhs); // multiply S * b
 }
+
+
+
+
+//
+//
+// void changerows_Ab(const std::map<std::pair<int,int>,double>& A, const Rn& b, R (*divfun)(const R2, const int, const int)){
+//     typedef typename Mesh2::Partition Partition;
+//     typedef CutData2 CutData;
+//     typedef GFESpace<Mesh2> FESpace;
+//     typedef typename FESpace::FElement FElement;
+//     typedef typename FElement::QF QF;
+//     typedef typename QF::QuadraturePoint QuadraturePoint;
+//     const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
+//
+//     for(auto it=idx_small_K.begin(); it!=idx_small_K.end(); ++it) {
+//
+//       int idx_Ks = it->first;
+//       int idx_Kf = it->second;
+//       const FElement2& Ks(Vh[idx_Ks]);
+//       const FElement2& Kf(Vh[idx_Kf]);
+//       int domain = Ks.whichDomain(); // 0 or 1
+//
+//       Rn vali,coli;
+//       element_faces_ex.getRow(idx_Ks, vali, coli);
+//       int exhaust_row;
+//       for (int j=0; j<coli.size(); ++j) { // [loop through faces i want to change]
+//         int ifac = coli[j];
+//
+//         if(ifac == exhaust_at_K[idx_Ks]) {
+//           exhaust_row = ifac;
+//         } else { // [extend this dof]
+//           A[std::make_pair(Ks.loc2glb(ifac),Ks.loc2glb(ifac))] = 1; // [no orientation??]
+//           double val;
+//           for(int i = Kf.dfcbegin(0); i < Kf.dfcend(0); ++i) {
+//             RT0_dof_eval(Kf, i, Ks, ifac, &val);
+//             A[std::make_pair(Ks.loc2glb(ifac),Kf.loc2glb(i))] = -val;
+//           } b[Ks.loc2glb(ifac)] = 0;
+//         }
+//       }
+//       // [pressure]
+//       int idx0 = 3;//Kf.dfcbegin(2) the pressure index (note Kf.dfcbegin(1)=0 since vector element)
+//       A[std::make_pair(Ks.loc2glb(exhaust_row),Ks.loc2glb(idx0))] = 1;
+//       A[std::make_pair(Ks.loc2glb(exhaust_row),Kf.loc2glb(idx0))] = -1;
+//       b[Ks.loc2glb(exhaust_row)] = 0;
+//     } // end of for
+//   }
