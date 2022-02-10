@@ -149,20 +149,20 @@ void Extension::tag_exhaust_edges(const MacroElement& macro) {
     }
     // set element as exhaust
     if(is_exhaust) {
-       // if(count != 2) 
+       // if(count != 2)
        exhaust_element.insert(k);
     }
     if(count_exhaust == 2 ) {
       // boundary element
       df2fix[std::make_pair(k, exhaustEdge)] = extension;
     }
-    if(count == 2 ) {
-      // df2fix[std::make_pair(k, notGoodEdge)] = good;
-      // artificial_good_df += 1;
-      // df2fix[std::make_pair(k, notGoodEdge)] = exhaust;
-      // artificial_good_df += 1;
-      // exhaust_element.insert(k);
-    }
+    // if(count == 2 ) {
+    //   // df2fix[std::make_pair(k, notGoodEdge)] = good;
+    //   // artificial_good_df += 1;
+    //   // df2fix[std::make_pair(k, notGoodEdge)] = exhaust;
+    //   // artificial_good_df += 1;
+    //   // exhaust_element.insert(k);
+    // }
   }
   // ALL ELEMENTS MUST BECOME EXHAUST
   while (exhaust_element.size() < macro.small_element.size() - artificial_good_df) {

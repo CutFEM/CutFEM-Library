@@ -51,15 +51,18 @@ public :
 // STANDARD CUTFEM
 // integral on element
   void addBilinear(const ListItemVF<Rd::d>& VF);
-  void addLinear(const ListItemVF<Rd::d>& VF);
   void addBilinear(const ListItemVF<Rd::d>& VF, const MacroElement&);
-  void addBilinearFormExtDomain(const ListItemVF<Rd::d>& VF,  const R epsE = 0); // [default epsE = 0]
+  void addLinear(const ListItemVF<Rd::d>& VF);
+  void addBilinearFormExtDomain(const ListItemVF<Rd::d>& VF,  const R epsE = 0);
+  void addBilinearFormExtDomain(const ListItemVF<Rd::d>& VF, const MacroElement& macro, const R epsE);
   void addLinearFormExtDomain(const ListItemVF<Rd::d>& VF, const R epsE = 0);
+  void addLinearFormExtDomain(const ListItemVF<Rd::d>& VF, const MacroElement& macro, const R epsE = 0);
+
   // integral on the boundary
   void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addBilinear(VF, b, label); };
   void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addLinear(VF, b, label); };
   // integral on inner Edge/Face
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addBilineair(VF,b); };
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addBilinear(VF,b); };
   void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro){ return BaseProblem<M>::addBilinear(VF, b,macro); };
   void addLinear  (const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addLinear(VF, b); };
   // face stabilization
@@ -137,12 +140,13 @@ public:
 
   CutFEM(const list<FESpace*>& vh) : BaseCutProblem<M>(vh) {}
 
-  void solve() {
+  void solve(string solverName = "mumps") {
 
     // matlab::Export(this->mat, "matP.dat");
     // matlab::Export(this->rhs, "rhsP.dat");
     R t0 = CPUtime();
     R tt0 = MPIcf::Wtime();
+    this->solver_name = solverName;
     if(this->NL.size() > 0 || this->pmat == &this->NL) {
       // add DF to NL
 
@@ -199,7 +203,6 @@ R BaseCutProblem<M>::computeCoef(const ItemVF<Rd::d>& item, int domain, const ty
 }
 
 
-
 /*
           Add Bilinear Form
 */
@@ -222,6 +225,20 @@ void BaseCutProblem<M>::addBilinearFormExtDomain(const ListItemVF<Rd::d>& VF, co
       addElementMat(VF, k, extend, epsE); // [add epsilon worth of other side, the supplied arguments limits to only cut elements]
     }
 
+  }
+}
+
+template<typename M>
+void BaseCutProblem<M>::addBilinearFormExtDomain(const ListItemVF<Rd::d>& VF, const MacroElement& macro, const R epsE) {
+  bool extend = true;
+  for(auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
+    for(int i=0;i<it->second.idx_element.size();++i){
+      int k = it->second.idx_element[i];
+      // addElementMat(VF, k); // [add one standard contribution]
+      if(Vh->isCut(k)) { // [makes sure we extend only cut elements]
+        addElementMat(VF, k, extend, epsE); // [add epsilon worth of other side, the supplied arguments limits to only cut elements]
+      }
+    }
   }
 }
 
@@ -324,6 +341,21 @@ void BaseCutProblem<M>::addLinearFormExtDomain(const ListItemVF<Rd::d>& VF, cons
     addElementRHS(VF, k);
     if(Vh->isCut(k)) { // [makes sure we extend only cut elements]
       addElementRHS(VF, k, extend, epsE); // [add epsilon worth of other side, the supplied arguments limits to only cut elements]
+    }
+  }
+}
+
+template<typename M>
+void BaseCutProblem<M>::addLinearFormExtDomain(const ListItemVF<Rd::d>& VF, const MacroElement& macro, const R epsE) {
+  bool extend = true;
+
+  for(auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
+    for(int i=0;i<it->second.idx_element.size();++i){
+      int k = it->second.idx_element[i];
+      // addElementRHS(VF, k);
+      if(Vh->isCut(k)) { // [makes sure we extend only cut elements]
+        addElementRHS(VF, k, extend, epsE); // [add epsilon worth of other side, the supplied arguments limits to only cut elements]
+      }
     }
   }
 }
@@ -617,15 +649,28 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
   const Partition& cutK =  Partition(FK.T, cutData);  // build the cut
 
   Rd normal = FK.T.N(ifac);
-  const R measK = cutK.mesure(the_domain);
+  const R meas_cut = cutK.mesure(the_domain);
+  // const R measK = cutK.mesure(the_domain);
+
   const R h = FK.T.lenEdge(ifac);
   const R meas = cutK.mesureEdge(ifac, the_domain);
   ss += meas;
+
+  const FElement& FKn(Vhu[kn]);
+  const int kbn = Vhu.idxElementInBackMesh(kn);
+  CutData cutDatan(Vh->getInterface(0).getCutData(kbn));
+  const Partition& cutKn =  Partition(FKn.T, cutDatan);  // build the cut
+
+  double measK = cutK.mesure(the_domain) + cutKn.mesure(the_domain);
+
+
   for(int l=0; l<VF.size();++l) {
 
     assert(VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
-    R coef = BaseProblem<M>::computeCoef(VF[l],h,meas, measK,the_domain) * VF[l].getCoef(normal);
+
+    // R coef = BaseProblem<M>::computeCoef(VF[l],h,meas, measK,the_domain) * VF[l].getCoef(normal);
+    R coef = BaseCutProblem<M>::computeCoefEdge(VF[l],h,meas, measK,meas_cut, the_domain) * VF[l].getCoef(normal);
 
     const int ku = (VF[l].domu == 0)? k : kn;
     const int kv = (VF[l].domv == 0)? k : kn;
@@ -664,7 +709,7 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
 // }
   this->resetIndex();
   this->addLocalContribution();
-
+getchar();
 }
 
 template<typename M>
@@ -695,14 +740,27 @@ void BaseCutProblem<M>::addElementRHSEdge(const ListItemVF<Rd::d>& VF, const int
   const Partition& cutK =  Partition(FK.T, cutData);  // build the cut
 
   Rd normal = FK.T.N(ifac);
-  const R measK = cutK.mesure(the_domain);
+  const R meas_cut = cutK.mesure(the_domain);
   const R h = FK.T.lenEdge(ifac);
   const R meas = cutK.mesureEdge(ifac, the_domain);
+
+
+  const FElement& FKn(Vhv[kn]);
+  const int kbn = Vhv.idxElementInBackMesh(kn);
+  CutData cutDatan(Vh->getInterface(0).getCutData(kbn));
+  const Partition& cutKn =  Partition(FKn.T, cutDatan);  // build the cut
+
+  double measK = cutK.mesure(the_domain) + cutKn.mesure(the_domain);
+
+
+
+
   for(int l=0; l<VF.size();++l) {
 
     assert(VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
-    R coef = BaseProblem<M>::computeCoef(VF[l],h,meas, measK,the_domain) * VF[l].getCoef(normal);
+    // R coef = BaseProblem<M>::computeCoef(VF[l],h,meas, measK,the_domain) * VF[l].getCoef(normal);
+    R coef = BaseCutProblem<M>::computeCoefEdge(VF[l],h,meas, measK,meas_cut, the_domain) * VF[l].getCoef(normal);
 
     const int ku = (VF[l].domu == 0)? k : kn;
     const int kv = (VF[l].domv == 0)? k : kn;
@@ -802,8 +860,6 @@ void BaseCutProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF , const i
     }
   }
 }
-
-
 
 
 

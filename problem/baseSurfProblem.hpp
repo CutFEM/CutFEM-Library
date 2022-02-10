@@ -80,7 +80,6 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
   const R meas = interface.computeDx(face).norm();
   const double h = meas;
   const Rd linear_normal(-interface.normal(iface));
-  assert(fabs(linear_normal.norm()-1)<1e-14);
 
   CutData cutData(interface.getCutData(kb));     // get the cut data
   const Partition& cutK =  Partition(Vh->backSpace->Th[kb], cutData);
@@ -92,7 +91,6 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d>& VF,const Interface& 
 
     const int ku = VF[l].fespaceU->idxElementFromBackMesh(kb,VF[l].domu);
     const int kv = VF[l].fespaceV->idxElementFromBackMesh(kb,VF[l].domv);
-
     const FElement& FKu((*VF[l].fespaceU)[ku]);
     const FElement& FKv((*VF[l].fespaceV)[kv]);
     double measK = FKu.getMeasure();

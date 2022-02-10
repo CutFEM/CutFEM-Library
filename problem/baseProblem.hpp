@@ -255,6 +255,7 @@ private:
 public:
   virtual R computeCoef(const ItemVF<Rd::d>&, double, double, double, int d = 0) const;
   R computeCoefInterface(const ItemVF<Rd::d>& item, double h, double meas, double measK) const;
+  R computeCoefEdge(const ItemVF<Rd::d>&, double h, double meas, double measK, double meas_Cut, int d = 0) const;
 
 
 
@@ -339,6 +340,23 @@ R BaseProblem<M>::computeCoefInterface(const ItemVF<Rd::d>& item, double h, doub
       if(this->parameterList.find(coef)) {
         CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
         val *= p(domCoef, h, meas, measK);
+      }
+    }
+  }
+  return val;
+}
+
+template<typename M>
+R BaseProblem<M>::computeCoefEdge(const ItemVF<Rd::d>& item, double h, double meas, double measK, double meas_Cut, int domain) const {
+  R val = 1;
+  for(int l=0;l<2;++l) {
+    const vector<string>& listCoef = (l==0)?item.coefu : item.coefv;
+    for(int i=0;i<listCoef.size();++i) {
+      string coef = listCoef[i];
+
+      if(this->parameterList.find(coef)) {
+        CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
+        val *= p(domain, h, meas, measK, meas_Cut);
       }
     }
   }
@@ -768,18 +786,21 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
   int kn = Vhu.getNeighborElement(k, ifacn, the_domain);
   if(kn == -1) return;         // border edge
   if(k > kn) return;           // only compute one time
-  // std::cout << k << "\t" << ifac << "\t" << kn << std::endl;
 
   const Rd normal = FK.T.N(ifac);
   const R meas    = FK.T.mesureBord(ifac);
   const R measK   = FK.getMeasure();
   const R h       = FK.T.lenEdge(ifac);//meas;
 
+  const FElement& FKn(Vhu[kn]);
+  const R meas_macroK  = measK + FKn.getMeasure();
+
   for(int l=0; l<VF.size();++l) {
 
     assert(VF[l].fespaceU == VF[l].fespaceV);
     int lastop = getLastop(VF[l].du, VF[l].dv);
-    double coef = BaseProblem<M>::computeCoef(VF[l],h,meas,measK,the_domain) * VF[l].getCoef(normal) ;
+    double coef = BaseProblem<M>::computeCoefEdge(VF[l],h,meas,meas_macroK,measK,the_domain) * VF[l].getCoef(normal) ;
+
     const int ku = (VF[l].domu == 0)? k : kn;
     const int kv = (VF[l].domv == 0)? k : kn;
     bool same = (ku == kv);
