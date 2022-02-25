@@ -95,7 +95,7 @@ namespace NumericSurfactantEllipse2D {
 
 }
 
-#define FORMULATION2;
+#define FORMULATION1;
 // #define FORMULATION2;
 
 using namespace NumericSurfactantEllipse2D ;
@@ -132,7 +132,7 @@ int main(int argc, char** argv )
   double meshSize = (4./nx);
   int divisionMeshsize = 4;
   double dT = meshSize/divisionMeshsize;
-  double tfinal = 0.25;
+  double tfinal = dT;//0.25;
   GTime::total_number_iteration = int(tfinal/dT);
   dT = tfinal / GTime::total_number_iteration;
   GTime::time_step = dT;
@@ -172,7 +172,7 @@ int main(int argc, char** argv )
 
 
   // Set parameters for paraview PLOTTING
-  const bool writeVTKFiles = false;
+  const bool writeVTKFiles = true;
   const bool saveSurfactantVTK = true;
   const bool saveVelocityVTK = false;
   const bool saveLevelSetVTK = false;
@@ -292,34 +292,25 @@ int main(int argc, char** argv )
 #ifdef FORMULATION1
 
     surfactant.addBilinear(
-          innerProduct(dt(s), r)
+          // innerProduct(dt(s), r)
         + innerProduct(epsilon_S*gradS(s), gradS(r))
         , interface
         , In
     );
 
-    for(int i=0;i<nbTime;++i) {      // computation of the curvature
-      ExpressionFunFEM<Mesh2> vx(vel[i],0,op_id);
-      ExpressionFunFEM<Mesh2> vy(vel[i],1,op_id);
-      // ExpressionFunFEM<Mesh2> vx(vel,0,op_id);
-      // ExpressionFunFEM<Mesh2> vy(vel,1,op_id);
-      surfactant.addBilinear(
-            innerProduct(dx(s)*vx + dy(s)*vy, r)
-          + innerProduct(s*dxS(vel[i]) + s*dyS(vel[i]), r)
-          , interface
-          ,i , In
-      );
-    }
-      // ExpressionFunFEM<Mesh2> vx(vel2,0,op_id);
-      // ExpressionFunFEM<Mesh2> vy(vel2,1,op_id);
-      // // ExpressionFunFEM<Mesh2> vx(vel,0,op_id);
-      // // ExpressionFunFEM<Mesh2> vy(vel,1,op_id);
-      // surfactant.addBilinear(
-      //       innerProduct(dx(s)*vx + dy(s)*vy, r)
-      //     + innerProduct(s*dxS(vel2) + s*dyS(vel2), r)
-      //     , interface
-      //     , In
-      // );
+    // for(int i=0;i<nbTime;++i) {      // computation of the curvature
+    //   ExpressionFunFEM<Mesh2> vx(vel[i],0,op_id);
+    //   ExpressionFunFEM<Mesh2> vy(vel[i],1,op_id);
+    //   // ExpressionFunFEM<Mesh2> vx(vel,0,op_id);
+    //   // ExpressionFunFEM<Mesh2> vy(vel,1,op_id);
+    //   surfactant.addBilinear(
+    //         innerProduct(dx(s)*vx + dy(s)*vy, r)
+    //       + innerProduct(s*dxS(vel[i]) + s*dyS(vel[i]), r)
+    //       , interface
+    //       ,i , In
+    //   );
+    // }
+
 
     surfactant.addEdgeIntegral(
       innerProduct(1e-2*jump(grad(s)*n), jump(grad(r)*n)),
@@ -512,25 +503,27 @@ int main(int argc, char** argv )
   //  -----------------------------------------------------
   //                     PLOTTING
   //  -----------------------------------------------------
-  // if(MPIcf::IamMaster() && iter%frequencyPlottingTheSolution == 0 && writeVTKFiles){
-  //   std::cout << " Plotting " << std::endl;
-  //
-  //   if(saveSurfactantVTK) {
-  //     KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
-  //     Fun_h sol(cutVh, sols);
-  //
-  //     Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
-  //     writer.add(sol , "surfactant", 0, 1);
-  //     writer.add(ls[0], "levelSet",  0, 1);
-  //     writer.add(ls[2], "levelSet2", 0, 1);
-  //   }
-  //   if(saveLevelSetVTK) {
-  //     Paraview2 writerLS(Lh, pathOutpuFigure+"levelSet_"+to_string(iterfig)+".vtk");
-  //     writerLS.add(ls[0], "levelSet", 0, 1);
-  //   }
-  //
-  //   iterfig++;
-  // }
+  if(MPIcf::IamMaster() && iter%frequencyPlottingTheSolution == 0 && writeVTKFiles){
+    std::cout << " Plotting " << std::endl;
+
+    if(saveSurfactantVTK) {
+      KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
+      Fun_h sol(cutVh, sols);
+
+      // Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
+      Paraview2 writer(cutVh, "surfactant_"+to_string(iterfig)+".vtk");
+
+      writer.add(sol , "surfactant", 0, 1);
+      writer.add(ls[0], "levelSet",  0, 1);
+      writer.add(ls[2], "levelSet2", 0, 1);
+    }
+    // if(saveLevelSetVTK) {
+    //   Paraview2 writerLS(Lh, pathOutpuFigure+"levelSet_"+to_string(iterfig)+".vtk");
+    //   writerLS.add(ls[0], "levelSet", 0, 1);
+    // }
+
+    iterfig++;
+  }
   for(int i=0;i<nbTime;++i) delete mapping[i];
   iter++;
 

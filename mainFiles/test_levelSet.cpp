@@ -3,8 +3,10 @@
 #define _TEST_LEVELSET_HPP
 
 #include "../problem/levelSet.hpp"
+#include "reinitialization.hpp"
 
-#define EXAMPLE_1
+
+#define EXAMPLE_STAR_SHAPE
 #ifdef EXAMPLE_1
 R fun_velocity(const R2 P,  const int i, const R t) {
   if(i==0) return -2.*sin(pi*P.x)*sin(pi*P.x)*cos(pi*P.y)*sin(pi*P.y);
@@ -22,19 +24,27 @@ R fun_levelSet(const R2 P, const int i, const R t) {
   return sqrt((P.x-t)*(P.x-t) + P.y*P.y) - 1;
 }
 #endif
-
+#ifdef EXAMPLE_STAR_SHAPE
+R fun_levelSet(const R2 P, const int i, const R t) {
+  double x=P.x, y=P.y;
+  return 0.5*(sqrt(x*x + y*y) -0.1*cos(5*atan2(y,x)+2) - 0.25);
+}
+R fun_velocity(const R2 P,  const int i, const R t) {
+  return 0;
+}
+#endif
 
 int main(int argc, char** argv ) {
 
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 100;
-  int ny = 100;
-  double dt = 1./nx/4;
+  int nx = 400;
+  int ny = 400;
+  double dt = 1./nx;
   double tid = 0.;
   int ifig = 0;
-  Mesh2 Th(nx, ny, -3., -2., 6., 4.);
+  Mesh2 Th(nx, ny, -0.5, -0.5, 1., 1.);
   Lagrange2 FEvelocity(2);
   FESpace2 Uh(Th, FEvelocity);
   Fun2_h velocity(Uh, fun_velocity, tid);
@@ -46,29 +56,36 @@ int main(int argc, char** argv ) {
 
   if(MPIcf::IamMaster()){
     // Paraview2 writer(Lh, "testLevelSet"+to_string(ifig++)+".vtk");
-    Paraview2 writer(Lh, "boxShear.vtk");
-
+    Paraview2 writer(Lh, "starShape.vtk");
     writer.add(ls, "levelSet", 0, 1);
-    writer.add(velocity, "velocity", 0, 2);
+    // writer.add(velocity, "velocity", 0, 2);
   }
-return 0;
-  for(int i=1;i<=500;++i){
-    std::cout << "iteration => " << i << std::endl;
+// return 0;
+//   for(int i=1;i<=500;++i){
+//     std::cout << "iteration => " << i << std::endl;
+//
+//     levelSet.solve(ls, velocity_p, velocity, dt);
+//     ls.init(levelSet.rhs);
+//
+//     tid += dt;
+//     velocity_p.v = velocity.v;
+//     velocity.init(Uh, fun_velocity, tid);
+//   }
 
-    levelSet.solve(ls, velocity_p, velocity, dt);
-    ls.init(levelSet.rhs);
-
-    tid += dt;
-    velocity_p.v = velocity.v;
-    velocity.init(Uh, fun_velocity, tid);
-
-
-    if(MPIcf::IamMaster() && i%20==0){
-      Paraview2 writer(Lh, "testLevelSet"+to_string(ifig++)+".vtk");
-      writer.add(ls, "levelSet", 0, 1);
-    }
-
-  }
+// CReinitialization<Mesh2> reinitialization;
+// reinitialization.number_iteration = 50;
+// reinitialization.epsilon_diffusion = 1e-2;
+// reinitialization.dt = dt/8;
+// reinitialization.ODE_method = "Euler";
+// reinitialization.mass_correction = "OFF";
+// reinitialization.precision_correction = 1e-8;
+// reinitialization.max_iteration_correction = 20;
+// reinitialization.perform(ls);
+//
+// if(MPIcf::IamMaster()){
+//   Paraview2 writer(Lh, "starShapReinit.vtk");
+//   writer.add(ls, "levelSet", 0, 1);
+// }
 
   return 0;
 
