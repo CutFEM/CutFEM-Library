@@ -125,7 +125,7 @@ class Interface3 : public GenericInterface<Mesh3>
 {
 typedef CutData3 CutData;
 public:
-  Interface3() : GenericInterface<Mesh3>() {}
+  // Interface3() : GenericInterface<Mesh3>() {}
   Interface3(const Mesh & MM) : GenericInterface<Mesh3>(MM) {}
   Interface3(const Mesh & MM, const KN<double>& ls, int label=0)
   : GenericInterface<Mesh3>(MM, ls, label) {}
@@ -276,7 +276,7 @@ public :
   static inline const RefPartition3& instance (const double ls[4])
   {
     byte ls_byte[4];
-    std::transform( ls + 0, ls + 4, ls_byte + 0, sign);
+    std::transform( ls + 0, ls + 4, ls_byte + 0, util::sign);
     return instance( ls_byte);
   }
   ///@}
