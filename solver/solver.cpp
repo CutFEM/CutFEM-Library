@@ -49,6 +49,7 @@ void Solver::solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
     #endif
   }
   else if(solver_name == "umfpack"){
+    std::cout << " solve using umfpack" << std::endl;
     #ifdef USE_UMFPACK
     solver::umfpack(A,b);
     #else

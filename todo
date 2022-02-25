@@ -2,7 +2,6 @@ To Do
 
 DONE ** 2) fixer le problem de innerproduct dans Curvature
 3) changer R2 * ItemVF to build real scalar product
-3) add Parameter*Fun in innerProduct
 DONE ** 4) take away levelset in BaseCutProblem
 DONE ** 5) Tester d'inverser boucle des quadratures space <-> Time et comparer temps.
 DONE ** 6) take away interface from CutFEM problem. We can use the one in the CutFESpace directly!!!
@@ -11,7 +10,7 @@ DONE ** 7) Overload ^ for adding class Parameter power and be able to do (h^3)
 DONE ** 8) add a class tool for computing femFun (op whatd w etc)
 DONE ** 9) ListItemVF must be all protected and friend with innerProduct because we dont want to be able to build it.
 DONE **    Because it will be a problem if creating temporary object such as ProductFunFEM
-10)   ListItemVF& operator- () --- this should return a new object!!!!!!
+DONE ** 10)   ListItemVF& operator- () --- this should return a new object!!!!!!
 DONE ** 11) add space in funTest so we can have different spaces
 DONE ** 12) build problwm with many spaces and have them one on each other just having an idx0 array to now where to start
 DONE ** 13) having the array in the FunTest to store the solution
@@ -34,3 +33,13 @@ DONE ** 27) change getcoeffU,V to have a unique one that compute both directly
 DONE ** 31) change the cutFem parameter thing. Not by name but maybe by pointer. To be able to do h^p
 32) what_part in Partition should be more general, not only (-1, 1) subdomain. We want a cutDomain with -1 only for example.
 33) NEED TO CHANGE SET VELOCITY IN NAVIER STOKES PROBLEM.
+DONE ** 34) ADD normal in function evaluation in on edges and boundary integrals
+35) !!! REMOVE SOME OF THE OPERATION CLASS FOR EXPRESSION AND USE TESTFUNCTION INSTEAD !!!!
+36) FIX BUG WHEN DECLARE SAME CUTFEM_PARAMETER IN 2 FUNCTION => SEGFAULT.
+37) WHEN ADDING A INTERFACE, NEED TO PASS AN OPERATOR TO SAY WHAT TO DO ( *, min, max etc)
+38) change addFaceStab for macro to addBilinear , inner_edge, macro_element
+DONE ** 39) Have a common root class for the macro class
+DONE ** 40) take away addEdgeIntegral and replace with addBilinear
+DONE ** 41) add norm function working like integrals.
+42) Interface should build a partition directly, not sending just the cutData.
+43) make gnuplot.cpp

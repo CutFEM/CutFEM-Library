@@ -34,15 +34,27 @@ typedef KNM_<R> RNM_;
 typedef KNMK_<R> RNMK_;
 
 
-inline byte sign (double d)
-{
-  return d > 0. ? 1 : (d < 0. ? -1 : 0);
-}
+namespace util {
+  inline byte sign (double d)
+  {
+    return d > 0. ? 1 : (d < 0. ? -1 : 0);
+  }
 
-inline byte fsign (double d)
-{
-  return d > 0. ? 1 : (d < 0. ? -1 : 0);
-}
+  inline byte fsign (double d)
+  {
+    return d > 0. ? 1 : (d < 0. ? -1 : 0);
+  }
+
+
+// inline byte sign (double d)
+// {
+//   return d > 0. ? 1 : (d < 0. ? -1 : 0);
+// }
+//
+// inline byte fsign (double d)
+// {
+//   return d > 0. ? 1 : (d < 0. ? -1 : 0);
+// }
 
 inline bool changeSign(const Rn& v) {
   R a = v(0);
@@ -75,6 +87,8 @@ static bool contain(const KN<int>& v, int x) {
 static bool contain(const list<int>& v, int x) {
   for(auto it=v.begin();it!=v.end();++it) if(*it==x) return true;
   return false;
+}
+
 }
 
 /*

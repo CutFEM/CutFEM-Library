@@ -21,7 +21,7 @@
 #include "../FESpace/integrationFunFEM.hpp"
 // #include "../toolFEM/TimeIntegration.hpp"
 //#include "../num/OperationMV.hpp"
-#include "../num/paraview.hpp"
+#include "../FESpace/paraview.hpp"
 #include "../solver/solver.hpp"
 #include "../num/matlab.hpp"
 #include "../util/util.hpp"
@@ -99,7 +99,6 @@ public :
   void setMatrixTo(std::map<std::pair<int,int>,R>& A) {
     pmat = &A;
   }
-
   void reset() {
     pmat = &DF;
   }
@@ -121,7 +120,6 @@ public :
       NL[std::make_pair(q->first.first,q->first.second)] += q->second;
     }
   }
-
   void addLocalContribution() {
     resetIndex();
     for (auto q=localContributionMatrix.begin(); q != this->localContributionMatrix.end(); ++q) {
@@ -130,6 +128,25 @@ public :
     this->localContributionMatrix.clear();
 
   }
+
+
+  void preconditionning(std::map<std::pair<int,int>,R>& P) {
+
+    int N = nDoF;
+    SparseMatrixRC<double> Pl(N,N,P);
+    SparseMatrixRC<double> A(N,N,DF);
+    multiply(Pl, A, DF);
+
+    Rn x(N, 0.);
+
+    multiply(N, N, P, rhs, x);
+
+    rhs.resize(N);
+
+    rhs = x;
+
+  }
+
 
 };
 

@@ -9,6 +9,7 @@ set(PROBLEM_SOURCES
   CutFEM_parameter.cpp
   itemVF.cpp
   testFunction.cpp
+  extension.cpp
 )
 
 add_library(problem SHARED ${PROBLEM_SOURCES})

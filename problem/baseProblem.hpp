@@ -479,7 +479,7 @@ void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, 
 
   for( int ifac = Vh->first_boundary_element(); ifac < Vh->last_boundary_element(); ifac+=Vh->next_boundary_element()) {
     const BorderElement & face(Vh->Th.be(ifac)); // The face
-    if(contain(label, face.lab) || all_label) {
+    if(util::contain(label, face.lab) || all_label) {
 
       addElementMatBorder(VF, ifac);
     }
@@ -620,7 +620,7 @@ void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, li
   for( int ifac = Vh->first_boundary_element(); ifac < Vh->last_boundary_element(); ifac+=Vh->next_boundary_element()) {        // loop over boundary faces
 
     const BorderElement & face(Vh->Th.be(ifac)); // The face
-    if(contain(label, face.lab) || all_label) {
+    if(util::contain(label, face.lab) || all_label) {
 
       addElementRHSBorder(VF, ifac);
     }
@@ -921,7 +921,7 @@ void BaseProblem<M>::addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd
 
   for( int ifac = Vh->first_boundary_element(); ifac < Vh->last_boundary_element(); ifac+=Vh->next_boundary_element()) {
     const BorderElement & face(Vh->Th.be(ifac)); // The face
-    if(contain(label, face.lab) || all_label) {
+    if(util::contain(label, face.lab) || all_label) {
       for(auto it = gh.begin(); it != gh.end(); ++it) {
         setElementStrongBC(ifac, *it);
       }
@@ -937,7 +937,7 @@ void BaseProblem<M>::addStrongBC(const ExpressionVirtual& gh, list<int> label) {
 
   for( int ifac = Vh->first_boundary_element(); ifac < Vh->last_boundary_element(); ifac+=Vh->next_boundary_element()) {
     const BorderElement & face(Vh->Th.be(ifac)); // The face
-    if(contain(label, face.lab) || all_label) {
+    if(util::contain(label, face.lab) || all_label) {
       setElementStrongBC(ifac, gh);
     }
   }

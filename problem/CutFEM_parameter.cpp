@@ -27,7 +27,6 @@ static double fun_kappa2(int i, double hh, double meas, double measK, double mea
     return 0.5;
   }
 }
-
 static double fun_lambdaG(int i, double hh, double meas, double measK, double meas_Cut) {
   double mu1 = (CutFEM_ParameterList::find("mu"))?CutFEM_ParameterList::listParameter["mu"]->expression(0) : 1;
   double mu2 = (CutFEM_ParameterList::find("mu"))?CutFEM_ParameterList::listParameter["mu"]->expression(1) : 1;
@@ -49,7 +48,6 @@ static double fun_lambdaG3(int i, double hh, double meas, double measK, double m
   // return 20 / hh / hh;//
   return  (kappa1*mu1 + kappa2*mu2)*(100 + 10*gamma)/(alphaK);
 }
-
 static double fun_lambdaB(int i, double hh, double meas, double measK, double meas_Cut) {
   double mu = (CutFEM_ParameterList::find("mu"))? CutFEM_ParameterList::listParameter["mu"]->expression(0) : 1;
   double gammaK = meas/hh;
@@ -66,16 +64,32 @@ static double fun_lambdaB3(int i, double hh, double meas, double measK, double m
   // return 20 / hh / hh;
 }
 
-CutFEM_Parameter Parameter::h = CutFEM_Parameter("h", fun_h);
-CutFEM_Parameter Parameter::invh = CutFEM_Parameter("invh", fun_invh);
-CutFEM_Parameter Parameter::kappa1 = CutFEM_Parameter("kappa1", fun_kappa1);
-CutFEM_Parameter Parameter::kappa2 = CutFEM_Parameter("kappa2", fun_kappa2);
-CutFEM_Parameter Parameter::lambdaG = CutFEM_Parameter("lambdaG", fun_lambdaG);
-CutFEM_Parameter Parameter::lambdaB = CutFEM_Parameter("lambdaB", fun_lambdaB);
-CutFEM_Parameter Parameter::meas = CutFEM_Parameter("meas", fun_meas);
-CutFEM_Parameter Parameter::invmeas = CutFEM_Parameter("invmeas", fun_invmeas);
+
+
+
+// In the bulk problem on the edges:
+// Cs=2e0; Cs2=6e-1;
+// lambda_{A_i}*h^{-1}=Cs*GammaL*A_i^2/aL+Cs2/h;
+// %aL is the area of the cut part on both sides (scales as h^2)
+// %GammaL is the length of the cut edge in the given triangle (scales as h)
+
+
+
+
+
+CutFEM_Parameter Parameter::h        = CutFEM_Parameter("h", fun_h);
+CutFEM_Parameter Parameter::invh     = CutFEM_Parameter("invh", fun_invh);
+CutFEM_Parameter Parameter::kappa1   = CutFEM_Parameter("kappa1", fun_kappa1);
+CutFEM_Parameter Parameter::kappa2   = CutFEM_Parameter("kappa2", fun_kappa2);
+CutFEM_Parameter Parameter::lambdaG  = CutFEM_Parameter("lambdaG", fun_lambdaG);
+CutFEM_Parameter Parameter::lambdaB  = CutFEM_Parameter("lambdaB", fun_lambdaB);
+CutFEM_Parameter Parameter::meas     = CutFEM_Parameter("meas", fun_meas);
+CutFEM_Parameter Parameter::invmeas  = CutFEM_Parameter("invmeas", fun_invmeas);
 CutFEM_Parameter Parameter::lambdaB3 = CutFEM_Parameter("lambdaB3", fun_lambdaB3);
 CutFEM_Parameter Parameter::lambdaG3 = CutFEM_Parameter("lambdaG3", fun_lambdaG3);
+// CutFEM_Parameter Parameter::kappaE1  = CutFEM_Parameter("kappaE1", fun_kappa_E1);
+// CutFEM_Parameter Parameter::kappaE2  = CutFEM_Parameter("kappaE2", fun_kappa_E2);
+// CutFEM_Parameter Parameter::kappa_edge = CutFEM_Parameter("kappaE", 1,1);
 
 
 
@@ -90,8 +104,9 @@ CutFEM_Parameter& CutFEM_Parameter::operator=(const CutFEM_Parameter& F) {
 
 void CutFEM_Parameter::addToList() {
   if(checkAlreadyExist()){
+    // std::cout << name << " already exist" << std::endl;
+
     *CutFEM_ParameterList::listParameter[name] = *this;
-    // std::cout << name << "already exist" << std::endl;
   }
   CutFEM_ParameterList::listParameter[name] = this;
 }

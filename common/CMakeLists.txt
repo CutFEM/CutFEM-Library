@@ -9,11 +9,15 @@ set(COMMON_SOURCES
   Mesh1dn.cpp
   Mesh2dn.cpp
   Mesh3dn.cpp
+  cut_mesh.cpp
+  cut_method.cpp
   marker.cpp
   Interface2dn.cpp
   Interface3dn.cpp
   SparseMatMap.cpp
   geometry.cpp
+  spline.cpp
+
 )
 
 add_library(common SHARED ${COMMON_SOURCES})

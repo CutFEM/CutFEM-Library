@@ -42,7 +42,7 @@ void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& g
   bool all_label = (label.size() == 0);
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
     const typename Interface::FaceIdx& face = gamma[iface];  // the face
-    if(contain(label, face.lab) || all_label) {
+    if(util::contain(label, face.lab) || all_label) {
       addElementMat(VF, gamma, iface,mapping);
     }
   }
@@ -57,7 +57,7 @@ void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface& g
 
       int iface = it->second.idx_element[i];
       const typename Interface::FaceIdx& face = gamma[iface];  // the face
-      if(contain(label, face.lab) || all_label) {
+      if(util::contain(label, face.lab) || all_label) {
         addElementMat(VF, gamma, iface,mapping);
       }
     }
@@ -144,7 +144,7 @@ void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface& gam
   bool all_label = (label.size() == 0);
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
     const typename Interface::FaceIdx& face = gamma[iface];  // the face
-    if(contain(label, face.lab) || all_label) {
+    if(util::contain(label, face.lab) || all_label) {
       addElementRHS(VF, gamma, iface,mapping);
     }
   }
@@ -451,7 +451,7 @@ void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface& gam
 
   for( int ifac = Vh->first_boundary_element(); ifac < Vh->last_boundary_element(); ifac+=Vh->next_boundary_element()) {
     const BorderElement & face(Vh->Th.be(ifac));
-    if(contain(label, face.lab) || all_label) {
+    if(util::contain(label, face.lab) || all_label) {
       int ifaceK;
       const int kb = Vh->Th.BoundaryElement(ifac, ifaceK);
       if(gamma.face_of_element_.find(kb) != gamma.face_of_element_.end()){

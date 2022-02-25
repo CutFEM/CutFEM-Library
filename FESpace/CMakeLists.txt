@@ -11,6 +11,7 @@ set(FESPACE_SOURCES
   RT0.cpp
   RT1.cpp
   BDM1.cpp
+  transformation.cpp
   finiteElement.cpp
   GTypeOfFE.cpp
   FESpace.cpp
@@ -18,10 +19,7 @@ set(FESPACE_SOURCES
   expression.cpp
   macroElement.cpp
   limiter.cpp
-#  integrationFunFEM.cpp
-#  funFEM.cpp
-#  funCutFEM.cpp
-#  integration.cpp
+  paraview.cpp
 )
 
 

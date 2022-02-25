@@ -10,7 +10,10 @@
 
 #include "baseCutProblem.hpp"
 #include "levelSet.hpp"
+#include "extension.cpp"
 #include "../num/gnuplot.hpp"
+#include "cut_mesh.hpp"
+#include "interface_levelSet.hpp"
 // #include "gnuplot.hpp"
 #define TEST_2D
 
@@ -26,8 +29,17 @@ R fun_levelSet(const R2 P, const int i) {
   R shiftY = 0.5;
   R r = 0.3;
   return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  // return P.x+P.y - 0.4;
 }
-R fun_id(const R2 P,const int i) {return (i==0);}//P[i];}
+R fun_levelSet3(const R3 P, const int i) {
+  // R shiftX = 0.5;
+  // R shiftY = 0.5;
+  // R shiftz = 0.5;
+  // R r = 0.3;
+  // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+  return P.x+P.y-P.z - 0.25;
+}
+R fun_id(const R2 P,const int i) {return i;}//P[i];}
 R fun_time(const R2 P,const int i, const R t) {return 1+t;}
 R fun_test(const R2 P,const int i) {return P.x + P.y;}
 
@@ -39,107 +51,162 @@ R fun_test(const R2 P,const int i) {return P.x + P.y;}
 
 int main(int argc, char** argv )
 {
-  typedef Mesh2 Mesh;
-  typedef FESpace2 FESpace;
-  typedef typename FESpace::FElement FElement;
-  typedef typename Mesh2::Element Element;
-
-  typedef TestFunction<2> FunTest;
+  typedef MeshHexa Mesh;
+  // typedef FESpaceQ2 FESpace;
+  // typedef typename FESpace::FElement FElement;
+  // // typedef typename Mesh2::Element Element;
+  //
+  // typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh> Fun_h;
-
-  const QuadratureFormular1d& QFB = QF_GaussLegendre2;
+  //
+  // const QuadratureFormular1d& QFB = QF_GaussLegendre2;
 
   const double cpubegin = CPUtime();
 
   MPIcf cfMPI(argc,argv);
 
-  // double x =2.;
-  // std::cout << myfun<myx2>(x) << std::endl;
 
   int nx = 2;
   int ny = 2;
-  Mesh Th(nx, ny, 0., 0., 1, 1.);
-  FESpace2 Vh(Th, DataFE<Mesh2>::RT1);
-  const Element& K(Th[0]);   // The reference element
-  const FElement& FK(Vh[0]);
+  int nz = 2;
+  MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
+  Th.info();
 
-  KNMK<double> bf(FK.NbDoF(),FK.N,1);
+  FESpaceQ3 Lh(Th, DataFE<MeshHexa>::P1);
+  Fun_h levelSet(Lh, fun_levelSet3);
 
-  const QuadratureFormular1d& QF = QF_GaussLegendre4;
-  const QuadratureFormular2d& QFK = QuadratureFormular_T_5;
+  std::cout << levelSet.v << std::endl;
 
-  // wanna compute int_Fi phi_BDM1_i . n * phi_P1_j(Fi)
-  for(int e=0;e<3;++e){
-    std::cout << " edge " << e << std::endl;
+  // const MeshHexa::Element& T(Th[0]);
+  // std::vector<int> list_cut;
 
-    for(int df=0;df<8;++df){
+  // Rn ls(8);
+  // for(int i=0;i<8;++i) ls[i] = fun_levelSet3(T[i],0);
+  // std::cout << ls << std::endl;
+  // const SignPattern<MeshHexa::Element> signPattern(ls);
 
-      // int df = 3;
-      double val = 0, val2=0;
-      double meas = K.lenEdge(e);
-      int eOrientation = K.EdgeOrientation(e);
-      R2 normal = K.EdgeOrientation(e)*K.N(e);
-      // R2 normal = -K.Edge(e).perp();
+  // signPattern.get_ordered_list_node(list_cut);
 
-      for(int iq=0;iq<QF.getNbrOfQuads();++iq) {
-        QuadraturePoint1d ip_1d(QF[iq]);
-        R2 ip_hat = K.toKref(ip_1d, e);
-        FK.BF(Fop_D0, ip_hat, bf);
+  // for(int i=0;i<list_cut.size();++i) std::cout << list_cut[i] << std::endl;
 
-        // R l0 = QF[iq].x, l1 = 1 - QF[iq].x;
-        // R p0 = (2 * l0 - l1) * 2;     // poly othogonaux to \lambda_1
-        // R p1 = (2 * l1 - l0) * 2;     // poly othogonaux to \lambda_0
-        // R lambda1 = eOrientation * p0 * QF[iq].a;    // [some quadrature function?]
-        // R lambda0 = eOrientation * p1 * QF[iq].a;    //
-        // if(eOrientation < 0) {
-        //   Exchange(lambda1, lambda0);
-        // }
-        //
-        // val  += lambda0*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
-        // val2 += lambda1*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
+  // Interface_LevelSet<MeshHexa> interface(Th, levelSet.v);
 
-        double lambda1 = 6*ip_1d.x-2;
-        double lambda0 = 4-6*ip_1d.x;
-        if(eOrientation < 0) {
-          Exchange(lambda1, lambda0);
-        }
-        val += meas*ip_1d.a*lambda0*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
-        val2 += meas*ip_1d.a*lambda1*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
+  // KN<const GTypeOfFE<MeshQuad2>* > arrayFE(2);
+  // arrayFE(0) = &DataFE<MeshQuad2>::P1;
+  // arrayFE(1) = &DataFE<MeshQuad2>::P1;
+  // GTypeOfFESum<MeshQuad2> FE(arrayFE);
+  // FESpaceQ2 Ph(Th, FE);
+  // Fun_h test(Ph, fun_id);
 
-        // val  += (-6*ip_1d.x+3)  *meas*ip_1d.getWeight()*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y);
-        // val2 += 1*meas*ip_1d.getWeight()*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y);
-      }
-      std::cout << " bf " << df << "\t" << val << "\t" << val2 << std::endl;
-    }
-    std::cout << "----------------"<< std::endl;
-  }
-  {
-    R2 B[2] = {K.Edge(1), K.Edge(2)};
-    B[0] = B[0].perp();
-    B[1] = B[1].perp();
-    std::cout << "bubbles "<< std::endl;
+  // const FElement& FK(Lh[0]);
+  // KNMK<double> bf(FK.NbDoF(),FK.N,3);
+  // R2 x(0.0, 0.0);
+  // FK.BF(Fop_Dall, x, bf);
+  // std::cout << bf<< std::endl;
 
-    for(int df=0;df<8;++df){
+  // Paraview<MeshQuad2> writer(Lh, nullptr, "hexa_Test.vtk");
 
-      double val = 0, val2=0;
+  Paraview<Mesh> writer(Lh, levelSet, "hexa_Test.vtk");
+  // writer.add(levelSet, "levelSet", 0, 1);
+  // writer.add(test, "test_vector", 0, 2);
 
-      for(int iq=0;iq<QFK.getNbrOfQuads();++iq) {
+// getchar();
 
-        QuadraturePoint2d ip_2d(QFK[iq]);
-        R2 mip_Ks   = FK.map(ip_2d);
-        R2 ip_hat = K.toKref(mip_Ks);
 
-        FK.BF(Fop_D0, ip_hat, bf);
-        double w = QFK[iq].a * 0.5;
-        val  += w*(bf(df,0,0)*B[0].x + bf(df,1,0)*B[0].y) ;
-        val2 += w*(bf(df,0,0)*B[1].x + bf(df,1,0)*B[1].y) ;
-      }
 
-    std::cout << " bf " << df << "\t" << val << "\t" << val2 << std::endl;
-  }
 
-  std::cout << "----------------"<< std::endl;
-  }
+  // Cut_Mesh2 cutTh(Th, levelSet.v);
+
+
+
+
+  // double x =2.;
+  // std::cout << myfun<myx2>(x) << std::endl;
+
+  // int nx = 2;
+  // int ny = 2;
+  // Mesh Th(nx, ny, 0., 0., 1, 1.);
+  // FESpace2 Vh(Th, DataFE<Mesh2>::RT1);
+  // const Element& K(Th[0]);   // The reference element
+  // const FElement& FK(Vh[0]);
+  //
+  // KNMK<double> bf(FK.NbDoF(),FK.N,1);
+  //
+  // const QuadratureFormular1d& QF = QF_GaussLegendre4;
+  // const QuadratureFormular2d& QFK = QuadratureFormular_T_5;
+  //
+  // // wanna compute int_Fi phi_BDM1_i . n * phi_P1_j(Fi)
+  // for(int e=0;e<3;++e){
+  //   std::cout << " edge " << e << std::endl;
+  //
+  //   for(int df=0;df<8;++df){
+  //
+  //     // int df = 3;
+  //     double val = 0, val2=0;
+  //     double meas = K.lenEdge(e);
+  //     int eOrientation = K.EdgeOrientation(e);
+  //     R2 normal = K.EdgeOrientation(e)*K.N(e);
+  //     // R2 normal = -K.Edge(e).perp();
+  //
+  //     for(int iq=0;iq<QF.getNbrOfQuads();++iq) {
+  //       QuadraturePoint1d ip_1d(QF[iq]);
+  //       R2 ip_hat = K.toKref(ip_1d, e);
+  //       FK.BF(Fop_D0, ip_hat, bf);
+  //
+  //       // R l0 = QF[iq].x, l1 = 1 - QF[iq].x;
+  //       // R p0 = (2 * l0 - l1) * 2;     // poly othogonaux to \lambda_1
+  //       // R p1 = (2 * l1 - l0) * 2;     // poly othogonaux to \lambda_0
+  //       // R lambda1 = eOrientation * p0 * QF[iq].a;    // [some quadrature function?]
+  //       // R lambda0 = eOrientation * p1 * QF[iq].a;    //
+  //       // if(eOrientation < 0) {
+  //       //   Exchange(lambda1, lambda0);
+  //       // }
+  //       //
+  //       // val  += lambda0*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
+  //       // val2 += lambda1*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
+  //
+  //       double lambda1 = 6*ip_1d.x-2;
+  //       double lambda0 = 4-6*ip_1d.x;
+  //       if(eOrientation < 0) {
+  //         Exchange(lambda1, lambda0);
+  //       }
+  //       val += meas*ip_1d.a*lambda0*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
+  //       val2 += meas*ip_1d.a*lambda1*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y) ;
+  //
+  //       // val  += (-6*ip_1d.x+3)  *meas*ip_1d.getWeight()*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y);
+  //       // val2 += 1*meas*ip_1d.getWeight()*(bf(df,0,0)*normal.x + bf(df,1,0)*normal.y);
+  //     }
+  //     std::cout << " bf " << df << "\t" << val << "\t" << val2 << std::endl;
+  //   }
+  //   std::cout << "----------------"<< std::endl;
+  // }
+  // {
+  //   R2 B[2] = {K.Edge(1), K.Edge(2)};
+  //   B[0] = B[0].perp();
+  //   B[1] = B[1].perp();
+  //   std::cout << "bubbles "<< std::endl;
+  //
+  //   for(int df=0;df<8;++df){
+  //
+  //     double val = 0, val2=0;
+  //
+  //     for(int iq=0;iq<QFK.getNbrOfQuads();++iq) {
+  //
+  //       QuadraturePoint2d ip_2d(QFK[iq]);
+  //       R2 mip_Ks   = FK.map(ip_2d);
+  //       R2 ip_hat = K.toKref(mip_Ks);
+  //
+  //       FK.BF(Fop_D0, ip_hat, bf);
+  //       double w = QFK[iq].a * 0.5;
+  //       val  += w*(bf(df,0,0)*B[0].x + bf(df,1,0)*B[0].y) ;
+  //       val2 += w*(bf(df,0,0)*B[1].x + bf(df,1,0)*B[1].y) ;
+  //     }
+  //
+  //   std::cout << " bf " << df << "\t" << val << "\t" << val2 << std::endl;
+  // }
+  //
+  // std::cout << "----------------"<< std::endl;
+  // }
 
   //
   // int nx = 10;

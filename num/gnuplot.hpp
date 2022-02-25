@@ -23,6 +23,21 @@ namespace gnuplot {
     }
     plot.close();
   }
+  void save(const MeshQuad2 & Th, std::string filename = "ThQ.dat") {
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = Th[0].nv;
+    for(int k=0; k<Th.nt;++k) {
+      for(int i=0;i<nve;++i) {
+        plot << Th[k][i] << std::endl;
+      }
+      plot << Th[k][0] << std::endl;
+      plot << std::endl;
+      plot << std::endl;
+    }
+    plot.close();
+  }
 
   void save(const CutFESpace2 & Vh, int domain, std::string filename = "CutTh.dat") {
 
@@ -141,7 +156,6 @@ namespace gnuplot {
 
   }
 
-
   void save(const Interface3 & Gh, std::string filename = "Gh.dat") {
 
     std::ofstream plot;
@@ -249,7 +263,6 @@ namespace gnuplot {
     for(auto it=macro.small_element.begin(); it!=macro.small_element.end();++it) {
 
       int idxC = it->second.index;  // index in cutSpace
-
       int domain = macro.Vh.whichDomain(idxC);
       int idx = macro.Vh.idxElementInBackMesh(idxC);
 
@@ -276,6 +289,7 @@ namespace gnuplot {
     int icolor = 0;
     for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
 
+      std::cout << " Macro \t" << it->second.idx_root_element << std::endl;
       for(int i=0;i<it->second.idx_element.size();++i) {
 
         int idxC = it->second.idx_element[i];
@@ -292,6 +306,7 @@ namespace gnuplot {
           plot3 << std::endl;
         }
         else {
+          std::cout << idxC << std::endl;
           for(int i=0;i<nve;++i) {
             plot4 << (R2)macro.Vh.Th[idx][i] << "\t" << icolor%10 << std::endl;
           }

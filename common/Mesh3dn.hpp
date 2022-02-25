@@ -32,20 +32,8 @@ public:
   Mesh3(int nx, int ny, int nz, R orx, R ory, R orz, R lx, R ly, R lz);
   Mesh3(const Interface& gamma);
   Mesh3(TimeInterface3& gamma);
-  Mesh3(const Mesh3&, std::string whatToDo);
 
-
-
-
-
-  // virtual Uint idxGlobalVertexBackMesh(const Uint i) const {
-  //   Uint j =  idxVertexInBackMesh(i);
-  //   return (backMesh) ? backMesh->idxGlobalVertex(j) : j;
-  // }
-
-
-
-  friend void write_paraview_vtu (std::ostream&, const Mesh3&);
+  // Mesh3(const Mesh3&, std::string whatToDo);
 
 private:
   int load(const string & filename);
@@ -54,6 +42,23 @@ private:
 
   Mesh3(const Mesh3 &); // pas de construction par copie
   void operator=(const Mesh3 &);// pas affectation par copy
+};
+
+
+class MeshHexa : public GenericMesh<Hexa,Quad3,Vertex3>
+{
+public:
+  typedef SignPatternTrait3 SignPattern;
+  typedef RefPatch3 RefPatch;
+  typedef RefPartition3 RefPartition;
+  typedef Partition3 Partition;
+  typedef GenericInterface<Mesh3> Interface;
+
+  MeshHexa(int nx, int ny, int nz, R orx, R ory,R orz, R lx, R ly,R lz);  // build structured mesh
+
+private:
+  MeshHexa(const MeshHexa &);                             // no copy constructor
+  void operator=(const MeshHexa &);                    // no copy allowed
 };
 
 
@@ -89,7 +94,7 @@ inline static byte instance_idx3 (const byte ls[4])
 
 inline static Ubyte instance_idx3 (const double ls[4])
 {
-  return  27*sign( ls[0]) + 9*sign( ls[1]) + 3*sign( ls[2]) + sign(ls[3]);
+  return  27*util::sign( ls[0]) + 9*util::sign( ls[1]) + 3*util::sign( ls[2]) + util::sign(ls[3]);
 }
 
 
@@ -152,10 +157,9 @@ public:
     }
     return instance;
   }
-  static inline const RefPatch3& instance (const double ls[4])
-  {
+  static inline const RefPatch3& instance (const double ls[4]) {
     byte ls_byte[4];
-    std::transform( ls + 0, ls + 4, ls_byte + 0, sign);
+    std::transform( ls + 0, ls + 4, ls_byte + 0, util::sign);
     return instance( ls_byte);
   }
   ///@}
