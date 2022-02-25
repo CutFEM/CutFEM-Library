@@ -6,8 +6,7 @@
 #include "../FESpace/expression.hpp"
 
 
-static bool point_inside_tri(R2 s, R2 a, R2 b, R2 c)
-{
+static bool point_inside_tri(R2 s, R2 a, R2 b, R2 c) {
 
   int as_x = s.x-a.x;
   int as_y = s.y-a.y;
@@ -20,9 +19,7 @@ static bool point_inside_tri(R2 s, R2 a, R2 b, R2 c)
   return true;
 }
 
-static bool point_inside_tri(R2 s,  const typename Mesh2::Element& K)
-{
-
+static bool point_inside_tri(R2 s,  const typename Mesh2::Element& K) {
   R2 Pref = K.toKref(s);
   // std::cout << Pref << std::endl;
   if(Pref.x < -Epsilon || Pref.x > 1+Epsilon) return false;
@@ -63,13 +60,18 @@ static bool check_intersect(R2 u, R2 v, R2 w, R& t) {
 
 Marker::Marker(const Mesh2& Thh) : Interface2(Thh), Th(Thh) { }
 Marker::Marker(const Mesh2& Thh, R2(*fparam)(double t), double x_begin, double x_end, int npoint) :Marker(Thh) {
-  // create the markers
   {
     nMarker_begin.push_back(0);
+
+
     double h = (x_end - x_begin) / (npoint - 1);
     for(int i=0;i<npoint;++i) {
       double t = x_begin + i*h;
-      markers.push_back(fparam(t));
+      R2 val = fparam(t);
+      T.push_back(t);
+      X.push_back(val.x);
+      Y.push_back(val.y);
+      markers.push_back(val);
     }
     nMarker_end.push_back(markers.size());
   }
@@ -208,6 +210,7 @@ R2 Marker::find_intersection(R2 A, R2 B, int k, int kn, int& ie){
     return A+t*AB;
   }
 }
+
 int Marker::find_edge(int k, int kn) {
   const Element& K(Th[k]);
   int ie;
@@ -218,7 +221,6 @@ int Marker::find_edge(int k, int kn) {
     if(k_next == kn) return ie;
   }
 }
-
 
 void Marker::find_vertices() {
   // Find the nodes that intersect the edges
@@ -239,6 +241,7 @@ void Marker::find_vertices() {
   int nextK = -1;
   int previousK = -1;
   int i=nbeg+1;
+  int nloop = 0;
   while(i<nlast){
 
     find_marker_limit(idxK, i);
@@ -260,18 +263,33 @@ void Marker::find_vertices() {
     int ed2;
     R2 P2 = find_intersection(markers[j-1], markers[j], idxK, nextK, ed2);
 
-    if(ed1 < ed2) {
-      vertices_.push_back(P1);
-      vertices_.push_back(P2);
-    } else {
-      vertices_.push_back(P2);
+
+
+    if (nloop == 0) {
       vertices_.push_back(P1);
     }
+    vertices_.push_back(P2);
+    if(ed1 < ed2) {
+      faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+    }
+    else {
+      faces_.push_back(Face(vertices_.size()-1,vertices_.size()-2, 0));
+    }
+    // if(ed1 < ed2) {
+    //   vertices_.push_back(P1);
+    //   vertices_.push_back(P2);
+    // } else {
+    //   vertices_.push_back(P2);
+    //   vertices_.push_back(P1);
+    // }
+
+
     element_of_face_.push_back(idxK);
     face_of_element_[idxK] = element_of_face_.size()-1;
 
-    faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+    // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
     outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
+    nloop += 1;
   }
 
   // Check boundary
@@ -286,20 +304,30 @@ void Marker::find_vertices() {
   nextK = element_of_face_[0];
   R2 P2 = find_intersection(markers[j-1], markers[j], k0, nextK, ed2);
 
+
+
+  // if(ed1 < ed2) {
+  //   vertices_.push_back(P1);
+  //   vertices_.push_back(P2);
+  // } else {
+  //   vertices_.push_back(P2);
+  //   vertices_.push_back(P1);
+  // }
+  vertices_.push_back(P2);
   if(ed1 < ed2) {
-    vertices_.push_back(P1);
-    vertices_.push_back(P2);
-  } else {
-    vertices_.push_back(P2);
-    vertices_.push_back(P1);
+    faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+  }
+  else {
+    faces_.push_back(Face(vertices_.size()-1,vertices_.size()-2, 0));
   }
   element_of_face_.push_back(k0);
   face_of_element_[k0] = element_of_face_.size()-1;
-  faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+  // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
   outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
 
 
 }
+
 void Marker::make_interface(bool leftB, bool rightB){
 
   vertices_.resize(0);
@@ -339,8 +367,6 @@ void Marker::make_interface(bool leftB, bool rightB){
   // need to get a sign array
   build_sign_array();
 };
-
-
 
 void Marker::add(std::string path) {
 

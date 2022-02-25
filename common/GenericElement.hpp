@@ -24,25 +24,45 @@ public:
   static const int nea=Data::NbOfAdjElem;
   static const int d=Rd::d;
   static const int nref = Data::NbOfRef;
-  static const int nvc=Data::NbOfVerticesCut;
+  static const int nvOnFace = Data::NvOnFace;
+
   static const int (* const nvedge)[2] ;                  //idx nodes on edges
-  static const int (* const nvface)[3] ;                  //idx nodes on faces
+  static const int (* const nvface)[nvOnFace] ;                  //idx nodes on faces
   static const int (* const onWhatBorder)[nitem] ;        //
   static const int (* const commonVertOfEdges)[ne] ;      //
   static const int (* const refElement)[nv] ;           //
+  static const int (* const faceOfEdge)[2] ;
+  static const int (* const edgeOfFace)[nvOnFace] ;
 
   static const int (* const nvadj)[nva] ;                 //
-  static const int nitemdim[4];                           //  nv,ne,nf,nt
+  static const int nitemdim[4];
+  static const int ParaviewNumCell = Data::ParaviewNumCell;
+
+  // for cut
+  static const int nb_ntcut = Data::NbNtCut;
+  static const int nvc=Data::NbOfVerticesCut;
+  static const int nb_sign_pattern=Data::NbSignPattern;
+
 
   static int oppVertOfEdge(int edge, int vert) {
     return vert == nvedge[edge][0] ? nvedge[edge][1] : nvedge[edge][0];
   }
+
 protected:
   Vertex *vertices[nv];                                   //array 3 pointer to vertex
   R mes;
 public:
   GenericElement() {}
-  const Vertex & operator[](int i) const  {
+  // GenericElement(Vertex * v0,int * iv,int r, double mss=UnSetMesure)
+  // {
+  //   for(int i=0;i<nv;++i)
+  //     vertices[i]=v0+iv[i];
+  //   mes=(mss!=UnSetMesure) ? mss : Data::mesure(vertices);
+  //   lab=r;
+  //   ASSERTION(mss==UnSetMesure && mes>0);
+  // }
+
+  const Vertex & operator[](int i) const{
     ASSERTION(i>=0 && i <nv);
     return *vertices[i];} // to see triangle as a array of vertex
 
@@ -54,8 +74,7 @@ public:
 
   Vertex& at(int i)    { return *vertices[i];} // to see triangle as a array of vert
 
-  GenericElement & set(Vertex * v0,int * iv,int r,double mss=UnSetMesure)
-  {
+  GenericElement & set(Vertex * v0,int * iv,int r,double mss=UnSetMesure){
     for(int i=0;i<nv;++i)
       vertices[i]=v0+iv[i];
     mes=(mss!=UnSetMesure) ? mss : Data::mesure(vertices);
@@ -65,8 +84,7 @@ public:
   }
 
 
-  std::istream & Read1(std::istream & f,Vertex * v0,int n)
-  {
+  std::istream & Read1(std::istream & f,Vertex * v0,int n)  {
     int iv[nv],ir,err=0;
     for (int i=0;i<nv;++i)
       {
@@ -88,18 +106,22 @@ public:
     return f;
   }
 
-  Rd Edge(int i) const {ASSERTION(i>=0 && i <ne);
+  Rd Edge(int i) const {
+    ASSERTION(i>=0 && i <ne);
     return Rd(at(nvedge[i][0]),at(nvedge[i][1]));}// opposite edge vertex i
 
   Rd N(int i) const  { return ExtNormal(vertices,nvadj[i])/(ExtNormal(vertices,nvadj[i]).norm());}
   Rd PBord(int i,RdHatBord P) const   { return Data::PBord(nvadj[i],P);}
 
-  Rd operator()(const RdHat & Phat) const {
-    Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0]);
-    for (int i=1;i<nv;++i)
-      r+=  Phat[i-1]*(*(Rd*) vertices[i]);
-    return r;
-  }
+
+  // THIS IS DIFFERENT FOR RECTANGLES
+  virtual Rd operator()(const RdHat & Phat) const =0;
+  //{
+  //   Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0]);
+  //   for (int i=1;i<nv;++i)
+  //     r+=  Phat[i-1]*(*(Rd*) vertices[i]);
+  //   return r;
+  // }
 
 //  int faceOrient(int i) const
 //     {// def the permutatution of orient the face
@@ -112,31 +134,30 @@ public:
 //     }
 
 
+// THIS IS DIFFERENT FOR RECTANGLES
+
 // Permutation
 //  static const int PERM_FACE[6][3] =
 //  {{0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,0,1}, {2,1,0}};
-  int facePermutation(int i) const
-  {//def the permutatution of orient the face
-    const Vertex * f[3]={&at(nvface[i][0]), &at(nvface[i][1]), &at(nvface[i][2])};
-    if(f[0] < f[1]) {
-      if(f[1] < f[2]) return 0;      // 0,1,2
-      if(f[0] < f[2]) return 1;      // 0,2,1
-      else return 4;                 // 2,0,1
-    }
-    if(f[0] < f[2]) return 2;        // 1 0 2
-    if(f[1] < f[2]) return 3;        // 1,2,0
-    else return 5;                   // 2,1,0
-
-  }
+  // virtual int facePermutation(int i) const = 0;
+  // // {//def the permutatution of orient the face
+  // //   const Vertex * f[3]={&at(nvface[i][0]), &at(nvface[i][1]), &at(nvface[i][2])};
+  // //   if(f[0] < f[1]) {
+  // //     if(f[1] < f[2]) return 0;      // 0,1,2
+  // //     if(f[0] < f[2]) return 1;      // 0,2,1
+  // //     else return 4;                 // 2,0,1
+  // //   }
+  // //   if(f[0] < f[2]) return 2;        // 1 0 2
+  // //   if(f[1] < f[2]) return 3;        // 1,2,0
+  // //   else return 5;                   // 2,1,0
+  // //
+  // // }
 
   int  EdgeOrientation(int i) const
   { return 2*(&at(nvedge[i][0]) < &at(nvedge[i][1]))-1;}
 
   int edgePermutation(int i) const
   {
-//     std::cout << &at(nvedge[i][0]) << "\t" << &at(nvedge[i][1]) << std::endl;
-//     if(&at(nvedge[i][1]) < &at(nvedge[i][0]))
-//       std::cout <<" permutation = 1" << std::endl;
     return &at(nvedge[i][1]) < &at(nvedge[i][0]);
   }  // 0 : no permutation
 

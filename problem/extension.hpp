@@ -43,7 +43,7 @@ public:
     void tag_extension_edges(const MacroElement& macro, const CHyperFace& ed, const CBorder& bo);
 
     void tag_exhaust_edges(const MacroElement& macro) ;
-    void solve();
+    void solve(string solverName = "mumps");
     void do_extension();
   private:
     void do_extension_edge(const std::map<std::pair<int,int>,int>::const_iterator& it);
@@ -94,6 +94,9 @@ private:
     void reconstruct(Rn& b);
 public:
     void erase_rows_to_fix_RT0();
+    void erase_rows_to_fix2_RT0();
+    void erase_rows_to_fix_average_RT0();
+
     void erase_rows_to_fix_BDM1();
 // friend void save(const MacroElement & macro, const Extension& extension) ;
 };

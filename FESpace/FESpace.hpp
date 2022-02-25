@@ -71,8 +71,10 @@ public:
   Rd Pt(RdHat Phat) const {return T(Phat);}     // Ref to Global
   Rd PtHat(int i) const { assert(i < tfe->NbPtforInterpolation);
     RdHat Phat(tfe->PtInterpolation(i)); return Phat;}
-  Rd Pt(int i) const { assert(i < tfe->NbPtforInterpolation);
-    RdHat Phat(tfe->Pt_Pi_h(i));    return T(Phat);}
+    Rd Pt(int i) const { assert(i < tfe->NbPtforInterpolation);
+      RdHat Phat(tfe->Pt_Pi_h(i));
+      return T(Phat);
+    }
 
   int whichDomain() const {return Vh.whichDomain(number);}
   bool isCut() const {return Vh.isCut(number);}
@@ -401,6 +403,8 @@ public:
 
 typedef GFESpace<Mesh1> FESpace1;
 typedef GFESpace<Mesh2> FESpace2;
+typedef GFESpace<MeshQuad2> FESpaceQ2;
+typedef GFESpace<MeshHexa> FESpaceQ3;
 typedef GFESpace<Mesh3> FESpace3;
 typedef GFElement<Mesh1> TimeSlab;
 typedef GFElement<Mesh2> FElement2;

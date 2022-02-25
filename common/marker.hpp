@@ -41,6 +41,9 @@ public:
   const Mesh2& Th;
   bool periodic = false;
 
+  std::vector<double>  T ;             // initial points
+  std::vector<double>  X ;             // initial points
+  std::vector<double>  Y ;             // initial points
 
   std::vector<R2>  markers ;             // initial points
   std::vector<int> elementOfMarker;

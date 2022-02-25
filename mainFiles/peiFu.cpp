@@ -16,7 +16,7 @@
 
 typedef std::map<std::pair<int,int>,R> MatMap;
 
-#define EXAMPLE1
+#define EXAMPLE4
 
 #ifdef EXAMPLE1
 
@@ -248,7 +248,8 @@ void solve_problem(const FESpace2& Wh, const Interface2& interface,const Rn& u0,
   double t0 = MPIcf::Wtime();
 
   CutFEM<Mesh2> problem(Wh);
-  CutFEM_R2 beta("beta", R2(3,1), R2(2,1));
+
+  CutFEM_R2 beta("beta2", R2(3,1), R2(2,1));
   double lambdaB = 3;
 
   Fun2_h gh(Wh, fun_solution, tn);
@@ -269,11 +270,12 @@ void solve_problem(const FESpace2& Wh, const Interface2& interface,const Rn& u0,
   );
   problem.cleanMatrix();
 
+
   problem.mat = Mh;
   std::cout << " Time building problem \t" << MPIcf::Wtime() - t0 << std::endl;
 
-  matlab::Export(problem.mat, "matPei.dat");
-  getchar();
+  // matlab::Export(problem.mat, "matPei.dat");
+  // getchar();
 
 // SOLVING  (M+S)E'(t) = rhs
   // =====================================================
@@ -599,8 +601,8 @@ int main(int argc, char** argv ) {
 
   // DEFINITION OF THE MESH
   // =====================================================
-  int nx = 20;
-  int ny = 20;
+  int nx = 40;
+  int ny = 40;
   Mesh2 Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
 
   // DEFINITION OF SPACE AND TIME PARAMETERS
@@ -608,7 +610,7 @@ int main(int argc, char** argv ) {
   double tid = 0;
   double meshSize = 2./nx;
   double dt = meshSize / 7 / sqrt(10) * 0.5;//0.3 * meshSize / 3 ;  // h /10
-  double tend = dt;
+  double tend = 10*dt;
   int niteration = tend / dt;
   dt = tend / niteration;
   double errSum = 0;
@@ -668,12 +670,12 @@ int main(int argc, char** argv ) {
   for(int i=0;i<niteration;++i) {
 
 
-
     // EULER METHOD
     // =================================================
     solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
     uh *= dt;
     uh += u0;
+
     // Rn u1(u0);
     // Rn u2(Wh.NbDoF(), 0.);
     // THIRD ORDER RK
@@ -689,7 +691,6 @@ int main(int argc, char** argv ) {
 
     u0 = uh;
     tid += dt;
-
 
     // COMPUTATION OF THE L2 ERROR
     // =================================================
@@ -711,16 +712,16 @@ int main(int argc, char** argv ) {
 
     // PLOT THE SOLUTION
     // ==================================================
-    if(MPIcf::IamMaster() && i%1 == 0 || i+1 == niteration) {
-      // Fun2_h solex(Wh, fun_solution, tid);
-      for(int j=0;j<uh.size();++j) {
-        if(fabs(uh(j)) < 1e-16 ) uh(j) = 0.;
-      }
-      Fun2_h sol(Wh, uh);
-      Paraview2 writer(Wh, levelSet, "testDetector_"+to_string(ifig++)+".vtk");
-      writer.add(sol, "uh", 0, 1);
-      // writer.add(solex, "uex", 0, 1);
-    }
+    // if(MPIcf::IamMaster() && i%1 == 0 || i+1 == niteration) {
+    //   // Fun2_h solex(Wh, fun_solution, tid);
+    //   for(int j=0;j<uh.size();++j) {
+    //     if(fabs(uh(j)) < 1e-16 ) uh(j) = 0.;
+    //   }
+    //   Fun2_h sol(Wh, uh);
+    //   Paraview2 writer(Wh, levelSet, "testDetector_"+to_string(ifig++)+".vtk");
+    //   writer.add(sol, "uh", 0, 1);
+    //   // writer.add(solex, "uex", 0, 1);
+    // }
 
     std::cout << "Iteration " << i << " / " << niteration
               << " \t time = " << tid << " , || u-uex ||_2 = " << errU << std::endl;
@@ -740,14 +741,14 @@ int main(int argc, char** argv ) {
 
 
 
-  CutFEM_Parameter betaX("betaX", 3,2);
-  CutFEM_Parameter betaY("betaY", 0,0);
-  Expression2   expr_Un(Un, 0, op_id);
-  Fun2_h flux_Un(WFh, betaX*expr_Un, betaY*expr_Un);
-
-  Limiter limiter;
-  limiter.KXRCF_indicator(Un, flux_Un);
-  std::cout << limiter.indicator << std::endl;
+  // CutFEM_Parameter betaX("betaX", 3,2);
+  // CutFEM_Parameter betaY("betaY", 0,0);
+  // Expression2   expr_Un(Un, 0, op_id);
+  // Fun2_h flux_Un(WFh, betaX*expr_Un, betaY*expr_Un);
+  //
+  // Limiter limiter;
+  // limiter.KXRCF_indicator(Un, flux_Un);
+  // std::cout << limiter.indicator << std::endl;
 
 
 

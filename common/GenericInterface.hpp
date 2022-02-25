@@ -29,7 +29,7 @@ struct CutData2{
   R2 pointFromEdge(int i) const { assert(edges[i] != -1); return vertices[edges[i]];}
   CutData2(){assert(0);}
   CutData2(const Element& T, double* s) {
-    for(int i=0;i<3;++i) sign[i] = fsign(s[i]);
+    for(int i=0;i<3;++i) sign[i] = util::fsign(s[i]);
     if(s[0] != s[1] || s[1] != s[2]) {
       cut = true;
       int idv = 0;
@@ -75,7 +75,7 @@ struct CutData3{
   R3 pointFromEdge(int i) const { assert(edges[i] != -1); return vertices[edges[i]];}
 
   // CutData(const Element& T, double* s) {
-  //   for(int i=0;i<3;++i) sign[i] = fsign(s[i]);
+  //   for(int i=0;i<3;++i) sign[i] = util::fsign(s[i]);
   //   if(s[0] != s[1] || s[1] != s[2]) {
   //     cut = true;
   //     int idv = 0;
@@ -137,6 +137,7 @@ struct FaceInterface<2> : public  SortArray<Uint, 2>, public Label {
 
 
 };
+
 template<>
 struct FaceInterface<3> : public  SortArray<Uint, 3>, public Label {
   typedef SortArray<Uint, 3> FaceIdx;
@@ -149,6 +150,8 @@ struct FaceInterface<3> : public  SortArray<Uint, 3>, public Label {
 };
 
 
+
+
 template<typename M>
 class GenericInterface  {
 
@@ -159,8 +162,6 @@ public :
   static const int nve = Mesh::nva;     // number of nodes on hyperface
   typedef typename Mesh::RefPatch RefPatch;
   typedef typename TypeCutData<Rd::d>::CutData CutData;
-  // typedef SortArray<Uint, nve> FaceIdx;
-  // typedef SortArray<Uint, 2> Spair;
   typedef FaceInterface<nve> FaceIdx;
   typedef FaceInterface<nve> Face;
 
@@ -198,7 +199,7 @@ private :
   // Rd make_normal_noGrad(const typename Mesh::Element& K, const double lset[Element::nv]);
 
 public :
-  GenericInterface() : backMesh(nullptr) { }
+  // GenericInterface() : backMesh(nullptr) { }
   GenericInterface(const Mesh & MM) : backMesh(&MM) { }
   GenericInterface(const Mesh & MM, const KN<double>& ls, int label) : backMesh(&MM){
 		make_patch(ls, label);
@@ -207,8 +208,6 @@ public :
   void make_patch (const Mesh & MM, const KN<double>& ls, int label);
   void make_patch (const KN<double>& ls, int label);
   void add (const KN<double>& ls, int label);
-  // void make_patch (const KN<double>& ls, const KN<int>& cut_element, const KN<R>& nodex, const KN<R>& nodey);
-  // void make_patch (const Marker& marker);
 
 
   Rd operator()(const int k, const int i) const {return vertices_[faces_[k][i]];}
@@ -236,6 +235,7 @@ public :
   virtual Rd mapToFace(const FaceIdx& f, const typename Element::RdHatBord x ) const = 0;
   virtual Rd computeDx(const FaceIdx& f) const = 0;
   virtual CutData getCutData(const int k) const = 0;
+
   const_face_iterator face_begin () const { return (faces_.begin()).base(); }
   const_face_iterator face_end   () const { return (faces_.end()).base(); }
 
@@ -286,7 +286,7 @@ void GenericInterface<M>::make_patch(const KN<double>& ls, int label) {
   face_of_element_.clear();
 
   const Mesh& cpyMesh = *backMesh ;
-  copy_levelset_sign( ls, ls_sign);
+  util::copy_levelset_sign( ls, ls_sign);
 
   std::vector<RemumberVertexPairT> zero_vertex_uses; // used to renumber the zero_vertexes
   const Uint nb_vertex_K = Element::nv;
@@ -322,7 +322,7 @@ void GenericInterface<M>::add(const KN<double>& ls, int label) {
   const Mesh& cpyMesh = *backMesh ;
 
   KN<byte> ls_sign_add;
-  copy_levelset_sign( ls, ls_sign_add);
+  util::copy_levelset_sign( ls, ls_sign_add);
 
 
   std::vector<RemumberVertexPairT> zero_vertex_uses; // used to renumber the zero_vertexes
@@ -355,9 +355,9 @@ void GenericInterface<M>::add(const KN<double>& ls, int label) {
 
   for(int i=0;i<ls.size();++i){
     byte s_old = ls_sign(i);
-    byte s_new = fsign(ls(i));
-    // if(s_old < 0 || s_new < 0) ls_sign(i) = fsign(-1);
-    if(s_old * s_new < 0) ls_sign(i) = fsign(-1);
+    byte s_new = util::fsign(ls(i));
+    // if(s_old < 0 || s_new < 0) ls_sign(i) = util::fsign(-1);
+    if(s_old * s_new < 0) ls_sign(i) = util::fsign(-1);
 
   }
 }
@@ -404,6 +404,7 @@ GenericInterface<M>::make_face (const typename RefPatch::FaceIdx& ref_tri,
 
       const Ubyte i0 = Mesh::Element::nvedge[loc_vert_num - K.nv][0],
       	i1 = Mesh::Element::nvedge[loc_vert_num - K.nv][1];
+
       const double t = lset[i0]/(lset[i0] - lset[i1]);
       Rd Q = (1.0 - t) * ((Rd) K[i0]) + t * ((Rd) K[i1]); // linear interpolation
       vertices_.push_back(Q);

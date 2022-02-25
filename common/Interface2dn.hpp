@@ -10,7 +10,7 @@ class Interface2 : public GenericInterface<Mesh2>
 {
   typedef CutData2 CutData;
 public:
-  Interface2() : GenericInterface<Mesh2>() {}
+  // Interface2() : GenericInterface<Mesh2>() {}
   Interface2(const Mesh & MM) : GenericInterface<Mesh2>(MM) {}
   Interface2(const Mesh & MM, const KN<double>& ls, int label = 0) : GenericInterface<Mesh2>(MM, ls, label) {}
 
@@ -145,7 +145,7 @@ public :
   static inline const RefPartition2& instance (const double ls[3])
   {
     byte ls_byte[3];
-    std::transform( ls + 0, ls + 3, ls_byte + 0, sign);
+    std::transform( ls + 0, ls + 3, ls_byte + 0, util::sign);
     return instance( ls_byte);
   }
   ///@}
@@ -168,8 +168,6 @@ public :
 
 
 };
-
-
 
 class Partition2 {
 
@@ -368,6 +366,9 @@ public :
 
 
 };
+
+
+
 
 
 #endif

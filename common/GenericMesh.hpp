@@ -19,7 +19,7 @@ using namespace ::std;
 #include "dataStruct1D.hpp"
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
-
+#include "cut_method.hpp"
 #include "cutFEMConfig.h"
 #ifdef USE_MPI
 #include "../parallel/cfmpi.hpp"
@@ -284,7 +284,7 @@ public:
   R mes,mesb;
   Rd Pmin,Pmax; // // the bound  of the domain  see BuildBound
   int levelRefinement = 0;
-  GMesh const * rootMesh = nullptr; 
+  GMesh const * rootMesh = nullptr;
 // protected
   V *vertices;
   T *elements;
@@ -415,8 +415,7 @@ public:
     return p>=0 ? p/nea: -1;
   }
 
-  int GetAllElementAdj(int it,int *tabk) const
-  { //  get the tab of all adj element (max ne)
+  int GetAllElementAdj(int it,int *tabk) const{ //  get the tab of all adj element (max ne)
     //  and return the size of the tab
     int i=0;
     for(int j=0;j<nea;++j)
@@ -448,8 +447,7 @@ public:
 
 
   template<int N,int M>
-  SortArray<int,N> iteme(const int (* const  nu )[N],int k,int i)
-  {
+  SortArray<int,N> iteme(const int (* const  nu )[N],int k,int i) {
     int nnv[N];
     Element & K(elements[CheckT(k)]);
     ASSERTION(i>=0 && i <M);
@@ -551,14 +549,14 @@ public :
   int N = 1;
 
   BuildDofNumberingOfMesh(const GMesh& m,
-			  int ndfon[NbTypeItemElement],
-			  int nndon[NbTypeItemElement],
-			  int NN=1)
+    int ndfon[NbTypeItemElement],
+    int nndon[NbTypeItemElement],
+    int NN=1)
     : Th(m), nbDofOnItem(ndfon) , nbNodeOnItem(nndon), N(NN){
-    for(int i=0;i<4;++i) {
-      assert(nndon[i] == 0 || nndon[i] == 1);
+      for(int i=0;i<4;++i) {
+        assert(nndon[i] == 0 || nndon[i] == 1);
+      }
     }
-  }
 
   void computeData(const PeriodicBC* PPeriod){// int nbequi) {
 
@@ -820,13 +818,13 @@ public :
 
       int kk=0,nn=0;
       for(int k=0; k<nbElement; ++k)
-	for(int i=0; i<builder.nbNodeInK; i++)
-	  builder.pp[builder.p[nn++]]=builder.nbDofOnItem[keysdim[i]];
+      for(int i=0; i<builder.nbNodeInK; i++)
+      builder.pp[builder.p[nn++]]=builder.nbDofOnItem[keysdim[i]];
 
       for(int n=0; n<builder.nbNodes; ++n) {
-	int ndfn=builder.pp[n];
-	builder.pp[n]=kk;
-	kk += ndfn;
+        int ndfn=builder.pp[n];
+        builder.pp[n]=kk;
+        kk += ndfn;
       }
       builder.pp[builder.nbNodes] = builder.nbOfDF;
       assert(kk==builder.nbOfDF);
@@ -880,32 +878,32 @@ void fillTheArray() {
 
 
 
-enum ElementSignEnum { AllElement, NegElement, PosElement, NoElement};
-
-
-template<typename T>
-class SignElement{
-
-  typedef T Element;
-  static const int nve = Element::nv;
-
-  int sum_;
-public:
-  SignElement() : sum_(0) {}
-  SignElement(const double ls[nve]) : sum_(0) {
-    for (Ubyte i= 0; i < nve; ++i)
-      sum_ += fsign( ls[i]);
-  }
-  SignElement(const byte ls[nve]) : sum_(0) {
-    for (Ubyte i= 0; i < nve; ++i)
-      sum_ += ls[i];
-  }
-
-
-  bool cut() const  {return abs(sum_) != nve;}
-  byte sign() const { return (sum_ == nve) ? 1 : ((sum_ == -nve)? -1 : 0);}
-
-};
+// enum ElementSignEnum { AllElement, NegElement, PosElement, NoElement};
+//
+//
+// template<typename T>
+// class SignElement{
+//
+//   typedef T Element;
+//   static const int nve = Element::nv;
+//
+//   int sum_;
+// public:
+//   SignElement() : sum_(0) {}
+//   SignElement(const double ls[nve]) : sum_(0) {
+//     for (Ubyte i= 0; i < nve; ++i)
+//       sum_ += fsign( ls[i]);
+//   }
+//   SignElement(const byte ls[nve]) : sum_(0) {
+//     for (Ubyte i= 0; i < nve; ++i)
+//       sum_ += ls[i];
+//   }
+//
+//
+//   bool cut() const  {return abs(sum_) != nve;}
+//   byte sign() const { return (sum_ == nve) ? 1 : ((sum_ == -nve)? -1 : 0);}
+//
+// };
 
 
 //Represents the reference element which is cut by a linear level set function ls.
@@ -955,10 +953,8 @@ void GSignPatternTrait<T>::assign (const byte ls[Element::nv])
   num_root_vert_= num_root_= 0;
 
   byte sum= 0;
-  for (Ubyte i= 0; i < Element::nv; ++i)
-    sum+= (sign_[i] = ls[i]);
-  if (sum == Element::nv || sum == -Element::nv) // optimize the case of uncut tetras
-    return;
+  for (Ubyte i= 0; i < Element::nv; ++i) sum += (sign_[i] = ls[i]);
+  if (sum == Element::nv || sum == -Element::nv) return;
   compute_cuts ();
 }
 
@@ -979,17 +975,19 @@ void GSignPatternTrait<T>::assign (const double ls[Element::nv])
 template<typename T>
 void GSignPatternTrait<T>::compute_cuts ()
 {
-  for (Ubyte i= 0; i < Element::nv; ++i)
-  if (sign( i) == 0)
-  cut_simplex_[num_root_vert_++]= i;
-  num_root_= num_root_vert_;
-  for (Ubyte i= 0; i < Element::ne; ++i)
-  if (sign( Element::nvedge[i][0])*sign( Element::nvedge[i][1]) == -1)
-  cut_simplex_[num_root_++]= i;
-  std::memcpy( cut_simplex_rep_, cut_simplex_, Element::nvc*sizeof(byte));
-  for (int i= num_root_vert_; i < num_root_; ++i)
-  cut_simplex_rep_[i]+= Element::nv;
-
+  for (Ubyte i= 0; i < Element::nv; ++i){
+    if (sign( i) == 0) {
+      cut_simplex_[num_root_vert_++]= i;
+    }
+    num_root_= num_root_vert_;
+  }
+  for (Ubyte i= 0; i < Element::ne; ++i){
+    if (sign( Element::nvedge[i][0])*sign( Element::nvedge[i][1]) == -1) {
+      cut_simplex_[num_root_++]= i;
+    }
+    std::memcpy( cut_simplex_rep_, cut_simplex_, Element::nvc*sizeof(byte));
+  }
+  for (int i= num_root_vert_; i < num_root_; ++i) cut_simplex_rep_[i]+= Element::nv;
 
 }
 

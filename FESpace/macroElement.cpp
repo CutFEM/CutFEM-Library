@@ -6,14 +6,13 @@ MacroElement::MacroElement(const FESpace2& vh, const double C) : GMacro() , Vh(v
   double meas = Vh[0].T.mesure();
   nb_element_0 = 0;
   nb_element_1 = 0;
-  tol = C * h*h;//meas;
+  tol = C  * meas;
 
-  std::cout << " tolerance \t" << tol << std::endl;
+  std::cout << "constant \t" << C << "\t tolerance \t" << tol << std::endl;
   find_small_element();
   std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
   std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
   find_root_element();
-  std::cout << " root found " << std::endl;
 
 
 }
@@ -79,9 +78,9 @@ void MacroElement::find_root_element(){
         Ks.setRoot(small_or_fat_K[kn]);
         big_element_found.push_back(make_pair(k, kn));
 
-
         // find the correonding macro element
-        auto it = macro_element.find(kn);
+        int root_id = small_or_fat_K[kn];
+        auto it = macro_element.find(root_id);
         //for unique edge
         int ie = (k < kn)? ifac : ifacn;
         int kk = (k < kn)?k: kn;
@@ -89,8 +88,8 @@ void MacroElement::find_root_element(){
           it->second.add(k, std::make_pair(kk,ie));
         }
         else{
-          macro_element[kn] = MElement(kn);
-          macro_element[kn].add(k, std::make_pair(kk, ie));
+          macro_element[root_id] = MElement(root_id);
+          macro_element[root_id].add(k, std::make_pair(kk, ie));
         }
 
         // remove small element from the list
@@ -106,9 +105,6 @@ void MacroElement::find_root_element(){
 
     }
   }
-
-
-
 
 }
 

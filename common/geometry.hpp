@@ -22,6 +22,12 @@ typedef struct coefDroite{
 	double ord_or;	//ordonnée à l'origine de la droite
 } Droite;
 
+struct Interval {
+  double v_min, v_max;
+  Interval(double a, double b) :v_min(a), v_max(b){}
+  Interval operator*(double x) const {return Interval(x*v_min, x*v_max);}
+  Interval operator+(double x) const {return Interval(x+v_min, x+v_max);}
+};
 
 
 Droite equation(const R2 a,const R2 b) ;

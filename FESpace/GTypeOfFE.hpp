@@ -9,6 +9,7 @@
 #include "../common/RNM.hpp"
 #include "../common/Mesh1dn.hpp"
 #include "operationTypeFE.hpp"
+#include "transformation.hpp"
 
 
 /*
@@ -192,6 +193,7 @@ struct DataFE
   static GTypeOfFE<mesh> & P2;
   static GTypeOfFE<mesh> & P3;
   // static GTypeOfFE<mesh> & P4;
+
 
   static GTypeOfFE<mesh> & P0Poly;
   static GTypeOfFE<mesh> & P1Poly;

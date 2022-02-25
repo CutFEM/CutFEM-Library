@@ -500,7 +500,6 @@ template<int N> friend TestFunction<N> jump(const TestFunction<N> & T, int c1, i
 template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const TestFunction<N> & V , int c1, int c2);
 
 
-
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T, double v1, double v2);
 template<int N> friend TestFunction<N> average1(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average2(const TestFunction<N> & T);
