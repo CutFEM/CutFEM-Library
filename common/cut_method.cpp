@@ -181,7 +181,7 @@ template<> bool RefPartition<Triangle2>::assign (const SignPattern<Triangle2>& c
 
   }
   else if (cut.no_zero_vertex()) { // next common case: cuts without vertices on the zero level
-
+    is_cut_ = true;
     const Ubyte v = Triangle2::commonVertOfEdges[cut[0]][cut[1]];
     Ubyte list_v[] = {v, cut(0), cut(1)};
     AddElement( list_v, cut.sign( v));
@@ -221,6 +221,9 @@ template<> bool RefPartition<Quad2>::assign (const SignPattern<Quad2>& cut) {
   }
   else if (cut.no_zero_vertex()) { // next common case: cuts without vertices on the zero level
     // case when interface cut two adjacent edges
+    is_cut_ = true;
+
+
     if(cut.sign_element.sum() != 0) {
       const Ubyte v = Quad2::commonVertOfEdges[cut[0]][cut[1]];
       Ubyte list_v[] = {v, cut(0), cut(1)};
@@ -240,6 +243,9 @@ template<> bool RefPartition<Quad2>::assign (const SignPattern<Quad2>& cut) {
       AddQuadrilateral(u1, cut(1), u0, cut(0), -cut.sign( v0));
     }
   }
+  else{
+
+  }
 
   return is_uncut();
 }
@@ -253,6 +259,8 @@ template<> bool RefPartition<Tet>::assign (const SignPattern<Tet>& cut) {
     // AddTetra( 0, 1, 2, 3, cut.sign( 0));
   }
   else if (cut.no_zero_vertex()) { // next common case: cuts without vertices on the zero level
+    is_cut_ = true;
+
     if (cut.num_cut_simplexes() == 3) { // triangular cut: a tetra and a remaining prism
 
       const Ubyte v = Tet::commonVertOfEdges[cut[0]][cut[1]];
@@ -278,6 +286,9 @@ template<> bool RefPartition<Tet>::assign (const SignPattern<Tet>& cut) {
           cut(2), cut(3),
           cut.sign(Tet::nvedge[f][0]));
         }
+      }
+      else{
+
       }
       // else if (cut.num_cut_simplexes() > cut.num_zero_vertexes()) { // next common case: there are cut edges, and also 1 or 2 vertices of the tetra with value 0 (the latter as we are in the else-part of cut.no_zero_vertex())
       //     if (cut.num_zero_vertexes() == 1) { // triangular cut through a vertex: a tetra and a remaining pyramid with quadrilateral base
@@ -305,67 +316,208 @@ template<> bool RefPartition<Tet>::assign (const SignPattern<Tet>& cut) {
 template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
   end_= begin_= elements_ + start_array;
   if (cut.empty()) { // Most common case: no cut.
-    Ubyte list_v[] = {0,1,2,3,4,5,6,7};
-    // addHexa(0,1,2,3,4,5,6,7,cut.sign( 0));
+    AddHexa(0,1,3,2,4,5,7,6,cut.sign( 0));
   }
   else {
+    is_cut_ = true;
+
     assert(cut.no_zero_vertex());
     int nb_pos = cut.sign_element.nb_node_positif();
 
     switch (static_cast<int>(cut.num_cut_simplexes())) {
       case 3 :
-      std::cout << " cut not yet implemented " << std::endl;
-      assert(0);
+      {
+        // std::cout << " case \t 3" <<std::endl;
+        // only one option, 1 tetra + 1 prisme + complet with 4 tetra
+        // same way we cut a hexa into tetra (1tetra+prism => one fat tetra)
+        int v0 = Hexa::commonVertOfEdges[cut[0]][cut[1]];
+        Ubyte list_v[] = {v0, cut(0), cut(1), cut(2)};
+        AddElement( list_v, cut.sign( v0));
+        AddPrism  (cut(0),Hexa::oppVertOfEdge( cut[0], v0),
+                   cut(1),Hexa::oppVertOfEdge( cut[1], v0),
+                   cut(2),Hexa::oppVertOfEdge( cut[2], v0)
+                 , -cut.sign( v0));
+
+       int e_op0 = Hexa::oppEdgeOfEdge[cut[0]];
+       int e_op1 = Hexa::oppEdgeOfEdge[cut[1]];
+       int e_op2 = Hexa::oppEdgeOfEdge[cut[2]];
+       int u1 = Hexa::commonVertOfEdges[e_op0][e_op1];
+
+        // sommet des 3 autres tetra de coin
+        int s0 = Hexa::oppVertOfEdge( e_op0, u1);
+        int s1 = Hexa::oppVertOfEdge( e_op1, u1);
+        int s2 = Hexa::oppVertOfEdge( e_op2, u1);
+
+        // center tetra
+        Ubyte list_v5[] = {u1,Hexa::oppVertOfEdge( cut[0], v0), Hexa::oppVertOfEdge( cut[1], v0), Hexa::oppVertOfEdge( cut[2], v0)};
+        AddElement( list_v5, cut.sign( s0));
+
+        Ubyte list_v1[] = {s0, Hexa::nodeConnectivity[s0][0],Hexa::nodeConnectivity[s0][1], Hexa::nodeConnectivity[s0][2]};
+        AddElement( list_v1, cut.sign( s0));
+        Ubyte list_v2[] = {s1, Hexa::nodeConnectivity[s1][0],Hexa::nodeConnectivity[s1][1], Hexa::nodeConnectivity[s1][2]};
+        AddElement( list_v2, cut.sign( s0));
+        Ubyte list_v3[] = {s2, Hexa::nodeConnectivity[s2][0],Hexa::nodeConnectivity[s2][1], Hexa::nodeConnectivity[s2][2]};
+        AddElement( list_v3, cut.sign( s0));
+
+      }
       break;
       case 4 :
+      // std::cout << " case \t 4" <<std::endl;
       // add 1 prisme in part with 2 nodes
       // add 1 prisme && 1 hexa in part with 6 nodes
       if(nb_pos == 2 || nb_pos == 6){
         // Prisme => add 3 edges connecting the 2 triangular faces
-          int e0 = 0;
-          int e1 = (Hexa::commonVertOfEdges[cut[0]][cut[1]]==-1)? 1 : 3;
-          int f0 = (Hexa::commonVertOfEdges[cut[0]][cut[1]]==-1)? 3 : 1;
-          int f1 = 2;
-          int g0 = Hexa::commonVertOfEdges[cut[e0]][cut[f0]];
-          int g1 = Hexa::commonVertOfEdges[cut[e1]][cut[f1]];
-          AddPrism( cut(e0), cut(e1), cut(f0), cut(f1), g0, g1, cut.sign( g0));
+        int e0 = 0;
+        int e1 = (Hexa::commonVertOfEdges[cut[0]][cut[1]]==-1)? 1 : 3;
+        int f0 = (Hexa::commonVertOfEdges[cut[0]][cut[1]]==-1)? 3 : 1;
+        int f1 = 2;
+        int g0 = Hexa::commonVertOfEdges[cut[e0]][cut[f0]];
+        int g1 = Hexa::commonVertOfEdges[cut[e1]][cut[f1]];
+        AddPrism( cut(e0), cut(e1), cut(f0), cut(f1), g0, g1, cut.sign( g0));
 
-          // // add Hexa
-          // // send a cartesian index way
-          // int h0 = Hexa::oppVertOfEdge( cut[e0], g0);
-          // int h1 = Hexa::oppVertOfEdge( cut[e1], g1);
-          // int l0 = Hexa::oppVertOfEdge( cut[f0], g0);
-          // int l1 = Hexa::oppVertOfEdge( cut[f1], g1);
-          // AddHexa(cut(e0), cut(e1), cut(f0), cut(f1),h0,h1,l0,l1,-cut.sign( g0));
-          //
-          // int ed_op00 = Hexa::oppEdgeOfEdge[cut[e1]];
-          // int ed_op01 = Hexa::oppEdgeOfEdge[cut[f1]];
-          // int ed_op10 = Hexa::oppEdgeOfEdge[cut[e0]];
-          // int ed_op11 = Hexa::oppEdgeOfEdge[cut[f0]];
-          // int k0 = Hexa::commonVertOfEdges[ed_op00][ed_op01];
-          // int k1 = Hexa::commonVertOfEdges[ed_op10][ed_op11];
-          // AddPrism( h0,h1,l0,l1, k0, k1, -cut.sign( g0));
+        // add Hexa
+        // send a cartesian index way
+        int h0 = Hexa::oppVertOfEdge( cut[e0], g0);
+        int h1 = Hexa::oppVertOfEdge( cut[e1], g1);
+        int l0 = Hexa::oppVertOfEdge( cut[f0], g0);
+        int l1 = Hexa::oppVertOfEdge( cut[f1], g1);
+        AddHexa(cut(e0), cut(e1), cut(f0), cut(f1),h0,h1,l0,l1,-cut.sign( g0));
+
+        int ed_op00 = Hexa::oppEdgeOfEdge[cut[e1]];
+        int ed_op01 = Hexa::oppEdgeOfEdge[cut[f1]];
+        int ed_op10 = Hexa::oppEdgeOfEdge[cut[e0]];
+        int ed_op11 = Hexa::oppEdgeOfEdge[cut[f0]];
+        int k0 = Hexa::commonVertOfEdges[ed_op00][ed_op01];
+        int k1 = Hexa::commonVertOfEdges[ed_op10][ed_op11];
+        AddPrism( h0,h1,l0,l1, k0, k1, -cut.sign( g0));
+      }
+      // add 1 hexa on each part
+      else if(nb_pos == 4){
+        Rn n_pos(4), n_neg(4);
+        for(int i=0;i<4;++i) {
+          int v0 = Hexa::nvedge[cut[i]][0];
+          int v1 = Hexa::nvedge[cut[i]][1];
+          int s0 = (int)cut.sign( v0);
+          n_neg(i) = (s0 < 0) ? v0 : v1;
+          n_pos(i) = (s0 > 0) ? v0 : v1;
+        }
+        AddHexa(cut(0), cut(1), cut(3), cut(2), n_pos(0),n_pos(1), n_pos(3), n_pos(2), 1);
+        AddHexa(cut(0), cut(1), cut(3), cut(2), n_neg(0),n_neg(1), n_neg(3), n_neg(2), -1);
       }
       else {
+        std::cout << " not implemented cut in case 4 " << std::endl;
+        assert(0);
+      }
+      break;
+      case 5 :
+      // std::cout << " case \t 5" <<std::endl;
+      {
+          int nb_pos = cut.sign_element.nb_node_positif();
+          assert(nb_pos == 3 || nb_pos == 5);
+          Rn v(8); v =-1;
+          Rn e(8); e =-1;
+          // find starting cut node
+          int ii=0;
+          for(int i=0;i<5;++i) {
+            int i_next = (i+1)%5;
+            int i_prev = (i==0)?4:i-1;
+            if(Hexa::commonVertOfEdges[cut[i]][cut[i_next]] == -1 && Hexa::commonVertOfEdges[cut[i]][cut[i_prev]] == -1 ){
+              e(0) = i;
+              e(1) = i_next;
+              e(2) = i_prev;
+            }
+            else if(Hexa::commonVertOfEdges[cut[i]][cut[i_next]] != -1 && Hexa::commonVertOfEdges[cut[i]][cut[i_prev]] != -1 ){
+              e(3+ii) = i;
+              ii +=1;
+            }
+          }
 
+          assert(e(0) != -1);
+          assert(e(4) != -1);
+          // find 3 nodes in pos part
+          {
+            int vv0 = Hexa::nvedge[cut[e(0)]][0];
+            int ss = (int)cut.sign(vv0);
+            v(0) = (ss == -1)? Hexa::nvedge[cut[e(0)]][0] : Hexa::nvedge[cut[e(0)]][1];
+            v(4) = (ss == +1)? Hexa::nvedge[cut[e(0)]][0] : Hexa::nvedge[cut[e(0)]][1];
+            if(nb_pos == 5) std::swap(v(0), v(4));
+          }
+          {
+            int vv0 = Hexa::nvedge[cut[e(1)]][0];
+            int ss = (int)cut.sign(vv0);
+            v(1) = (ss == -1)? Hexa::nvedge[cut[e(1)]][0] : Hexa::nvedge[cut[e(1)]][1];
+            v(5) = (ss == +1)? Hexa::nvedge[cut[e(1)]][0] : Hexa::nvedge[cut[e(1)]][1];
+            if(nb_pos == 5) std::swap(v(1), v(5));
+          }
+          {
+            int vv0 = Hexa::nvedge[cut[e(2)]][0];
+            int ss = (int)cut.sign(vv0);
+            v(3) = (ss == -1)? Hexa::nvedge[cut[e(2)]][0] : Hexa::nvedge[cut[e(2)]][1];
+            v(7) = (ss == +1)? Hexa::nvedge[cut[e(2)]][0] : Hexa::nvedge[cut[e(2)]][1];
+            if(nb_pos == 5) std::swap(v(3), v(7));
+          }
+          {
+            v(6) = Hexa::commonVertOfEdges[cut[e(3)]][cut[e(4)]];
+            int e_op = Hexa::oppEdgeOfEdge[cut[e(0)]];
+            v(2) = Hexa::oppVertOfEdge( e_op, v(6));
+          }
+
+
+          // add prisme 1
+          AddPrism( cut(e(0)),v(4),cut(e(1)),v(5),cut(e(2)),v(7),cut.sign(v(7)));
+          AddPrism(v(5),v(7), cut(e(1)), cut(e(2)), cut(e(3)), cut(e(4)), cut.sign(v(5)));
+          AddPrism( cut(e(0)),v(0),cut(e(1)),v(1),cut(e(2)),v(3),cut.sign(v(0)));
+          AddPrism( cut(e(4)),cut(e(2)), cut(e(3)),cut(e(1)),v(6),v(2), cut.sign(v(2)));
+
+          Ubyte list_v2[] = {v(1),cut(e(1)),cut(e(2)),v(2)};
+          AddElement( list_v2,cut.sign(v(2)));
+          Ubyte list_v3[] = {v(3),v(1),cut(e(2)),v(2)};
+          AddElement( list_v3,cut.sign(v(2)));
 
       }
 
-
-
-      break;
-      case 5 :
-      std::cout << " cut not yet implemented " << std::endl;
-      assert(0);
       break;
       case 6 :
-      std::cout << " cut not yet implemented " << std::endl;
-      assert(0);
+      // std::cout << " case \t 6" <<std::endl;
+      {
+        KN<int> v(8); v = -1;
+        v(0) = Hexa::commonVertOfEdges[cut[1]][cut[2]];
+        v(1) = Hexa::commonVertOfEdges[cut[2]][cut[3]];
+        v(3) = Hexa::commonVertOfEdges[cut[0]][cut[1]];
+        v(5) = Hexa::commonVertOfEdges[cut[3]][cut[4]];
+        v(6) = Hexa::commonVertOfEdges[cut[4]][cut[5]];
+        v(7) = Hexa::commonVertOfEdges[cut[0]][cut[5]];
+        AddPrism( cut(0),cut(3), cut(5),cut(4),v(7),v(5), cut.sign(v(5)));
+        AddPrism( cut(1),cut(2), cut(0),cut(3),v(3),v(1), cut.sign(v(3)));
+
+        { // get the two last nodes
+          int s0 = cut.sign(v(0));
+          for(int i=0;i<3;++i){
+            int t0 = Hexa::nodeConnectivity[v(0)][i];
+            if(cut.sign(t0) == s0) {v(4)=t0; break;}
+          }
+          int s6 = cut.sign(v(6));
+          for(int i=0;i<3;++i){
+            int t0 = Hexa::nodeConnectivity[v(6)][i];
+            if(cut.sign(t0) == s6) {v(2)=t0; break;}
+          }
+        }
+        AddPrism( cut(1),cut(0), cut(2),cut(3),v(0),v(4), cut.sign(v(0)));
+        AddPrism( cut(4),cut(3), cut(5),cut(0),v(6),v(2), cut.sign(v(2)));
+        Ubyte list_v0[] = {v(5),cut(3),cut(0),v(4)};
+        AddElement( list_v0,cut.sign(v(4)));
+        Ubyte list_v1[] = {v(5),v(7),cut(0),v(4)};
+        AddElement( list_v1,cut.sign(v(4)));
+
+        Ubyte list_v2[] = {v(1),cut(3),cut(0),v(2)};
+        AddElement( list_v2,cut.sign(v(2)));
+        Ubyte list_v3[] = {v(3),v(1),cut(0),v(2)};
+        AddElement( list_v3,cut.sign(v(2)));
+      }
       break;
     };
-
   }
-  return is_uncut();
+    return is_uncut();
 }
 
 template<> Ubyte RefPartition<Hexa>::first_uncut_edge (const SignPattern<Hexa>& cut) const {
@@ -375,7 +527,7 @@ template<> Ubyte RefPartition<Hexa>::first_uncut_edge (const SignPattern<Hexa>& 
 template<> void Partition<Triangle2>::get_list_node(vector<R2>& node, int s) const {
   node.resize(0);
   const SignPattern<Triangle2> cut(ls);
-  if (cut.empty()) {
+  if (cut.empty() || s == 0) {
     for(int i=0;i<3;++i) node.push_back(T[i]);
   }
   else {
@@ -398,7 +550,7 @@ template<> void Partition<Triangle2>::get_list_node(vector<R2>& node, int s) con
 template<> void Partition<Quad2>::get_list_node(vector<R2>& node, int s) const {
   node.resize(0);
   const SignPattern<Quad2> cut(ls);
-  if (cut.empty()) {
+  if (cut.empty() || s == 0) {
     for(int i=0;i<4;++i) node.push_back(T[i]);
   }
   else {

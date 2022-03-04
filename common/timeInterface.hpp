@@ -1,5 +1,6 @@
 #ifndef TIME_INTERFACE_HPP
 #define TIME_INTERFACE_HPP
+
 #include "Interface2dn.hpp"
 #include "Interface3dn.hpp"
 
@@ -76,4 +77,7 @@ TimeInterface3(const TimeInterface3&);
 void operator=(const TimeInterface3&);                    // no copy allowed
 
 };
+
+
+
 #endif

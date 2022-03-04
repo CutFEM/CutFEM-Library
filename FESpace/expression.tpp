@@ -1,9 +1,10 @@
 
 template<typename M>
 FunFEM<M>::FunFEM(const FESpace& vh, const ExpressionVirtual& fh) :
+FunFEMVirtual (vh.NbDoF()),
 alloc(true), Vh(&vh),
-data(new double[vh.NbDoF()]),
-v(data, vh.NbDoF()) ,
+// data(new double[vh.NbDoF()]),
+// v(data, vh.NbDoF()) ,
 databf(new double[10*vh[0].NbDoF()*vh.N*4])
 {
   assert(Vh->N == 1);
@@ -45,9 +46,10 @@ databf(new double[10*vh[0].NbDoF()*vh.N*4])
 
 template<typename M>
 FunFEM<M>::FunFEM(const FESpace& vh, const ExpressionVirtual& fh1, const ExpressionVirtual& fh2) :
+FunFEMVirtual (vh.NbDoF()),
 alloc(true), Vh(&vh),
-data(new double[vh.NbDoF()]),
-v(data, vh.NbDoF()) ,
+// data(new double[vh.NbDoF()]),
+// v(data, vh.NbDoF()) ,
 databf(new double[10*vh[0].NbDoF()*vh.N*4])
 {
   assert(Vh->N == 2);

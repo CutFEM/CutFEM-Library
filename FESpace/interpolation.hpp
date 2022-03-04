@@ -75,6 +75,7 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
 
     for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
       const Rd & P(K.Pt(p));       // the coordinate of P in K hat
+
       for(int i=0;i<d;++i) {
         Vpf(p,i) = f(P,i);
       }

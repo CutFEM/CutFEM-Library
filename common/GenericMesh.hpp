@@ -19,7 +19,7 @@ using namespace ::std;
 #include "dataStruct1D.hpp"
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
-#include "cut_method.hpp"
+// #include "cut_method.hpp"
 #include "cutFEMConfig.h"
 #ifdef USE_MPI
 #include "../parallel/cfmpi.hpp"
@@ -366,6 +366,8 @@ public:
   int operator()(const B & k) const {return CheckBE(&k - borderelements);}
   int operator()(const B  * k) const{return CheckBE(k - borderelements);}
   int operator()(int it,int j) const {return operator()(elements[it][j]);}// Nu vertex j of triangle it
+  int at(int it,int j) const {return operator()(elements[it][j]);}// Nu vertex j of triangle it
+
   int be(int it,int j) const {return operator()(borderelements[it][j]);}// Nu vertex j of triangle it
 
   int CheckV (int i) const { ASSERTION(i>=0 && i < nv);  return i;}
@@ -765,10 +767,10 @@ public :
       const B& b2(builder.Th.be(be2));
 
       for(int i=0;i<nbev;++i) {
-	v1[i] = builder.Th(b1[i]);
-	v2[i] = builder.Th(b2[i]);
+        v1[i] = builder.Th(b1[i]);
+        v2[i] = builder.Th(b2[i]);
 
-	// std::cout << v1[i] << "\t" << v2[i] << std::endl;
+        // std::cout << v1[i] << "\t" << v2[i] << std::endl;
       }
 
       itemCounterInK=0;
@@ -777,12 +779,12 @@ public :
 
 
       for(int j=0;j<itemCounterInK;) {
-	int i0=j++,i1=j++;
-	// if(keys[i1]<keys[i0]) swap( keys[i0],keys[i1]);
-	if(keys[i0]< keys[i1] )
-	  equi->add(keys[i0],keys[i1]);
-	else
-	  equi->add(keys[i1],keys[i0]);
+        int i0=j++,i1=j++;
+        // if(keys[i1]<keys[i0]) swap( keys[i0],keys[i1]);
+        if(keys[i0]< keys[i1] )
+        equi->add(keys[i0],keys[i1]);
+        else
+        equi->add(keys[i1],keys[i0]);
       }
     }
 
@@ -791,8 +793,8 @@ public :
       // std::cout << pe->k << " \t " << pe->v << std::endl;
       qe=equi->find(pe->v);
       if(qe){
-	// std::cout << pe->k << " " << pe->v << " <=> " << qe->k << std::endl;
-	pe->v = qe->v;
+        // std::cout << pe->k << " " << pe->v << " <=> " << qe->k << std::endl;
+        pe->v = qe->v;
       }
     }
 

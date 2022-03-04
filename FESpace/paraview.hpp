@@ -19,6 +19,303 @@ static double paraviewFormat( double x) {
   return (fabs(x) < 1e-20)? 0.: x;
 }
 
+
+/*
+ *   New version of Parview
+ *
+ */
+
+ template<class M>
+ class ParaviewCut {
+ public :
+   typedef M Mesh;
+   typedef GFESpace<Mesh> FESpace;
+   typedef typename FESpace::FElement FElement;
+   typedef typename Mesh::Element Element;
+   typedef typename Element::Rd Rd;
+   typedef Partition<Element> PartitionT;
+   typedef FunFEM<Mesh> Fun_h;
+   typedef ExpressionVirtual Expression;
+
+   const Cut_Mesh<Mesh> & cutTh;
+   const int nv_cut_element = Rd::d +1;
+   int nbDataFile = 0;
+   std::string outFile_;
+   int ntCut = -1;
+   int nt_cut, nt_notcut;
+
+
+   struct ParaviewMesh {
+
+     int ntCut_;
+     int ntNotcut_;
+     int nv_;
+
+     int numCell_;
+     int numCutCell_;
+
+     int nvCutCell_;
+     int nvCell_;
+
+     std::map<int,int> element_status;
+     std::vector<std::vector<Rd>> mesh_node;
+     std::vector<int> idx_in_Vh;
+     std::vector<std::pair<int,int>> num_cell; //(nb nodes, num_cell)
+
+     ParaviewMesh() : numCell_(Element::ParaviewNumCell),
+                      numCutCell_((Rd::d==2)?Triangle2::ParaviewNumCell : Tet::ParaviewNumCell),
+                      nvCutCell_(Rd::d+1),
+                      nvCell_(Element::nv)
+                       {}
+
+    void check_and_resize_array(int next_idx){
+      int size0 = mesh_node.size();
+      if(next_idx < size0) return;
+      mesh_node.resize((int)(3*size0/2));
+      idx_in_Vh.resize((int)(3*size0/2));
+      num_cell.resize((int)(3*size0/2));
+    }
+    // void build(const Mesh & Th);
+    void buildNoCut(const Cut_Mesh<Mesh> & cutTh) {
+
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      int size0 = 2*cutTh.NbElement();
+      mesh_node.resize(cutTh.NbElement());
+      idx_in_Vh.resize(cutTh.NbElement());
+      num_cell.resize (cutTh.NbElement());
+      std::vector<Rd> list_node;
+      int kk = 0;
+      for(int k=0; k<cutTh.NbElement(); ++k) {
+      // for(int k=12; k<15; ++k) {
+
+        if( cutTh.isCut(k)) {
+
+          const Cut_Part<Element> cutK(cutTh.get_cut_part(k));
+
+          if(cutK.multi_interface()){
+            // Here we need to create triangles to feel the multi cut
+            for(int l = 0; l < cutK.nb_element();++l) {
+              check_and_resize_array(kk);
+              CutElement2 K = cutK.get_element(l);
+              for(int i=0;i< nvCutCell_;++i) {
+                mesh_node[kk].push_back(K[i]);
+              }
+              num_cell[kk] = make_pair(nvCutCell_, 7);
+              idx_in_Vh[kk] = k;
+              nv_+= nvCutCell_;
+              ntCut_++;
+              kk++;
+            }
+          }
+          else{
+            check_and_resize_array(kk);
+
+            cutK.get_list_node(list_node);
+            int nv_loc = list_node.size();
+
+            num_cell[kk] = make_pair(nv_loc, 7);
+            idx_in_Vh[kk] = k;
+            nv_+= nv_loc;
+            for(int i=0;i<nv_loc;++i){
+              mesh_node[kk].push_back(list_node[i]);
+            }
+            ntCut_++;
+            kk++;
+          }
+        }
+        else{
+          check_and_resize_array(kk);
+
+          idx_in_Vh[kk] = k;
+          num_cell[kk] = make_pair(nvCell_, numCell_);
+          for(int i=0;i<nvCell_;++i) {
+            mesh_node[kk].push_back(cutTh[k][i]);
+          }
+          nv_+= nvCell_;
+          ntNotcut_++;
+          kk++;
+        }
+      }
+      mesh_node.resize(kk+1);
+      mesh_node.shrink_to_fit();
+      idx_in_Vh.resize(kk+1);
+      idx_in_Vh.shrink_to_fit();
+      num_cell.resize(kk+1);
+      num_cell.shrink_to_fit();
+    }
+
+
+    bool isCut(int k) const {
+       element_status.find(k);
+      return ( element_status.find(k) != element_status.end() );
+    }
+    int numCell(int k) const{
+      if( isCut(k) ) return numCutCell_;
+      else return numCell_;
+    }
+    int nvCell(int k) const {
+      if(isCut(k)) return nvCutCell_;
+      else return nvCell_;
+    }
+    int nbElement() const {return ntCut_+ ntNotcut_;}
+    int nbNode() const {return nv_;}
+
+    int sizeDataCell() const {return this->nbNode() + this->nbElement() ;}
+    Rd node(int k, int i ) const {return mesh_node[k][i];}
+
+   } mesh_data;
+
+
+   ParaviewCut(const Cut_Mesh<Mesh>& cutThh, std::string name) : cutTh(cutThh) {
+     outFile_ = name;
+     mesh_data.buildNoCut(cutTh);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+
+
+   void writeFileMesh();
+   void writeFileCell();
+
+   void add(Fun_h&, std::string, int, int);
+   void add(const ExpressionVirtual& fh, std::string);
+   void writeFileScalarData(const ExpressionVirtual&, std::string);
+   void writeFileVectorData(Fun_h&, int, std::string);
+
+
+ };
+
+ // Writting the nodes
+ // ---------------------------------------------------------------------------------------
+ template<class M>
+ void ParaviewCut<M>::writeFileMesh() {
+
+   std::ofstream point(outFile_.c_str(), std::ofstream::out);
+   point << "# vtk DataFile Version 1.0" << std::endl
+ 	<< "unstructured Grid" << std::endl
+ 	<< "ASCII" << std::endl
+ 	<< "DATASET UNSTRUCTURED_GRID" << std::endl
+   << "POINTS " << mesh_data.nbNode()  << " float " << std::endl;
+
+
+   for(int k=0;k<mesh_data.nbElement();++k)  {
+     for(int i=0;i<mesh_data.mesh_node[k].size();++i){
+       if(Rd::d == 3){
+         point << mesh_data.node(k,i) << std::endl;
+       }
+       else {
+         point << mesh_data.node(k,i) << "\t 0.0" <<  std::endl;
+       }
+     }
+   }
+
+   point.close();
+ }
+
+ // Writting the cells
+ // ---------------------------------------------------------------------------------------
+ template<class M>
+ void ParaviewCut<M>::writeFileCell() {
+
+   std::ofstream cell(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
+   cell << "CELLS " << mesh_data.nbElement() << " " << mesh_data.sizeDataCell()<< std::endl;
+   int l=0;
+   for(int k=0;k<mesh_data.nbElement();++k)  {
+     int nvc = mesh_data.num_cell[k].first;
+     cell << nvc;
+     for(int i=0;i<nvc ;++i,++l) cell << "  " << l;
+     cell << std::endl;
+   }
+
+   cell << "CELL_TYPES " << mesh_data.nbElement() << std::endl;
+   for(int k=0;k<mesh_data.nbElement();++k)  {
+     cell << mesh_data.num_cell[k].second << std::endl;
+   }
+
+   cell.close();
+ }
+
+
+ template<class M>
+ void ParaviewCut<M>::add(Fun_h& fh, std::string nameField, int begin_comp, int nb_comp){
+
+   if(nb_comp ==1) {
+     ExpressionFunFEM<M> ui(fh, begin_comp, op_id);
+     writeFileScalarData(ui, nameField);
+   }
+   else {
+     writeFileVectorData(fh, begin_comp, nameField);
+   }
+ }
+
+
+ template<class M>
+ void ParaviewCut<M>::add(const ExpressionVirtual& fh, std::string nameField){
+
+     writeFileScalarData(fh, nameField);
+ }
+
+
+ template<class M>
+ void ParaviewCut<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string name){
+
+   std::ofstream data(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
+   if(nbDataFile == 0) data << "POINT_DATA " << mesh_data.nbNode() << std::endl;
+   data << "SCALARS "+ name +" float" << std::endl;
+   data << "LOOKUP_TABLE default" << std::endl;
+
+
+   for(int k=0;k<mesh_data.nbElement();++k)  {
+     int kvh = mesh_data.idx_in_Vh[k];
+     int kb = cutTh.idxElementInBackMesh(kvh);
+     int domain = cutTh.get_domain_element(kvh) ;
+
+     for(int i=0;i<mesh_data.mesh_node[k].size();++i){
+
+       R1 val = fh.evalOnBackMesh(kb, domain, mesh_data.node(k,i));
+       data << paraviewFormat(val) << std::endl;;
+
+     }
+   }
+   data.close();
+   nbDataFile++;
+ }
+
+
+ template<class M>
+ void ParaviewCut<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name){
+
+   std::ofstream data(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
+
+   if(nbDataFile == 0) data << "POINT_DATA " << mesh_data.nbNode()
+ 			   << std::endl;
+   data << "VECTORS "+ name +" float" << std::endl;
+
+
+   for(int k=0;k<mesh_data.nbElement();++k)  {
+     int kvh = mesh_data.idx_in_Vh[k];
+     int kb = cutTh.idxElementInBackMesh(kvh);
+     int domain = cutTh.get_domain_element(k) ;
+     int kf = fh.idxElementFromBackMesh(kb, domain);
+
+     for(int i=0;i<mesh_data.mesh_node[k].size();++i){
+
+       for(int  dd=0;dd<Rd::d;++dd){
+         // R1 val = fh.evalOnBackMesh(kb, domain, mesh_data.node(k,i), c0+dd);
+         R1 val = fh.eval(kf, mesh_data.node(k,i), c0+dd);
+         data << paraviewFormat(val) <<  "\t";
+       }
+       if (Rd::d==2) data << "0.0";
+       data << std::endl;
+     }
+   }
+   data.close();
+   nbDataFile++;
+ }
+
+
 /*
  *   Only write P1 solution on the mesh provided
  *
@@ -157,7 +454,7 @@ public :
        num_cell.resize(20*Vh.NbElement());
        // int nn = 0;
        double loc_ls[Element::nv];
-
+       double area = 0.;
        for(int k=0; k<Vh.NbElement(); ++k) {
          const FElement& FK(Vh[k]);
          levelSet->eval(loc_ls, Vh.Th(FK.T));
@@ -167,17 +464,22 @@ public :
          const PartitionT& cutK =  PartitionT(FK.T, loc_ls);
          ElementSignEnum the_part = cutK.what_part(domain);
 
+         double aaa = 0.;
          if(the_part == NoElement) continue;
-
          if(cutK.is_cut()) {
            int iii=0;
            for(typename PartitionT::const_element_iterator it = cutK.element_begin(the_part);
            it != cutK.element_end(the_part); ++it){
-             std::cout << iii++ << std::endl;
-             std::cout << kk << "\t" << mesh_node.size() << std::endl;
+             // std::cout << "element \t" << kk << std::endl;
+             double vv = cutK.mesure(it);
+             // std::cout << " vol =  "  << vv << std::endl;
+             area += vv;
+             aaa += vv;
+
+             // std::cout << iii++ << std::endl;
              for(int i=0;i< nvCutCell_;++i) {
                Rd x(cutK.get_Vertex(it,i));
-               std::cout << i  << "\t" << x << std::endl;
+               // std::cout << i  << "\t" << x << std::endl;
                mesh_node[kk].push_back(x);
              }
              num_cell[kk] = make_pair(nvCutCell_, numCutCell_);
@@ -186,37 +488,25 @@ public :
              kk++;
              ntCut_++;
            }
-         }
 
-     //     ElementSignEnum the_part = cutK.what_part(domain);
-     //     int ss = (domain == 0)? 1 : -1;
-     //     if(the_part == AllElement){
-     //       for(int sss=-1;sss<=1;sss+=2){
-     //         cutK.get_list_node(list_node, sss);
-     //         int nv_loc = list_node.size();
-     //         num_cell[kk] = make_pair(nv_loc, 7);
-     //         idx_in_Vh[kk] = k;
-     //         nv_+= nv_loc;
-     //         for(int i=0;i<nv_loc;++i){
-     //           mesh_node[kk].push_back(list_node[i]);
-     //         }
-     //         kk++;
-     //         ntCut_++;
-     //       }
-     //     }
-     //     else{
-     //       cutK.get_list_node(list_node, ss);
-     //       int nv_loc = list_node.size();
-     //       num_cell[kk] = make_pair(nv_loc, 7);
-     //       idx_in_Vh[kk] = k;
-     //       nv_+= nv_loc;
-     //       for(int i=0;i<nv_loc;++i){
-     //         mesh_node[kk].push_back(list_node[i]);
-     //       }
-     //       kk++;
-     //       ntNotcut_++;
-     //     }
+           // std::cout << " area of " << k << "\t => " << aaa <<std::endl;
+
+         }
+         else{
+           const FElement& FK(Vh[k]);
+           area += FK.getMeasure();
+
+           idx_in_Vh[kk] = k;
+           num_cell[kk] = make_pair(nvCell_, numCell_);
+           for(int i=0;i<nvCell_;++i) {
+             mesh_node[kk].push_back(Vh.Th[k][i]);
+           }
+           kk++;
+           nv_+= nvCell_;
+           ntNotcut_++;
+         }
        }
+       std::cout << " volume => " << area << std::endl;
 
 
      //
@@ -230,21 +520,21 @@ public :
      // getchar();
      }
      else {
-       // mesh_node.resize(Vh.NbElement());
-       // idx_in_Vh.resize(Vh.NbElement());
-       // num_cell.resize(Vh.NbElement());
-       //
-       // for(int k=0; k<Vh.NbElement(); ++k) {
-       //   idx_in_Vh[k] = k;
-       //   num_cell[k] = make_pair(nvCell_, numCell_);
-       //   for(int i=0;i<nvCell_;++i) {
-       //     mesh_node[kk].push_back(Vh.Th[k][i]);
-       //   }
-       //   kk++;
-       //   nv_+= nvCell_;
-       // }
-       // ntNotcut_ = Vh.NbElement();
-       // ntCut_ = 0;
+       mesh_node.resize(Vh.NbElement());
+       idx_in_Vh.resize(Vh.NbElement());
+       num_cell.resize(Vh.NbElement());
+
+       for(int k=0; k<Vh.NbElement(); ++k) {
+         idx_in_Vh[k] = k;
+         num_cell[k] = make_pair(nvCell_, numCell_);
+         for(int i=0;i<nvCell_;++i) {
+           mesh_node[kk].push_back(Vh.Th[k][i]);
+         }
+         kk++;
+         nv_+= nvCell_;
+       }
+       ntNotcut_ = Vh.NbElement();
+       ntCut_ = 0;
      }
 
    }

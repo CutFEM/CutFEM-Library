@@ -344,7 +344,6 @@ static TypeOfFE_P1QLagrange2d  P1Q_2d;
 GTypeOfFE<MeshQuad2> & P1QLagrange2d(P1Q_2d);
 template<> GTypeOfFE<MeshQuad2> & DataFE<MeshQuad2>::P1=P1Q_2d;
 
-
 // 3D
 // P1
 class TypeOfFE_P1Lagrange3d : public GTypeOfFE<Mesh3> {

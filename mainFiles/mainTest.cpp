@@ -8,12 +8,14 @@
 #  include "cfmpi.hpp"
 #endif
 
-#include "baseCutProblem.hpp"
-#include "levelSet.hpp"
-#include "extension.cpp"
-#include "../num/gnuplot.hpp"
-#include "cut_mesh.hpp"
+// #include "baseCutProblem.hpp"
+// #include "levelSet.hpp"
+// #include "extension.cpp"
+// #include "../num/gnuplot.hpp"
 #include "interface_levelSet.hpp"
+#include "cut_mesh.hpp"
+#include "baseCutProblem.hpp"
+
 // #include "gnuplot.hpp"
 #define TEST_2D
 
@@ -24,24 +26,69 @@ R fun_expr(const R2 P,const int i) {return 10;}
 R fun_div0(const R2 P,const int i, int d) {return (i==0)?4*sin(P[0]):4*cos(P[1]);}
 R fdiv(const R2 P,const int i, int d) {return 4*cos(P[0]) - 4*sin(P[1]);}
 
-R fun_levelSet(const R2 P, const int i) {
+
+R fun_levelSet(const R2 P, const int i, const R t) {
+  double x=P.x, y=P.y;
+  return 0.5*(sqrt(x*x + y*y) -0.1*cos(5*atan2(y,x)+2) - 0.25);
+}
+
+R fun_levelSet2_1(const R2 P, const int i) {
   R shiftX = 0.5;
   R shiftY = 0.5;
   R r = 0.3;
+  double x=P.x, y=P.y;
+  // return 0.5*(sqrt(x*x + y*y) -0.075*cos(5*atan2(y,x)+2) - 0.25);
   return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
-  // return P.x+P.y - 0.4;
+  // return -P.x+P.y - 0.2197;
+  // return P.y - 0.550766;
+
 }
+
+R fun_levelSet2_2(const R2 P, const int i) {
+  R shiftX = 0.6;
+  R shiftY = 0.6;
+  R r = 0.3;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  // return -0.5*P.x+P.y + .2197;
+  // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  // return P.x+P.y - 0.40753;
+  // return P.x - 0.50737;
+}
+R fun_levelSet2_3(const R2 P, const int i) {
+  R shiftX = 1.5;
+  R shiftY = 1.5;
+  R r = 0.3;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  // return P.x-P.y + 0.07064;
+}
+
+R fun_levelSet2_4(const R2 P, const int i) {
+  R shiftX = 0.5;
+  R shiftY = 1.5;
+  R r = 0.3;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  // return P.x+P.y - 0.40753;
+}
+
 R fun_levelSet3(const R3 P, const int i) {
-  // R shiftX = 0.5;
-  // R shiftY = 0.5;
-  // R shiftz = 0.5;
-  // R r = 0.3;
-  // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
-  return P.x+P.y-P.z - 0.25;
+  R shiftX = 0.5;
+  R shiftY = 0.5;
+  R shiftZ = 0.5;
+  R r = 0.3;
+  // double v = sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+  // return (v<0)? -1 : 1;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+  // return -0.25*P.x - 0.25*P.y + 0.25*P.z - 0.125;  // 3 cuts
+  // return P.x - 0.5;  // 4 cuts
+  // return 0.5*P.x +0.5*P.y - P.z - 0.2;   // 5 cuts
+  // return 0.5*P.x +0.5*P.y - P.z - 0.002;   // 5 cuts
+
+  // return 0.5*P.x +0.5*P.y - 0.5*P.z - 0.2;   // 6 cuts
 }
 R fun_id(const R2 P,const int i) {return i;}//P[i];}
 R fun_time(const R2 P,const int i, const R t) {return 1+t;}
-R fun_test(const R2 P,const int i) {return P.x + P.y;}
+// R fun_test(const R2 P,const int i) {return P.x + P.y;}
+R fun_test(const R2 P,const int i, int d) {return d;}
 
 //
 // template<((double)(*pfun)(double)) f>
@@ -51,12 +98,17 @@ R fun_test(const R2 P,const int i) {return P.x + P.y;}
 
 int main(int argc, char** argv )
 {
-  typedef MeshHexa Mesh;
-  // typedef FESpaceQ2 FESpace;
-  // typedef typename FESpace::FElement FElement;
-  // // typedef typename Mesh2::Element Element;
-  //
-  // typedef TestFunction<2> FunTest;
+  // typedef MeshQuad2 Mesh;
+  // typedef Cut_MeshQ2 CutMesh;
+  // typedef FESpaceQ2       Space;
+  // typedef CutFESpaceQ2 CutSpace;
+  typedef Mesh2 Mesh;
+  typedef Cut_MeshT2 CutMesh;
+  typedef FESpace2       Space;
+  typedef CutFESpaceT2 CutSpace;
+
+
+  typedef typename Space::FElement FElement;
   typedef FunFEM<Mesh> Fun_h;
   //
   // const QuadratureFormular1d& QFB = QF_GaussLegendre2;
@@ -66,16 +118,59 @@ int main(int argc, char** argv )
   MPIcf cfMPI(argc,argv);
 
 
-  int nx = 2;
-  int ny = 2;
-  int nz = 2;
-  MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
+  int nx = 22;
+  int ny = 22;
+  int nz = 3;
+  // MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
+  // Mesh Th(nx, ny, -0.5, -0.5, 1., 1.);  // Flower shape
+  Mesh Th(nx, ny, 0., 0., 1., 1.);
   Th.info();
 
-  FESpaceQ3 Lh(Th, DataFE<MeshHexa>::P1);
-  Fun_h levelSet(Lh, fun_levelSet3);
 
-  std::cout << levelSet.v << std::endl;
+  // FESpaceQ3 Lh(Th, DataFE<Mesh>::P1);
+  // Fun_h levelSet(Lh, fun_levelSet3);
+  Space Lh(Th, DataFE<Mesh>::P1);
+  Fun_h levelSet1(Lh, fun_levelSet2_1);
+  Fun_h levelSet2(Lh, fun_levelSet2_2);
+  // Fun_h levelSet3(Lh, fun_levelSet2_3);
+  // Fun_h levelSet4(Lh, fun_levelSet2_4);
+
+  Interface_LevelSet<Mesh> interface1(Th, levelSet1);
+  Interface_LevelSet<Mesh> interface2(Th, levelSet2);
+  KN<Interface_LevelSet<Mesh>*> ls(2);
+  ls(0) = &interface1;
+  ls(1) = &interface2;
+
+
+  Time_Interface<Mesh> interface(ls);
+  // interface.init(Th, &levelSet1);
+  // Interface_LevelSet<Mesh> interface3(Th, levelSet3);
+  // Interface_LevelSet<Mesh> interface4(Th, levelSet4);
+
+  Cut_Mesh<Mesh> cutTh(Th);
+  cutTh.create_surface_mesh(interface);
+  // cutTh.add(interface2);
+  // cutTh.truncate(interface2, -1);
+  // cutTh.truncate(interface3, -1);
+  // cutTh.truncate(interface4, -1);
+  // cutTh.add(interface3);
+
+  // cutTh.add(interface2, 1);
+  // cutTh.add(interface4, -1);
+  // CutMesh cutTh(Th, interface);
+  CutSpace Vh(cutTh, Lh);
+  Fun_h ftest(Vh, fun_test);
+
+
+  // for(int k=0;k<Vh.NbElement();++k) {
+  //   const FElement& FK(Vh[k]);
+  //   std::cout << " element " << k << "\t id backMesh " << Th(FK.T) << std::endl;
+  //   std::cout << FK.whichDomain() << std::endl;
+  // //   int id = cutTh.find_domain_element(k);
+  // //   std::cout << "domain \t" << id << " id back mesh \t" << cutTh.idxElementInBackMesh(k) << std::endl;
+  // }
+
+  // std::cout << levelSet.v << std::endl;
 
   // const MeshHexa::Element& T(Th[0]);
   // std::vector<int> list_cut;
@@ -106,13 +201,18 @@ int main(int argc, char** argv )
 
   // Paraview<MeshQuad2> writer(Lh, nullptr, "hexa_Test.vtk");
 
-  Paraview<Mesh> writer(Lh, levelSet, "hexa_Test.vtk");
+  ParaviewCut<Mesh> writer(cutTh,  "quad_new.vtk");
+  writer.add(ftest, "test_fun", 0, 1);
+  writer.add(levelSet1, "levelSet1", 0, 1);
+  writer.add(levelSet2, "levelSet2", 0, 1);
+  // Paraview<Mesh> writer(Vh, levelSet, "quad_Test.vtk");
+  // Paraview<Mesh> writers(Lh, nullptr, "hexa_Test2.vtk");
   // writer.add(levelSet, "levelSet", 0, 1);
-  // writer.add(test, "test_vector", 0, 2);
+  // writer.add(ftest, "test_fun", 0, 1);
 
-// getchar();
+  // getchar();
 
-
+  std::cout << " need to check case 3 and 4 " << std::endl;
 
 
   // Cut_Mesh2 cutTh(Th, levelSet.v);

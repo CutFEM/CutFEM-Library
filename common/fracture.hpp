@@ -63,7 +63,6 @@ public:
 
   Element get_element(int k) { return Element(vertices_,elements_idx[k]);}
 
-
 };
 
 class Cut_Base {
@@ -184,12 +183,12 @@ private:
 };
 
 class Cut_Parametric_Line : public Cut_Base {
-  Interval t;
-  Droite x;
-  Droite y;
+  geometry::Interval t;
+  geometry::Droite x;
+  geometry::Droite y;
 
 public:
-  Cut_Parametric_Line(Interval tt, Droite xx, Droite yy, int lab = 0) : Cut_Base(lab), t(tt), x(xx), y(yy){}
+  Cut_Parametric_Line(geometry::Interval tt, geometry::Droite xx, geometry::Droite yy, int lab = 0) : Cut_Base(lab), t(tt), x(xx), y(yy){}
 
 };
 

@@ -126,8 +126,8 @@ struct DataHexa  {
   static R mesure(  V *  pv[NbOfVertices])
   {
     R3 AB(*pv[0],*pv[1]);
-    R3 AC(*pv[0],*pv[2]);
-    R3 AD(*pv[0],*pv[3]);
+    R3 AC(*pv[0],*pv[3]);
+    R3 AD(*pv[0],*pv[4]);
     return det(AB,AC,AD);
   }
 
@@ -236,7 +236,7 @@ public:
 class Hexa: public GenericElement<DataHexa> {
 public:
   static const int oppEdgeOfEdge[ne] ;                   //
-
+  static const int (* const nodeConnectivity)[3];
   Hexa() {}; // constructor empty for array
   Hexa(Vertex * v0,int * iv,int r=0, double mss=UnSetMesure) {
     this->set(v0, iv, r , mss);
@@ -245,7 +245,7 @@ public:
   Rd operator()(const RdHat & Phat) const {
     Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0])
     + Phat[0]*(*(Rd*) vertices[1])
-    + Phat[1]*(*(Rd*) vertices[3]);
+    + Phat[1]*(*(Rd*) vertices[3])
     + Phat[2]*(*(Rd*) vertices[4]);
     return r;
   }

@@ -1,5 +1,25 @@
-#include "GenericInterface.hpp"
+#ifndef BASE_INTERFACE_HPP_
+#define BASE_INTERFACE_HPP_
 
+#include "GenericInterface.hpp"
+// #include "../FESpace/expression.hpp"
+
+
+class FunFEMVirtual {
+public :
+
+double * data = nullptr;
+KN_<double> v;
+
+
+FunFEMVirtual () :v(data, 0) {}
+FunFEMVirtual (int df) : data(new double[df]), v(data,df) {v = 0.;}
+FunFEMVirtual (KN_<double>&u) : v(u) {}
+
+virtual double eval(const int k, const R* x, int cu=0, int op=0) const  = 0;
+virtual double eval(const int k, const R* x, const R t, int cu, int op, int opt) const = 0;
+virtual int idxElementFromBackMesh(int, int=0) const = 0;
+};
 
 template<typename M>
 class Interface  {
@@ -11,6 +31,8 @@ public :
 
   static const int nve = Rd::d;
   typedef FaceInterface<nve> Face;
+  typedef SortArray<int, Element::Rd::d+1> ElementIdx;
+
 
   typedef const Face* const_face_iterator;
   typedef       Face*       face_iterator;
@@ -20,38 +42,15 @@ public :
 
   const Mesh* backMesh;
 
-  std::vector<Face>  faces_;            // All triangles of the interface.
+  std::vector<Face>  faces_;
   std::vector<Rd> vertices_;
   std::vector<Rd> outward_normal_;
   std::vector<Uint> element_of_face_;
   std::map<int, int> face_of_element_;
   std::vector<Uint> edge_of_node_;
 
-private :
-  // const Face  make_face (const typename RefPatch::FaceIdx& ref_tri,
-	// 		    const typename Mesh::Element& K,
-	// 		    const double lset[Element::nv],
-	// 		    std::vector<RemumberVertexPairT>& renumber_zero_verts, int label);
-  // const FaceIdx  make_face (int k,
-	// 		    const KN<R>& nodex,
-	// 		    const KN<R>& nodey, int label);
-  // const FaceIdx  make_face (int k,
-  // 			    const Marker& marker);
-
-  // Rd make_normal(const typename Mesh::Element& K, const double lset[Element::nv]);
-  // Rd make_normal_noGrad(const typename Mesh::Element& K, const double lset[Element::nv]);
-
 public :
-  // GenericInterface() : backMesh(nullptr) { }
   Interface(const Mesh & MM) : backMesh(&MM) { }
-  // GenericInterface(const Mesh & MM, const KN<double>& ls, int label) : backMesh(&MM){
-	// 	make_patch(ls, label);
-	// }
-
-  // void make_patch (const Mesh & MM, const KN<double>& ls, int label);
-  // void make_patch (const KN<double>& ls, int label);
-  // void add (const KN<double>& ls, int label);
-
 
   Rd operator()(const int k, const int i) const {return vertices_[faces_[k][i]];}
   const Rd& operator()(const int i) const {return vertices_[CheckV(i)];}
@@ -92,7 +91,9 @@ public :
   int last_element() const { return faces_.size();}
   #endif
 
-
+  virtual SignElement<Element> get_SignElement(int k) const =0;
+  virtual Partition<Element> get_partition(int k) const = 0;
+  virtual void cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part) const = 0;
   // virtual Rd mapToFace(const Face& f, const typename Element::RdHatBord x ) const = 0;
   // virtual Rd computeDx(const Face& f) const = 0;
   // virtual CutData getCutData(const int k) const = 0;
@@ -103,3 +104,73 @@ private:
   void operator=(const Interface &);// pas affectation par copy
 
 };
+
+
+
+template<typename Mesh>
+class Time_Interface {
+public:
+	// typedef FunFEM<Mesh> Fun_h;
+private:
+	KN<Interface<Mesh>*> interface;
+	int n;
+
+public:
+
+	Time_Interface(int nt) : interface(nt), n(nt) {}
+	Time_Interface(const KN<Interface<Mesh>*> gamma) : interface(gamma), n(gamma.size()) {
+  }
+
+  void init(const KN<Interface<Mesh>*>& gamma) {
+    if(n != gamma.size()) {
+      n = gamma.size();
+      interface.resize(n);
+    }
+    for(int i=0;i<gamma.size();++i){
+      assert(0 <= i && i < n);
+      interface[i] = gamma[i];
+    }
+  }
+  // void init(const Mesh & Th, const FunFEMVirtual* ls) {
+  //   assert(0 < n);
+  //   if(interface[0]) {
+  //     delete interface[0];
+  //   }
+  //   interface[0] = new Interface<Mesh>(Th,(*ls));
+  // }
+
+	// void init(const Mesh & Th, const vector<Fun_h>& ls) {
+	// 	for(int i=0;i<ls.size();++i){
+	// 		assert(0 <= i && i < n);
+	// 		if(interface[i]) {
+	// 			delete interface[i];
+	// 		}
+	// 		interface[i] = new Interface(Th,ls[i]);
+	// 	}
+	// }
+	//
+	 Interface<Mesh>* operator[](int i) const{
+		 assert(0 <= i && i < n);
+		 return interface[i];
+	 }
+	 Interface<Mesh>* operator()(int i) const{
+		 assert(0 <= i && i < n);
+		 return interface[i];
+	 }
+
+	 int size() const { return n;}
+
+	 ~Time_Interface(){
+		 // for(int i=0;i<n;++i){
+			//  if(interface[i]) delete interface[i];
+		 // }
+	 }
+
+private:
+	 Time_Interface(const Time_Interface&);
+	 void operator=(const Time_Interface &);
+};
+
+
+
+#endif

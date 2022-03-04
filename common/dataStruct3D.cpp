@@ -43,6 +43,9 @@ static const int faceOfEdgeHexa[12][2] = {{0,1},{0,2},{0,3},{0,4},
                                           {1,5}, {2,5},{3,5},{4,5}};
 static const int edgeOfFaceHexa[6][4]  = {{0,1,2,3}, {0,5,8,4}, {1,6,9,5},
                                           {2,7,10,6}, {3,4,11,7}, 8,9,10,11  };
+static const int connectivityNodeHexa[8][3] = {
+  {1,3,4},{0,2,5},{1,3,6},{0,2,7},{0,5,7},{1,4,6},{2,5,7},{3,4,6}
+} ;
 
 static const int commonVertOfEdgeTria[3][3] = {{-1,2,1} , {2,-1,0} , {1,0,-1}};
 static const int commonVertOfEdgeQuad3[4][4] = { {-1,1,-1,0} , {1,-1,2,-1} , {-1,2,-1,3}, {0,-1,3,-1}};
@@ -111,6 +114,7 @@ template<> const int (* const GenericElement<DataHexa>::faceOfEdge)[2] = faceOfE
 template<> const int (* const GenericElement<DataHexa>::edgeOfFace)[4] = edgeOfFaceHexa;
 template<> const int  GenericElement<DataHexa>::nitemdim[4] = {8,12,6,1 }  ;
 const int  Hexa::oppEdgeOfEdge[12] = {10,11,8,9,6,7,4,5,2,3,0,1};
+const int (*const Hexa::nodeConnectivity)[3] = connectivityNodeHexa;
 
 
 

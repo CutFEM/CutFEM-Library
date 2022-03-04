@@ -1,13 +1,25 @@
 #include "geometry.hpp"
 
 
-template<> bool Segment<R2>::is_between(const R2 C) const {
+R geometry::mesure_simplex(R2 N[3]){
+    std::cout << " hey " << std::endl;
+  return fabs(det(N[0],N[1],N[2]))*0.5;
+}
+R geometry::mesure_simplex(R3 N[4]) {
+  R3 AB(N[0],N[1]);
+  R3 AC(N[0],N[2]);
+  R3 AD(N[0],N[3]);
+  return fabs(det(AB,AC,AD))/6.;
+}
+
+
+template<> bool geometry::Segment<R2>::is_between(const R2 C) const {
   assert(0);
   return true;
 }
 
 
-Droite equation(const R2 a,const R2 b) {
+geometry::Droite geometry::equation(const R2 a,const R2 b) {
 	Droite d;
 	if (!(b.x-a.x)) d.pente=b.x;
 	else d.pente=(b.y-a.y) / (b.x-a.x);
@@ -15,7 +27,7 @@ Droite equation(const R2 a,const R2 b) {
 	return d;
 }
 
-bool p_boncote(const R2 a, const R2 b, const R2 c, const R2 p) {
+bool geometry::p_boncote(const R2 a, const R2 b, const R2 c, const R2 p) {
   //teste si la droite est perpendiculaire à l'axe des abcisses
 	//et retourne le resultat en conséquence
 
@@ -28,13 +40,13 @@ bool p_boncote(const R2 a, const R2 b, const R2 c, const R2 p) {
 	return ((d.pente*c.x+d.ord_or-c.y)*(d.pente*p.x+d.ord_or-p.y) >= 0);
 }
 
-bool p_dans_triangle(const typename Mesh2::Element& K, const R2 P){
+bool geometry::p_dans_triangle(const typename Mesh2::Element& K, const R2 P){
   return ( (p_boncote( K[0], K[1], K[2], P))
         && (p_boncote( K[2], K[1], K[0], P))
         && (p_boncote( K[0], K[2], K[1], P)) );
 }
 
-int find_triangle_contenant_p(const Mesh2& Th, const R2 P, int k_init){
+int geometry::find_triangle_contenant_p(const Mesh2& Th, const R2 P, int k_init){
 
   int idx_elt = k_init;
   int count = 0;

@@ -27,6 +27,10 @@ using namespace std;
 #include "../common/Interface3dn.hpp"
 #include "../common/timeInterface.hpp"
 
+#include "../common/base_interface.hpp"
+#include "../common/cut_mesh.hpp"
+
+
 #include "QuadratureFormular.hpp"
 
 #include "cutFEMConfig.h"
@@ -70,19 +74,21 @@ public:
 
   Rd Pt(RdHat Phat) const {return T(Phat);}     // Ref to Global
   Rd PtHat(int i) const { assert(i < tfe->NbPtforInterpolation);
-    RdHat Phat(tfe->PtInterpolation(i)); return Phat;}
-    Rd Pt(int i) const { assert(i < tfe->NbPtforInterpolation);
-      RdHat Phat(tfe->Pt_Pi_h(i));
-      return T(Phat);
-    }
+    RdHat Phat(tfe->PtInterpolation(i)); return Phat;
+  }
+  Rd Pt(int i) const { assert(i < tfe->NbPtforInterpolation);
+    RdHat Phat(tfe->Pt_Pi_h(i));
+    return T(Phat);
+  }
 
-  int whichDomain() const {return Vh.whichDomain(number);}
-  bool isCut() const {return Vh.isCut(number);}
   R getMeasure() const {return T.mesure();} // mesure felstavat (french spel ;-) ) 
   Rd map(Rd ip) const {return T(ip);}
   int degre() const {return tfe->degre();}
   int index() const {return number;};
 
+  int whichDomain() const {return Vh.whichDomain(number);}
+  bool isCut() const {return Vh.isCut(number);}
+  // const Interface<Mesh>& getInterface() const { Vh.get_interface(number);}
 };
 
 template<class Mesh>
@@ -154,7 +160,7 @@ public:
 
 
 template<class Mesh>
-GFElement<Mesh>::GFElement(const GFESpace<Mesh> * VVh,int k)
+GFElement<Mesh>::GFElement(const GFESpace<Mesh> * VVh, int k)
   : GbaseFElement<Mesh>(*VVh,k) ,
     p(this->Vh.PtrFirstNodeOfElement(k)),
     nb(this->Vh.NbOfNodesInElement(k))
@@ -232,7 +238,7 @@ public:
   typedef GTypeOfFE<Mesh> TypeOfFE;
   typedef GQuadratureFormular<typename Element::RdHat> QFElement;
   typedef GQuadratureFormular<typename BorderElement::RdHat>  QFBorderElement;
-  typedef GenericInterface<Mesh> Interface;
+  typedef GenericInterface<Mesh> GInterface;
 
 
   const Mesh &Th;
@@ -241,32 +247,31 @@ public:
   const int Nproduit; // 1 if non constant Max number df par node. else Max number df par node..
   GFESpace const * backSpace = this;
   const PeriodicBC* periodicBC = nullptr;
-  KN<const Interface*> gamma;
-  KN<const Interface*>* gamma2;
+  KN<const GInterface*> gamma;
+  KN<const GInterface*>* gamma2;
 
 
   GFESpace(const Mesh & TTh,
-	   const GTypeOfFE<Mesh> & tfe=DataFE<Mesh>::P1,
-	   const PeriodicBC* PPeriod = nullptr)
+    const GTypeOfFE<Mesh> & tfe,//=DataFE<Mesh>::P1,
+    const PeriodicBC* PPeriod = nullptr)
     //	   int nbPeriodicBe = 0, int* periodicBe = 0)
     :
     DataFENodeDF(TTh.BuildDFNumbering(tfe.ndfonVertex,tfe.ndfonEdge,
-				      tfe.ndfonFace,tfe.ndfonVolume,
-				      tfe.nbNodeOnWhat[0],
-				      tfe.nbNodeOnWhat[1],
-				      tfe.nbNodeOnWhat[2],
-				      tfe.nbNodeOnWhat[3],
-				      tfe.N,
-				      PPeriod
-				      )),
+      tfe.ndfonFace,tfe.ndfonVolume,
+      tfe.nbNodeOnWhat[0],
+      tfe.nbNodeOnWhat[1],
+      tfe.nbNodeOnWhat[2],
+      tfe.nbNodeOnWhat[3],
+      tfe.N,
+      PPeriod
+    )),
     Th(TTh),
     TFE(1,0,&tfe),
     N(tfe.N),
     Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
     periodicBC(PPeriod)
-  {
-
-  }
+    {
+    }
 
     GFESpace(const Mesh & TTh,
       TimeInterface<Mesh>& g,
@@ -277,15 +282,15 @@ public:
         this->gamma.resize(g.size());
         for(int i=0;i<g.size();++i) this->gamma[i]= g[i];
       }
-  GFESpace(const Mesh & TTh,
-    const Interface& g,
-    const GTypeOfFE<Mesh> & tfe=DataFE<Mesh>::P1,
-    const PeriodicBC* PPeriod = nullptr) :
-    GFESpace(TTh, tfe, PPeriod)
-     {
-      this->gamma.resize(1);
-      this->gamma[0]= &g;
-    }
+      GFESpace(const Mesh & TTh,
+        const GInterface& g,
+        const GTypeOfFE<Mesh> & tfe=DataFE<Mesh>::P1,
+        const PeriodicBC* PPeriod = nullptr) :
+        GFESpace(TTh, tfe, PPeriod)
+        {
+          this->gamma.resize(1);
+          this->gamma[0]= &g;
+        }
 
       // for CutSpace
   GFESpace( const GFESpace& vh, const DataFENodeDF& data,const PeriodicBC* PPeriod = nullptr) :
@@ -297,6 +302,20 @@ public:
     periodicBC(PPeriod)
     {
     }
+
+
+    GFESpace(const Cut_Mesh<Mesh> & TTh, const GFESpace& vh, const PeriodicBC* PPeriod = nullptr) :
+      DataFENodeDF(vh.BuildDFNumbering(TTh)),
+      Th(TTh.Th),
+      TFE(1,0,vh.TFE(0)),
+      N(TFE[0]->N),
+      Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
+      periodicBC(PPeriod)
+       {
+       }
+
+       DataFENodeDF BuildDFNumbering(const Cut_Mesh<Mesh> & TTh) const;
+
 
   const int * PtrFirstNodeOfElement(int k) const {
     return NodesOfElement  ?
@@ -352,7 +371,9 @@ public:
   // virtual int idxGlob2Loc(int k, int i) const { return k;}
   virtual const GFESpace& getBackSpace() const { return *backSpace;}
   // virtual const  GenericInterface<Mesh>& getInterface(int i) const {assert(0);}
-  const Interface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
+  const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
+  // virtual const Interface<Mesh>& get_interface(int k) const { assert(0); return Interface<Mesh>();}
+
 
   virtual bool isCutSpace() const {return false;}
 
@@ -366,7 +387,7 @@ public:
 
   virtual int first_boundary_element() const { return MPIcf::my_rank();}
   virtual int next_boundary_element() const { return MPIcf::size();}
-  virtual int last_boundary_element() const {return this->Th.nbe;}
+  virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
   #else
   virtual int first_element() const { return 0;}
   virtual int next_element() const {return 1;}
@@ -374,7 +395,7 @@ public:
 
   virtual int first_boundary_element() const { return 0;}
   virtual int next_boundary_element() const { return 1;}
-  virtual int last_boundary_element() const {return this->Th.nbe;}
+  virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
   #endif
 
 
@@ -395,16 +416,129 @@ public:
 
 };
 
+template<typename Mesh>
+DataFENodeDF GFESpace<Mesh>::BuildDFNumbering(const Cut_Mesh<Mesh> & TTh) const{
+
+int ndfon[4] = {this->ndfonVertex(), this->ndfonEdge(),this->ndfonFace(), this->ndfonTet()};
+int nSub = TTh.get_nb_domain();
+
+int nt = 0, nv = 0, ndof = 0;
+int maxNodePerElement = this->MaxNbNodePerElement;
+int maxDFPerElement   = this->MaxNbDFPerElement;
+
+// to know where are the nodes
+KN<int> NodeOnWhat(maxNodePerElement);
+{
+  int c= 0;
+  const int nk[]={Element::nv,Element::ne,Element::nf,Element::nt};
+  for(int i=0;i<4;++i){
+    for(int k=0;k<nk[i];++k) {
+      for(int j=0;j<this->TFE(0)->nbNodeOnWhat[i];++j) {
+        NodeOnWhat(c++) = i;
+      }
+    }
+  }
+}
+
+// p => idx nodes of elements : Vh.nbElement*NodesPerElement
+// node are not the vertex of the mesh but node for the finite element
+// they are build in the Space so we can just use this for
+// the cut space
+int* nodeOfElement  = new int[maxNodePerElement*TTh.get_nb_element()];
+int* firstDfOfNode;
+// nodeOfElement = new int(maxNodePerElement*TTh.get_nb_element());
+// get number of nodes and dof
+{
+  // for(int i=0;i<nSub;++i) nts(i) = TTh.get_nb_element(i);
+  nt = TTh.get_nb_element();
+  std::vector<std::vector<int>>  idxP_globToLoc(nSub);
+  for(int i=0;i<nSub;++i) idxP_globToLoc[i].assign(this->nbNode, -1);
+  int c = 0;
+  for(int k=0;k<TTh.get_nb_element();++k){
+
+    int kb = TTh.idxElementInBackMesh(k);
+    int dom = TTh.get_domain_element(k);
+    int nbNode = (*this)[0].NbNode();
+
+    for( int j = 0; j < nbNode; ++j) {
+      int iglb =(*this)(kb, j);
+
+      int val = idxP_globToLoc[dom][iglb];
+      nodeOfElement[c++] = (val ==-1)? nv: val;
+      if(val ==-1) {
+        idxP_globToLoc[dom][iglb] = nv++;
+        ndof += this->TFE(0)->ndfOn()[NodeOnWhat(j)];
+      }
+    }
+  }
+}
+if(!this->constDfPerNode) {
+  int kk=0, nn=0;
+  int* p = nodeOfElement;
+  int* pp= firstDfOfNode;
+  pp = new int[nv+1];
+
+  const FElement& FK((*this)[0]);
+  const int * ndfon = FK.tfe->ndfOn();
+  for(int k=0; k<nt; ++k) {
+    for(int i=0; i<nbNode; i++) {
+      int onWhat = NodeOnWhat[i];
+      int nb = ndfon[onWhat];
+      pp[p[nn++]] = nb;
+    }
+  }
+  for(int n=0; n<nv; ++n) {
+    int ndfn=pp[n];
+    pp[n] = kk;
+    kk += ndfn;
+  }
+
+  pp[nv] = ndof;
+  assert(ndof == kk);
+}
+
+return DataFENodeDF(ndfon,
+        nt, nv, ndof,
+        nodeOfElement, firstDfOfNode,
+        maxNodePerElement, maxDFPerElement,
+        this->MaxNbDFPerNode,
+        this->constDfPerNode);
+}
 
 
+template<typename Mesh>
+class CutFESpace : public GFESpace<Mesh> {
+public:
+  typedef GFElement<Mesh> FElement;
+  typedef typename Mesh::Element  Element;
+  typedef typename Mesh::BorderElement  BorderElement;
+
+  const Cut_Mesh<Mesh> & cutTh;
+
+  CutFESpace(const Cut_Mesh<Mesh> & TTh, const GFESpace<Mesh>& vh, const PeriodicBC* PPeriod = nullptr) : GFESpace<Mesh>(TTh, vh, PPeriod), cutTh(TTh) {}
+
+  FElement operator[](int k) const {
+    int kb = cutTh.idxElementInBackMesh(k);
+    return FElement(this,k, kb);
+  }
+  int whichDomain(int k) const { return cutTh.get_domain_element(k);}
+  bool isCut(int k) const { return cutTh.isCut(k);}
+  int idxElementInBackMesh(int k) const { return cutTh.idxElementInBackMesh(k);}
+  int idxElementFromBackMesh (int k) const { return cutTh.idxElementFromBackMesh(k) ;}
+  int idxElementFromBackMesh(int k,int i) const { return cutTh.idxElementFromBackMesh(k,i); }
+  // const Interface<Mesh>& get_interface(int k) const { cutTh.getInterface(k);}
+};
 
 
-
-
-typedef GFESpace<Mesh1> FESpace1;
-typedef GFESpace<Mesh2> FESpace2;
+typedef GFESpace<Mesh1>     FESpace1;
+typedef GFESpace<Mesh2>     FESpace2;
 typedef GFESpace<MeshQuad2> FESpaceQ2;
-typedef GFESpace<MeshHexa> FESpaceQ3;
+typedef GFESpace<MeshHexa>  FESpaceQ3;
+typedef CutFESpace<Mesh1>     CutFESpaceT1;
+typedef CutFESpace<Mesh2>     CutFESpaceT2;
+typedef CutFESpace<MeshQuad2> CutFESpaceQ2;
+typedef CutFESpace<MeshHexa>  CutFESpaceQ3;
+
 typedef GFESpace<Mesh3> FESpace3;
 typedef GFElement<Mesh1> TimeSlab;
 typedef GFElement<Mesh2> FElement2;

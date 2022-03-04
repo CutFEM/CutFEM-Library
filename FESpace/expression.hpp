@@ -38,14 +38,14 @@ class ExpressionVirtual;
 template<typename M> class ExpressionFunFEM;
 
 
-class FunFEMVirtual {
-public :
-FunFEMVirtual () {}
-
-virtual double eval(const int k, const R* x, int cu, int op) const  = 0;
-virtual double eval(const int k, const R* x, const R t, int cu, int op, int opt) const = 0;
-virtual int idxElementFromBackMesh(int, int=0) const = 0;
-};
+// class FunFEMVirtual {
+// public :
+// FunFEMVirtual () {}
+//
+// virtual double eval(const int k, const R* x, int cu, int op) const  = 0;
+// virtual double eval(const int k, const R* x, const R t, int cu, int op, int opt) const = 0;
+// virtual int idxElementFromBackMesh(int, int=0) const = 0;
+// };
 
 
 template<typename M>
@@ -57,67 +57,80 @@ public:
   typedef typename Mesh::Rd Rd;
 
 // private:
-  double * data = nullptr;
-  KN_<double> v;
-  bool alloc = false;
+// double * data = nullptr;
+// KN_<double> v;
+// bool alloc = false;
+// double* databf = nullptr;
+bool alloc = false;
+double* databf = nullptr;
+// using FunFEMVirtual::data;
 
-  double* databf = nullptr;
 
 public:
   FESpace const *  Vh = nullptr;
   TimeSlab const * In = nullptr;
   public :
-  FunFEM() : v(data, 0) {}
-  FunFEM(const FESpace& vh)
-  : Vh(&vh), data(new double[vh.NbDoF()]), v(data,vh.NbDoF()), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){v=0.;}
-  FunFEM(const FESpace& vh, const TimeSlab& in)
-  : Vh(&vh), In(&in), data(new double[vh.NbDoF()*in.NbDoF()]), v(data,vh.NbDoF()*in.NbDoF()), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){v=0.;}
-  FunFEM(const FESpace& vh, Rn_& u)
-  : v(u), alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
-  FunFEM(const FESpace& vh, const TimeSlab& in, Rn_& u)
-  : v(u), alloc(false), Vh(&vh), In(&in), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {}
+  // FunFEM() : v(data, 0) {}
+  FunFEM() : FunFEMVirtual () {}
+  FunFEM(const FESpace& vh) : FunFEMVirtual (vh.NbDoF()),
+  Vh(&vh), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){}
+  // : Vh(&vh), data(new double[vh.NbDoF()]), v(data,vh.NbDoF()), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){v=0.;}
+  FunFEM(const FESpace& vh, const TimeSlab& in) : FunFEMVirtual (vh.NbDoF()*in.NbDoF()),
+  Vh(&vh), In(&in), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){}
+  // : Vh(&vh), In(&in), data(new double[vh.NbDoF()*in.NbDoF()]), v(data,vh.NbDoF()*in.NbDoF()), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){v=0.;}
+  FunFEM(const FESpace& vh, Rn_& u) :FunFEMVirtual (u),
+  alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
+  // : v(u), alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
+  FunFEM(const FESpace& vh, const TimeSlab& in, Rn_& u) : FunFEMVirtual (u),
+   alloc(false), Vh(&vh), In(&in), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {}
+  // : v(u), alloc(false), Vh(&vh), In(&in), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {}
 
   FunFEM(const FESpace& vh, R (*f)(const Rd, int i) )
-  : alloc(true), Vh(&vh),
-    data(new double[vh.NbDoF()]),
-    v(data, vh.NbDoF()),
+  : FunFEMVirtual (vh.NbDoF()),
+  alloc(true), Vh(&vh),
+    // data(new double[vh.NbDoF()]),
+    // v(data, vh.NbDoF()),
     databf(new double[10*vh[0].NbDoF()*vh.N*4])
      {
-       interpolate(*Vh, v, f);
+       interpolate(*Vh, this->v, f);
      }
   FunFEM(const FESpace& vh, R (*f)(const Rd, int i, int dd) )
-  : alloc(true), Vh(&vh),
-    data(new double[vh.NbDoF()]),
-    v(data, vh.NbDoF()),
+  : FunFEMVirtual (vh.NbDoF()),
+  alloc(true), Vh(&vh),
+    // data(new double[vh.NbDoF()]),
+    // v(data, vh.NbDoF()),
     databf(new double[10*vh[0].NbDoF()*vh.N*4])
      {
-       interpolate(*Vh, v, f);
+       interpolate(*Vh, this->v, f);
      }
   FunFEM(const FESpace& vh, R (*f)(const Rd, int i, int dd, R tt), R tid )
-  : alloc(true), Vh(&vh),
-  data(new double[vh.NbDoF()]),
-  v(data, vh.NbDoF()) ,
+  : FunFEMVirtual (vh.NbDoF()),
+  alloc(true), Vh(&vh),
+  // data(new double[vh.NbDoF()]),
+  // v(data, vh.NbDoF()) ,
   databf(new double[10*vh[0].NbDoF()*vh.N*4])
   {
-    interpolate(*Vh, v, f, tid);
+    interpolate(*Vh, this->v, f, tid);
   }
 
   FunFEM(const FESpace& vh, R (*f)(const Rd, int i, R tt), R tid )
-  : alloc(true), Vh(&vh),
-    data(new double[vh.NbDoF()]),
-    v(data, vh.NbDoF()) ,
+  : FunFEMVirtual (vh.NbDoF()),
+  alloc(true), Vh(&vh),
+    // data(new double[vh.NbDoF()]),
+    // v(data, vh.NbDoF()) ,
     databf(new double[10*vh[0].NbDoF()*vh.N*4])
     {
-      interpolate(*Vh, v, f, tid);
+      interpolate(*Vh, this->v, f, tid);
     }
 
     FunFEM(const FESpace& vh, const TimeSlab& in, R (*f)(const Rd, int i, R tt) )
-    : alloc(true), Vh(&vh), In(&in),
-      data(new double[vh.NbDoF()*in.NbDoF()]),
-      v(data, vh.NbDoF()*in.NbDoF()) ,
+    : FunFEMVirtual (vh.NbDoF()*in.NbDoF()),
+    alloc(true), Vh(&vh), In(&in),
+      // data(new double[vh.NbDoF()*in.NbDoF()]),
+      // v(data, vh.NbDoF()*in.NbDoF()) ,
       databf(new double[10*vh[0].NbDoF()*vh.N*4])
       {
-        interpolate(*Vh,*In, v, f);
+        interpolate(*Vh,*In, this->v, f);
       }
 
       FunFEM(const FESpace& vh, const ExpressionVirtual& fh);
@@ -195,6 +208,7 @@ public:
 
   double& operator()(int i) { return v(i); }
   double operator()(int i) const { return v(i); }
+  operator Rn() const {return Rn(v);}
 
 
   const KN_<double>& getArray() const {return v;}

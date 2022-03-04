@@ -9,6 +9,7 @@
 #include "../util/util.hpp"
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"
+#include "cut_method.hpp"
 
 
 

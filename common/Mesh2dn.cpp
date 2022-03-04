@@ -247,11 +247,11 @@ Mesh2::Mesh2(TimeInterface2& gamma) {
       // We only need to look at the sign of one of the node
       bool changeSign = false;    // excluded by default
       for(Uint i=0; i<nInterface-1;++i) {
-	int idx1 = (backMesh)(K[0]);
-	//	if( (gamma[i].levelSet)[idx1] * (gamma[i+1].levelSet)[idx1] <= 0 )
-	if( (gamma[i]->ls_sign)[idx1] * (gamma[i+1]->ls_sign)[idx1] <= 0 )
+        int idx1 = (backMesh)(K[0]);
+        //	if( (gamma[i].levelSet)[idx1] * (gamma[i+1].levelSet)[idx1] <= 0 )
+        if( (gamma[i]->ls_sign)[idx1] * (gamma[i+1]->ls_sign)[idx1] <= 0 )
 
-	  changeSign = true;
+        changeSign = true;
       }
       if(changeSign) {
       	for( int i=0; i<3;++i) {
@@ -267,13 +267,13 @@ Mesh2::Mesh2(TimeInterface2& gamma) {
       	  }
       	  else {
       	    indT[i] = foundVertex(idxG);
-      	  }
-      	}
-	if(jt>=mt) assert(0);
-	foundElement(k) = jt;
-      	ElementIndexInBackMesh[jt] = k;
-      	ElementIndexInLocMesh[k] = jt;
-      	elements[jt++].set(vertices, indT, 0);
+          }
+        }
+        if(jt>=mt) assert(0);
+        foundElement(k) = jt;
+        ElementIndexInBackMesh[jt] = k;
+        ElementIndexInLocMesh[k] = jt;
+        elements[jt++].set(vertices, indT, 0);
       }
       nt = jt;
     }

@@ -185,7 +185,6 @@ void BaseCutProblem<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const 
 }
 
 
-
 template<typename M>
 void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k, const int ifac, const TimeSlab& In) {
 
@@ -200,7 +199,7 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
   const FESpace& Vhu = *VF[0].fespaceU;
   const FESpace& Vhv = *VF[0].fespaceV;
   const FElement& FK(Vhu[k]);
-  const int kb = Vh->Th(FK.T);
+  const int kb = Vh->idxElementInBackMesh(k);
   CutData cutData(Vh->getInterface(itq).getCutData(kb));
 
   if(!Vh->isCutSpace() || cutData.edge_isnot_cut(ifac)){
@@ -267,7 +266,6 @@ void BaseCutProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int
     }
   }
 }
-
 
 
 template<typename M>
