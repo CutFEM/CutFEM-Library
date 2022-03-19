@@ -11,6 +11,13 @@
 
 
 template<typename M>
+class FEMProblem : public ShapeOfProblem , public Solver {
+
+
+
+};
+
+template<typename M>
 class BaseProblem : public ShapeOfNonLinProblem , public Solver {
 public:
   typedef M Mesh;
