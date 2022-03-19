@@ -75,8 +75,6 @@ namespace NumericSurfactantEllipse2D {
     // a = 1;
     return sqrt(P.x*P.x/a + P.y*P.y) - 1;
   }
-
-
   R fun_rhs(const R2 P, const int cc, const R t) {
     R x = P.x,  y = P.y;
     R r = (4*x*y*exp(-4*t)*(sin(2*M_PI*t) + 4)*
@@ -92,7 +90,6 @@ namespace NumericSurfactantEllipse2D {
 
     return r;
   }
-
 }
 
 #define FORMULATION1;
@@ -376,7 +373,7 @@ int main(int argc, char** argv )
         // , mapping
     );
 
-    for(int i=0;i<nbTime;++i) {      // computation of the curvature
+    for(int i=0;i<nbTime;++i) {
       ExpressionFunFEM<Mesh2> vx(vel[i],0,op_id);
       ExpressionFunFEM<Mesh2> vy(vel[i],1,op_id);
       surfactant.addBilinear(

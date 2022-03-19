@@ -9,7 +9,7 @@
 #include "Mesh3dn.hpp"
 #include "Interface3dn.hpp"
 #include "timeInterface.hpp"
-
+#include "base_interface.hpp"
 
 
 
@@ -720,7 +720,66 @@ MeshHexa::MeshHexa(int nx, int ny, int nz, R orx, R ory, R orz, R lx, R ly, R lz
 
 }
 
+MeshHexa::MeshHexa(const Interface<MeshHexa>& gamma) {
 
+  const MeshHexa& backMesh(*gamma.backMesh);                  // the back-ground mesh
+
+  const int mt = gamma.nbElement();            // large approximation
+  const int mv = 8*mt;                         // very large approximation
+  const int mbe = 0;
+
+  if (mt==0) { nt=0;nv=0;nbe=0; return;}
+
+  this->set(mv,mt,mbe);
+  nv=0;  nt=0;
+  ElementIndexInBackMesh = new Uint[mt];
+  VertexIndexInBackMesh = new Uint[mv];
+  ElementIndexInLocMesh = new Uint[backMesh.nt];
+
+
+  KN<int> foundVertex(backMesh.nv); foundVertex = -1;
+  KN<byte> createdTet(backMesh.nt); createdTet = static_cast<byte>(0);
+  int indT[8];
+
+
+
+  for(Uint ifac=0; ifac != gamma.nbElement(); ++ifac) {
+
+    const int k = gamma.idxElementOfFace(ifac);
+    const Element & K = (backMesh)[k];
+
+    if(createdTet(k)) continue;                 // already created
+
+    for( int i=0; i<8;++i) {
+      const int idxG = (backMesh)(K[i]);
+
+      if(foundVertex(idxG) == -1) {
+
+        foundVertex(idxG) = nv;
+        vertices[nv].x = K[i].x;
+        vertices[nv].y = K[i].y;
+        vertices[nv].z = K[i].z;
+        VertexIndexInBackMesh[nv] = idxG;
+        indT[i] = nv++;
+      }
+      else {
+        indT[i] = foundVertex(idxG);
+      }
+    }
+    ElementIndexInBackMesh[nt] = k;
+    ElementIndexInLocMesh[k] = nt;
+
+    elements[nt++].set(vertices, indT, 0);
+    createdTet(k) = static_cast<byte>(1);
+  }
+
+  BuildBound();
+  if(nt > 0){
+    BuildAdj();
+    BuildjElementConteningVertex();
+  }
+
+}
 
 
     //

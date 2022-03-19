@@ -19,7 +19,7 @@ class MUMPS {
   bool cleanMatrix = true;
 
 public:
-
+  
 //  int verbose = 0;
 //  std::string reordering = "none";
   MatrixFormat matrixFormat = centralized;

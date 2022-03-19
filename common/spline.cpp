@@ -196,7 +196,6 @@ Spline2D::Spline2D( const vector<double> & t, const vector<R2> & P ){
     // std::cout << P[i] << std::endl;
 
   }
-  std::cout << " hey" << std::endl;
   splineX.init(t,x);
   splineY.init(t,y);
 }

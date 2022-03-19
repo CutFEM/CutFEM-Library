@@ -3,6 +3,35 @@
 
 #include <cstring>
 #include "R3.hpp"
+#include <vector>
+
+//
+// template<typename Mesh>
+// class Marker  {
+//
+//
+//   const Mesh& Th_;
+//   bool periodic_ = false;
+//   std::vector<double>  T_ ;             // initial points
+//   std::vector<double>  X_ ;             // initial points
+//   std::vector<double>  Y_ ;             // initial points
+//
+//   std::vector<int> element_of_marker_;
+//
+// public:
+//   Marker(const Mesh& Thh, R2(*fparam)(double t), double t_begin, double t_end, int npoint);
+//
+//   void add(double t, R2 x);
+//   int nb_marker() const { return X_.size();}
+//
+// };
+//
+
+
+
+
+
+
 #include "Interface2dn.hpp"
 
 

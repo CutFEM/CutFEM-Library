@@ -4,36 +4,10 @@
 #include "R1.hpp"
 #include "GenericVertex.hpp"
 #include "GenericElement.hpp"
-
+#include<array>
 
 typedef double R;
 typedef GenericVertex<R1> Vertex1;
-
-struct DataSeg1  {
-  static const int NbOfVertices =2;
-  static const int NbOfVerticesCut =1;
-  static const int NbOfFaces =0;
-  static const int NbOfEdges =1;
-  static const int NbOfTet =0;
-  static const int NbOfAdjElem =NbOfVertices;
-  static const int NbOfVertexOnHyperFace =NbOfVertices-1;
-  static const int NbOfRef = 2;
-  static const int NvOnFace = 1;
-  static const int NbSignPattern = 9;
-  static const int NbNtCut = 1;
-  static const int NbNtPatch = 1;
-
-  typedef Vertex1 V;
-  typedef  V::Rd Rd ;
-  static R mesure(  V *  pv[NbOfVertices]) {
-    return pv[1]->x-pv[0]->x;
-  }
-  typedef R0 RdHatBord;
-  typedef R1 RdHat;
-  static RdHat PBord(const int * nvb,const RdHatBord & P)  { return R1(*nvb) ;}
-  // static RdHat PBord(const int * nvb)  { return R1(*nvb) ;}
-
-};
 
 struct DataPoint1  {
   static const int NbOfVertices =1;
@@ -52,6 +26,7 @@ struct DataPoint1  {
 
   typedef Vertex1 V;
   typedef  V::Rd Rd;
+  typedef  R0 Face;
   static R mesure(  V * pv[NbOfVertices]  ) {
     return 1.;
   }
@@ -64,11 +39,51 @@ struct DataPoint1  {
   // static RdHat PBord()  { return R0() ;}
 
 };
+class Node1: public GenericElement<DataPoint1> {
+public:
+  Node1() {}; // constructor empty for array
+  Rd operator()(const RdHat & Phat) const {
+    Rd r= (*(Rd*) vertices[0]);
+    return r;
+  }
+  // std::array<int, 2> index_adjacent_element_;
+  // void set_adjacent_element(int k1, int k2) {
+  //   index_adjacent_element_ = {k1, k2};
+  // }
+  // int get_indes_adjacent_element(int i) const {
+  //   return index_adjacent_element_[i];
+  // }
+};
 
+struct DataSeg1  {
+  static const int NbOfVertices =2;
+  static const int NbOfVerticesCut =1;
+  static const int NbOfFaces =0;
+  static const int NbOfEdges =1;
+  static const int NbOfTet =0;
+  static const int NbOfAdjElem =NbOfVertices;
+  static const int NbOfVertexOnHyperFace =NbOfVertices-1;
+  static const int NbOfRef = 2;
+  static const int NvOnFace = 1;
+  static const int NbSignPattern = 9;
+  static const int NbNtCut = 1;
+  static const int NbNtPatch = 1;
 
+  typedef Vertex1 V;
+  typedef  V::Rd Rd ;
+  typedef Node1 Face;
+  static R mesure(  V *  pv[NbOfVertices]) {
+    return pv[1]->x-pv[0]->x;
+  }
+  typedef R0 RdHatBord;
+  typedef R1 RdHat;
+  static RdHat PBord(const int * nvb,const RdHatBord & P)  { return R1(*nvb) ;}
+  // static RdHat PBord(const int * nvb)  { return R1(*nvb) ;}
 
+};
 class Seg1: public GenericElement<DataSeg1>  {
 public:
+
   Seg1() {}; // constructor empty for array
 
 
@@ -93,7 +108,6 @@ public:
   }
 
 };
-
 class BoundaryPoint1: public GenericElement<DataPoint1>  {
 public:
   BoundaryPoint1() {}; // constructor empty for array
@@ -103,6 +117,7 @@ public:
     return r;
   }
 };
+
 
 
 

@@ -61,7 +61,8 @@ struct CutData2{
   }
   bool edge_is_cut(int e) const {return (edges[e] != -1);}
   bool edge_isnot_cut(int e) const {return (edges[e] == -1);}
-
+  bool face_isnot_cut(int ifac) const {return edge_isnot_cut(ifac);}
+  bool face_is_cut(int ifac)    const {return edge_is_cut(ifac);}
 
 };
 
@@ -112,9 +113,15 @@ struct CutData3{
     }
   }
 
-  bool edge_is_cut(int e) const { assert(0);return (edges[e] != -1);}
-  bool edge_isnot_cut(int e) const {assert(0);return (edges[e] == -1);}
-
+  bool edge_is_cut(int e) const { return (edges[e] != -1);}
+  bool edge_isnot_cut(int e) const {return (edges[e] == -1);}
+  bool face_isnot_cut(int ifac) const {return !face_is_cut(ifac);}
+  bool face_is_cut(int ifac) const {
+    for(int e=0;e<3;++e) {
+      if(edge_is_cut(Element::edgeOfFace[ifac][e])) return true;
+    }
+    return false;
+  }
 };
 
 template<int d> struct TypeCutData {typedef CutData2 CutData;};

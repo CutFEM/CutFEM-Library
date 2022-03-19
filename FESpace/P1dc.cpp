@@ -86,6 +86,97 @@ void TypeOfFE_P1dcLagrange2d::FB(const What_d whatd, const Element & K,  const R
   }
 }
 
+// P1 3D
+class TypeOfFE_P1dcLagrange3d : public GTypeOfFE<Mesh3> {
+
+  typedef   Mesh3 Mesh;
+  typedef  typename Mesh::Element  E;
+  static const int nbNodeOnItem[4];
+public:
+
+  static const int k = 1;
+  static const int ndf = 4;
+  static int Data[];
+  static double alpha_Pi_h[];
+
+  TypeOfFE_P1dcLagrange3d(): GTypeOfFE<Mesh3>(4, 1, Data, 4, 4, alpha_Pi_h) {
+
+    static const R3 Pt[4] = {R3(0., 0., 0.), R3(1., 0., 0.), R3(0., 1., 0.), R3(0., 0., 1.) };
+
+    for(int i=0;i<ndf;++i) {
+      Pt_Pi_h[i] = Pt[i];
+      ipj_Pi_h[i] = IPJ(i,i,0);
+    }
+  }
+
+
+  void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
+} ;
+
+const int TypeOfFE_P1dcLagrange3d::nbNodeOnItem[4] = {1,0,0,0};
+
+// tre trick is to use the face because we want discontinuous element
+// the the node on the face will have 3 df, one for each ndfonVertex
+// like P3 on edge
+int TypeOfFE_P1dcLagrange3d::Data[] = {
+  14, 14, 14, 14,    // we use the volume because we want discontinuous element
+  0, 1, 2, 3,    // the number of the df on  the node
+  0, 0, 0, 0,    // the node of the df
+  0, 1, 2, 3,    // which are de df on sub FE
+  0, 0, 0, 1, // nb node on what
+  0,          // for each compontant $j=0,N-1$ it give the sub FE associated
+  0,          // begin_dfcomp
+  4           // end_dfcomp
+};
+
+double TypeOfFE_P1dcLagrange3d::alpha_Pi_h[] = {1. ,1. ,1., 1.};
+
+
+void TypeOfFE_P1dcLagrange3d::FB(const What_d whatd, const Element & K,  const R3 & P,RNMK_ & val) const
+{
+  R l[]={1.-P.sum(),P.x,P.y,P.z};
+
+  assert(val.N() >=Element::nv);
+  assert(val.M()==1 );
+
+  val=0;
+  RN_ f0(val('.',0,op_id));
+  if (whatd & Fop_D0) {
+    f0[0] = l[0];
+    f0[1] = l[1];
+    f0[2] = l[2];
+    f0[3] = l[3];
+  }
+  if (whatd & Fop_D1) {
+    R3 Dl[4];
+    K.Gradlambda(Dl);
+
+    if (whatd & Fop_dx) {
+      RN_ f0x(val('.',0,op_dx));
+      f0x[0] = Dl[0].x;
+      f0x[1] = Dl[1].x;
+      f0x[2] = Dl[2].x;
+      f0x[3] = Dl[3].x;
+    }
+
+    if (whatd & Fop_dy) {
+      RN_ f0y(val('.',0,op_dy));
+      f0y[0] = Dl[0].y;
+      f0y[1] = Dl[1].y;
+      f0y[2] = Dl[2].y;
+      f0y[3] = Dl[3].y;
+    }
+
+    if (whatd & Fop_dz) {
+      RN_ f0z(val('.',0,op_dz));
+      f0z[0] = Dl[0].z;
+      f0z[1] = Dl[1].z;
+      f0z[2] = Dl[2].z;
+      f0z[3] = Dl[3].z;
+    }
+  }
+}
+
 
 // P1
 class TypeOfFE_P1dcTaylor2d : public GTypeOfFE<Mesh2> {
@@ -182,9 +273,11 @@ void TypeOfFE_P1dcTaylor2d::FB(const What_d whatd, const Element & K,  const R2 
 
 
 static TypeOfFE_P1dcLagrange2d  P1dc_2d;
+static TypeOfFE_P1dcLagrange3d  P1dc_3d;
 static TypeOfFE_P1dcTaylor2d  P1dcTaylor_2d;
-
 GTypeOfFE<Mesh2> & P1dcLagrange2d(P1dc_2d);
+GTypeOfFE<Mesh3> & P1dcLagrange3d(P1dc_3d);
 GTypeOfFE<Mesh2> & P1dcTaylor2d(P1dcTaylor_2d);
 template<> GTypeOfFE<Mesh2> & DataFE<Mesh2>::P1dc=P1dc_2d;
+template<> GTypeOfFE<Mesh3> & DataFE<Mesh3>::P1dc=P1dc_3d;
 template<> GTypeOfFE<Mesh2> & DataFE<Mesh2>::P1dcTaylor=P1dcTaylor_2d;

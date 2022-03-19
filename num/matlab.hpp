@@ -17,6 +17,9 @@ namespace matlab {
   template<class A>
   void Export(std::map<std::pair<int,int>,R> & dF, const A& mapp, std::string filename);
 
+
+  template<class Vector>
+  void loadVector(Vector & v, int nv,std::string filename);
   // template<class K>
   // void ExportM(const KNM<K> & a, std::string filename);
 }
@@ -36,6 +39,18 @@ namespace matlab {
   //   }
   //   plot.close();
   // }
+
+  template<class Vector>
+  void loadVector(Vector & v, int nv, std::string filename) {
+    std::ifstream f(filename);
+    if(!f) cout << " Connot open file" <<  endl;
+    cout << " Load File  \"" <<filename<<"\" in a vector " << nv <<  endl;
+
+    v.resize(nv);
+    for (int i=0;i<nv;i++) f >> v[i];
+    cout << " DONE "<<  endl;
+    f.close();
+  }
 
   template<class Vector>
   void Export(const Vector & a, std::string filename) {

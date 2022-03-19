@@ -37,7 +37,6 @@ static double paraviewFormat( double x) {
    typedef FunFEM<Mesh> Fun_h;
    typedef ExpressionVirtual Expression;
 
-   const Cut_Mesh<Mesh> & cutTh;
    const int nv_cut_element = Rd::d +1;
    int nbDataFile = 0;
    std::string outFile_;
@@ -59,7 +58,7 @@ static double paraviewFormat( double x) {
 
      std::map<int,int> element_status;
      std::vector<std::vector<Rd>> mesh_node;
-     std::vector<int> idx_in_Vh;
+     std::vector<std::pair<int, int>> idx_in_Vh;  // idx_K -> (k_back, domain)
      std::vector<std::pair<int,int>> num_cell; //(nb nodes, num_cell)
 
      ParaviewMesh() : numCell_(Element::ParaviewNumCell),
@@ -75,60 +74,47 @@ static double paraviewFormat( double x) {
       idx_in_Vh.resize((int)(3*size0/2));
       num_cell.resize((int)(3*size0/2));
     }
-    // void build(const Mesh & Th);
-    void buildNoCut(const Cut_Mesh<Mesh> & cutTh) {
+    void build(const Cut_Mesh<Mesh> & cutTh);
+    void buildCut(const Cut_Mesh<Mesh> & cutTh) {
 
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      int size0 = 2*cutTh.NbElement();
-      mesh_node.resize(cutTh.NbElement());
-      idx_in_Vh.resize(cutTh.NbElement());
-      num_cell.resize (cutTh.NbElement());
-      std::vector<Rd> list_node;
-      int kk = 0;
-      for(int k=0; k<cutTh.NbElement(); ++k) {
-      // for(int k=12; k<15; ++k) {
+      // std::vector<Rd> list_node;
+      int kk=0;
+      int size0 = 1.5*cutTh.NbElement();
+      mesh_node.resize(size0);
+      idx_in_Vh.resize(size0);
+      num_cell.resize (size0);
 
+      double area = 0.;
+      for(int k=0; k<cutTh.NbElement(); ++k) {
+        int domain = cutTh.get_domain_element(k);
+        int kb = cutTh.idxElementInBackMesh(k);
         if( cutTh.isCut(k)) {
 
           const Cut_Part<Element> cutK(cutTh.get_cut_part(k));
 
-          if(cutK.multi_interface()){
-            // Here we need to create triangles to feel the multi cut
-            for(int l = 0; l < cutK.nb_element();++l) {
-              check_and_resize_array(kk);
-              CutElement2 K = cutK.get_element(l);
-              for(int i=0;i< nvCutCell_;++i) {
-                mesh_node[kk].push_back(K[i]);
-              }
-              num_cell[kk] = make_pair(nvCutCell_, 7);
-              idx_in_Vh[kk] = k;
-              nv_+= nvCutCell_;
-              ntCut_++;
-              kk++;
-            }
-          }
-          else{
+          if(cutK.multi_interface()){ assert(0);}
+
+          for(auto it = cutK.element_begin(); it!= cutK.element_end();++it) {
+
             check_and_resize_array(kk);
-
-            cutK.get_list_node(list_node);
-            int nv_loc = list_node.size();
-
-            num_cell[kk] = make_pair(nv_loc, 7);
-            idx_in_Vh[kk] = k;
-            nv_+= nv_loc;
-            for(int i=0;i<nv_loc;++i){
-              mesh_node[kk].push_back(list_node[i]);
+            for(int i=0;i< nvCutCell_;++i) {
+              Rd x(cutK.get_vertex(it,i));
+              mesh_node[kk].push_back(x);
             }
-            ntCut_++;
+            num_cell[kk] = make_pair(nvCutCell_, numCutCell_);
+            idx_in_Vh[kk] = std::make_pair(kb, domain);
+            nv_+= nvCutCell_;
             kk++;
+            ntCut_++;
           }
-        }
-        else{
-          check_and_resize_array(kk);
 
-          idx_in_Vh[kk] = k;
+        }
+        else {
+          // not cut
+          idx_in_Vh[kk] = std::make_pair(kb, domain);
           num_cell[kk] = make_pair(nvCell_, numCell_);
           for(int i=0;i<nvCell_;++i) {
             mesh_node[kk].push_back(cutTh[k][i]);
@@ -145,7 +131,367 @@ static double paraviewFormat( double x) {
       num_cell.resize(kk+1);
       num_cell.shrink_to_fit();
     }
+    void buildNoCut(const Cut_Mesh<Mesh> & cutTh) {
 
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      int size0 = 1.5*cutTh.NbElement();
+      mesh_node.resize(size0);
+      idx_in_Vh.resize(size0);
+      num_cell.resize (size0);
+      std::vector<Rd> list_node;
+      int kk = 0;
+      for(int k=0; k<cutTh.NbElement(); ++k) {
+        int domain = cutTh.get_domain_element(k);
+        int kb = cutTh.idxElementInBackMesh(k);
+
+        if( cutTh.isCut(k)) {
+
+          const Cut_Part<Element> cutK(cutTh.get_cut_part(k));
+
+          if(cutK.multi_interface()){
+            // Here we need to create triangles to feel the multi cut
+            for(int l = 0; l < cutK.nb_element();++l) {
+              check_and_resize_array(kk);
+              CutElement<Element> K = cutK.get_element(l);
+              for(int i=0;i< nvCutCell_;++i) {
+                mesh_node[kk].push_back(K[i]);
+              }
+              num_cell[kk] = make_pair(nvCutCell_, 7);
+              idx_in_Vh[kk] = std::make_pair(kb, domain);
+              nv_+= nvCutCell_;
+              ntCut_++;
+              kk++;
+            }
+          }
+          else{
+            check_and_resize_array(kk);
+
+            cutK.get_list_node(list_node);
+            int nv_loc = list_node.size();
+
+            num_cell[kk] = make_pair(nv_loc, 7);
+            idx_in_Vh[kk] = std::make_pair(kb, domain);
+            nv_+= nv_loc;
+            for(int i=0;i<nv_loc;++i){
+              mesh_node[kk].push_back(list_node[i]);
+            }
+            ntCut_++;
+            kk++;
+          }
+        }
+        else{
+          check_and_resize_array(kk);
+
+          idx_in_Vh[kk] = std::make_pair(kb, domain);
+          num_cell[kk] = make_pair(nvCell_, numCell_);
+          for(int i=0;i<nvCell_;++i) {
+            mesh_node[kk].push_back(cutTh[k][i]);
+          }
+          nv_+= nvCell_;
+          ntNotcut_++;
+          kk++;
+        }
+      }
+      mesh_node.resize(kk+1);
+      mesh_node.shrink_to_fit();
+      idx_in_Vh.resize(kk+1);
+      idx_in_Vh.shrink_to_fit();
+      num_cell.resize(kk+1);
+      num_cell.shrink_to_fit();
+    }
+    void build_active_mesh(const Cut_Mesh<Mesh> & cutTh) {
+
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      mesh_node.resize(cutTh.NbElement());
+      idx_in_Vh.resize(cutTh.NbElement());
+      num_cell.resize (cutTh.NbElement());
+      std::vector<Rd> list_node;
+      int kk = 0;
+      for(int k=0; k<cutTh.NbElement(); ++k) {
+        int domain = cutTh.get_domain_element(k);
+        int kb = cutTh.idxElementInBackMesh(k);
+        check_and_resize_array(kk);
+
+        idx_in_Vh[kk] = std::make_pair(kb,domain);
+        num_cell[kk] = make_pair(nvCell_, numCell_);
+        for(int i=0;i<nvCell_;++i) {
+          mesh_node[kk].push_back(cutTh[k][i]);
+        }
+        nv_+= nvCell_;
+        ntNotcut_++;
+        kk++;
+      }
+    }
+    void build_face_stab(const Cut_Mesh<Mesh> & cutTh,int domain) {
+
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      int size0 = cutTh.NbElement();
+      mesh_node.resize(size0);
+      idx_in_Vh.resize(size0);
+      num_cell.resize (size0);
+      std::vector<Rd> list_node;
+      int kk = 0;
+      for(int k=0; k<cutTh.NbElement(); ++k) {
+        int kb = cutTh.idxElementInBackMesh(k);
+        if( cutTh.isActive(k) && (cutTh.get_domain_element(k)==domain) || domain == -1) {
+          const Element& K(cutTh[k]);
+          for(int e=0;e<Element::nea;++e){
+            check_and_resize_array(kk);
+
+            int je = e;
+            int kn = cutTh.ElementAdj(k, je);
+
+            if(kn == -1) continue;
+
+            int nv_loc = Element::nva;
+            num_cell[kk] = make_pair(nv_loc, 3);
+            idx_in_Vh[kk] = std::make_pair(kb, domain);
+            nv_+= nv_loc;
+            for(int i=0;i<nv_loc;++i){
+              mesh_node[kk].push_back(K[Element::nvedge[e][i]]);
+            }
+            ntCut_++;
+            kk++;
+          }
+        }
+      }
+      mesh_node.resize(kk+1);
+      mesh_node.shrink_to_fit();
+      idx_in_Vh.resize(kk+1);
+      idx_in_Vh.shrink_to_fit();
+      num_cell.resize(kk+1);
+      num_cell.shrink_to_fit();
+    }
+    void build_macro_element(const MacroElementCL<M> & macro, int dom) {
+
+      const Cut_Mesh<Mesh>& cutTh(macro.Th_);
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      mesh_node.resize(cutTh.NbElement());
+      idx_in_Vh.resize(cutTh.NbElement());
+      num_cell.resize (cutTh.NbElement());
+      std::vector<Rd> list_node;
+      int kk = 0;
+
+      for(auto it = macro.macro_element.begin(); it != macro.macro_element.end();++it) {
+        check_and_resize_array(kk);
+
+        const MElement& MK(it->second);
+        if(cutTh.get_domain_element(MK.get_index_root()) != dom) continue;
+
+        for(int k=0;k<MK.size();++k){
+          int kb = MK.get_index_element(k);
+          int kbb = cutTh.idxElementInBackMesh(kb);
+          idx_in_Vh[kk] = std::make_pair(kbb, dom);
+          num_cell[kk] = std::make_pair(nvCell_, numCell_);
+          for(int i=0;i<nvCell_;++i) {
+            mesh_node[kk].push_back(cutTh[kb][i]);
+          }
+          nv_+= nvCell_;
+          ntNotcut_++;
+          kk++;
+        }
+      }
+    }
+    void buildMacroInnerEdge(const MacroElementCL<M> & macro, int dom) {
+
+      const Cut_Mesh<Mesh>& cutTh(macro.Th_);
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      mesh_node.resize(cutTh.NbElement());
+      idx_in_Vh.resize(cutTh.NbElement());
+      num_cell.resize (cutTh.NbElement());
+      std::vector<Rd> list_node;
+      int kk = 0;
+      int nv_loc = M::Element::nva;
+      for(auto it = macro.macro_element.begin(); it != macro.macro_element.end();++it) {
+        check_and_resize_array(kk);
+
+        const MElement& MK(it->second);
+        if(cutTh.get_domain_element(MK.get_index_root()) != dom) continue;
+
+        for(int k=0;k<MK.get_nb_inner_edge();++k){
+          std::pair<int,int> edge = MK.get_inner_edge(k);
+          int kb = edge.first;
+          int kbb = cutTh.idxElementInBackMesh(kb);
+          int ie = edge.second;
+          idx_in_Vh[kk] = std::make_pair(kbb, dom);
+          num_cell[kk] = make_pair(nv_loc, 3);
+          for(int i=0;i<nv_loc;++i){
+            mesh_node[kk].push_back(cutTh[kb][Element::nvedge[ie][i]]);
+          }
+          nv_+= nv_loc;
+          ntNotcut_++;
+          kk++;
+        }
+      }
+    }
+    void buildMacroOutterEdge(const MacroElementCL<M> & macro, int dom) {
+
+      const Cut_Mesh<Mesh>& cutTh(macro.Th_);
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      mesh_node.resize(cutTh.NbElement());
+      idx_in_Vh.resize(cutTh.NbElement());
+      num_cell.resize (cutTh.NbElement());
+      std::vector<Rd> list_node;
+      int kk = 0;
+      int nv_loc = M::Element::nva;
+      for(auto it = macro.macro_element.begin(); it != macro.macro_element.end();++it) {
+        check_and_resize_array(kk);
+
+        const MElement& MK(it->second);
+        if(cutTh.get_domain_element(MK.get_index_root()) != dom) continue;
+
+        for(int k=0;k<MK.size();++k){
+          int kb = MK.get_index_element(k);
+          int kbb = cutTh.idxElementInBackMesh(kb);
+          for(int ie=0;ie<M::Element::nea;++ie){
+            int je = ie;
+            int kn = cutTh.ElementAdj(kb, je);
+            if(MK.containElement(kn)) continue;
+            idx_in_Vh[kk] = std::make_pair(kbb,dom);
+            num_cell[kk] = std::make_pair(nv_loc, 3);
+            for(int i=0;i<nv_loc;++i){
+              mesh_node[kk].push_back(cutTh[kb][Element::nvedge[ie][i]]);
+            }
+            nv_+= nv_loc;
+            ntNotcut_++;
+            kk++;
+          }
+
+        }
+      }
+    }
+
+    void build_macro_element( const MacroElementSurfaceCL<M> & macro) {
+
+      const Mesh& Th(*macro.interface.backMesh);
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      mesh_node.resize(Th.nbElements());
+      idx_in_Vh.resize(Th.nbElements());
+      num_cell.resize (Th.nbElements());
+      std::vector<Rd> list_node;
+      int kk = 0;
+
+      for(auto it = macro.macro_element.begin(); it != macro.macro_element.end();++it) {
+        check_and_resize_array(kk);
+
+        const MElement& MK(it->second);
+        // if(cutTh.get_domain_element(MK.get_index_root()) != dom) continue;
+
+        for(int k=0;k<MK.size();++k){
+          int ki = MK.get_index_element(k);
+          int kb = macro.interface.idxElementOfFace(ki);
+          idx_in_Vh[kk] = std::make_pair(kb,0);
+          num_cell[kk] = make_pair(nvCell_, numCell_);
+          for(int i=0;i<nvCell_;++i) {
+            mesh_node[kk].push_back(Th[kb][i]);
+          }
+          nv_+= nvCell_;
+          ntNotcut_++;
+          kk++;
+        }
+      }
+      mesh_node.resize(kk+1);
+      mesh_node.shrink_to_fit();
+      idx_in_Vh.resize(kk+1);
+      idx_in_Vh.shrink_to_fit();
+      num_cell.resize(kk+1);
+      num_cell.shrink_to_fit();
+    }
+    void buildMacroOutterEdge(const MacroElementSurfaceCL<M> & macro) {
+
+      const Mesh& Th(*macro.interface.backMesh);
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      mesh_node.resize(Th.nbElements());
+      idx_in_Vh.resize(Th.nbElements());
+      num_cell.resize (Th.nbElements());
+      std::vector<Rd> list_node;
+      int kk = 0;
+      int nv_loc = M::Element::nva;
+      for(auto it = macro.macro_element.begin(); it != macro.macro_element.end();++it) {
+        check_and_resize_array(kk);
+
+        const MElement& MK(it->second);
+        for(int k=0;k<MK.size();++k){
+          int ki = MK.get_index_element(k);
+          int kb = macro.interface.idxElementOfFace(ki);
+          for(int ie=0;ie<M::Element::nea;++ie){
+            int je = ie;
+            int kn = Th.ElementAdj(kb, je);
+
+            int kin;
+            if(macro.interface.isCut(kn)){
+              kin = macro.interface.idxFaceOfElement(kn);
+            }else {kin = -1;}
+            if(MK.containElement(kin)) continue;
+
+            idx_in_Vh[kk] = std::make_pair(kb,0);
+            num_cell[kk] = make_pair(nv_loc, 3);
+            for(int i=0;i<nv_loc;++i){
+              mesh_node[kk].push_back(Th[kb][Element::nvedge[ie][i]]);
+            }
+            nv_+= nv_loc;
+            ntNotcut_++;
+            kk++;
+          }
+
+        }
+      }
+      mesh_node.resize(kk+1);
+      mesh_node.shrink_to_fit();
+      idx_in_Vh.resize(kk+1);
+      idx_in_Vh.shrink_to_fit();
+      num_cell.resize(kk+1);
+      num_cell.shrink_to_fit();
+    }
+    void buildMacroInnerEdge( const MacroElementSurfaceCL<M> & macro) {
+
+      const Mesh& Th(*macro.interface.backMesh);
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      mesh_node.resize(Th.nbElements());
+      idx_in_Vh.resize(Th.nbElements());
+      num_cell.resize (Th.nbElements());
+      std::vector<Rd> list_node;
+      int kk = 0;
+      int nv_loc = M::Element::nva;
+      for(auto it = macro.macro_element.begin(); it != macro.macro_element.end();++it) {
+        check_and_resize_array(kk);
+
+        const MElement& MK(it->second);
+
+        for(int k=0;k<MK.get_nb_inner_edge();++k){
+          std::pair<int,int> edge = MK.get_inner_edge(k);
+          int ki = edge.first;
+          int kb = macro.interface.idxElementOfFace(ki);
+          int ie = edge.second;
+          idx_in_Vh[kk] = std::make_pair(kb,0);
+          num_cell[kk] = make_pair(nv_loc, 3);
+          for(int i=0;i<nv_loc;++i){
+            mesh_node[kk].push_back(Th[kb][Element::nvedge[ie][i]]);
+          }
+          nv_+= nv_loc;
+          ntNotcut_++;
+          kk++;
+        }
+      }
+    }
 
     bool isCut(int k) const {
        element_status.find(k);
@@ -167,15 +513,62 @@ static double paraviewFormat( double x) {
 
    } mesh_data;
 
-
-   ParaviewCut(const Cut_Mesh<Mesh>& cutThh, std::string name) : cutTh(cutThh) {
+   ParaviewCut(std::string name) { }
+   ParaviewCut(const Cut_Mesh<Mesh>& cutTh, std::string name) {
      outFile_ = name;
-     mesh_data.buildNoCut(cutTh);
+     mesh_data.build(cutTh);
      this->writeFileMesh();
      this->writeFileCell();
    }
 
-
+   void writeFaceStab(const Cut_Mesh<Mesh>& cutTh, int domain, std::string name) {
+     outFile_ = name;
+     mesh_data.build_face_stab(cutTh, domain);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeActiveMesh(const Cut_Mesh<Mesh>& cutTh, std::string name) {
+     outFile_ = name;
+     mesh_data.build_active_mesh(cutTh);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeMacroElement(const MacroElementCL<M>& macro, int dom, std::string name) {
+     outFile_ = name;
+     mesh_data.build_macro_element(macro, dom);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeMacroElement(const MacroElementSurfaceCL<M>& macro, std::string name) {
+     outFile_ = name;
+     mesh_data.build_macro_element(macro);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeMacroInnerEdge(const MacroElementCL<M>& macro, int dom, std::string name) {
+     outFile_ = name;
+     mesh_data.buildMacroInnerEdge(macro, dom);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeMacroInnerEdge(const MacroElementSurfaceCL<M>& macro, std::string name) {
+     outFile_ = name;
+     mesh_data.buildMacroInnerEdge(macro);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeMacroOutterEdge(const MacroElementCL<M>& macro, int dom, std::string name) {
+     outFile_ = name;
+     mesh_data.buildMacroOutterEdge(macro, dom);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeMacroOutterEdge(const MacroElementSurfaceCL<M>& macro, std::string name) {
+     outFile_ = name;
+     mesh_data.buildMacroOutterEdge(macro);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
    void writeFileMesh();
    void writeFileCell();
 
@@ -268,12 +661,10 @@ static double paraviewFormat( double x) {
 
 
    for(int k=0;k<mesh_data.nbElement();++k)  {
-     int kvh = mesh_data.idx_in_Vh[k];
-     int kb = cutTh.idxElementInBackMesh(kvh);
-     int domain = cutTh.get_domain_element(kvh) ;
-
+     auto k_dom = mesh_data.idx_in_Vh[k];
+     int kb = k_dom.first;
+     int domain = k_dom.second;
      for(int i=0;i<mesh_data.mesh_node[k].size();++i){
-
        R1 val = fh.evalOnBackMesh(kb, domain, mesh_data.node(k,i));
        data << paraviewFormat(val) << std::endl;;
 
@@ -295,9 +686,9 @@ static double paraviewFormat( double x) {
 
 
    for(int k=0;k<mesh_data.nbElement();++k)  {
-     int kvh = mesh_data.idx_in_Vh[k];
-     int kb = cutTh.idxElementInBackMesh(kvh);
-     int domain = cutTh.get_domain_element(k) ;
+     auto k_dom = mesh_data.idx_in_Vh[k];
+     int kb = k_dom.first;
+     int domain = k_dom.second;
      int kf = fh.idxElementFromBackMesh(kb, domain);
 
      for(int i=0;i<mesh_data.mesh_node[k].size();++i){
@@ -390,7 +781,7 @@ public :
          const int domain = FK.whichDomain();
          const int kb = Vh.idxElementInBackMesh(k);
          const PartitionT& cutK =  PartitionT(FK.T, loc_ls);
-         ElementSignEnum the_part = cutK.what_part(domain);
+         ElementSignEnum the_part = (domain==-1)? AllElement :((domain == 0)? PosElement:NegElement);// cutK.what_part(domain);
          int ss = (domain == 0)? 1 : -1;
          if(the_part == AllElement){
            for(int sss=-1;sss<=1;sss+=2){
@@ -456,13 +847,20 @@ public :
        double loc_ls[Element::nv];
        double area = 0.;
        for(int k=0; k<Vh.NbElement(); ++k) {
+         // if(k!=14) continue;
          const FElement& FK(Vh[k]);
-         levelSet->eval(loc_ls, Vh.Th(FK.T));
-
-         const int domain = FK.whichDomain();
          const int kb = Vh.idxElementInBackMesh(k);
+         levelSet->eval(loc_ls, kb);//Vh.Th(FK.T));
+
+         // std::cout << kb << "\t" << std::endl;
+         // for(int i=0;i<8;++i)
+         // std::cout << loc_ls[i] << "\t";
+         // std::cout << std::endl;
+         const int domain = FK.whichDomain();
+         // const int kb = Vh.idxElementInBackMesh(k);
          const PartitionT& cutK =  PartitionT(FK.T, loc_ls);
-         ElementSignEnum the_part = cutK.what_part(domain);
+         // ElementSignEnum the_part = cutK.what_part(domain);
+         ElementSignEnum the_part = (domain==-1)? AllElement :((domain == 0)? PosElement:NegElement);// cutK.what_part(domain);
 
          double aaa = 0.;
          if(the_part == NoElement) continue;
@@ -470,15 +868,13 @@ public :
            int iii=0;
            for(typename PartitionT::const_element_iterator it = cutK.element_begin(the_part);
            it != cutK.element_end(the_part); ++it){
-             // std::cout << "element \t" << kk << std::endl;
              double vv = cutK.mesure(it);
-             // std::cout << " vol =  "  << vv << std::endl;
              area += vv;
              aaa += vv;
-
+             assert(mesh_node.size() > kk);
              // std::cout << iii++ << std::endl;
              for(int i=0;i< nvCutCell_;++i) {
-               Rd x(cutK.get_Vertex(it,i));
+               Rd x(cutK.get_vertex(it,i));
                // std::cout << i  << "\t" << x << std::endl;
                mesh_node[kk].push_back(x);
              }
@@ -488,34 +884,32 @@ public :
              kk++;
              ntCut_++;
            }
-
-           // std::cout << " area of " << k << "\t => " << aaa <<std::endl;
-
          }
          else{
            const FElement& FK(Vh[k]);
            area += FK.getMeasure();
-
+           assert(idx_in_Vh.size() > kk);
            idx_in_Vh[kk] = k;
            num_cell[kk] = make_pair(nvCell_, numCell_);
            for(int i=0;i<nvCell_;++i) {
-             mesh_node[kk].push_back(Vh.Th[k][i]);
+             // std::cout << k << "\t" << i << std::endl;
+             mesh_node[kk].push_back(Vh[k].T[i]);
            }
            kk++;
            nv_+= nvCell_;
            ntNotcut_++;
          }
        }
-       std::cout << " volume => " << area << std::endl;
+       // std::cout << " volume => " << area << std::endl;
 
 
      //
-     // mesh_node.resize(kk+1);
-     // mesh_node.shrink_to_fit();
-     // idx_in_Vh.resize(kk+1);
-     // idx_in_Vh.shrink_to_fit();
-     // num_cell.resize(kk+1);
-     // num_cell.shrink_to_fit();
+     mesh_node.resize(kk+1);
+     mesh_node.shrink_to_fit();
+     idx_in_Vh.resize(kk+1);
+     idx_in_Vh.shrink_to_fit();
+     num_cell.resize(kk+1);
+     num_cell.shrink_to_fit();
 
      // getchar();
      }
@@ -559,7 +953,7 @@ public :
 
   } mesh_data;
 
-
+  Paraview(const FESpace&, std::string name);
   Paraview(const FESpace&, Fun_h* ls, std::string name);
   Paraview(const FESpace&, Fun_h& ls, std::string name);
 
@@ -589,7 +983,13 @@ public :
 
 };
 
-
+template<class M>
+Paraview<M>::Paraview(const GFESpace<M> & vh, std::string name) :  Vh(vh), levelSet(nullptr)  {
+  outFile_ = name;
+  mesh_data.build(Vh, levelSet);
+  this->writeFileMesh();
+  this->writeFileCell();
+}
 template<class M>
 Paraview<M>::Paraview(const GFESpace<M> & vh, Fun_h* ls, std::string name) :  Vh(vh), levelSet(ls)  {
   outFile_ = name;

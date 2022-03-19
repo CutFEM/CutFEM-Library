@@ -6,11 +6,107 @@
 #include "R3.hpp"
 #include "GenericVertex.hpp"
 #include "GenericElement.hpp"
+#include<array>
 
 
 
 typedef double R;
 typedef GenericVertex<R3> Vertex3;
+
+
+struct DataPoint3  {
+  static const int NbOfVertices =1;
+  static const int NbOfEdges =0;
+  static const int NbOfFaces =0;
+  static const int NbOfTet =0;
+  static const int NbOfAdjElem =1;
+  static const int NbOfVertexOnHyperFace =1;
+  static const int NbOfRef = 0;
+  static const int NbOfVerticesCut = 0;
+  static const int nva = 0;
+  static const int NvOnFace = 1;
+  static const int NbSignPattern = 3;
+  static const int NbNtCut = 1;
+  static const int NbNtPatch = 1;
+
+  typedef Vertex3 V;
+  typedef  V::Rd Rd;
+  typedef  R0 Face;
+  static R mesure(  V * pv[NbOfVertices]  ) {
+    return 1.;
+  }
+  // static R mesure() {
+  //   return 1.;
+  // }
+  typedef R0 RdHatBord;
+  typedef R0 RdHat;
+  static RdHat PBord(const int * nvb,const RdHatBord & P)  { return R0() ;}
+  // static RdHat PBord()  { return R0() ;}
+
+};
+class Node3: public GenericElement<DataPoint3> {
+public:
+  Node3() {}; // constructor empty for array
+  Rd operator()(const RdHat & Phat) const {
+    Rd r= (*(Rd*) vertices[0]);
+    return r;
+  }
+  // std::array<int, 2> index_adjacent_element_;
+  // void set_adjacent_element(int k1, int k2) {
+  //   index_adjacent_element_ = {k1, k2};
+  // }
+  // int get_indes_adjacent_element(int i) const {
+  //   return index_adjacent_element_[i];
+  // }
+};
+
+struct DataSeg3  {
+  static const int NbOfVertices =2;
+  static const int NbOfEdges =1;
+  static const int NbOfFaces =0;
+  static const int NbOfTet =0;
+  static const int NbOfAdjElem =NbOfVertices;
+  static const int NbOfVertexOnHyperFace =NbOfVertices-1;
+  static const int NbOfRef = 2;
+  static const int NbOfVerticesCut = 1;
+  static const int nva = 1;
+  static const int NvOnFace = 1;
+  static const int NbSignPattern = 9;
+  static const int NbNtCut = 1;
+  static const int NbNtPatch = 1;
+
+  typedef Vertex3 V;
+  typedef  V::Rd Rd;
+  static R mesure(  V *  pv[NbOfVertices]) {
+    return R3(*pv[0],*pv[1]).norme();
+  }
+  typedef R1 RdHat;
+  typedef R0 RdHatBord;
+  typedef Node3 Face;
+  static RdHat PBord(const int * nvb,const RdHatBord &P)  { return RdHat(*nvb) ;}
+  // static RdHat PBord(const int * nvb)  { return RdHat(*nvb) ;}
+
+  //static const int (* const nvface)[3];// = nvfaceSeg ;
+  //static const int (* const nvedge)[2];//  = nvedgeSeg;
+
+};
+class Edge3: public GenericElement<DataSeg3>{
+  public:
+  Edge3() {}; // constructor empty for array
+  Rd operator()(const RdHat & Phat) const {
+    Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0]);
+    for (int i=1;i<nv;++i)
+      r+=  Phat[i-1]*(*(Rd*) vertices[i]);
+    return r;
+  }
+  // std::array<int, 2> index_adjacent_element_;
+  // void set_adjacent_element(int k1, int k2) {
+  //   index_adjacent_element_ = {k1, k2};
+  // }
+  // int get_index_adjacent_element(int i) const {
+  //   return index_adjacent_element_[i];
+  // }
+};
 
 struct DataTriangle3  {
   static const int NbOfVertices =3;
@@ -31,12 +127,84 @@ struct DataTriangle3  {
   typedef  V::Rd Rd ;
   typedef R2 RdHat;
   typedef R1 RdHatBord;
+  typedef Edge3 Face;
   static RdHat PBord(const int * nvb,const RdHatBord &P)  {
   return RdHat::KHat[nvb[0]]*(1-P.x)+R2::KHat[nvb[1]]*(P.x) ;}
 
   static R mesure(  V *  pv[NbOfVertices]) {
     return (R3(*pv[0],*pv[1])^R3(*pv[0],*pv[2])).norme()*0.5;
   }
+};
+class Triangle3: public GenericElement<DataTriangle3>  {
+public:
+  Triangle3() {}; // constructor empty for array
+
+  R3 Edge(int i) const {ASSERTION(i>=0 && i <3);
+    return Rd(this->at((i+1)%3),this->at((i+2)%3));
+  }
+
+  Rd operator()(const RdHat & Phat) const {
+    Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0]);
+    for (int i=1;i<nv;++i)
+      r+=  Phat[i-1]*(*(Rd*) vertices[i]);
+    return r;
+  }
+  // std::array<int, 2> index_adjacent_element_;
+  // void set_adjacent_element(int k1, int k2) {
+  //   index_adjacent_element_ = {k1, k2};
+  // }
+  // int get_index_adjacent_element(int i) const {
+  //   return index_adjacent_element_[i];
+  // }
+};
+
+struct DataQuad3  {
+  static const int NbOfVertices =4;
+  static const int NbOfFaces =1;
+  static const int NbOfEdges =4;
+  static const int NbOfTet =0;
+  static const int NbOfAdjElem = 4;
+  static const int NbOfVertexOnHyperFace = 2;
+  static const int NvOnFace = 4;
+
+
+  static const int ParaviewNumCell = 9;
+  static const int NbSignPattern = 81;
+  static const int NbNtCut = 2;
+  static const int NbNtPatch = 2;
+  static const int NbOfVerticesCut =2;
+
+  typedef Vertex3 V;
+  typedef  V::Rd Rd ;
+  typedef Edge3 Face;
+  static R mesure(  V *  pv[NbOfVertices]) {
+    return det(*pv[0],*pv[1],*pv[2]);
+  }
+  typedef R2 RdHat;
+  typedef R1 RdHatBord;
+  static RdHat PBord(const int * nvb,const RdHatBord & P)  {
+    return RdHat::KHat[nvb[0]]*(1-P.x)+R2::KHat[nvb[1]]*(P.x) ;}
+
+};
+class Quad3: public GenericElement<DataQuad3>  {
+public:
+
+  Quad3() {}; // constructor empty for array
+
+
+  Rd operator()(const RdHat & Phat) const {
+    Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0])
+    + Phat[0]*(*(Rd*) vertices[1])
+    + Phat[1]*(*(Rd*) vertices[3]);
+    return r;
+  }
+  // std::array<int, 2> index_adjacent_element_;
+  // void set_adjacent_element(int k1, int k2) {
+  //   index_adjacent_element_ = {k1, k2};
+  // }
+  // int get_index_adjacent_element(int i) const {
+  //   return index_adjacent_element_[i];
+  // }
 };
 
 struct DataTet  {
@@ -59,6 +227,7 @@ struct DataTet  {
 
   typedef Vertex3 V;
   typedef  V::Rd Rd ;
+  typedef Triangle3 Face;
   static R mesure(  V *  pv[NbOfVertices])
   {
     R3 AB(*pv[0],*pv[1]);
@@ -75,74 +244,9 @@ struct DataTet  {
       RdHat::KHat[nvb[1]]*(P.x)+RdHat::KHat[nvb[2]]*(P.y) ;}
 
 };
-
-struct DataQuad3  {
-  static const int NbOfVertices =4;
-  static const int NbOfFaces =1;
-  static const int NbOfEdges =4;
-  static const int NbOfTet =0;
-  static const int NbOfAdjElem = 4;
-  static const int NbOfVertexOnHyperFace = 2;
-  static const int NvOnFace = 4;
-
-
-  static const int ParaviewNumCell = 9;
-  static const int NbSignPattern = 81;
-  static const int NbNtCut = 2;
-  static const int NbNtPatch = 2;
-  static const int NbOfVerticesCut =2;
-
-  typedef Vertex3 V;
-  typedef  V::Rd Rd ;
-
-  static R mesure(  V *  pv[NbOfVertices]) {
-    return det(*pv[0],*pv[1],*pv[2]);
-  }
-  typedef R2 RdHat;
-  typedef R1 RdHatBord;
-  static RdHat PBord(const int * nvb,const RdHatBord & P)  {
-    return RdHat::KHat[nvb[0]]*(1-P.x)+R2::KHat[nvb[1]]*(P.x) ;}
-
-};
-
-struct DataHexa  {
-  static const int NbOfVertices =8;
-  static const int NbOfEdges =12;
-  static const int NbOfFaces =6;
-  static const int NbOfTet =1;
-  static const int NbOfAdjElem = 6;
-  static const int NbOfVertexOnHyperFace = 4;
-
-  static const int ParaviewNumCell = 12;
-  static const int NvOnFace = 4;
-  static const int NbSignPattern = 6561; //3^8
-  static const int NbNtCut = 5 ;   // nb of tetra for an non cut element
-  static const int NbNtPatch = 4;  // maximum 4 triangles in a patch
-  static const int NbOfVerticesCut = 6;
-
-
-  typedef Vertex3 V;
-  typedef  V::Rd Rd ;
-  static R mesure(  V *  pv[NbOfVertices])
-  {
-    R3 AB(*pv[0],*pv[1]);
-    R3 AC(*pv[0],*pv[3]);
-    R3 AD(*pv[0],*pv[4]);
-    return det(AB,AC,AD);
-  }
-
-  typedef R3 RdHat;
-  typedef R2 RdHatBord;
-  // static RdHat PBord(const int * nvb,const RdHatBord& P)  {
-  //   return RdHat::KHat[nvb[0]]*(1-P.x-P.y)+
-  //     RdHat::KHat[nvb[1]]*(P.x)+RdHat::KHat[nvb[2]]*(P.y) ;}
-
-};
-
-
-
 class Tet: public GenericElement<DataTet>  {
 public:
+  typedef Triangle3 Face;
 
   static const int oppEdgeOfEdge[ne] ;                   //
 
@@ -201,40 +305,44 @@ public:
 
 };
 
-class Triangle3: public GenericElement<DataTriangle3>  {
-public:
-  Triangle3() {}; // constructor empty for array
+struct DataHexa  {
+  static const int NbOfVertices =8;
+  static const int NbOfEdges =12;
+  static const int NbOfFaces =6;
+  static const int NbOfTet =1;
+  static const int NbOfAdjElem = 6;
+  static const int NbOfVertexOnHyperFace = 4;
 
-  R3 Edge(int i) const {ASSERTION(i>=0 && i <3);
-    return Rd(this->at((i+1)%3),this->at((i+2)%3));
+  static const int ParaviewNumCell = 12;
+  static const int NvOnFace = 4;
+  static const int NbSignPattern = 6561; //3^8
+  static const int NbNtCut = 5 ;   // nb of tetra for an non cut element
+  static const int NbNtPatch = 4;  // maximum 4 triangles in a patch
+  static const int NbOfVerticesCut = 6;
+
+
+  typedef Vertex3 V;
+  typedef  V::Rd Rd ;
+  typedef Quad3 Face;
+  static R mesure(  V *  pv[NbOfVertices])
+  {
+    R3 AB(*pv[0],*pv[1]);
+    R3 AC(*pv[0],*pv[3]);
+    R3 AD(*pv[0],*pv[4]);
+    return det(AB,AC,AD);
   }
 
-  Rd operator()(const RdHat & Phat) const {
-    Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0]);
-    for (int i=1;i<nv;++i)
-      r+=  Phat[i-1]*(*(Rd*) vertices[i]);
-    return r;
-  }
+  typedef R3 RdHat;
+  typedef R2 RdHatBord;
+  // static RdHat PBord(const int * nvb,const RdHatBord& P)  {
+  //   return RdHat::KHat[nvb[0]]*(1-P.x-P.y)+
+  //     RdHat::KHat[nvb[1]]*(P.x)+RdHat::KHat[nvb[2]]*(P.y) ;}
+
 };
-
-
-class Quad3: public GenericElement<DataQuad3>  {
-public:
-
-
-  Quad3() {}; // constructor empty for array
-
-
-  Rd operator()(const RdHat & Phat) const {
-    Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0])
-    + Phat[0]*(*(Rd*) vertices[1])
-    + Phat[1]*(*(Rd*) vertices[3]);
-    return r;
-  }
-};
-
 class Hexa: public GenericElement<DataHexa> {
 public:
+  typedef Quad3 Face;
+
   static const int oppEdgeOfEdge[ne] ;                   //
   static const int (* const nodeConnectivity)[3];
   Hexa() {}; // constructor empty for array

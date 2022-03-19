@@ -19,16 +19,46 @@ void GenericMesh<T,B,V>::BuildjElementConteningVertex()
     assert(kerr==0);
 }
 
-
-
 template<typename T,typename B,typename V>
 void GenericMesh<T,B,V>::BuildAdj()
 {
   if(TheAdjacencesLink!=0) return ;           //  already build
 
-  BuildAdjacencyOfMesh<GenericMesh<T,B,V>>(*this);
+  BuildAdjacencyOfMesh<GenericMesh<T,B,V>> a(*this);
+
+  ne_ = a.ne - this->nbe;
+
+  // this->BuildInnerFace();
 
 }
+
+// template<typename T,typename B,typename V>
+// void GenericMesh<T,B,V>::BuildInnerFace(){
+//   inner_faces_ = new Face[ne_];
+//   int idx = 0;
+//   int iv[T::nva];
+//   for(int k=0;k<nt;++k) {
+//
+//     for(int ie=0;ie<T::nea;++ie) {
+//       int je = ie;
+//       int kn = this->ElementAdj(k, je);
+//
+//       // skip boundary edges and only go once
+//       if(kn < k) continue;
+//       assert(idx < ne_);
+//
+//       for(int i=0;i<T::nva;++i) iv[i] = this->at(k, T::nvedge[ie][i]);
+//
+//       inner_faces_[idx].set(vertices, iv, 0);
+//       inner_faces_[idx].set_adjacent_element(k, kn);
+//
+//       idx++;
+//     }
+//   }
+// }
+//
+
+
 
 template<typename GMesh>
 BuildAdjacencyOfMesh<GMesh>::BuildAdjacencyOfMesh(GMesh & m) : mesh(m) {
@@ -48,7 +78,7 @@ void BuildAdjacencyOfMesh<GMesh>::initializeArray() {
 
 template<typename GMesh>
 void BuildAdjacencyOfMesh<GMesh>::findAdjacencyElement() {
-  nk=0, nba=0;
+  nk=0, nba=0;ne=0;
   for (int k=0;k<mesh.nt;++k) {
     for (int i=0;i<mesh.nea;++i) {
       addFace(k,i);
@@ -61,6 +91,7 @@ void BuildAdjacencyOfMesh<GMesh>::addFace(const int k, const int i) {
   SArray a(mesh.itemadj(k,i));    // sort nodes on the adj item
   typename HashTable<SArray,int>::iterator p = h->find(a);
   if(!p) {
+    ne++;
     addFaceFirstTime(a);
   }
   else {

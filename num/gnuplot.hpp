@@ -87,7 +87,7 @@ namespace gnuplot {
 
       // if(fracture.is_cut_element(k)) {
         fracture.build_local_partition(k, local_partition);
-        std::cout << " element " << k << " cut in " << local_partition.nb_element() << std::endl;
+        // std::cout << " element " << k << " cut in " << local_partition.nb_element() << std::endl;
         for(int i=0; i<local_partition.nb_element();++i){
           Element2 K = local_partition.get_element(i);
           for(int j=0;j<nve;++j) {
@@ -289,7 +289,7 @@ namespace gnuplot {
     int icolor = 0;
     for(auto it=macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
 
-      std::cout << " Macro \t" << it->second.idx_root_element << std::endl;
+      // std::cout << " Macro \t" << it->second.idx_root_element << std::endl;
       for(int i=0;i<it->second.idx_element.size();++i) {
 
         int idxC = it->second.idx_element[i];
@@ -306,7 +306,7 @@ namespace gnuplot {
           plot3 << std::endl;
         }
         else {
-          std::cout << idxC << std::endl;
+          // std::cout << idxC << std::endl;
           for(int i=0;i<nve;++i) {
             plot4 << (R2)macro.Vh.Th[idx][i] << "\t" << icolor%10 << std::endl;
           }
@@ -328,7 +328,6 @@ namespace gnuplot {
       int handle = it->second;
       int i0 = Mesh2::Element::nvedge[ie][0];
       int i1 = Mesh2::Element::nvedge[ie][1];
-
       R2 P = 0.5*(((R2) macro.Vh.Th[idx][i0]) + ((R2) macro.Vh.Th[idx][i1]));
       if(handle == 1) {
         if(domain == 0){

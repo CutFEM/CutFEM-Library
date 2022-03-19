@@ -489,7 +489,6 @@ int main(int argc, char** argv )
 
     stokes.addLagrangeMultiplier(
       innerProduct(1.,p1), 0.
-      ,0
     );
 
     stokes.solve();

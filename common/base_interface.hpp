@@ -2,8 +2,6 @@
 #define BASE_INTERFACE_HPP_
 
 #include "GenericInterface.hpp"
-// #include "../FESpace/expression.hpp"
-
 
 class FunFEMVirtual {
 public :
@@ -31,7 +29,7 @@ public :
 
   static const int nve = Rd::d;
   typedef FaceInterface<nve> Face;
-  typedef SortArray<int, Element::Rd::d+1> ElementIdx;
+  typedef SortArray<Ubyte, Element::Rd::d+1> ElementIdx;
 
 
   typedef const Face* const_face_iterator;
@@ -51,6 +49,7 @@ public :
 
 public :
   Interface(const Mesh & MM) : backMesh(&MM) { }
+
 
   Rd operator()(const int k, const int i) const {return vertices_[faces_[k][i]];}
   const Rd& operator()(const int i) const {return vertices_[CheckV(i)];}
@@ -94,6 +93,7 @@ public :
   virtual SignElement<Element> get_SignElement(int k) const =0;
   virtual Partition<Element> get_partition(int k) const = 0;
   virtual void cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part) const = 0;
+  virtual R measure(const Face& f) const = 0;
   // virtual Rd mapToFace(const Face& f, const typename Element::RdHatBord x ) const = 0;
   // virtual Rd computeDx(const Face& f) const = 0;
   // virtual CutData getCutData(const int k) const = 0;
@@ -105,8 +105,6 @@ private:
 
 };
 
-
-
 template<typename Mesh>
 class Time_Interface {
 public:
@@ -117,60 +115,34 @@ private:
 
 public:
 
-	Time_Interface(int nt) : interface(nt), n(nt) {}
-	Time_Interface(const KN<Interface<Mesh>*> gamma) : interface(gamma), n(gamma.size()) {
+  Time_Interface(int nt) : interface(nt), n(nt) {
+    for(int i=0;i<n;++i){ interface[i] = nullptr;}
   }
 
-  void init(const KN<Interface<Mesh>*>& gamma) {
-    if(n != gamma.size()) {
-      n = gamma.size();
-      interface.resize(n);
-    }
-    for(int i=0;i<gamma.size();++i){
-      assert(0 <= i && i < n);
-      interface[i] = gamma[i];
+  void init(int i, const Mesh & Th, const FunFEMVirtual& ls);
+  void init(const Mesh & Th, const KN<FunFEMVirtual>& ls);
+
+  Interface<Mesh>* operator[](int i) const{
+    assert(0 <= i && i < n);
+    return interface[i];
+  }
+  Interface<Mesh>* operator()(int i) const{
+    assert(0 <= i && i < n);
+    return interface[i];
+  }
+
+  int size() const { return n;}
+
+  ~Time_Interface(){
+    for(int i=0;i<n;++i){
+      if(interface[i]) delete interface[i];
     }
   }
-  // void init(const Mesh & Th, const FunFEMVirtual* ls) {
-  //   assert(0 < n);
-  //   if(interface[0]) {
-  //     delete interface[0];
-  //   }
-  //   interface[0] = new Interface<Mesh>(Th,(*ls));
-  // }
-
-	// void init(const Mesh & Th, const vector<Fun_h>& ls) {
-	// 	for(int i=0;i<ls.size();++i){
-	// 		assert(0 <= i && i < n);
-	// 		if(interface[i]) {
-	// 			delete interface[i];
-	// 		}
-	// 		interface[i] = new Interface(Th,ls[i]);
-	// 	}
-	// }
-	//
-	 Interface<Mesh>* operator[](int i) const{
-		 assert(0 <= i && i < n);
-		 return interface[i];
-	 }
-	 Interface<Mesh>* operator()(int i) const{
-		 assert(0 <= i && i < n);
-		 return interface[i];
-	 }
-
-	 int size() const { return n;}
-
-	 ~Time_Interface(){
-		 // for(int i=0;i<n;++i){
-			//  if(interface[i]) delete interface[i];
-		 // }
-	 }
 
 private:
-	 Time_Interface(const Time_Interface&);
-	 void operator=(const Time_Interface &);
+  Time_Interface(const Time_Interface&);
+  void operator=(const Time_Interface &);
 };
-
 
 
 #endif

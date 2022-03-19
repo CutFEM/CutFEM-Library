@@ -10,6 +10,7 @@ set(PROBLEM_SOURCES
   itemVF.cpp
   testFunction.cpp
   extension.cpp
+  baseProblem.cpp
 )
 
 add_library(problem SHARED ${PROBLEM_SOURCES})

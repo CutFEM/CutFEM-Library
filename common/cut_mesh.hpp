@@ -10,6 +10,11 @@
 
 template<typename E >
 struct Cut_Part {
+  static const int dim = E::RdHat::d;
+  typedef SortArray<Ubyte, dim+1> ElementIdx;           // the vertices of a triangle of the cut:
+  typedef const ElementIdx* const_element_iterator;
+  typedef       ElementIdx*       element_iterator;
+  typedef typename E::Rd Rd;
 
   const Virtual_Partition<E>* partition_;
   const Partition<E> ip;
@@ -22,20 +27,25 @@ struct Cut_Part {
   Cut_Part(const Physical_Partition<E> p, int s) : pp(p), sign_cut_(s),ip(p.T) {
     partition_ = &pp;
   }
-
-  int get_sign() const {return sign_cut_;}
-  // const Partition<E>& get_partition() const {return partition_;}
-  void get_list_node (vector<typename E::Rd>& node) const{ partition_->get_list_node(node, sign_cut_); }
-  CutElement2 get_element(int k) const {return partition_->get_element(k);}
-  int nb_element() const {return partition_->nb_element();}
-
-
   Cut_Part(const Cut_Part<E>& p) :pp(p.pp), ip(p.ip) {
     if(p.partition_ == &p.pp) partition_ = &pp;
     else partition_ = &ip;
   }
-
+  int get_sign() const {return sign_cut_;}
+  // const Partition<E>& get_partition() const {return partition_;}
+  void get_list_node (vector<typename E::Rd>& node) const{ partition_->get_list_node(node, sign_cut_); }
+  CutElement<E> get_element(int k) const {return partition_->get_element(k);}
+  double mesure(int d) const {return partition_->mesure(d);}
+  Rd get_vertex(const_element_iterator it, const int i) const {return partition_->get_vertex(it,i);}
   bool multi_interface() const {return partition_ == &pp;}
+  int nb_element() const {return partition_->nb_element(sign_cut_);}
+
+  const_element_iterator element_begin () const{
+     return partition_->element_begin(sign_cut_);
+   }
+  const_element_iterator element_end () const{
+    return partition_->element_end(sign_cut_);
+  }
 
 };
 
@@ -51,21 +61,17 @@ public:
   static const int nea=Element::nea; //  numbering of adj (4 in Tet,  3 in Tria, 2 in seg)
   static const int nva=Element::nva; //  numbering of vertex in Adj hyperface
 
-
-  typedef SignPatternTrait2 SignPattern;
-  typedef RefPatch2 RefPatch;
-  typedef RefPartition2 RefPartition;
-  // typedef Partition2 Partition;
-
   const Mesh& Th;
 
-  // std::vector<std::vector<int>> idx_in_background_mesh_;   // [domain][idxK_cutMesh] -> idxK_backMesh
   std::vector<std::vector<int>> idx_in_background_mesh_;   // [domain][idxK_cutMesh] -> idxK_backMesh
   std::vector<std::map<int,int>>  idx_from_background_mesh_; // [domain](idxK_backMesh) -> idxK_cutMesh
-
-  std::map<std::pair<int,int>, std::vector<std::pair<const Interface<Mesh>*, int>>> interface_id_; // (domain_id, idx_k) -> [time_quad][n_interface](interface, sign)
-
+  std::vector<std::map<std::pair<int,int>, std::vector<std::pair<const Interface<Mesh>*, int>>>> interface_id_; // (domain_id, idx_k) -> [time_quad][n_interface](interface, sign)
   std::vector<int> idx_element_domain;
+
+  // For time problem
+  int nb_quadrature_time_;
+  // map des elements that are not always in the active mesh
+  std::vector<std::vector<std::map<int, bool>>> in_active_mesh_; // [dom][itq][idx_element] -> true/false
 
 public:
   // Create a CutMesh without cut on the backMesh
@@ -76,7 +82,8 @@ public:
     idx_in_background_mesh_.resize(1);
     idx_from_background_mesh_.resize(1);
     idx_in_background_mesh_[0].resize(Th.nt);
-
+    interface_id_.resize(5);
+    nb_quadrature_time_ = 1;
     for(int k = 0; k < Th.nt; ++k) {
       idx_in_background_mesh_[0][k] = k;
       idx_from_background_mesh_[0][k] = k;
@@ -91,15 +98,31 @@ public:
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(2);
     idx_from_background_mesh_.resize(2);
+    interface_id_.resize(1);
+    nb_quadrature_time_ = 1;
+    this->init(interface);
+  }
+
+  Cut_Mesh(const Mesh& th, const Time_Interface<Mesh>& interface) :  Th(th) {
+    idx_in_background_mesh_.reserve(10);
+    idx_from_background_mesh_.reserve(10);
+    idx_in_background_mesh_.resize(2);
+    idx_from_background_mesh_.resize(2);
+    nb_quadrature_time_ = interface.size();
+    interface_id_.resize(nb_quadrature_time_);
+    in_active_mesh_.resize(10);
+    for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
     this->init(interface);
   }
 
   void truncate(const Interface<Mesh>& interface, int sign_domain);
+  void truncate(const Time_Interface<Mesh>& interface, int sign_domain);
   void add(const Interface<Mesh>& interface);
   void create_surface_mesh(const Interface<Mesh>& interface);
   void create_surface_mesh(const Time_Interface<Mesh>& interface);
 private:
   void init(const Interface<Mesh>& interface);
+  void init(const Time_Interface<Mesh>& interface);
 
   bool check_exist(int k, int dom) const {
     const auto it = idx_from_background_mesh_[dom].find(k);
@@ -110,7 +133,7 @@ private:
   int idxK_in_domain(int k, int i) const {
     return k - this->idx_element_domain[i];
   }
-  Physical_Partition<Element> build_local_partition(const int k) const ;
+  Physical_Partition<Element> build_local_partition(const int k, int t=0) const ;
 
 public:
   DataFENodeDF BuildDFNumbering(int ndfv,int ndfe,int ndff,int ndft, int nndv,int nnde,int nndf,int nndt, int N=1, const PeriodicBC* PPeriod = nullptr) const {
@@ -141,54 +164,63 @@ public:
     }
     return s;
   }
-  int get_domain_element(int k) const {
+  int get_domain_element(const int k) const {
     for(int i=0;i<this->get_nb_domain();++i) {
-      if(k<idx_element_domain[i+1]) return i;
+      if(k<idx_element_domain[i+1]) {return i;}
     }
     assert(0);
   }
 
-  bool isCut(int k) const {
+  bool isCut(int k, int t = 0) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_.find(std::make_pair(domain, kloc));
-    return (it != interface_id_.end());
+    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    return (it != interface_id_[t].end());
   }
-  bool isCut(int k, int domain) const {
+  bool isCut(int k, int domain, int t = 0) const {
     int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_.find(std::make_pair(domain, kloc));
-    return (it != interface_id_.end());
+    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    return (it != interface_id_[t].end());
+  }
+  bool isActive(int k) const {
+
+    int domain = get_domain_element(k);
+    int kb = idxElementInBackMesh(k, domain);
+    int count = 0;
+    for(int i=0;i<get_nb_domain();++i){
+      if(check_exist(kb, i)) count++;
+    }
+    return (count>=2);
   }
 
-
-  const Interface<Mesh>& get_interface(int k) const {
+  const Interface<Mesh>& get_interface(int k, int t = 0) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_.find(std::make_pair(domain, kloc));
-    assert(it != interface_id_.end());
+    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    assert(it != interface_id_[t].end());
     return *(it->second.at(0).first);
   }
-  Partition<Element> get_partition(int k) const {
+  Partition<Element> get_partition(int k, int t = 0) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_.find(std::make_pair(domain, kloc));
-    assert(it != interface_id_.end());
+    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    assert(it != interface_id_[t].end());
     int kb = this->idxElementInBackMesh(k);
     return it->second.at(0).first->get_partition(kb);
   }
-  int get_sign_cut(int k) const {
+  int get_sign_cut(int k, int t = 0) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_.find(std::make_pair(domain, kloc));
-    assert(it != interface_id_.end());
+    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    assert(it != interface_id_[t].end());
     return it->second.at(0).second;
   }
-  Cut_Part<Element> get_cut_part(int k) const {
+  Cut_Part<Element> get_cut_part(int k, int t = 0) const {
 
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_.find(std::make_pair(domain, kloc));
-    assert(it != interface_id_.end());
+    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    assert(it != interface_id_[t].end());
     int kb = this->idxElementInBackMesh(k);
 
     if(it->second.size() == 1)
@@ -208,16 +240,22 @@ public:
     return idxK_begin(i) + it->second;
   }
 
-  int idxElementInBackMesh(int k) const {
+  int idxElementInBackMesh(const int k) const {
     int i = this->get_domain_element(k);
     int l = idxK_in_domain(k,i);
     return idx_in_background_mesh_[i][l];
   }
-  int ElementAdj(int k,int &j, int domain = 0) const {
+  int idxElementInBackMesh(const int k,int i) const {
+    int l = idxK_in_domain(k,i);
+    return idx_in_background_mesh_[i][l];
+  }
+  int ElementAdj(const int k,int &j) const {
+    int domain = get_domain_element(k);
     int kb  = this->idxElementInBackMesh(k);
     int kbn = this->Th.ElementAdj(kb,j);
     if(kbn == -1) return -1;
-    this->idxElementFromBackMesh(kbn, domain);
+
+    return this->idxElementFromBackMesh(kbn, domain);
   }
 
 };
@@ -241,8 +279,8 @@ void Cut_Mesh<Mesh>::init(const Interface<Mesh>& interface){
       idx_from_background_mesh_[0][k] = nt0;
       idx_in_background_mesh_[1].push_back(k);
       idx_from_background_mesh_[1][k] = nt1;
-      interface_id_[std::make_pair(0,nt0)].push_back(std::make_pair(&interface,  1));
-      interface_id_[std::make_pair(1,nt1)].push_back(std::make_pair(&interface, -1));
+      interface_id_[0][std::make_pair(0,nt0)].push_back(std::make_pair(&interface,  1));
+      interface_id_[0][std::make_pair(1,nt1)].push_back(std::make_pair(&interface, -1));
 
       nt0++; nt1++;
 
@@ -297,20 +335,20 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
 
 
       // std::cout << "domain \t" << d << " element back " << kb << "\t => loc id " << k << std::endl;
-      auto it_gamma = interface_id_.find(std::make_pair(d, k));
+      auto it_gamma = interface_id_[0].find(std::make_pair(d, k));
 
 
       const SignElement<Element> signK = interface.get_SignElement(kb);
 
-      int nb_interface = (it_gamma == interface_id_.end())? 0 :it_gamma->second.size();
+      int nb_interface = (it_gamma == interface_id_[0].end())? 0 :it_gamma->second.size();
       std::vector<const Interface<Mesh>*> old_interface(nb_interface);
       std::vector<int> ss(nb_interface);
       for(int i=0;i<nb_interface;++i) old_interface[i] = it_gamma->second[i].first;
       for(int i=0;i<nb_interface;++i) ss[i] = it_gamma->second[i].second;
 
-      if(it_gamma != interface_id_.end()) {
+      if(it_gamma != interface_id_[0].end()) {
         // std::cout << " found old interface " << std::endl;
-        auto ittt =   interface_id_.erase(it_gamma);
+        auto ittt =   interface_id_[0].erase(it_gamma);
       }
 
       if(signK.sign() == sign_domain || signK.cut()) {
@@ -323,7 +361,7 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
         idx_from_background_mesh_[new_dom_id][kb] = nt[new_dom_id];
 
         for(int i=0; i<nb_interface;++i) {
-          interface_id_[std::make_pair(new_dom_id,nt[new_dom_id])].push_back(std::make_pair(old_interface[i],  ss[i]));
+          interface_id_[0][std::make_pair(new_dom_id,nt[new_dom_id])].push_back(std::make_pair(old_interface[i],  ss[i]));
         }
 
 
@@ -337,11 +375,10 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
           // need to change k and add new interface
           // attach all interface to new element
           for(int i=0; i<nb_interface;++i) {
-            // interface_id_[std::make_pair(new_dom_id,nt[new_dom_id])].push_back(std::make_pair(old_interface[i],  ss[i]));
-            interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
+            interface_id_[0][std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
           }
-          interface_id_[std::make_pair(new_dom_id,nt[new_dom_id])].push_back(std::make_pair(&interface,  sign_domain));
-          interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(&interface,  -sign_domain));
+          interface_id_[0][std::make_pair(new_dom_id,nt[new_dom_id])].push_back(std::make_pair(&interface,  sign_domain));
+          interface_id_[0][std::make_pair(d,nt[d])].push_back(std::make_pair(&interface,  -sign_domain));
           nt[d]++;
           it_k++;
         }
@@ -355,7 +392,7 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
 
         // change the key of the interface_id map
         for(int i=0;i<nb_interface;++i){
-          interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
+          interface_id_[0][std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
         }
         it_k++;
         nt[d]++;
@@ -379,23 +416,7 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
     idx_in_background_mesh_[d].shrink_to_fit();
     int sum_nt = idx_element_domain[d] + nt[d];
     idx_element_domain.push_back(sum_nt);
-    // std::cout << sum_nt << "\t" ;
   }
-// std::cout << std::endl;
-  // for( int d=0; d<dom_size +1;++d){
-  //   std::cout << " domain " << d << "\t -------------" << std::endl;
-  //   for(int i=0;i<nt[d];++i) {
-  //     std::cout << i << "\t" << idx_in_background_mesh_[d][i] << std::endl;
-  //   }
-  //
-  // }
-
-//   for( int d=0; d<idx_element_domain.size();++d){
-//   std::cout << idx_element_domain[d] << std::endl;
-// }
-  // for(auto it=interface_id_.begin(); it != interface_id_.end();++it) {
-  //   std::cout << it->first.first << "\t" << it->first.second << "\t" << it->second[0].second << std::endl;
-  // }
 
   for( int d=0; d<new_dom_id+1;++d){
   std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
@@ -429,7 +450,7 @@ void Cut_Mesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain_r
       int k   = it_k->second;
 
       // std::cout << "domain \t" << d << " element back " << kb << "\t => loc id " << k << std::endl;
-      auto it_gamma = interface_id_.find(std::make_pair(d, k));
+      auto it_gamma = interface_id_[0].find(std::make_pair(d, k));
       const SignElement<Element> signK = interface.get_SignElement(kb);
 
       // REMOVE THE ELEMENT IN THE INPUT DOMAIN
@@ -442,24 +463,24 @@ void Cut_Mesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain_r
 
 
       // SAVE AND ERASE OLD INTERFACES
-      int nb_interface = (it_gamma == interface_id_.end())? 0 :it_gamma->second.size();
+      int nb_interface = (it_gamma == interface_id_[0].end())? 0 :it_gamma->second.size();
       std::vector<const Interface<Mesh>*> old_interface(nb_interface);
       std::vector<int> ss(nb_interface);
       for(int i=0;i<nb_interface;++i) old_interface[i] = it_gamma->second[i].first;
       for(int i=0;i<nb_interface;++i) ss[i] = it_gamma->second[i].second;
-      if(it_gamma != interface_id_.end()) {
-        auto ittt =   interface_id_.erase(it_gamma);
+      if(it_gamma != interface_id_[0].end()) {
+        auto ittt =   interface_id_[0].erase(it_gamma);
       }
 
       // SET NEW INDICES AND PUT BACK INTERFACES
       idx_in_background_mesh_[d].push_back(kb);
       it_k->second = nt[d];
       for(int i=0; i<nb_interface;++i) {
-        interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
+        interface_id_[0][std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
       }
       // IS CUT SO NEED TO ADD INTERFACE AND SIGN
       if (signK.cut()){
-        interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(&interface,  -sign_domain_remove));
+        interface_id_[0][std::make_pair(d,nt[d])].push_back(std::make_pair(&interface,  -sign_domain_remove));
       }
       nt[d]++;
       it_k++;
@@ -473,28 +494,10 @@ void Cut_Mesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain_r
     int sum_nt = idx_element_domain[d] + nt[d];
     idx_element_domain.push_back(sum_nt);
   }
-// std::cout << std::endl;
-  // for( int d=0; d<dom_size +1;++d){
-  //   std::cout << " domain " << d << "\t -------------" << std::endl;
-  //   for(int i=0;i<nt[d];++i) {
-  //     std::cout << i << "\t" << idx_in_background_mesh_[d][i] << std::endl;
-  //   }
-  //
-  // }
-
-//   for( int d=0; d<idx_element_domain.size();++d){
-//   std::cout << idx_element_domain[d] << std::endl;
-// }
-  // for(auto it=interface_id_.begin(); it != interface_id_.end();++it) {
-  //   std::cout << it->first.first << "\t" << it->first.second << "\t" << it->second[0].second << std::endl;
-  // }
 
   for( int d=0; d<dom_size;++d){
   std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
   }
-  // std::cout << " nb elements in 0 \t" << this->get_nb_element(0) << std::endl;
-  // std::cout << " nb elements in 1 \t" << this->get_nb_element(1) << std::endl;
-
   std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
 
 }
@@ -522,7 +525,7 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
       int k   = it_k->second;
 
       // std::cout << "domain \t" << d << " element back " << kb << "\t => loc id " << k << std::endl;
-      auto it_gamma = interface_id_.find(std::make_pair(d, k));
+      auto it_gamma = interface_id_[0].find(std::make_pair(d, k));
       const SignElement<Element> signK = interface.get_SignElement(kb);
 
       // REMOVE THE ELEMENT IN THE INPUT DOMAIN
@@ -534,23 +537,23 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
 
 
       // SAVE AND ERASE OLD INTERFACES
-      int nb_interface = (it_gamma == interface_id_.end())? 0 :it_gamma->second.size();
+      int nb_interface = (it_gamma == interface_id_[0].end())? 0 :it_gamma->second.size();
       std::vector<const Interface<Mesh>*> old_interface(nb_interface);
       std::vector<int> ss(nb_interface);
       for(int i=0;i<nb_interface;++i) old_interface[i] = it_gamma->second[i].first;
       for(int i=0;i<nb_interface;++i) ss[i] = it_gamma->second[i].second;
-      if(it_gamma != interface_id_.end()) {
-        auto ittt =   interface_id_.erase(it_gamma);
+      if(it_gamma != interface_id_[0].end()) {
+        auto ittt =   interface_id_[0].erase(it_gamma);
       }
 
       // SET NEW INDICES AND PUT BACK INTERFACES
       idx_in_background_mesh_[d].push_back(kb);
       it_k->second = nt[d];
       for(int i=0; i<nb_interface;++i) {
-        interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
+        interface_id_[0][std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
       }
       // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-      interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(&interface,  0));
+      interface_id_[0][std::make_pair(d,nt[d])].push_back(std::make_pair(&interface,  0));
       nt[d]++;
       it_k++;
     }
@@ -574,6 +577,7 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
 template<typename Mesh>
 void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
 
+  int n_tid = interface.size();
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
 
@@ -592,44 +596,45 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
       int kb  = it_k->first;
       int k   = it_k->second;
 
-      // std::cout << "domain \t" << d << " element back " << kb << "\t => loc id " << k << std::endl;
-      auto it_gamma = interface_id_.find(std::make_pair(d, k));
 
       bool active_element = false;
       for(int t=0;t<interface.size()-1;++t){
         const SignElement<Element> signKi  = interface(t)->get_SignElement(kb);
         const SignElement<Element> signKii = interface(t+1)->get_SignElement(kb);
+
         if(signKi.cut() || signKii.cut() || signKi.sign()*signKii.sign()<=0) {
           active_element = true;
           break;
         }
       }
 
-      // REMOVE THE ELEMENT IN THE INPUT DOMAIN
-      if(!active_element ) {
-        it_k = idx_from_background_mesh_[d].erase(it_k);
-        continue;
+
+      // SAVE AND ERASE OLD INTERFACES EACH TIME STEP
+      for( int it=0; it< n_tid; ++it) {
+        auto it_gamma = interface_id_[it].find(std::make_pair(d, k));
+        int nb_interface = (it_gamma == interface_id_[it].end())? 0 :it_gamma->second.size();
+        std::vector<const Interface<Mesh>*> old_interface(nb_interface);
+        std::vector<int> ss(nb_interface);
+        for(int i=0;i<nb_interface;++i) old_interface[i] = it_gamma->second[i].first;
+        for(int i=0;i<nb_interface;++i) ss[i] = it_gamma->second[i].second;
+        if(it_gamma != interface_id_[it].end()) {
+          auto ittt =   interface_id_[it].erase(it_gamma);
+        }
+        // PUT BACK INTERFACES
+        for(int i=0; i<nb_interface;++i) {
+          interface_id_[it][std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
+        }
+        // IS CUT SO NEED TO ADD INTERFACE AND SIGN
+        const SignElement<Element> signK  = interface(it)->get_SignElement(kb);
+
+        if (signK.cut()) {
+          interface_id_[it][std::make_pair(d,nt[d])].push_back(std::make_pair(interface[it],  0));
+        } else {
+          in_active_mesh_[d][it][nt[d]] = false;
+        }
       }
-
-
-      // SAVE AND ERASE OLD INTERFACES
-      int nb_interface = (it_gamma == interface_id_.end())? 0 :it_gamma->second.size();
-      std::vector<const Interface<Mesh>*> old_interface(nb_interface);
-      std::vector<int> ss(nb_interface);
-      for(int i=0;i<nb_interface;++i) old_interface[i] = it_gamma->second[i].first;
-      for(int i=0;i<nb_interface;++i) ss[i] = it_gamma->second[i].second;
-      if(it_gamma != interface_id_.end()) {
-        auto ittt =   interface_id_.erase(it_gamma);
-      }
-
-      // SET NEW INDICES AND PUT BACK INTERFACES
-      idx_in_background_mesh_[d].push_back(kb);
       it_k->second = nt[d];
-      for(int i=0; i<nb_interface;++i) {
-        interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
-      }
-      // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-      interface_id_[std::make_pair(d,nt[d])].push_back(std::make_pair(interface[0],  0));
+      idx_in_background_mesh_[d].push_back(kb);
       nt[d]++;
       it_k++;
     }
@@ -651,18 +656,179 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
 }
 
 
+//  constructor for basic 2 subdomains problem {1, -1}
+template<typename Mesh>
+void Cut_Mesh<Mesh>::init(const Time_Interface<Mesh>& interface){
+
+  int n_tid = interface.size();
+  nb_quadrature_time_ = n_tid;
+  in_active_mesh_.resize(10);
+  for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
+
+  idx_in_background_mesh_[0].reserve(Th.nt);
+  idx_in_background_mesh_[1].reserve(Th.nt);
+  idx_element_domain.push_back(0);
+  int nt0=0, nt1=0;
+  for(int k = 0; k < Th.nt; ++k) {
+
+    bool active_element = false;
+    int s;
+    for(int t=0;t<interface.size()-1;++t){
+      const SignElement<Element> signKi  = interface(t)->get_SignElement(k);
+      const SignElement<Element> signKii = interface(t+1)->get_SignElement(k);
+      s = signKi.sign();
+      if(signKi.cut() || signKii.cut() || signKi.sign()*signKii.sign()<=0) {
+        active_element = true;
+        break;
+      }
+    }
+
+    if(active_element) {
+      for( int it=0; it< n_tid; ++it) {
+        const SignElement<Element> signK  = interface(it)->get_SignElement(k);
+        int st = signK.sign();
+        if(!signK.cut() && st == -1) {in_active_mesh_[0][it][nt0] = false; }
+        if(!signK.cut() && st == 1)  {in_active_mesh_[1][it][nt1] = false; }
+
+        if (signK.cut()){
+          interface_id_[it][std::make_pair(0,nt0)].push_back(std::make_pair(interface[it],  1));
+          interface_id_[it][std::make_pair(1,nt1)].push_back(std::make_pair(interface[it], -1));
+        }
+      }
+      idx_in_background_mesh_[0].push_back(k);
+      idx_from_background_mesh_[0][k] = nt0;
+      idx_in_background_mesh_[1].push_back(k);
+      idx_from_background_mesh_[1][k] = nt1;
+      nt0++; nt1++;
+    }
+    else {
+      int dom_add = (s<0);
+      int dom_rm  = (s>0);
+      int& nnt = (s > 0)? nt0 : nt1;
+      idx_in_background_mesh_[dom_add].push_back(k);
+      idx_from_background_mesh_[dom_add][k] = nnt;
+      nnt++;
+    }
+  }
+  idx_in_background_mesh_[0].resize(nt0);
+  idx_in_background_mesh_[1].resize(nt1);
+  idx_in_background_mesh_[0].shrink_to_fit();
+  idx_in_background_mesh_[1].shrink_to_fit();
+
+  idx_element_domain.push_back(nt0);
+  idx_element_domain.push_back(nt0+nt1);
+
+  std::cout << " nb elements in 0 \t" << this->get_nb_element(0) << std::endl;
+  std::cout << " nb elements in 1 \t" << this->get_nb_element(1) << std::endl;
+  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
+}
+
+template<typename Mesh>
+void Cut_Mesh<Mesh>::truncate(const Time_Interface<Mesh>& interface,int sign_domain_remove){
+
+  int n_tid = interface.size();
+  nb_quadrature_time_ = n_tid;
+  in_active_mesh_.resize(10);
+  for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
+
+  int dom_size = this->get_nb_domain();
+  idx_element_domain.resize(0);
+
+  {
+    for( int d=0; d<dom_size;++d){
+      idx_in_background_mesh_[d].resize(0);
+      int nt_max = idx_from_background_mesh_[d].size();
+      idx_in_background_mesh_[d].reserve(nt_max);
+    }
+  }
+
+  std::vector<int> nt(dom_size, 0.);
+  for( int d=0; d<dom_size;++d){
+    for(auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end() ;) {
+
+      int kb  = it_k->first;
+      int k   = it_k->second;
+
+      bool active_element = false;
+      int s;
+      for(int t=0;t<interface.size()-1;++t){
+        const SignElement<Element> signKi  = interface(t)->get_SignElement(kb);
+        const SignElement<Element> signKii = interface(t+1)->get_SignElement(kb);
+        s = signKi.sign();
+        if(signKi.cut() || signKii.cut() || signKi.sign()*signKii.sign()<=0) {
+          active_element = true;
+          break;
+        }
+      }
+      // REMOVE THE ELEMENT IN THE INPUT DOMAIN
+      if(s == sign_domain_remove && !active_element) {
+        it_k = idx_from_background_mesh_[d].erase(it_k);
+        continue;
+      }
+
+
+
+      // SAVE AND ERASE OLD INTERFACES
+      for( int it=0; it< n_tid; ++it) {
+        auto it_gamma = interface_id_[it].find(std::make_pair(d, k));
+        int nb_interface = (it_gamma == interface_id_[it].end())? 0 :it_gamma->second.size();
+        std::vector<const Interface<Mesh>*> old_interface(nb_interface);
+        std::vector<int> ss(nb_interface);
+        for(int i=0;i<nb_interface;++i) old_interface[i] = it_gamma->second[i].first;
+        for(int i=0;i<nb_interface;++i) ss[i] = it_gamma->second[i].second;
+        if(it_gamma != interface_id_[it].end()) {
+          auto ittt =   interface_id_[it].erase(it_gamma);
+        }
+        // PUT BACK INTERFACES
+        for(int i=0; i<nb_interface;++i) {
+          interface_id_[it][std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));
+        }
+        // IS CUT SO NEED TO ADD INTERFACE AND SIGN
+        const SignElement<Element> signK  = interface(it)->get_SignElement(kb);
+        if (signK.cut()){
+          interface_id_[it][std::make_pair(d,nt[d])].push_back(std::make_pair(interface[it],  -sign_domain_remove));
+        }
+        else if(signK.sign() == sign_domain_remove) {
+          in_active_mesh_[d][it][nt[d]] = false;
+        }
+      }
+
+      // SET NEW INDICES AND PUT BACK INTERFACES
+      idx_in_background_mesh_[d].push_back(kb);
+      it_k->second = nt[d];
+      nt[d]++;
+      it_k++;
+    }
+  }
+
+  idx_element_domain.push_back(0);
+  for( int d=0; d<dom_size;++d){
+    idx_in_background_mesh_[d].resize(nt[d]);
+    idx_in_background_mesh_[d].shrink_to_fit();
+    int sum_nt = idx_element_domain[d] + nt[d];
+    idx_element_domain.push_back(sum_nt);
+  }
+
+  for( int d=0; d<dom_size;++d){
+  std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
+  }
+  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
+
+}
+
 
 
 template<typename Mesh>
-Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition(const int k) const {
+Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition(const int k, int t) const {
 
   int nvc = Element::Rd::d+1;
-  typedef SortArray<int, Element::Rd::d+1> ElementIdx;
+  typedef SortArray<Ubyte, Element::Rd::d+1> ElementIdx;
   // GET THE ELEMENT TO BE CUT
   const Element& K((*this)[k]);
   Physical_Partition<Element> partition(K);
+  std::vector<ElementIdx>  elements_idx;
 
-  int iv[Element::nb_ntcut][nvc];
+  Ubyte iv[Element::nb_ntcut][nvc];
 
   // INITIALIZE THE LOCAL_PARTITION WITH K
   for( int e=0;e<Element::nb_ntcut ;e++){
@@ -674,12 +840,8 @@ Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition
     partition.add_node(K[i]);
   }
   for( int e=0;e<Element::nb_ntcut ;e++){
-    partition.add_element(ElementIdx(iv[e]));
-    // std::cout << " initial element " << e << std::endl;
-    // for(int i=0; i<nvc; ++i) {
-    //   std::cout << K[iv[e][i]] << "\t";
-    // }
-    // std::cout << std::endl;
+    // partition.add_element(ElementIdx(iv[e]));
+    elements_idx.push_back(ElementIdx(iv[e]));
   }
 
   if(!isCut(k)) return partition;
@@ -690,7 +852,7 @@ Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition
 
   int domain = get_domain_element(k);
   int kloc = idxK_in_domain(k, domain);
-  auto it = interface_id_.find(std::make_pair(domain, kloc));
+  auto it = interface_id_[t].find(std::make_pair(domain, kloc));
 
   // std::cout << " ELEMENT \t" << k << "in domain " << domain << std::endl;
   // std::cout << it->second.size() << " interfaces " << std::endl;
@@ -711,13 +873,23 @@ Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition
     // ERASING THE CUT ELEMENTS
     for(auto it = erased_element.begin(); it != erased_element.end(); ++it){
       // std::cout << " erased element " << *it << std::endl;
-      partition.erase_element(*it);
+      // partition.erase_element(*it);
+      elements_idx.erase(elements_idx.begin()+(*it));
     }
     // CREATING THE NEW ELEMENTS
      for(auto it = new_element_idx.begin(); it != new_element_idx.end(); ++it){
-       partition.add_element(*it);
+       // partition.add_element(*it);
+       elements_idx.push_back(ElementIdx(*it));
+
      }
      // std::cout << " iteration " << i << "nb K " << partition.nb_element() << std::endl;
+  }
+  if(elements_idx.size() >= partition.max_size()){
+    std::cout << " Need to increase maximum size of array element_idx in Physical partition" << std::endl;
+    assert(0);
+  }
+  for(int i=0;i<elements_idx.size();++i){
+    partition.set_element(i, elements_idx[i]);
   }
   return partition;
 }

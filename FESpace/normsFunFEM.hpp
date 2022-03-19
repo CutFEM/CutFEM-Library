@@ -188,6 +188,65 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
   return val_receive;
 
 }
+template<typename M>
+double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int domain, const GFESpace<M>& Vh, double t, const MacroElement* macro) {
+  typedef Mesh2 Mesh;
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::Rd Rd;
+  typedef typename Mesh::Partition Partition;
+  typedef typename QF::QuadraturePoint QuadraturePoint;
+  typedef typename TypeCutData<Rd::d>::CutData CutData;
+
+  const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
+
+  What_d Fop = Fwhatd(op_id);
+
+  double val = 0.;
+
+  for(int k=Vh.first_element(); k<Vh.last_element(); k+= Vh.next_element()) {
+
+    const FElement& FK(Vh[k]);
+    if(domain != FK.whichDomain()) continue;
+
+    const int kb = Vh.Th(FK.T);
+    CutData cutData(Vh.getInterface(0).getCutData(kb));     // get the cut data
+    const Partition& cutK =  Partition(FK.T, cutData);  // build the cut
+    ElementSignEnum the_part = cutK.what_part(domain);
+
+    int kk = k;
+    // if(macro){
+    //   if(!macro->isRootFat(k)) {
+    //     kk = macro->getIndexRootElement(k);
+    //   }
+    // }
+
+    for(typename Partition::const_element_iterator it = cutK.element_begin(the_part);
+    it != cutK.element_end(the_part); ++it){
+
+      const R meas = cutK.mesure(it);
+
+      for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+        QuadraturePoint ip(qf[ipq]); // integration point
+        Rd mip = cutK.toK(it, ip);
+        const R Cint = meas * ip.getWeight();
+
+        double a = fh.eval(kk, mip) - fex(mip, fh.cu, domain, t);
+
+        val += Cint * a * a;
+
+      }
+    }
+
+  }
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_SUM);
+
+  return val_receive;
+
+}
 
 template<typename M>
 double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement* macro) {
@@ -195,6 +254,11 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
   return L2normCut_2(fh,fex, 0, Vh, macro) + L2normCut_2(fh,fex,1, Vh, macro);
 }
 
+template<typename M>
+double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, double t, const MacroElement* macro) {
+
+  return L2normCut_2(fh,fex, 0, Vh, t, macro) + L2normCut_2(fh,fex,1, Vh, t, macro);
+}
 
 
 template<typename M>
@@ -239,6 +303,19 @@ double L2norm( const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
   return sqrt(val);
 }
 
+
+template<typename M>
+double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom, double tt), double t, int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d, const MacroElement* macro=nullptr) {
+
+  const GFESpace<M>& Vh(*fh.Vh);
+
+  double val = 0;
+  for(int i=c0;i<num_comp+c0;++i) {
+    ExpressionFunFEM<M> ui(fh, i, op_id);
+    val += L2normCut_2(ui,fex, Vh, t, macro);
+  }
+  return sqrt(val);
+}
 
 template<typename M>
 double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d, const MacroElement* macro=nullptr) {

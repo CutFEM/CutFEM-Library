@@ -17,7 +17,7 @@
 #include "baseCutProblem.hpp"
 
 // #include "gnuplot.hpp"
-#define TEST_2D
+#define TEST_3D
 
 
 
@@ -27,7 +27,7 @@ R fun_div0(const R2 P,const int i, int d) {return (i==0)?4*sin(P[0]):4*cos(P[1])
 R fdiv(const R2 P,const int i, int d) {return 4*cos(P[0]) - 4*sin(P[1]);}
 
 
-R fun_levelSet(const R2 P, const int i, const R t) {
+R fun_levelSet(const R2 P, const int i) {
   double x=P.x, y=P.y;
   return 0.5*(sqrt(x*x + y*y) -0.1*cos(5*atan2(y,x)+2) - 0.25);
 }
@@ -35,22 +35,24 @@ R fun_levelSet(const R2 P, const int i, const R t) {
 R fun_levelSet2_1(const R2 P, const int i) {
   R shiftX = 0.5;
   R shiftY = 0.5;
-  R r = 0.3;
+  R r = 0.250001;//0.3;
   double x=P.x, y=P.y;
   // return 0.5*(sqrt(x*x + y*y) -0.075*cos(5*atan2(y,x)+2) - 0.25);
   return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
-  // return -P.x+P.y - 0.2197;
+  // return P.x-P.y + 0.1197;
   // return P.y - 0.550766;
 
 }
 
 R fun_levelSet2_2(const R2 P, const int i) {
-  R shiftX = 0.6;
-  R shiftY = 0.6;
+  R shiftX = 1.5;
+  R shiftY = 0.5;
   R r = 0.3;
-  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
-  // return -0.5*P.x+P.y + .2197;
   // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  return P.x - 2*P.y - .2197;
+  // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  // return P.x+P.y - 0.40753;
+
   // return P.x+P.y - 0.40753;
   // return P.x - 0.50737;
 }
@@ -70,21 +72,6 @@ R fun_levelSet2_4(const R2 P, const int i) {
   // return P.x+P.y - 0.40753;
 }
 
-R fun_levelSet3(const R3 P, const int i) {
-  R shiftX = 0.5;
-  R shiftY = 0.5;
-  R shiftZ = 0.5;
-  R r = 0.3;
-  // double v = sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
-  // return (v<0)? -1 : 1;
-  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
-  // return -0.25*P.x - 0.25*P.y + 0.25*P.z - 0.125;  // 3 cuts
-  // return P.x - 0.5;  // 4 cuts
-  // return 0.5*P.x +0.5*P.y - P.z - 0.2;   // 5 cuts
-  // return 0.5*P.x +0.5*P.y - P.z - 0.002;   // 5 cuts
-
-  // return 0.5*P.x +0.5*P.y - 0.5*P.z - 0.2;   // 6 cuts
-}
 R fun_id(const R2 P,const int i) {return i;}//P[i];}
 R fun_time(const R2 P,const int i, const R t) {return 1+t;}
 // R fun_test(const R2 P,const int i) {return P.x + P.y;}
@@ -96,8 +83,7 @@ R fun_test(const R2 P,const int i, int d) {return d;}
 //
 // double myx2(double x) {return x*x;}
 
-int main(int argc, char** argv )
-{
+int main(int argc, char** argv ){
   // typedef MeshQuad2 Mesh;
   // typedef Cut_MeshQ2 CutMesh;
   // typedef FESpaceQ2       Space;
@@ -118,59 +104,61 @@ int main(int argc, char** argv )
   MPIcf cfMPI(argc,argv);
 
 
-  int nx = 22;
-  int ny = 22;
+  int nx = 20;
+  int ny = 20;
   int nz = 3;
   // MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
   // Mesh Th(nx, ny, -0.5, -0.5, 1., 1.);  // Flower shape
+  // Mesh Th(nx, ny, 0., 0., 2., 2.);
   Mesh Th(nx, ny, 0., 0., 1., 1.);
   Th.info();
-
 
   // FESpaceQ3 Lh(Th, DataFE<Mesh>::P1);
   // Fun_h levelSet(Lh, fun_levelSet3);
   Space Lh(Th, DataFE<Mesh>::P1);
   Fun_h levelSet1(Lh, fun_levelSet2_1);
-  Fun_h levelSet2(Lh, fun_levelSet2_2);
+  // Fun_h levelSet2(Lh, fun_levelSet2_2);
   // Fun_h levelSet3(Lh, fun_levelSet2_3);
   // Fun_h levelSet4(Lh, fun_levelSet2_4);
 
+  // KN<Fun_h> ls(2);
+  // ls(0).init(Lh, fun_levelSet);
+  // ls(1).init(Lh, fun_levelSet2_2);
+
   Interface_LevelSet<Mesh> interface1(Th, levelSet1);
-  Interface_LevelSet<Mesh> interface2(Th, levelSet2);
-  KN<Interface_LevelSet<Mesh>*> ls(2);
-  ls(0) = &interface1;
-  ls(1) = &interface2;
-
-
-  Time_Interface<Mesh> interface(ls);
-  // interface.init(Th, &levelSet1);
+  // Interface_LevelSet<Mesh> interface2(Th, levelSet2);
   // Interface_LevelSet<Mesh> interface3(Th, levelSet3);
   // Interface_LevelSet<Mesh> interface4(Th, levelSet4);
+  // KN<Interface_LevelSet<Mesh>*> ls(2);
+  // ls(0) = &interface1;
+  // ls(1) = &interface2;
 
-  Cut_Mesh<Mesh> cutTh(Th);
-  cutTh.create_surface_mesh(interface);
+
+  // Time_Interface<Mesh> interface(2);
+  // interface.init(0,Th, ls[0]);
+  // interface.init(1,Th, ls[1]);
+
+  // interface.init(Th, &levelSet1);
+
+
+  Cut_Mesh<Mesh> cutTh(Th,interface1);
+  // cutTh.truncate(interface1, -1);
+  // cutTh.create_surface_mesh(interface1);
+  // cutTh.add(interface1);
   // cutTh.add(interface2);
-  // cutTh.truncate(interface2, -1);
   // cutTh.truncate(interface3, -1);
   // cutTh.truncate(interface4, -1);
-  // cutTh.add(interface3);
+  // cutTh.add(interface1);
 
-  // cutTh.add(interface2, 1);
+
   // cutTh.add(interface4, -1);
   // CutMesh cutTh(Th, interface);
-  CutSpace Vh(cutTh, Lh);
-  Fun_h ftest(Vh, fun_test);
 
+  // CutSpace Vh(cutTh, Lh);
+  // Fun_h ftest(Vh, fun_test);
+  MacroElementCL<Mesh> macro(cutTh, 2e-1);
+  // MacroElementSurfaceCL<Mesh> macro_surface(interface1, 1e-1);
 
-  // for(int k=0;k<Vh.NbElement();++k) {
-  //   const FElement& FK(Vh[k]);
-  //   std::cout << " element " << k << "\t id backMesh " << Th(FK.T) << std::endl;
-  //   std::cout << FK.whichDomain() << std::endl;
-  // //   int id = cutTh.find_domain_element(k);
-  // //   std::cout << "domain \t" << id << " id back mesh \t" << cutTh.idxElementInBackMesh(k) << std::endl;
-  // }
-
-  // std::cout << levelSet.v << std::endl;
 
   // const MeshHexa::Element& T(Th[0]);
   // std::vector<int> list_cut;
@@ -199,12 +187,39 @@ int main(int argc, char** argv )
   // FK.BF(Fop_Dall, x, bf);
   // std::cout << bf<< std::endl;
 
-  // Paraview<MeshQuad2> writer(Lh, nullptr, "hexa_Test.vtk");
+  // ParaviewCut<Mesh> writer1(cutTh, "macro_active_mesh.vtk");
+  // writer1.write_active_mesh();
+  // writer1.add(levelSet1, "levelSet1", 0, 1);
+  // ParaviewCut<Mesh> writer1(cutTh, "macro_backMesh.vtk");
+  // writer1.write_active_mesh();
+  // writer1.add(levelSet1, "levelSet1", 0, 1);
 
-  ParaviewCut<Mesh> writer(cutTh,  "quad_new.vtk");
-  writer.add(ftest, "test_fun", 0, 1);
-  writer.add(levelSet1, "levelSet1", 0, 1);
-  writer.add(levelSet2, "levelSet2", 0, 1);
+  // ParaviewCut<Mesh> writer (cutTh, "macro_surface_element.vtk");
+  // writer.write_macro_element(macro_surface);
+  // ParaviewCut<Mesh> writer3 (cutTh, "macro_surface_outter_edge.vtk");
+  // writer3.writeMacroOutterEdge(macro_surface);
+  // ParaviewCut<Mesh> writer4 (cutTh, "macro_surface_inner_edge.vtk");
+  // writer4.writeMacroInnerEdge(macro_surface);
+
+  ParaviewCut<Mesh> writer (cutTh, "macro_element.vtk");
+  writer.write_macro_element(macro, 0);
+  ParaviewCut<Mesh> writer2 (cutTh, "macro_inner_edge.vtk");
+  writer2.writeMacroInnerEdge(macro, 0);
+  ParaviewCut<Mesh> writer3 (cutTh, "macro_outter_edge.vtk");
+  writer3.writeMacroOutterEdge(macro, 0);
+
+
+
+  // writer.add(levelSet1, "levelSet1", 0, 1);
+  // writer.add(levelSet2, "levelSet2", 0, 1);
+  // writer.add(levelSet3, "levelSet3", 0, 1);
+  // writer.add(levelSet4, "levelSet4", 0, 1);
+
+
+  // ParaviewCut<Mesh> writer(cutTh,  "background_mesh_quad.vtk");
+  // writer.add(ftest, "test_fun", 0, 1);
+  // writer.add(levelSet1, "levelSet1", 0, 1);
+  // writer.add(levelSet2, "levelSet2", 0, 1);
   // Paraview<Mesh> writer(Vh, levelSet, "quad_Test.vtk");
   // Paraview<Mesh> writers(Lh, nullptr, "hexa_Test2.vtk");
   // writer.add(levelSet, "levelSet", 0, 1);
@@ -215,6 +230,76 @@ int main(int argc, char** argv )
   std::cout << " need to check case 3 and 4 " << std::endl;
 
 
+  return 0;
+
+}
+
+#endif
+#ifdef TEST_3D
+
+R fun_levelSet(const R3 P, const int i) {
+  R shiftX = 0.;
+  R shiftY = 0.;
+  R shiftZ = 0.;
+  R r = 1.0001;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+  // return -0.25*P.x - 0.25*P.y + 0.25*P.z - 0.125;  // 3 cuts
+  // return P.x - 0.5;  // 4 cuts
+  // return 0.5*P.x +0.5*P.y - P.z - 0.2;   // 5 cuts
+  // return 0.5*P.x +0.5*P.y - P.z - 0.002;   // 5 cuts
+  // return 0.5*P.x +0.3*P.y - 0.5*P.z - 0.2;   // 6 cuts
+  // return 0.5*P.x -0.5*P.y + 0.5*P.z - 0.2;   // 6 cuts
+  // return -0.5*P.x +0.5*P.y + 0.5*P.z - 0.2;   // 6 cuts
+
+
+}
+R fun_id(const R3 P,const int i) {return P[i];}
+R fun_1(const R3 P,const int i) {return 1;}
+
+
+int main(int argc, char** argv )
+{
+  typedef MeshHexa     Mesh;
+  typedef Cut_MeshQ3   CutMesh;
+  typedef FESpaceQ3    Space;
+  typedef CutFESpaceQ3 CutSpace;
+
+  typedef typename Space::FElement FElement;
+  typedef FunFEM<Mesh> Fun_h;
+  const double cpubegin = CPUtime();
+
+  MPIcf cfMPI(argc,argv);
+
+
+  int    nx = 10, ny = 10, nz = 10;
+  double lx = 3., ly = 3., lz = 3.;
+  MeshHexa Th(nx, ny, nz, -1.5, -1.5, -1.5, lx, ly, lz);
+  Th.info();
+
+
+  Space Lh(Th, DataFE<Mesh>::P1);
+  Fun_h levelSet(Lh, fun_levelSet);
+  Interface_LevelSet<Mesh> interface(Th, levelSet);
+
+
+  Cut_Mesh<Mesh> Kh(Th, interface);
+  Cut_Mesh<Mesh> Sh(Th);
+  Sh.create_surface_mesh(interface);
+
+
+
+
+  ParaviewCut<Mesh> writer(Th,"hexa_Test.vtk");
+  writer.add(levelSet, "levelSet", 0, 1);
+
+  // writer.add(ftest, "test_fun", 0, 1);
+
+}
+
+
+// SEEMS THAT THE 3 CUTS CASE IS PROBLEMATIC
+
+// {
   // Cut_Mesh2 cutTh(Th, levelSet.v);
 
 
@@ -415,94 +500,7 @@ int main(int argc, char** argv )
 // tt.insert(5);
 // tt.insert(1);
 // show("test" , tt);
-
-  return 0;
-
-}
-
-#endif
-#ifdef TEST_3D
-
-// R fun_expr(const R2 P,const int i) {return 10;}
-// R fun_div0(const R2 P,const int i, int d) {return (i==0)?4*sin(P[0]):4*cos(P[1]);}
-// R fdiv(const R2 P,const int i, int d) {return 4*cos(P[0]) - 4*sin(P[1]);}
-R fun_levelSet(const R3 P, const int i) {
-  return sqrt(P.x*P.x + P.y*P.y + P.z*P.z) - 0.25;
-}
-R fun_id(const R3 P,const int i) {return P[i];}
-R fun_1(const R3 P,const int i) {return 1;}
-
-// R fun_time(const R2 P,const int i, const R t) {return 1+t;}
-
-
-int main(int argc, char** argv )
-{
-  const int d = 3;
-  typedef Mesh3 Mesh;
-  typedef GFESpace<Mesh> FESpace;
-  typedef Interface3 Interface;
-  typedef TestFunction<d> FunTest;
-  typedef FunFEM<Mesh> Fun_h;
-  typedef GLevelSet<Mesh> LevelSet;
-  // typedef GCurvature<Mesh> Curvature;
-
-  MPIcf cfMPI(argc,argv);
-  const double cpubegin = CPUtime();
-
-  int nx = 40;
-  int ny = 40;
-  int nz = 40;
-
-  Mesh3 Th(nx, ny, nz, -1, -1, -1, 2., 2., 2.);
-  double meshSize = (4./nx);
-  double dT = meshSize/4;//1./100;
-  GTime::time_step = dT;
-  GTime::total_number_iteration = 1;//int(0.25/dT);
-  Mesh1 Qh(GTime::total_number_iteration+1, GTime::t0, GTime::final_time());
-
-
-  FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
-  const QuadratureFormular1d& qTime(*Lobatto(3));
-  const Uint nbTime = qTime.n;
-  const Uint ndfTime = Ih[0].NbDoF();
-
-  std::cout << " nx        \t" << nx << std::endl;
-  std::cout << " nb nodes  \t" << Th.nv << std::endl;
-  std::cout << " nb elements\t" << Th.nt << std::endl;
-  std::cout << " Mesh size \t" << meshSize << std::endl;
-  std::cout << " Time Step \t" << dT << std::endl;
-  std::cout << " Number of iteration \t" << GTime::total_number_iteration << std::endl;
-  std::cout << " We are using the Simpson rule (3 quadrature points)" << std::endl;
-  std::cout << " number of quadrature points in time : \t" << nbTime << std::endl;
-  std::cout << " number of dof in time per time slab : \t" << ndfTime << std::endl;
-
-
-  // levelSet stuff
-  // ----------------------------------------------
-  std::cout << "\n --------------------------------------- \n " << std::endl;
-  std::cout << " We use a P2 levelSet function and project it to a piecewise linear space \n in order to create the interface " << std::endl;
-  FESpace Lh  (Th, DataFE<Mesh>::P1);
-  Fun_h levelSet(Lh, fun_levelSet);
-
-  Interface3 interface(Th, levelSet.v);
-
-
-  SubDomain3 Lh1(Lh, levelSet, 1);
-  SubDomain3 Lh2(Lh, levelSet,-1);
-  KN<SubDomain3*> subDomainsLh(2);
-  subDomainsLh(0) = &Lh1;  // domain index 0
-  subDomainsLh(1) = &Lh2;  // domain index 1
-  CutFESpace3 Zh(subDomainsLh, interface);
-
-  Fun_h solCut1(Zh, fun_1);
-  std::cout << integral(solCut1, 0, 1) << "\t" << 4./3*M_PI*pow(0.25,3)<< std::endl;
-  std::cout << integralSurf(solCut1, 0, 0) << "\t" << 4*M_PI*pow(0.25,2) << std::endl;
-
-
-  // Paraview3 writerS(Zh, levelSet, "testPlotCut3D.vtk");
-  // writerS.add(levelSet, "levelSet", 0, 1);
-}
-
+// }
 
 
 #endif

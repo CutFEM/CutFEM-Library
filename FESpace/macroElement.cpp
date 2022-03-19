@@ -13,12 +13,10 @@ MacroElement::MacroElement(const FESpace2& vh, const double C) : GMacro() , Vh(v
   std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
   std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
   find_root_element();
-
-
 }
 
 void MacroElement::find_small_element() {
-  for(int k=Vh.first_element(); k<Vh.last_element(); k+= Vh.next_element()) {
+  for(int k=0; k<Vh.NbElement(); k+= 1) {
     if(!Vh.isCut(k)) continue;
 
     const FElement2& FK(Vh[k]);
@@ -107,6 +105,8 @@ void MacroElement::find_root_element(){
   }
 
 }
+
+
 
 
   // vector<std::pair<int,int>> idx_small_K_temp(small_element.size());

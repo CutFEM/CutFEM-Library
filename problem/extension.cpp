@@ -550,8 +550,6 @@ void Extension::erase_rows_to_fix_BDM1(){
   }
 
 }
-
-
 void Extension::do_extension_edge(const std::map<std::pair<int,int>,int>::const_iterator& it){
   int idxG_Ks = it->first.first;
   int k_begin;
@@ -570,7 +568,7 @@ void Extension::do_extension_edge(const std::map<std::pair<int,int>,int>::const_
 
   for(int ic=0;ic< Kf.tfe->Sub_ToFE.size();++ic){
     if(Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::RT0){
-      do_extension_RT0(Ks,Kf,id_e,ic);
+      do_weak_extension_RT0(Ks,Kf,id_e,ic);
     }
     else if (Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::BDM1){
       // do_extension_BDM1(Ks,Kf,id_e,ic);
@@ -579,7 +577,7 @@ void Extension::do_extension_edge(const std::map<std::pair<int,int>,int>::const_
       // do_extension_RT1(Ks,Kf,id_e,ic0);
     }
     else if (Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::P0){
-      do_extension_P0(Ks,Kf,ic0);
+      do_weak_extension_P0(Ks,Kf,ic0);
     }
     else if (Kf.tfe->Sub_ToFE[ic] == &DataFE<Mesh2>::P1dc){
       // do_extension_P1dc(Ks,Kf,ic0);
@@ -659,6 +657,36 @@ void Extension::do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int 
   }
 
   dof2rm.insert(ig0+Ks.loc2glb(id_df));
+}
+void Extension::do_weak_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic){
+  int ndof = Kf.NbDoF();
+  KNM<double> val(1, ndof);
+
+  evaluate_dofRT0(Ks, id_e, Kf, val);
+  int id_df = id_e;
+  int ig0 = problem.mapIdx0[&Ks.Vh];
+  double C= 1e-2;
+  problem(ig0+Ks.loc2glb(id_df),ig0+Ks.loc2glb(id_df)) += C*1.;        // 1st component small element
+  for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic); ++i) {
+    problem(ig0+Ks.loc2glb(id_df),ig0+Kf.loc2glb(i))  += -C*val(0,i);        // 1st component small element
+    problem(ig0+Kf.loc2glb(i),ig0+Ks.loc2glb(id_df))  += -C*val(0,i);        // 1st component small element
+    for(int j = Kf.dfcbegin(ic); j < Kf.dfcend(ic); ++j) {
+      problem(ig0+Kf.loc2glb(i),ig0+Kf.loc2glb(j))  += C*val(0,i)*val(0,j);        // 1st component small element
+    }
+  }
+}
+void Extension::do_weak_extension_P0   (const FElement2& Ks, const FElement2& Kf, int ic){
+  int idx0 = Kf.dfcbegin(ic);   // the pressure index
+  int ig0 = problem.mapIdx0[&Ks.Vh];
+  double C= 1e-2;
+  if (S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] == 0) return;
+  S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] = 0;
+
+  problem(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0)) += C*1.;        // 1st component small element
+  problem(ig0+Ks.loc2glb(idx0),ig0+Kf.loc2glb(idx0)) += -C*1;
+  problem(ig0+Kf.loc2glb(idx0),ig0+Ks.loc2glb(idx0)) += -C*1;
+  problem(ig0+Kf.loc2glb(idx0),ig0+Kf.loc2glb(idx0)) += C*1;
+
 }
 void Extension::evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) {
 
@@ -866,17 +894,16 @@ void Extension::evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& F
 //   }
 // }
 
-void Extension::do_extension() {
-  // BUILD THE MATRIX S AND St
-  this->make_S();
-
-  // DO MULTIPLY St A S and  St b
-  // we dont send
-  Rn b(problem.rhs.size());
-  this->precond(b);
-
-}
-
+// void Extension::do_weak_extension() {
+//   // BUILD THE MATRIX S AND St
+//   this->make_S();
+//
+//   // DO MULTIPLY St A S and  St b
+//   // we dont send
+//   Rn b(problem.rhs.size());
+//   this->precond(b);
+//
+// }
 void Extension::solve(string solverName) {
 
   problem.solver_name = solverName;
@@ -900,6 +927,35 @@ void Extension::solve(string solverName) {
   // RECONSTRUCT THE SOLUTION
   this->reconstruct(b);
 }
+
+
+// void Extension::do_weak_extension() {
+//   // BUILD THE MATRIX S AND St
+//   this->make_S();
+//
+//   // DO MULTIPLY St A S and  St b
+//   // we dont send
+//   Rn b(problem.rhs.size());
+//   this->precond(b);
+//
+// }
+void Extension::solve_weak_extension(string solverName) {
+
+  problem.solver_name = solverName;
+  if(element_edge_handle.size() == 0) {
+    std::cout << " no extension " << std::endl;
+    problem.solve(problem.mat, problem.rhs);
+    return;
+  }
+
+  // // BUILD THE MATRIX S AND St
+  this->make_S();
+
+  // SOLVE THE LINEAR SYSTEM
+  problem.solve(problem.mat, problem.rhs);
+
+}
+
 
 void Extension::precond(Rn& b) {
   std::map<std::pair<int,int>,double>& A(problem.mat);

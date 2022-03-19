@@ -12,11 +12,16 @@ struct Normal_Component_X : public Normal_Component {
 struct Normal_Component_Y : public Normal_Component {
   virtual int component() const {return 0;}
 };
+struct Normal_Component_Z : public Normal_Component {
+  virtual int component() const {return 0;}
+};
+
 
 struct Normal {
   // static const int idx[3];
   Normal_Component_X x;
   Normal_Component_Y y;
+  Normal_Component_Z z;
   // int operator[](int i) const {return idx[i];}
 };
 
@@ -390,39 +395,42 @@ public:
 class ExpressionMultConst : public ExpressionVirtual {
   const ExpressionVirtual & fun1;
   const double c;
-  const bool nx, ny;
+  const bool nx, ny, nz;
   const R2 p;
 public:
   ExpressionMultConst(const ExpressionVirtual & fh1, const double& cc)
-  : fun1(fh1) , c(cc), nx(false), ny(false), p(R2(1,1)){
+  : fun1(fh1) , c(cc), nx(false), ny(false), nz(false), p(R2(1,1)){
   }
   ExpressionMultConst(const ExpressionVirtual & fh1, const Normal_Component_X& nnx)
-  : fun1(fh1) , c(1.), nx(true), ny(false), p(R2(1,1)){
+  : fun1(fh1) , c(1.), nx(true), ny(false), nz(false), p(R2(1,1)){
   }
   ExpressionMultConst(const ExpressionVirtual & fh1, const Normal_Component_Y& nny)
-  : fun1(fh1) , c(1.), nx(false), ny(true), p(R2(1,1)){
+  : fun1(fh1) , c(1.), nx(false), ny(true), nz(false), p(R2(1,1)){
+  }
+  ExpressionMultConst(const ExpressionVirtual & fh1, const Normal_Component_Z& nnz)
+  : fun1(fh1) , c(1.), nx(false), ny(true), nz(true), p(R2(1,1)){
   }
   ExpressionMultConst(const ExpressionVirtual & fh1, const R2& v)
-  : fun1(fh1) , c(1.), nx(false), ny(false), p(R2(v)){
+  : fun1(fh1) , c(1.), nx(false), ny(false), nz(false), p(R2(v)){
   }
 
   R operator()(long i) const {c*fun1(i);}
 
   R eval(const int k, const R* x, const R* normal)const  {
-    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1);
+    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1)*((nz)?normal[2]:1);
     return fun1.eval(k,x, normal) * c * compN * p[0];
   }
   R eval(const int k, const R* x, const R t, const R* normal)const  {
-    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1);
+    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1)*((nz)?normal[2]:1);
     return fun1.eval(k,x,t, normal) * c * compN * p[0];
   }
 
   R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
-    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1);
+    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1)*((nz)?normal[2]:1);
     return fun1.evalOnBackMesh(k,dom,x,normal) * c * compN * p[dom==1];
   }
   R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
-    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1);
+    double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1)*((nz)?normal[2]:1);
     return fun1.evalOnBackMesh(k,dom,x,t,normal) * c * compN * p[dom==1];
   }
   int idxElementFromBackMesh(int kb, int dd=0) const {
@@ -706,6 +714,48 @@ public:
 };
 ExpressionTangent2 operator*(const FunFEM<Mesh2>& f1, const Tangent& n);
 
+class ExpressionNormal3 : public ExpressionVirtual {
+  typedef Mesh3 M;
+  const FunFEM<M>& fun;
+  ExpressionFunFEM<M> uxnx, uyny, uznz;
+
+public:
+  ExpressionNormal3(const FunFEM<M> & fh1)
+  : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0), uznz(fh1,2,op_id,0,0)
+  {
+    assert(fh1.Vh->N !=1);
+    uxnx.addNormal(0); uyny.addNormal(1); uznz.addNormal(2);
+  }
+
+  R operator()(long i) const {assert(0);};
+
+  R eval(const int k, const R* x, const R* normal)const  {
+    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+    assert(0);
+    return 0;
+  }
+  R eval(const int k, const R* x, const R t, const R* normal)const  {
+    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+    assert(0);
+    return 0;
+  }
+
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal)const  {
+    assert(normal);
+    return uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal)
+    + uznz.evalOnBackMesh(k,dom,x,normal);
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    assert(normal);
+    return uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal)
+    + uznz.evalOnBackMesh(k,dom,x,t,normal);
+  }
+  int idxElementFromBackMesh(int kb, int dd=0) const {
+    return fun.idxElementFromBackMesh(kb, dd);
+  }
+  ~ExpressionNormal3(){}
+};
+ExpressionNormal3 operator*(const FunFEM<Mesh3>& f1, const Normal& n);
 
 
 

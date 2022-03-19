@@ -195,9 +195,6 @@ public:
     return val;
   }
 
-
-
-
   void applyFunNL(RNMK_& bfu, RNMK_& bfv) const {
     pfunU(bfu, cu, du);
     pfunV(bfv, cv, dv);
@@ -549,7 +546,6 @@ ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*>
   item.reduce();
   return item;
 }
-
 
 
 template <int d>

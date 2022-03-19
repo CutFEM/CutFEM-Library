@@ -33,12 +33,13 @@
 struct CBorder {
   CBorder() {}
 };
-const CBorder boundary;
+const  CBorder boundary;
 struct CHyperFace {
   CHyperFace() {}
 };
 const CHyperFace innerEdge;
 const CHyperFace innerFace;
+
 
 class ShapeOfLinProblem {
 public :
@@ -57,8 +58,6 @@ public :
   R & operator()(int i) { return rhs[i];}
 
 };
-
-
 class ShapeOfNonLinProblem {
   public :
   Ulint nDoF;
@@ -109,7 +108,6 @@ public :
     DF.clear(); NL.clear();
     pmat = &DF;
   }
-
   void resetIndex() {
     this->index_i0 = 0;
     this->index_j0 = 0;
@@ -150,6 +148,71 @@ public :
 
 };
 
+
+// Base class for problem.
+// contain info about the linear system
+class ShapeOfProblem {
+  protected :
+
+  // The right hand side vector
+  KN<double> rhs_;
+
+  // matrix is on a std::map form
+  std::map<std::pair<int,int>,R>  mat_;
+
+  // pointer on a std::map
+  // the user can give is own std::map
+  // can be use for newton, matrix that wanna be saved by the user etc
+  std::map<std::pair<int,int>,R> *pmat_;
+
+  // std::map used to save CutFEM solution on the background mesh
+  // for time dependent problem
+  // std::pair(domain, dof_on backSpace) => value
+  std::map<std::pair<int,int>,R> mapU0_;
+
+  // local map matrix
+  // to reduce the numer of access to the global std::map
+  // when the integral is computed on an elements_to_integrate
+  // the local contribution is added to the global matrix
+  // pointed by pmat
+  std::map<std::pair<int,int>,R> local_contribution_matrix_;
+
+  // number of degree of freedom of the problem
+  // This is never modify after initialization
+  // => not when adding lagrange multiplier
+  Ulint nb_dof_;
+
+  //index where degree of freedom of consider space starts
+  // this make possible to use as many space as we need
+  int index_i0_ = 0, index_j0_ = 0;
+
+public :
+  ShapeOfProblem() : nb_dof_(0) {};
+  ShapeOfProblem(int n) : nb_dof_(n), rhs_(n) {rhs_=0.0;}
+
+
+  // return the number of degrees of freedom
+  // of the problem
+  long get_size() const {return nb_dof_;}
+
+  void set_map(std::map<std::pair<int,int>,R>& A) {
+    pmat_ = &A;
+  }
+  void set_to_buildin_map() {
+    pmat_ = &mat_;
+  }
+  void CleanMatrix() {
+    mat_.clear();
+  }
+
+
+protected :
+  double & operator()(int i, int j) { return (*pmat_)[std::make_pair(i,j)]; }
+  double & addToLocalContribution(int i, int j) { return local_contribution_matrix_[std::make_pair(i+index_i0_,j+index_j0_)]; }
+  double & operator()(int i) { return rhs_[i];}
+
+
+};
 
 
 

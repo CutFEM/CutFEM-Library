@@ -7,6 +7,7 @@
 using namespace std;
 
 template<typename M> class GenericInterface;
+template<typename M> class Interface;
 class Interface3;
 class TimeInterface3;
 class SignPatternTrait3;
@@ -52,10 +53,10 @@ public:
   typedef RefPatch3 RefPatch;
   typedef RefPartition3 RefPartition;
   typedef Partition3 Partition;
-  typedef GenericInterface<Mesh3> Interface;
+  // typedef GenericInterface<Mesh3> Interface;
 
   MeshHexa(int nx, int ny, int nz, R orx, R ory,R orz, R lx, R ly,R lz);  // build structured mesh
-
+  MeshHexa(const Interface<MeshHexa>& gamma);
 private:
   MeshHexa(const MeshHexa &);                             // no copy constructor
   void operator=(const MeshHexa &);                    // no copy allowed
@@ -175,6 +176,7 @@ public:
 
 };
 
-
+typedef Mesh3     MeshT3;
+typedef MeshHexa  MeshQ3;
 
 #endif

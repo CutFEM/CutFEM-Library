@@ -45,3 +45,25 @@ DONE ** 41) add norm function working like integrals.
 43) make gnuplot.cpp
 44) check grad lambda in quad to see if its like for tet
 45) in interface_levelSet we should only have one ls<double> and note byte
+46) A class Analytcal_Fun virtual and derived class for each kind of input fun.
+    Then an eval pure virtual method is implemennted
+    Some static const bool variable cut, time, etc to check is the function given by the user is acceptable by the function
+47) create class for problem solved in validated in cutFEM, with optimiza build matrix
+48)CONVENTION NAME
+class => ClassName
+class fun ==> FunctionName
+class accessor =>  set_variable
+class variable => name_
+struct variable => name
+varaible => variable_name
+DONE ** 49) Add array with inner edge in class
+50) Add interface_marker. try to build swedish flag :)
+DONE ** 51) template macro class and use only mesh, no space
+52) try to make a surface macro 3D picture
+DONE ** 53) take away cutTh de paraview class and just be able to add many files without new object
+54) try P1isoP1 elements
+55) in testFunction operator , use nextDerivative and not D()
+56) all evaluation should on the backMesh (kb, id_dom)
+57) should give a mesh in addIntegralFunction so it is clear where we integrate, if
+    mixt terms are being used ...
+58) the rhs in problem should be private. BIG TROUBLE IF POINTING ON IT BEFORE IT IS RESIZE BY LAGRANGE MULTIPLIER eg

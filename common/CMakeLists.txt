@@ -9,6 +9,7 @@ set(COMMON_SOURCES
   Mesh1dn.cpp
   Mesh2dn.cpp
   Mesh3dn.cpp
+  interface_levelSet.cpp
   cut_mesh.cpp
   cut_method.cpp
   marker.cpp

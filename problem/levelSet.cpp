@@ -56,10 +56,6 @@ void LevelSet2::assembly(const Fun& up, const Fun& Betap, const Fun& Beta, doubl
     }
   }
 }
-
-
-
-
 void LevelSet3::assembly(const Fun& up, const Fun& Betap, const Fun& Beta, double dt) {
   typedef typename QF::QuadraturePoint QuadraturePoint;
 

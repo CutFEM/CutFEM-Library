@@ -159,12 +159,6 @@ private:
 
 
 
-
-
-
-
-
-
 inline  R1 ExtNormal( GenericVertex<R1> *const v[2],int const f[1])  {
   return f[0]==0 ? R1(-1):R1(1);  }
 inline  R2 ExtNormal( GenericVertex<R2> *const v[3],int const f[2])  {
@@ -271,6 +265,7 @@ public:
   typedef V  Vertex;
   typedef B BorderElement;
   typedef typename Element::RdHat RdHat;// for parametrization
+  typedef typename Element::Face Face;
 
   typedef const T* const_element_iterator;
   typedef       T*       element_iterator;
@@ -280,7 +275,7 @@ public:
   static const int nea=T::nea; //  numbering of adj (4 in Tet,  3 in Tria, 2 in seg)
   static const int nva=T::nva; //  numbering of vertex in Adj hyperface
 
-  int nt,nv,nbe;
+  int nt,nv,nbe,ne_;
   R mes,mesb;
   Rd Pmin,Pmax; // // the bound  of the domain  see BuildBound
   int levelRefinement = 0;
@@ -288,6 +283,7 @@ public:
 // protected
   V *vertices;
   T *elements;
+  // Face *inner_faces_;
   B *borderelements;
 
   int *TheAdjacencesLink; // to store the adj link  k*nea+i -> k'*nea+i'
@@ -306,19 +302,28 @@ public:
   int nbElmts() const {return nt;}
   int nbBrdElmts() const {return nbe;}
   int nbVertices() const {return nv;}
+  int nbElements() const {return nt;}
+  // int nbInnerFaces() const {return ne_;}
+  int nbBorderElements() const {return nbe;}
+
+
   const T & operator[](int i) const {return elements[CheckT(i)];}
   const V& operator()(int i) const {return vertices[CheckV(i)];}
   const B& be(int i) const {return borderelements[CheckBE(i)];}
+  // const Face& hyper_face(int i) const {return inner_faces_[CheckIF(i)];}
+
   void  BoundingBox(Rd &pmin,Rd &pmax) const {pmin=Pmin;pmax=Pmax;}
   T & t(int i)  {return elements[CheckT(i)];}
   V & v(int i)  {return vertices[CheckV(i)];}
   B & be(int i) {return borderelements[CheckBE(i)];}
+  // Face& hyper_face(int i) {return inner_faces_[CheckIF(i)];}
 
 
   GenericMesh()
     : nt(0), nv(0), nbe(0), mes(0.), mesb(0.) ,
       levelRefinement(0),
       vertices(0),elements(0),borderelements(0), //bnormalv(0),
+      // inner_faces_(0),
       TheAdjacencesLink(0),
       BoundaryElementHeadLink(0),
       ElementConteningVertex(0),
@@ -333,6 +338,7 @@ public:
     std::cout << " nb of nodes            : \t" << nv << std::endl;
     std::cout << " nb of elements         : \t" << nt << std::endl;
     std::cout << " nb of border elements  : \t" << nbe << std::endl;
+    // std::cout << " nb of inner faces      : \t" << ne_ << std::endl;
 
   }
 
@@ -365,14 +371,15 @@ public:
   int operator()(const V  * vv) const{return CheckV(vv - vertices);}
   int operator()(const B & k) const {return CheckBE(&k - borderelements);}
   int operator()(const B  * k) const{return CheckBE(k - borderelements);}
+
   int operator()(int it,int j) const {return operator()(elements[it][j]);}// Nu vertex j of triangle it
   int at(int it,int j) const {return operator()(elements[it][j]);}// Nu vertex j of triangle it
-
   int be(int it,int j) const {return operator()(borderelements[it][j]);}// Nu vertex j of triangle it
 
   int CheckV (int i) const { ASSERTION(i>=0 && i < nv);  return i;}
   int CheckT (int i) const { ASSERTION(i>=0 && i < nt);  return i;}
   int CheckBE(int i) const { ASSERTION(i>=0 && i < nbe); return i;}
+  int CheckIF(int i) const { ASSERTION(i>=0 && i < ne_); return i;}
 
   //for cutMesh
   int idxElementInBackMesh(int k) const {ASSERTION(k>=0 && k < nt);
@@ -385,6 +392,7 @@ public:
   void Buildbnormalv();
   void BuildBound();
   void BuildjElementConteningVertex();
+  void BuildInnerFace();
 
   virtual DataFENodeDF BuildDFNumbering(int dfon[NbTypeItemElement],
 					int nndon[NbTypeItemElement],
@@ -503,14 +511,15 @@ private:
 
 template<typename GMesh>
 class BuildAdjacencyOfMesh {
-
+public:
   typedef SortArray<int,GMesh::nva> SArray;
 
   GMesh & mesh;
   HashTable<SArray,int> *h;
   int nk=0, nba=0;
+  int ne = 0;
 
-public:
+
   BuildAdjacencyOfMesh(GMesh &);
   void initializeArray() ;
   void findAdjacencyElement();
@@ -871,41 +880,6 @@ void fillTheArray() {
 
 
 
-
-
-
-
-
-
-
-
-
-// enum ElementSignEnum { AllElement, NegElement, PosElement, NoElement};
-//
-//
-// template<typename T>
-// class SignElement{
-//
-//   typedef T Element;
-//   static const int nve = Element::nv;
-//
-//   int sum_;
-// public:
-//   SignElement() : sum_(0) {}
-//   SignElement(const double ls[nve]) : sum_(0) {
-//     for (Ubyte i= 0; i < nve; ++i)
-//       sum_ += fsign( ls[i]);
-//   }
-//   SignElement(const byte ls[nve]) : sum_(0) {
-//     for (Ubyte i= 0; i < nve; ++i)
-//       sum_ += ls[i];
-//   }
-//
-//
-//   bool cut() const  {return abs(sum_) != nve;}
-//   byte sign() const { return (sum_ == nve) ? 1 : ((sum_ == -nve)? -1 : 0);}
-//
-// };
 
 
 //Represents the reference element which is cut by a linear level set function ls.

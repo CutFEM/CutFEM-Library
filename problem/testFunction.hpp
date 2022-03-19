@@ -205,8 +205,6 @@ template<int dim = 2>
 class TestFunction {
   typedef typename typeRd<dim>::Rd Rd;
   typedef typename typeMesh<dim>::Mesh Mesh;
-  // typedef ItemTestFunction<dim> ItemTestFunction;
-  // typedef  ItemList<dim> ItemList;
   typedef GFESpace<Mesh> FESpace;
 
   public :
@@ -221,20 +219,11 @@ private :
     A = nullptr;
     // for(int i=0;i<d;++i)  A(i,0) = new ItemList<dim> (1,i,0);
   }
-
   TestFunction(int d, int l) {
    A.init(d,l);
    A = nullptr;
  }
 
-  // TestFunction(int d, int comp0) {
-  //   A.init(d,1);
-  //   for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (1,comp0+i,0);
-  // }
-  // TestFunction(int d, int comp0, int domm) {
-  //   A.init(d,1);
-  //   for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (1,comp0+i,0, domm);
-  // }
 
 public:
 
@@ -260,7 +249,6 @@ public:
       }
     }
   }
-
   TestFunction(const TestFunction& U, void(*f)(RNMK_&,int,int)) {
     A.init(U.A.N(), U.A.M());
     for(int i=0;i<A.N();++i) {
@@ -269,17 +257,16 @@ public:
       }
     }
   }
-
   TestFunction(const FESpace& Vh, const ExpressionVirtual& ff) {
     A.init(1,1);
     for(int i=0;i<1;++i)  A(i,0) = new ItemList<dim> (Vh, ff);
   }
-  TestFunction(const FESpace& Vh,const ExpressionVirtual& ff, const ExpressionVirtual& gg) {
+  TestFunction(const FESpace& Vh, const ExpressionVirtual& ff, const ExpressionVirtual& gg) {
     A.init(2,1);
     A(0,0) = new ItemList<dim> (Vh,ff);
     A(1,0) = new ItemList<dim> (Vh,gg);
   }
-  TestFunction(const FESpace& Vh,const ExpressionVirtual& f1, const ExpressionVirtual& f2, const ExpressionVirtual& f3, const ExpressionVirtual& f4) {
+  TestFunction(const FESpace& Vh, const ExpressionVirtual& f1, const ExpressionVirtual& f2, const ExpressionVirtual& f3, const ExpressionVirtual& f4) {
     A.init(4,1);
     A(0,0) = new ItemList<dim> (Vh,f1);
     A(1,0) = new ItemList<dim> (Vh,f2);
@@ -504,6 +491,8 @@ template<int N> friend TestFunction<N> average(const TestFunction<N> & T, double
 template<int N> friend TestFunction<N> average1(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average2(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const CutFEM_Parameter& para, const CutFEM_Parameter& para2);
+template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const CutFEM_Parameter& para);
+
 template<int N> friend TestFunction<N> dx(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> dy(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> dz(const TestFunction<N> & T);
@@ -528,8 +517,7 @@ TestFunction<N> operator + (const TestFunction<N>& F1, const TestFunction<N>& F2
   int row = max(F1.A.N(),F2.A.N());
   int col = max(F1.A.M(),F2.A.M());
 
-
-  TestFunction<N> sumU(row,col);// sumU.init(row,col);
+  TestFunction<N> sumU(row,col);
   for(int i=0;i<row;++i) {
     for(int j=0;j<col;++j) {
       int s = 0;
@@ -618,6 +606,7 @@ TestFunction<N> operator * (const TestFunction<N>& F, const ExpressionVirtual& e
   return multU;
 }
 
+
 template <int N>
 TestFunction<N> operator, (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {
   assert(F.A.M() == 1);
@@ -648,6 +637,12 @@ TestFunction<N> operator, (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh
   }
   return multU;
 }
+
+template <int N>
+TestFunction<N> operator, (const FunFEM<typename typeMesh<N>::Mesh>& fh, const TestFunction<N>& F) {
+  return (fh.expression(), F);
+}
+
 
 template <int N>
 TestFunction<N> operator * (const TestFunction<N>& F, double cc) {

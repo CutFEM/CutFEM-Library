@@ -421,6 +421,7 @@ public :
   typedef GenericInterface<M> Interface;
   typedef typename FESpace::Rd Rd;
   typedef typename Mesh::Element Element;
+  typedef typename Element::Face Face;
   typedef typename FESpace::FElement FElement;
 
   const int idx0 = 0;
@@ -552,6 +553,16 @@ Vh((*sdomain.begin())->Vh)
     }
     return false;
   }
+  // virtual bool faceInDomain(const Face& face, int dom) const {
+  //   int k1 = face.get_index_adjacent_element(0);
+  //   int k2 = face.get_index_adjacent_element(1);
+  //   if(this->subDomain(dom)->FEinSub(k1) && this->subDomain(dom)->FEinSub(k2)) {
+  //     return true;
+  //   }
+  //   return false;
+  // }
+
+
   virtual int idxElementFromBackMesh(int k) const {
     std::cout << "need to use a domain id to get element" << std::endl;
     assert(0);

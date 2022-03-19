@@ -14,6 +14,9 @@ ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Componen
 ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Component_Y& cc){
   return ExpressionMultConst(f1, cc);
 }
+ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Component_Z& cc){
+  return ExpressionMultConst(f1, cc);
+}
 ExpressionMultConst operator*(const CutFEM_Parameter& v, const ExpressionVirtual& f1){
   return ExpressionMultConst(f1, R2(v.val1, v.val2));
 }
@@ -47,6 +50,10 @@ ExpressionNormal2 operator*(const FunFEM<Mesh2>& f1, const Normal& n){
 ExpressionTangent2 operator*(const FunFEM<Mesh2>& f1, const Tangent& n){
   return ExpressionTangent2(f1);
 }
+ExpressionNormal3 operator*(const FunFEM<Mesh3>& f1, const Normal& n){
+  return ExpressionNormal3(f1);
+}
+
 // const int Normal::idx[3] = {0,1,2};
 // const int Tangent::idx[3] = {1,0,2}; // only in 2D
 

@@ -6,10 +6,22 @@
 
 const double UnSetMesure=-1e+200;
 
+
+// enum class CellType {
+//   point = 0,
+//   segment = 1,
+//   triangle = 2,
+//   quadrilateral = 3,
+//   tetrahedron = 4,
+//   hexahedron = 5
+// };
+
+
 template<typename Data>
 class GenericElement: public Label {
 public:
   typedef typename Data::V Vertex;
+  typedef typename Data::Face Face;
   typedef typename Data::V::Rd Rd;
   typedef typename Data::RdHat RdHat;                     // for parametrization
   typedef typename Data::RdHatBord RdHatBord;             // for parametrization
@@ -43,12 +55,11 @@ public:
   static const int nvc=Data::NbOfVerticesCut;
   static const int nb_sign_pattern=Data::NbSignPattern;
 
-
   static int oppVertOfEdge(int edge, int vert) {
     return vert == nvedge[edge][0] ? nvedge[edge][1] : nvedge[edge][0];
   }
 
-protected:
+public:
   Vertex *vertices[nv];                                   //array 3 pointer to vertex
   R mes;
 public:
@@ -83,6 +94,13 @@ public:
     return *this;
   }
 
+  void set_face(int ifac, Face& face) const {
+    // int iv[nva];
+    // for(int i=0;i<nva;++i) {iv[i]= nvface[ifac][i];}
+    for(int i=0;i<nva;++i) {face.vertices[i]= vertices[nvface[ifac][i]];}
+    face.mes=Data::mesure(face.vertices);
+    face.lab=0;
+  }
 
   std::istream & Read1(std::istream & f,Vertex * v0,int n)  {
     int iv[nv],ir,err=0;

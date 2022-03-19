@@ -233,6 +233,7 @@ public:
   typedef MMesh Mesh;
   typedef GFElement<Mesh> FElement;
   typedef typename Mesh::Element  Element;
+  typedef typename Element::Face Face;
   typedef typename Mesh::BorderElement  BorderElement;
   typedef typename Mesh::Rd  Rd;
   typedef GTypeOfFE<Mesh> TypeOfFE;
@@ -248,7 +249,7 @@ public:
   GFESpace const * backSpace = this;
   const PeriodicBC* periodicBC = nullptr;
   KN<const GInterface*> gamma;
-  KN<const GInterface*>* gamma2;
+  // KN<const GInterface*>* gamma2;
 
 
   GFESpace(const Mesh & TTh,
@@ -344,46 +345,35 @@ public:
     return NodesOfElement ?  *(PtrFirstNodeOfElement(k) + i)  : Th(k,i)  ;}
 
   // for mesh build from interface but works for all mesh
-  virtual int idxElementFromBackMesh (int k) const { return Th.idxElementFromBackMesh(k) ;}
-  virtual int idxElementInBackMesh(int k) const {
-    return Th.idxElementInBackMesh(k);}
-
-  virtual int idxElementFromBackMesh(int k,int i) const {
-    return idxElementFromBackMesh(k); }
-
+  virtual int idxElementFromBackMesh (int k)      const {return Th.idxElementFromBackMesh(k) ;}
+  virtual int idxElementInBackMesh(int k)         const {return Th.idxElementInBackMesh(k);}
+  virtual int idxElementFromBackMesh(int k,int i) const {return idxElementFromBackMesh(k); }
+  // virtual bool faceInDomain(const Face& face, int dom) const {return true;}
+  // const Face& get_face(int k) const {return Th.hyper_face(k);}
+  virtual int whichDomain(int k) const { return -1;}
+  virtual int getNumberOfSubDomain() const { return 1;}
+  virtual int getNeighborElement(int k,int &j, int domain = 0) const { return Th.ElementAdj(k,j);}
+  virtual int nbDomain() const {return 1;}
+  virtual bool containBackElement(int k)const {return true;}
   virtual bool isCut(int k) const { return false;}
   virtual bool isCut() const { return (this->gamma.size()>0);}
-
-  virtual int whichDomain(int k) const { return -1;}
-
-  virtual int getNumberOfSubDomain() const { return 1;}
-
-  virtual int getNeighborElement(int k,int &j, int domain = 0) const {
-    return Th.ElementAdj(k,j);
-  }
-  virtual bool containBackElement(int k)const {
-    return true;
-  }
-  virtual int nbDomain() const {
-    return 1;
-  }
-
-  // virtual int idxGlob2Loc(int k, int i) const { return k;}
-  virtual const GFESpace& getBackSpace() const { return *backSpace;}
-  // virtual const  GenericInterface<Mesh>& getInterface(int i) const {assert(0);}
-  const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
-  // virtual const Interface<Mesh>& get_interface(int k) const { assert(0); return Interface<Mesh>();}
-
-
   virtual bool isCutSpace() const {return false;}
+
+  virtual const GFESpace& getBackSpace() const { return *backSpace;}
+  const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
 
   int NbNode() const { return this->nbNode;}
   int NbDoF() const { return this->nbDoF;}
   int NbElement() const { return this->nbElement;}
+  // int NbInnerFaces() const { return Th.nbInnerFaces();}
   #ifdef USE_MPI
   virtual int first_element() const { return MPIcf::first_element(this->nbElement);}
   virtual int next_element() const {  return MPIcf::next_element(this->nbElement);}
   virtual int last_element() const {  return MPIcf::last_element(this->nbElement);}
+
+  // virtual int first_face() const { return MPIcf::first_element(this->NbInnerFaces());}
+  // virtual int next_face() const {  return MPIcf::next_element(this->NbInnerFaces());}
+  // virtual int last_face() const {  return MPIcf::last_element(this->NbInnerFaces());}
 
   virtual int first_boundary_element() const { return MPIcf::my_rank();}
   virtual int next_boundary_element() const { return MPIcf::size();}
@@ -392,6 +382,10 @@ public:
   virtual int first_element() const { return 0;}
   virtual int next_element() const {return 1;}
   virtual int last_element() const { return this->nbElement;}
+
+  // virtual int first_face() const { return 0;}
+  // virtual int next_face() const {return 1;}
+  // virtual int last_face() const { return this->NbInnerFaces();}
 
   virtual int first_boundary_element() const { return 0;}
   virtual int next_boundary_element() const { return 1;}
@@ -515,7 +509,7 @@ public:
 
   const Cut_Mesh<Mesh> & cutTh;
 
-  CutFESpace(const Cut_Mesh<Mesh> & TTh, const GFESpace<Mesh>& vh, const PeriodicBC* PPeriod = nullptr) : GFESpace<Mesh>(TTh, vh, PPeriod), cutTh(TTh) {}
+  CutFESpace(const Cut_Mesh<Mesh> & TTh, const GFESpace<Mesh>& vh, const PeriodicBC* PPeriod = nullptr) : GFESpace<Mesh>(TTh, vh, PPeriod), cutTh(TTh) {this->backSpace = &vh;}
 
   FElement operator[](int k) const {
     int kb = cutTh.idxElementInBackMesh(k);
@@ -527,6 +521,15 @@ public:
   int idxElementFromBackMesh (int k) const { return cutTh.idxElementFromBackMesh(k) ;}
   int idxElementFromBackMesh(int k,int i) const { return cutTh.idxElementFromBackMesh(k,i); }
   // const Interface<Mesh>& get_interface(int k) const { cutTh.getInterface(k);}
+
+  // virtual bool isCut(int k) const { return false;}
+  // virtual bool isCut() const { return (this->gamma.size()>0);}
+  // virtual int whichDomain(int k) const { return -1;}
+  // virtual int getNumberOfSubDomain() const { return 1;}
+  // virtual int getNeighborElement(int k,int &j, int domain = 0) const { return Th.ElementAdj(k,j);}
+  // virtual bool containBackElement(int k)const {return true;}
+  // virtual int nbDomain() const {return 1;}
+  // virtual bool isCutSpace() const {return false;}
 };
 
 

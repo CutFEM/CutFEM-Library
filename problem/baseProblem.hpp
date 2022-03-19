@@ -183,6 +183,7 @@ protected:
   void setElementStrongBC(int ifac, const ExpressionVirtual& gh);
   virtual void addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k, const int ifac);
   virtual void addElementRHSEdge(const ListItemVF<Rd::d>& VF, const int k, const int ifac);
+
   virtual void addElementLagrange(const ListItemVF<Rd::d>& VF , const int k);
 
 

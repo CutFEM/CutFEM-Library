@@ -44,14 +44,20 @@ public:
 
     void tag_exhaust_edges(const MacroElement& macro) ;
     void solve(string solverName = "mumps");
+    void solve_weak_extension(string solverName = "mumps");
+
     void do_extension();
   private:
     void do_extension_edge(const std::map<std::pair<int,int>,int>::const_iterator& it);
     void do_extension_element(const SmallElement&);
 
     void do_extension_P0  (const FElement2& Ks, const FElement2& Kf, int ic);
+    void do_weak_extension_P0  (const FElement2& Ks, const FElement2& Kf, int ic);
+
   //   void do_extension_P1dc  (const FElement2& Ks, const FElement2& Kf, int ic);
     void do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
+    void do_weak_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
+
   //   void do_extension_BDM1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
   //   void do_extension_RT1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
   //
@@ -88,7 +94,9 @@ public:
   }
 
 private:
+public:
     void make_S();
+    void make_weak_extension();
     void precond(Rn& rhs);
     void removeDF( int N, std::map<std::pair<int,int>,double>& A, Rn& b);
     void reconstruct(Rn& b);

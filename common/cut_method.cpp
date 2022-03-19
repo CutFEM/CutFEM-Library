@@ -18,7 +18,19 @@ template<> RefPatch<Triangle2>::InitializerCL::InitializerCL (){
     }
 	}
 }
+template<> RefPatch<Triangle3>::InitializerCL::InitializerCL (){
+  if (init_count_++ > 0) return;
 
+  // byte ls[3];
+  // for (ls[0]= -1; ls[0] < 2; ++ls[0]) {
+  //   for (ls[1]= -1; ls[1] < 2; ++ls[1]) {
+  //     for (ls[2]= -1; ls[2] < 2; ++ls[2]) {
+  //       if ( ls[0] == 0 && ls[1] == 0 && ls[2] == 0) continue;
+  //       RefPatch<Triangle3>::instance( ls);
+  //     }
+  //   }
+	// }
+}
 template<> RefPatch<Quad2>::InitializerCL::InitializerCL (){
   if (init_count_++ > 0) return;
 
@@ -34,7 +46,6 @@ template<> RefPatch<Quad2>::InitializerCL::InitializerCL (){
     }
 	}
 }
-
 template<> RefPatch<Tet>::InitializerCL::InitializerCL () {
   if (init_count_++ > 0) return;
 
@@ -50,13 +61,12 @@ template<> RefPatch<Tet>::InitializerCL::InitializerCL () {
     }
   }
 }
-
 template<> RefPatch<Hexa>::InitializerCL::InitializerCL () {
   init_count_++;
   if (init_count_++ > 0) return;
 }
 
-
+// RefPatch
 template<> bool RefPatch<Triangle2>::assign (const SignPattern<Triangle2>& cut) {
 
   for (size_= 0; size_ < num_elements( cut); ++size_) {
@@ -64,7 +74,13 @@ template<> bool RefPatch<Triangle2>::assign (const SignPattern<Triangle2>& cut) 
   }
   return empty();
 }
+template<> bool RefPatch<Triangle3>::assign (const SignPattern<Triangle3>& cut) {
 
+  for (size_= 0; size_ < num_elements( cut); ++size_) {
+    face_[size_] = FaceIdx( cut(size_), cut(size_ + 1));
+  }
+  return empty();
+}
 template<> bool RefPatch<Quad2>::assign (const SignPattern<Quad2>& cut) {
 
   for (size_= 0; size_ < num_elements( cut); ++size_) {
@@ -72,14 +88,12 @@ template<> bool RefPatch<Quad2>::assign (const SignPattern<Quad2>& cut) {
   }
   return empty();
 }
-
 template<> bool RefPatch<Tet>::assign (const SignPattern<Tet>& cut){
   for (size_= 0; size_ < num_elements( cut); ++size_) {
     face_[size_] = FaceIdx( cut(size_), cut(size_ + 1), cut(size_ + 2));
   }
   return empty();
 }
-
 template<> Ubyte RefPatch<Hexa>::num_elements (const SignPattern<Hexa>& cut) const {
   switch (cut.num_cut_simplexes()) {
     case 3 : return 1;
@@ -89,7 +103,6 @@ template<> Ubyte RefPatch<Hexa>::num_elements (const SignPattern<Hexa>& cut) con
     default : return 0;
   }
 }
-
 template<> bool RefPatch<Hexa>::assign (const SignPattern<Hexa>& cut) {
   switch (static_cast<int>(cut.num_cut_simplexes())) {
     case 3 :
@@ -131,42 +144,54 @@ template<> RefPartition<Triangle2>::InitializerCL::InitializerCL (){
     }
 	}
 }
+template<> RefPartition<Triangle3>::InitializerCL::InitializerCL (){
+  return;
+  // if (init_count_++ > 0) return;
+  // byte ls[3];
+  // for (ls[0]= -1; ls[0] < 2; ++ls[0]) {
+  //   for (ls[1]= -1; ls[1] < 2; ++ls[1]) {
+  //     for (ls[2]= -1; ls[2] < 2; ++ls[2]) {
+  //       if ( ls[0] == 0 && ls[1] == 0 && ls[2] == 0) continue;
+  //       RefPartition<Triangle2>::instance( ls);
+  //     }
+  //   }
+	// }
+}
 template<> RefPartition<Quad2>::InitializerCL::InitializerCL (){
   // std::cout << " initialize instances Quad" << std::endl;
-
   if (init_count_++ > 0) return;
-
-  byte ls[4];
-  for (ls[0]= -1; ls[0] < 2; ++ls[0]){
-    for (ls[1]= -1; ls[1] < 2; ++ls[1]){
-      for (ls[2]= -1; ls[2] < 2; ++ls[2]){
-        for (ls[3]= -1; ls[3] < 2; ++ls[3]) {
-
-          if ( ls[0] == 0 && ls[1] == 0 && ls[2] == 0 && ls[3] == 0) continue;
-          RefPartition<Quad2>::instance( ls);
-        }
-      }
-    }
-	}
+  // if (init_count_++ > 0) return;
+  //
+  // byte ls[4];
+  // for (ls[0]= -1; ls[0] < 2; ++ls[0]){
+  //   for (ls[1]= -1; ls[1] < 2; ++ls[1]){
+  //     for (ls[2]= -1; ls[2] < 2; ++ls[2]){
+  //       for (ls[3]= -1; ls[3] < 2; ++ls[3]) {
+  //
+  //         if ( ls[0] == 0 && ls[1] == 0 && ls[2] == 0 && ls[3] == 0) continue;
+  //         RefPartition<Quad2>::instance( ls);
+  //       }
+  //     }
+  //   }
+	// }
 }
 template<> RefPartition<Tet>::InitializerCL::InitializerCL () {
 
   if (init_count_++ > 0) return;
-
-  byte ls[4];
-  for (ls[0]= -1; ls[0] < 2; ++ls[0]){
-    for (ls[1]= -1; ls[1] < 2; ++ls[1]){
-      for (ls[2]= -1; ls[2] < 2; ++ls[2]){
-        for (ls[3]= -1; ls[3] < 2; ++ls[3]) {
-          if ( ls[0] == 0 && ls[1] == 0 && ls[2] == 0 && ls[3] == 0) continue;
-          RefPartition<Tet>::instance( ls);
-        }
-      }
-    }
-  }
+  //
+  // byte ls[4];
+  // for (ls[0]= -1; ls[0] < 2; ++ls[0]){
+  //   for (ls[1]= -1; ls[1] < 2; ++ls[1]){
+  //     for (ls[2]= -1; ls[2] < 2; ++ls[2]){
+  //       for (ls[3]= -1; ls[3] < 2; ++ls[3]) {
+  //         if ( ls[0] == 0 && ls[1] == 0 && ls[2] == 0 && ls[3] == 0) continue;
+  //         RefPartition<Tet>::instance( ls);
+  //       }
+  //     }
+  //   }
+  // }
 }
 template<> RefPartition<Hexa>::InitializerCL::InitializerCL () {
-  init_count_++;
   if (init_count_++ > 0) return;
 }
 
@@ -213,7 +238,48 @@ template<> bool RefPartition<Triangle2>::assign (const SignPattern<Triangle2>& c
   //     AddTetra( 0, 1, 2, 3, cut.sign( some_non_zero_vertex( cut)));
   return is_uncut();
 }
+template<> bool RefPartition<Triangle3>::assign (const SignPattern<Triangle3>& cut) {
+  end_= begin_= elements_ + start_array;
 
+  if (cut.empty()) { // Most common case: no cut.
+    Ubyte list_v[] = {0,1,2};
+    // AddTriangle( 0, 1, 2, cut.sign( 0));
+    AddElement( list_v, cut.sign( 0));
+
+  }
+  else if (cut.no_zero_vertex()) { // next common case: cuts without vertices on the zero level
+    is_cut_ = true;
+    const Ubyte v = Triangle3::commonVertOfEdges[cut[0]][cut[1]];
+    Ubyte list_v[] = {v, cut(0), cut(1)};
+    AddElement( list_v, cut.sign( v));
+    // AddTriangle( v, cut(0), cut(1), cut.sign( v));
+    AddQuadrilateral( Triangle3::oppVertOfEdge( cut[0], v), cut(0),
+              Triangle3::oppVertOfEdge( cut[1], v), cut(1),
+	      -cut.sign( v));
+
+  }
+  // else if (cut.num_cut_simplexes() > cut.num_zero_vertexes()) { // next common case: there are cut edges, and also 1 or 2 vertices of the tetra with value 0 (the latter as we are in the else-part of cut.no_zero_vertex())
+  //     if (cut.num_zero_vertexes() == 1) { // triangular cut through a vertex: a tetra and a remaining pyramid with quadrilateral base
+  //         const Ubyte e= cut[1], f= cut[2];
+  //         const Ubyte v= VertByEdge( e, f);
+  //         AddTetra( v, cut(0), cut(1), cut(2), cut.sign( v));
+  //         const Ubyte opp_v_in_e= v == VertOfEdge( e, 0) ? VertOfEdge( e, 1) : VertOfEdge( e, 0);
+  //         const Ubyte opp_v_in_f= v == VertOfEdge( f, 0) ? VertOfEdge( f, 1) : VertOfEdge( f, 0);
+  //         // the pyramid
+  //         AddTetra( cut(0), cut(1), opp_v_in_f, opp_v_in_e, -cut.sign( v));
+  //         AddTetra( cut(0), cut(1), opp_v_in_f, cut(2), -cut.sign( v));
+  //     }
+  //     else if (cut.num_zero_vertexes() == 2) { // triangular cut through 2 vertexes: two tetras
+  //         const Ubyte e= OppEdge( EdgeByVert( cut[0], cut[1]));
+  //         const Ubyte v0= VertOfEdge( e, 0), v1= VertOfEdge( e, 1);
+  //         AddTetra( cut(0), cut(1), v0, cut(2), cut.sign( v0));
+  //         AddTetra( cut(0), cut(1), v1, cut(2), cut.sign( v1));
+  //     }
+  // }
+  // else // remaining cases: 1, 2 or 3 cuts, which are vertices of the tetra
+  //     AddTetra( 0, 1, 2, 3, cut.sign( some_non_zero_vertex( cut)));
+  return is_uncut();
+}
 template<> bool RefPartition<Quad2>::assign (const SignPattern<Quad2>& cut) {
   end_= begin_= elements_ + start_array;
   if (cut.empty()) { // Most common case: no cut.
@@ -249,7 +315,6 @@ template<> bool RefPartition<Quad2>::assign (const SignPattern<Quad2>& cut) {
 
   return is_uncut();
 }
-
 template<> bool RefPartition<Tet>::assign (const SignPattern<Tet>& cut) {
   end_= begin_= elements_ + start_array;
 
@@ -312,7 +377,6 @@ template<> bool RefPartition<Tet>::assign (const SignPattern<Tet>& cut) {
       //     AddTetra( 0, 1, 2, 3, cut.sign( some_non_zero_vertex( cut)));
       return is_uncut();
     }
-
 template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
   end_= begin_= elements_ + start_array;
   if (cut.empty()) { // Most common case: no cut.
@@ -419,6 +483,7 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
           // find starting cut node
           int ii=0;
           for(int i=0;i<5;++i) {
+            // std::cout << (int) cut[i] << std::endl;
             int i_next = (i+1)%5;
             int i_prev = (i==0)?4:i-1;
             if(Hexa::commonVertOfEdges[cut[i]][cut[i_next]] == -1 && Hexa::commonVertOfEdges[cut[i]][cut[i_prev]] == -1 ){
@@ -431,9 +496,17 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
               ii +=1;
             }
           }
+          // std::cout << std::endl;
+          // for(int i=0;i<5;++i) std::cout << (int) e[i] << "\t";
+          // std::cout << std::endl;
 
           assert(e(0) != -1);
           assert(e(4) != -1);
+          if(Hexa::commonVertOfEdges[cut[e(2)]][cut[e(3)]] != -1){
+            int eee = e(3);
+            e(3)=e(4);
+            e(4)=eee;
+          }
           // find 3 nodes in pos part
           {
             int vv0 = Hexa::nvedge[cut[e(0)]][0];
@@ -523,7 +596,6 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
 template<> Ubyte RefPartition<Hexa>::first_uncut_edge (const SignPattern<Hexa>& cut) const {
   assert(0);
 }
-
 template<> void Partition<Triangle2>::get_list_node(vector<R2>& node, int s) const {
   node.resize(0);
   const SignPattern<Triangle2> cut(ls);
@@ -546,7 +618,6 @@ template<> void Partition<Triangle2>::get_list_node(vector<R2>& node, int s) con
   }
 
 }
-
 template<> void Partition<Quad2>::get_list_node(vector<R2>& node, int s) const {
   node.resize(0);
   const SignPattern<Quad2> cut(ls);

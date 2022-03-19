@@ -25,7 +25,7 @@ public:
   GLevelSet(const Fun& up, const Fun& Betap, const Fun& Beta, double dt);
 
   void solve(const Fun& up, const Fun& Betap, const Fun& Beta, double dt);
-  virtual void assembly(const Fun&, const Fun&, const Fun&, double) = 0;
+  virtual void assembly(const Fun&, const Fun&, const Fun&, double);
 
   void solve(const Fun& up, const Fun& Betap, const Fun& Beta, double dt, const Interface& interface);
 
@@ -110,7 +110,7 @@ public :
 };
 
 
-class  LevelSet3 : public GLevelSet<Mesh3> {
+class LevelSet3 : public GLevelSet<Mesh3> {
 public :
   LevelSet3(const FESpace & vh)  : LevelSet(vh) {};
   LevelSet3(  const Fun& up, const Fun& Betap, const Fun& Beta, double dt) :
@@ -119,8 +119,21 @@ public :
   };
   void assembly(const Fun&, const Fun&, const Fun&, double);
 };
-
-
+// 
+// namespace LevelSet{
+//
+//   template<typename Fun>
+//   KN<double> move_2D(const Fun&, const Fun&, const Fun&, double);
+//   template<typename Fun>
+//   KN<double> move_3D(const Fun&, const Fun&, const Fun&, double);
+//
+//
+//   KN<double> move(const FunFEM<MeshT2> &, const FunFEM<MeshT2> &, const FunFEM<MeshT2> &, double);
+//   KN<double> move(const FunFEM<MeshQ2> &, const FunFEM<MeshQ2> &, const FunFEM<MeshQ2> &, double);
+//   KN<double> move(const FunFEM<MeshT3> &, const FunFEM<MeshT3> &, const FunFEM<MeshT3> &, double);
+//   KN<double> move(const FunFEM<MeshQ3> &, const FunFEM<MeshQ3> &, const FunFEM<MeshQ3> &, double);
+//
+// };
 
 
 

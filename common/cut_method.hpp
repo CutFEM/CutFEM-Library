@@ -45,7 +45,7 @@ class SignPattern
 {
   typedef T Element;
   static const int nve = Element::nv;
-  static const int dim = Element::Rd::d;
+  static const int dim = Element::RdHat::d;
 
 protected:
 public:
@@ -239,7 +239,7 @@ template<typename Element>
 class RefPatch {
 public:
   static const int nv = Element::nv;
-  static const int dim = Element::Rd::d;
+  static const int dim = Element::RdHat::d;
 
   typedef SortArray<Ubyte, dim> FaceIdx; ///< the vertices of a triangle of the cut: the tetra's vertices are denoted by 0..3, the edge-cuts by edge-num + 4, which is in 4..9.
   typedef const FaceIdx* const_face_iterator;
@@ -255,7 +255,7 @@ public:
     InitializerCL ();
   };
   public:
-    RefPatch () : size_( static_cast<Ubyte>( -1)), is_boundary_face_( 0) {
+    RefPatch () : size_( static_cast<Ubyte>( 0)), is_boundary_face_( 0) {
       InitializerCL ();
     } ///< Uninitialized default state
     RefPatch (const SignPattern<Element>& cut) { assign( cut); } ///< Initialize with sign pattern on the vertices
@@ -277,7 +277,7 @@ private:
 
 
 public:
-  bool  is_initialized () const { return size_ == 1; } ///< True after assign(...)
+  bool  is_initialized () const {  return size_ >= 1; } ///< True after assign(...)
 //
   ///@{ Recommended access to the triangles for a given sign-pattern; memoizes the result.
   static inline const RefPatch<Element>& instance (const byte   ls[Element::nv]) {
@@ -321,7 +321,7 @@ template<typename E>
 class RefPartition {
 public:
   static const int nv = E::nv;                         // cut creating triangles
-  static const int dim = E::d;
+  static const int dim = E::RdHat::d;
   static const int nt_in_notcut_K = E::nb_ntcut;
   static const int max_nb_element = 20;
   static const int start_array = 10;
@@ -347,7 +347,7 @@ public:
   // each node has 3 possible states (-1, 0, 1)
   static RefPartition<E> instance_array_[E::nb_sign_pattern];
 
-  void AddElement (Ubyte v[E::d+1], int sign) {
+  void AddElement (Ubyte v[dim+1], int sign) {
     (sign == -1 ? *--begin_ : *end_++) = ElementIdx( v );
   }
   // e,f,g are assumed to be the equally-oriented edges of the quadrilateral faces.
@@ -441,14 +441,19 @@ public :
   int whatSign () const { return begin_ < elements_ + start_array ? -1 : 1; }
 
 
-    ///@{ Random-access to the tetras: all tetras, or negative and positive tetras separately, see TetraSignEnum
+  //   ///@{ Random-access to the tetras: all tetras, or negative and positive tetras separately, see TetraSignEnum
+  // const_element_iterator element_begin (ElementSignEnum s = AllElement) const
+  // { if(s == NoElement) return end_;
+  //   else return s == PosElement ? elements_ + start_array : begin_; }
+  // const_element_iterator element_end (ElementSignEnum s = AllElement) const
+  // { return s == NegElement ? elements_ + start_array : end_; }
+  //   ///@}
+  ///@{ Random-access to the tetras: all tetras, or negative and positive tetras separately, see TetraSignEnum
   const_element_iterator element_begin (ElementSignEnum s = AllElement) const
-  { if(s == NoElement) return end_;
-    else return s == PosElement ? elements_ + start_array : begin_; }
+  { return s == PosElement ? elements_ + start_array : begin_; }
   const_element_iterator element_end (ElementSignEnum s = AllElement) const
   { return s == NegElement ? elements_ + start_array : end_; }
-    ///@}
-
+  ///@}
 
 };
 
@@ -458,22 +463,22 @@ template<typename E> int RefPartition<E>::InitializerCL::init_count_= 0;
 
 
 
-
-class CutElement2 {
-  typedef typename Mesh2::Rd Rd;
-  typedef SortArray<int, 3> TriaIdx;
+template<typename E>
+class CutElement {
+  typedef typename E::Rd Rd;
+  typedef SortArray<Ubyte, Rd::d+1> TriaIdx;
 
   public :
-  static const int nv = 3;
+  static const int nv = Rd::d+1;
   Rd  vertices[nv];
   int lab;
 
-  CutElement2() {}
-  CutElement2(const std::vector<Rd>& v0, const TriaIdx& iv,int r=0) {
+  CutElement() {}
+  CutElement(const std::vector<Rd>& v0, const TriaIdx& iv,int r=0) {
     for(int i=0;i<nv;++i) vertices[i]=v0[iv[i]];
     lab=r;
   }
-  const R2& operator[](int i) const {return vertices[i];}
+  const Rd& operator[](int i) const {return vertices[i];}
   // R2& operator[](int i) {return vertices[i];}
 
   void print() const  {
@@ -485,12 +490,22 @@ class CutElement2 {
 
 template<typename E>
 class Virtual_Partition {
+
+  static const int dim = E::RdHat::d;
+  typedef SortArray<Ubyte, dim+1> ElementIdx;           // the vertices of a triangle of the cut:
+  typedef const ElementIdx* const_element_iterator;
+  typedef       ElementIdx*       element_iterator;
+
 public:
 
   typedef typename E::Rd Rd;
   virtual void get_list_node (vector<Rd>& node, int s) const = 0;
-  virtual CutElement2 get_element(int k) const = 0;
-  virtual int nb_element() const = 0;
+  virtual CutElement<E> get_element(int k) const = 0;
+  virtual int nb_element(int) const = 0;
+  virtual const_element_iterator element_begin (int s) const = 0;
+  virtual const_element_iterator element_end (int s) const = 0;
+  virtual Rd get_vertex(const_element_iterator it, const int i) const = 0;
+  // virtual double mesure(int domain) const = 0;
 };
 
 // Class that does computation on cut elements from refPartition
@@ -498,11 +513,11 @@ template<typename E>
 class Partition : public Virtual_Partition<E>{
 
 public :
-  typedef SortArray<Ubyte, E::Rd::d+1> ElementIdx;           // the vertices of a triangle of the cut:
+  static const int dim = E::RdHat::d;
+  typedef SortArray<Ubyte, dim+1> ElementIdx;           // the vertices of a triangle of the cut:
   typedef const ElementIdx* const_element_iterator;
   typedef       ElementIdx*       element_iterator;
   typedef typename E::Rd Rd;
-  // typedef typename TypeCutData<Rd::d>::CutData CutData;
   typedef E Element;
 
   const RefPartition<E>& patch;
@@ -522,10 +537,10 @@ public :
   // }
 
 
-  const_element_iterator element_begin (ElementSignEnum s = AllElement) const
-  { return patch.element_begin(s); }
-  const_element_iterator element_end (ElementSignEnum s = AllElement) const
-  { return patch.element_end(s); }
+  // const_element_iterator element_begin (ElementSignEnum s = AllElement) const
+  // { return patch.element_begin(s);}
+  // const_element_iterator element_end (ElementSignEnum s = AllElement) const
+  // { return patch.element_end(s); }
 //
   int whatSign (const_element_iterator t) const { return patch.whatSign(t); }
   bool is_cut () const { return patch.is_cut(); }
@@ -533,10 +548,23 @@ public :
 
 
 
-  ElementSignEnum what_part(const int the_domain) const {
-    if(the_domain == -1) return AllElement;
-    return (is_cut()) ? ( (the_domain == 0)? PosElement : NegElement  )
-      : (((the_domain==0 && ls[0]>0) || (the_domain==1 && ls[0]<0))? AllElement : NoElement);
+  //Obsolete in multi domains
+  // maybe it should be with the sign instead
+  // ElementSignEnum what_part(const int the_domain) const {
+  //   if(the_domain == -1) return AllElement;
+  //   return (is_cut()) ? ( (the_domain == 0)? PosElement : NegElement  )
+  //     : (((the_domain==0 && ls[0]>0) || (the_domain==1 && ls[0]<0))? AllElement : NoElement);
+  // }
+  ElementSignEnum what_part(int s) const {
+    if(s == -1) return NegElement;
+    else if(s == 1) return PosElement;
+    else return AllElement;
+  }
+  const_element_iterator element_begin (int s) const{
+    return patch.element_begin(what_part(s));
+  }
+  const_element_iterator element_end (int s) const  {
+    return patch.element_end(what_part(s));
   }
 
 //   double getEdgeLength() const {
@@ -546,9 +574,9 @@ public :
 
   R mesure(const_element_iterator it) const {
     if( patch.is_uncut() && E::nb_ntcut==1) return T.mesure();
-    Rd N[Rd::d+1];
+    Rd N[dim+1];
 
-    for(int i=0; i<Rd::d+1;++i) {  // triangle or tet
+    for(int i=0; i<dim+1;++i) {  // triangle or tet
       Uint idx = (*it)[i];
       if(idx < E::nv) N[i] = T[idx];
       else{
@@ -560,39 +588,29 @@ public :
     return geometry::mesure_simplex(N);
   }
 
-//
-//     return std::fabs(det(N[0],N[1],N[2]))*0.5;
-//   }
-//
-//   R mesure(const int domain) const {
-//
-//     if( patch.is_uncut()) return T.mesure();
-//
-//     R mes = 0;
-//     ElementSignEnum the_part = what_part(domain);
-//
-//     for(const_element_iterator it = element_begin(the_part);
-//     it != element_end(the_part); ++it) {
-//
-//       Rd N[3];
-//       for(int i=0; i<3;++i) {
-//         Uint idx = (*it)[i];
-//         if(idx < 3) {N[i] = T[idx];}
-//         else {
-//           if(cutData) {
-//             N[i] = cutData->pointFromEdge(idx-3);
-//           }
-//           else {
-//             const Ubyte v0= Element::nvedge[idx - 3][0], v1= Element::nvedge[idx - 3][1];
-//             const R t = -ls[v0]/(ls[v1]-ls[v0]);
-//             N[i] = (1-t) * ((Rd) T[v0]) + t * ((Rd) T[v1]) ;
-//           }
-//         }
-//       }
-//     mes += std::fabs(det(N[0],N[1],N[2]))*0.5;
-//   }
-//   return mes;
-// }
+
+  // R mesure(int domain) const {
+  //   if( patch.is_uncut()) return T.mesure();
+  //   R mes = 0;
+  //   ElementSignEnum the_part = what_part(domain);
+  //
+  //   for(const_element_iterator it = element_begin(the_part);
+  //   it != element_end(the_part); ++it) {
+  //
+  //     Rd N[3];
+  //     for(int i=0; i<3;++i) {
+  //       Uint idx = (*it)[i];
+  //       if(idx < 3) {N[i] = T[idx];}
+  //       else {
+  //         const Ubyte v0= Element::nvedge[idx - 3][0], v1= Element::nvedge[idx - 3][1];
+  //         const R t = -ls[v0]/(ls[v1]-ls[v0]);
+  //         N[i] = (1-t) * ((Rd) T[v0]) + t * ((Rd) T[v1]) ;
+  //       }
+  //     }
+  //     mes += geometry::mesure_simplex(N);
+  //   }
+  //   return mes;
+  // }
 //
 //   R mesureEdge(int e, int dom) const {
 //     assert(cutData);
@@ -644,7 +662,7 @@ public :
 //
 //   }
 
-  Rd get_Vertex(const_element_iterator it, const int i) const {
+  Rd get_vertex(const_element_iterator it, const int i) const {
 
     Uint idx = (*it)[i];
     if(idx < E::nv) return (Rd) T[idx];
@@ -685,31 +703,29 @@ private:
 //     }
 //   }
 public:
-void get_list_node (vector<Rd>& node, int s) const ;
-CutElement2 get_element(int k) const { assert(0); return CutElement2();};
-int nb_element() const {return patch.end_-patch.begin_;}
+void get_list_node (vector<Rd>& node, int s) const {assert(0);};
+CutElement<E> get_element(int k) const { assert(0); return CutElement<E>();};
+int nb_element(int s) const {assert(0);return patch.end_-patch.begin_;}
 
 };
-
 
 template<typename E>
 class Physical_Partition : public Virtual_Partition<E>{
 
-  typedef SortArray<int, E::Rd::d+1> ElementIdx;           // the vertices of a triangle of the cut:
+  static const int dim = E::RdHat::d;
+  typedef SortArray<Ubyte, dim+1> ElementIdx;           // the vertices of a triangle of the cut:
   typedef const ElementIdx* const_element_iterator;
   typedef       ElementIdx*       element_iterator;
   typedef typename E::Rd Rd;
   typedef E Element;
-
+  static const int size_max_ = 50;
 public:
   const Element& T;
 
-
-
 private:
   std::vector<Rd>       vertices_;
-  std::vector<ElementIdx>  elements_idx;
-
+  ElementIdx  elements_idx[size_max_];
+  int nb_element_ = 0;
 public:
 
 
@@ -719,22 +735,35 @@ public:
   //   elements_idx.resize(0);
   // }
   void add_node(const Rd P) { vertices_.push_back(P);}
-  void add_element(const ElementIdx& iv) {
-    elements_idx.push_back(iv);
+  void set_element(int k, const ElementIdx& iv) {
+    elements_idx[k] = iv;
+    nb_element_++;
   }
-  void erase_element(int k) {
-    elements_idx.erase(elements_idx.begin()+k);
-  }
-  int nb_element() const {return elements_idx.size();}
+  // void add_element(const ElementIdx& iv) {
+  //   elements_idx.push_back(iv);
+  // }
+  // void erase_element(int k) {
+  //   elements_idx.erase(elements_idx.begin()+k);
+  // }
+  // int nb_element(int s) const {return elements_idx.size();}
+  int nb_element(int s) const {return nb_element_;}
   int nb_node() const {return vertices_.size();}
+  int max_size() const {return size_max_;}
+  CutElement<E> get_element(int k) const { return CutElement<E>(vertices_,elements_idx[k]);}
 
-  CutElement2 get_element(int k) const { return CutElement2(vertices_,elements_idx[k]);}
-
+  const_element_iterator element_begin (int s) const
+  { return elements_idx;}
+  const_element_iterator element_end (int s) const
+  { return elements_idx + nb_element_; }
 
   void get_list_node (vector<Rd>& node, int s) const {
     assert(0);
     node = vertices_;
   }
+  Rd get_vertex(const_element_iterator it, const int i) const{
+    return vertices_[(*it)[i]];
+  }
+  // double mesure(int domain) const {assert(0); return 0.;}
 };
 
 

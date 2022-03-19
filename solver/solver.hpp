@@ -24,7 +24,7 @@ namespace solver {
     #endif
 
   }
-
+  
     void umfpack(std::map<std::pair<int,int>,R> &, Rn &);
     void LAPACK(Rnm & a, Rn & b);
 //   void MUMPS(std::map<std::pair<int,int>,R> &, Rn &, const int) ;

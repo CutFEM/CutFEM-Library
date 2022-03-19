@@ -6,79 +6,29 @@
 #include "../FESpace/expression.hpp"
 
 
-static bool point_inside_tri(R2 s, R2 a, R2 b, R2 c) {
-
-  int as_x = s.x-a.x;
-  int as_y = s.y-a.y;
-
-  bool s_ab = (b.x-a.x)*as_y-(b.y-a.y)*as_x >= 0;
-  if(((c.x-a.x)*as_y-(c.y-a.y)*as_x >= 0) == s_ab) return false;
-
-  if(((c.x-b.x)*(s.y-b.y)-(c.y-b.y)*(s.x-b.x) >= 0) != s_ab) return false;
-
-  return true;
-}
-
-static bool point_inside_tri(R2 s,  const typename Mesh2::Element& K) {
-  R2 Pref = K.toKref(s);
-  // std::cout << Pref << std::endl;
-  if(Pref.x < -Epsilon || Pref.x > 1+Epsilon) return false;
-  if(Pref.y < -Epsilon || Pref.y > 1+Epsilon) return false;
-  if(Pref.y-Epsilon > 1 - Pref.x) return false;
-
-  return true;
-
-}
-
-static int find_triangle_belong_point(const Mesh2& Th, R2 s) {
-  typedef typename Mesh2::Element Element;
-
-  for( int k=0; k<Th.nbElmts();++k) {
-    const Element& K(Th[k]);
-    // if(point_inside_tri(s, K[0], K[1], K[2])) {
-    if(point_inside_tri(s, K)) {
-
-      return k;
-    }
-  }
-  return -1;
-}
-
-static bool check_intersect(R2 u, R2 v, R2 w, R& t) {
-
-  R det = -u.x*v.y + u.y*v.x;
-  if(fabs(det) < 1e-14) return false;
-
-  t = -w[0]*v[1] + w[1]*v[0];
-  t /= det;
-  R t2 = -w[0]*u[1] + w[1]*u[0];
-  t2 /= det;
-  if(t >= 0 && t <= 1 && t2 >=0 && t2 <= 1) return true;
-  return false;
-}
+//
+// Marker::Marker(const Mesh2& Thh) : Th_(Thh) { }
+// Marker::Marker(const Mesh2& Thh, R2(*fparam)(double t), double x_begin, double x_end, int npoint) : Marker(Thh) {
+//   double h = (x_end - x_begin) / (npoint - 1);
+//   for(int i=0;i<npoint;++i) {
+//     double t = x_begin + i*h;
+//     R2 val = fparam(t);
+//     this->add(t, val);
+//   }
+//   // check periodicity
+//   int l = X_.size()-1;
+//   R2 AB(X_[l] - X_[0], Y_[l]-Y_[0]);;
+//   periodic_ = (AB.norm() < 1e-12);
+// }
+//
+// void Marker::add(double t, R2 val) {
+//   T_.push_back(t);
+//   X_.push_back(val.x);
+//   Y_.push_back(val.y);
+// }
 
 
-Marker::Marker(const Mesh2& Thh) : Interface2(Thh), Th(Thh) { }
-Marker::Marker(const Mesh2& Thh, R2(*fparam)(double t), double x_begin, double x_end, int npoint) :Marker(Thh) {
-  {
-    nMarker_begin.push_back(0);
 
-
-    double h = (x_end - x_begin) / (npoint - 1);
-    for(int i=0;i<npoint;++i) {
-      double t = x_begin + i*h;
-      R2 val = fparam(t);
-      T.push_back(t);
-      X.push_back(val.x);
-      Y.push_back(val.y);
-      markers.push_back(val);
-    }
-    nMarker_end.push_back(markers.size());
-  }
-  // check periodicity
-  R2 AB = markers[markers.size()-1] - markers[0];
-  periodic = (AB.norm() < 1e-12);
-}
 Marker::Marker(const Mesh2& Thh, std::string path) : Interface2(Thh), Th(Thh) {
   add(path);
 }
@@ -140,75 +90,78 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 }
 
 R2 Marker::get_intersect_edge(R2 A, R2 B, int previousK, int k, int& k_next) {
-  const Element& K(Th[k]);
-
-  for(int i=0;i<Element::ne;++i) {
-    int jn = i;
-    k_next = Th.ElementAdj(k, jn);
-    if(k_next == -1) continue;
-    if(k_next == previousK) continue;
-
-    R2 C = K[Element::nvedge[i][0]];
-    R2 D = K[Element::nvedge[i][1]];
-    R2 AB(A,B), CD(C,D), AC(A,C);
-    R t;
-    if(check_intersect(AB, CD, AC, t)) {
-      R2 P = A+t*AB;
-      return P;
-    }
-  }
   assert(0);
+  // const Element& K(Th[k]);
+  //
+  // for(int i=0;i<Element::ne;++i) {
+  //   int jn = i;
+  //   k_next = Th.ElementAdj(k, jn);
+  //   if(k_next == -1) continue;
+  //   if(k_next == previousK) continue;
+  //
+  //   R2 C = K[Element::nvedge[i][0]];
+  //   R2 D = K[Element::nvedge[i][1]];
+  //   R2 AB(A,B), CD(C,D), AC(A,C);
+  //   R t;
+  //   if(check_intersect(AB, CD, AC, t)) {
+  //     R2 P = A+t*AB;
+  //     return P;
+  //   }
+  // }
+  // assert(0);
   return R2();
 }
 
 int Marker::find_next_element(R2 A, R2 B, int previousK, int k) {
-  const Element& K(Th[k]);
-
-  for(int i=0;i<Element::ne;++i) {
-    int jn = i;
-    int k_next = Th.ElementAdj(k, jn);
-    if(k_next == -1) continue;
-    if(k_next == previousK) continue;
-
-    R2 C = K[Element::nvedge[i][0]];
-    R2 D = K[Element::nvedge[i][1]];
-    R2 AB(A,B), CD(C,D), AC(A,C);
-    R t;
-    if(check_intersect(AB, CD, AC, t)) {
-      return k_next;
-    }
-  }
+  // const Element& K(Th[k]);
+  //
+  // for(int i=0;i<Element::ne;++i) {
+  //   int jn = i;
+  //   int k_next = Th.ElementAdj(k, jn);
+  //   if(k_next == -1) continue;
+  //   if(k_next == previousK) continue;
+  //
+  //   R2 C = K[Element::nvedge[i][0]];
+  //   R2 D = K[Element::nvedge[i][1]];
+  //   R2 AB(A,B), CD(C,D), AC(A,C);
+  //   R t;
+  //   if(check_intersect(AB, CD, AC, t)) {
+  //     return k_next;
+  //   }
+  // }
   assert(0);
   return -1;
 }
 
 void Marker::find_marker_limit(int k, int& i){
-  const Element& K(Th[k]);
-  while(true){
-    R2 node = markers[i];
-    if(point_inside_tri(node, K)) {
-      elementOfMarker.push_back(k);
-      i++;
-    }
-    else break;
-  }
+  assert(0);
+  // const Element& K(Th[k]);
+  // while(true){
+  //   R2 node = markers[i];
+  //   if(point_inside_tri(node, K)) {
+  //     elementOfMarker.push_back(k);
+  //     i++;
+  //   }
+  //   else break;
+  // }
 }
 
 R2 Marker::find_intersection(R2 A, R2 B, int k, int kn, int& ie){
-  const Element& K(Th[k]);
-  for(int i=0;i<Element::ne;++i) {
-    ie = i;
-    int jn = i;
-    int k_next = Th.ElementAdj(k, jn);
-    if(k_next != kn) continue;
-
-    R2 C = K[Element::nvedge[i][0]];
-    R2 D = K[Element::nvedge[i][1]];
-    R2 AB(A,B), CD(C,D), AC(A,C);
-    R t;
-    assert(check_intersect(AB, CD, AC, t));
-    return A+t*AB;
-  }
+  // const Element& K(Th[k]);
+  // for(int i=0;i<Element::ne;++i) {
+  //   ie = i;
+  //   int jn = i;
+  //   int k_next = Th.ElementAdj(k, jn);
+  //   if(k_next != kn) continue;
+  //
+  //   R2 C = K[Element::nvedge[i][0]];
+  //   R2 D = K[Element::nvedge[i][1]];
+  //   R2 AB(A,B), CD(C,D), AC(A,C);
+  //   R t;
+  //   assert(check_intersect(AB, CD, AC, t));
+  //   return A+t*AB;
+  // }
+  assert(0); return R2();
 }
 
 int Marker::find_edge(int k, int kn) {
@@ -223,107 +176,108 @@ int Marker::find_edge(int k, int kn) {
 }
 
 void Marker::find_vertices() {
-  // Find the nodes that intersect the edges
-  // nstartMarker.push_back(edges_node.size());
-  // nstartFace.push_back(faces.size());
-  int nbeg = nMarker_begin[0];
-  int nlast = nMarker_end[0];
-
-
-  // get the starting triangle
-  R2 firstNode = markers[nbeg];
-  int i1 = vertices_.size(), i2 = 0;
-  int k0 = find_triangle_belong_point(Th, firstNode);
-  elementOfMarker.push_back(k0);
-  assert(k0 != -1);
-
-  int idxK = k0;
-  int nextK = -1;
-  int previousK = -1;
-  int i=nbeg+1;
-  int nloop = 0;
-  while(i<nlast){
-
-    find_marker_limit(idxK, i);
-    assert(i<nlast);
-    nextK = find_next_element(markers[i-1], markers[i], previousK, idxK);
-    previousK = idxK;
-    if(nextK == k0) break;
-
-    idxK = nextK;
-    int ed1;
-    R2 P1 = find_intersection(markers[i-1], markers[i], idxK, previousK, ed1);
-
-    int j = i;
-    find_marker_limit(idxK, j);
-    if(j>= nlast) break;
-    assert(j<nlast);
-
-    nextK = find_next_element(markers[j-1], markers[j], previousK, idxK);
-    int ed2;
-    R2 P2 = find_intersection(markers[j-1], markers[j], idxK, nextK, ed2);
-
-
-
-    if (nloop == 0) {
-      vertices_.push_back(P1);
-    }
-    vertices_.push_back(P2);
-    if(ed1 < ed2) {
-      faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
-    }
-    else {
-      faces_.push_back(Face(vertices_.size()-1,vertices_.size()-2, 0));
-    }
-    // if(ed1 < ed2) {
-    //   vertices_.push_back(P1);
-    //   vertices_.push_back(P2);
-    // } else {
-    //   vertices_.push_back(P2);
-    //   vertices_.push_back(P1);
-    // }
-
-
-    element_of_face_.push_back(idxK);
-    face_of_element_[idxK] = element_of_face_.size()-1;
-
-    // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
-    outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
-    nloop += 1;
-  }
-
-  // Check boundary
-
-
-  // Find last face
-  if(!periodic) return;
-  int ed1,ed2;
-  R2 P1 = find_intersection(markers[i-1], markers[i], k0, previousK, ed1);
-  int j=0;
-  find_marker_limit(k0, j);
-  nextK = element_of_face_[0];
-  R2 P2 = find_intersection(markers[j-1], markers[j], k0, nextK, ed2);
-
-
-
-  // if(ed1 < ed2) {
-  //   vertices_.push_back(P1);
+  assert(0);
+  // // Find the nodes that intersect the edges
+  // // nstartMarker.push_back(edges_node.size());
+  // // nstartFace.push_back(faces.size());
+  // int nbeg = nMarker_begin[0];
+  // int nlast = nMarker_end[0];
+  //
+  //
+  // // get the starting triangle
+  // R2 firstNode = markers[nbeg];
+  // int i1 = vertices_.size(), i2 = 0;
+  // int k0 = find_triangle_belong_point(Th, firstNode);
+  // elementOfMarker.push_back(k0);
+  // assert(k0 != -1);
+  //
+  // int idxK = k0;
+  // int nextK = -1;
+  // int previousK = -1;
+  // int i=nbeg+1;
+  // int nloop = 0;
+  // while(i<nlast){
+  //
+  //   find_marker_limit(idxK, i);
+  //   assert(i<nlast);
+  //   nextK = find_next_element(markers[i-1], markers[i], previousK, idxK);
+  //   previousK = idxK;
+  //   if(nextK == k0) break;
+  //
+  //   idxK = nextK;
+  //   int ed1;
+  //   R2 P1 = find_intersection(markers[i-1], markers[i], idxK, previousK, ed1);
+  //
+  //   int j = i;
+  //   find_marker_limit(idxK, j);
+  //   if(j>= nlast) break;
+  //   assert(j<nlast);
+  //
+  //   nextK = find_next_element(markers[j-1], markers[j], previousK, idxK);
+  //   int ed2;
+  //   R2 P2 = find_intersection(markers[j-1], markers[j], idxK, nextK, ed2);
+  //
+  //
+  //
+  //   if (nloop == 0) {
+  //     vertices_.push_back(P1);
+  //   }
   //   vertices_.push_back(P2);
-  // } else {
-  //   vertices_.push_back(P2);
-  //   vertices_.push_back(P1);
+  //   if(ed1 < ed2) {
+  //     faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+  //   }
+  //   else {
+  //     faces_.push_back(Face(vertices_.size()-1,vertices_.size()-2, 0));
+  //   }
+  //   // if(ed1 < ed2) {
+  //   //   vertices_.push_back(P1);
+  //   //   vertices_.push_back(P2);
+  //   // } else {
+  //   //   vertices_.push_back(P2);
+  //   //   vertices_.push_back(P1);
+  //   // }
+  //
+  //
+  //   element_of_face_.push_back(idxK);
+  //   face_of_element_[idxK] = element_of_face_.size()-1;
+  //
+  //   // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+  //   outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
+  //   nloop += 1;
   // }
-  vertices_.push_back(P2);
-  if(ed1 < ed2) {
-    faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
-  }
-  else {
-    faces_.push_back(Face(vertices_.size()-1,vertices_.size()-2, 0));
-  }
-  element_of_face_.push_back(k0);
-  face_of_element_[k0] = element_of_face_.size()-1;
-  // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
-  outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
+  //
+  // // Check boundary
+  //
+  //
+  // // Find last face
+  // if(!periodic) return;
+  // int ed1,ed2;
+  // R2 P1 = find_intersection(markers[i-1], markers[i], k0, previousK, ed1);
+  // int j=0;
+  // find_marker_limit(k0, j);
+  // nextK = element_of_face_[0];
+  // R2 P2 = find_intersection(markers[j-1], markers[j], k0, nextK, ed2);
+  //
+  //
+  //
+  // // if(ed1 < ed2) {
+  // //   vertices_.push_back(P1);
+  // //   vertices_.push_back(P2);
+  // // } else {
+  // //   vertices_.push_back(P2);
+  // //   vertices_.push_back(P1);
+  // // }
+  // vertices_.push_back(P2);
+  // if(ed1 < ed2) {
+  //   faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+  // }
+  // else {
+  //   faces_.push_back(Face(vertices_.size()-1,vertices_.size()-2, 0));
+  // }
+  // element_of_face_.push_back(k0);
+  // face_of_element_[k0] = element_of_face_.size()-1;
+  // // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
+  // outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
 
 
 }
