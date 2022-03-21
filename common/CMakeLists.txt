@@ -13,6 +13,7 @@ set(COMMON_SOURCES
   cut_mesh.cpp
   cut_method.cpp
   marker.cpp
+  base_interface.cpp
   Interface2dn.cpp
   Interface3dn.cpp
   SparseMatMap.cpp

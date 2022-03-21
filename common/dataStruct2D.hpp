@@ -147,6 +147,7 @@ struct DataTriangle2  {
 class Triangle2: public GenericElement<DataTriangle2>{
 public:
   typedef Edge2 Face;
+  typedef Triangle2 TypeCutElement;
   Triangle2() {}; // constructor empty for array
   Triangle2(Vertex * v0,int * iv,int r=0, double mss=UnSetMesure) {
     this->set(v0, iv, r , mss);
@@ -174,7 +175,18 @@ public:
     l[2] = 1 - l[0] - l[1];
     return l[0]*R2::KHat[0] + l[1]*R2::KHat[1] + l[2]*R2::KHat[2];
   }
+  R2 toReferenceElement(const R2& P) const {
+    R l[3];
+    const R2 &A =*vertices[0];
+    const R2 &B =*vertices[1];
+    const R2 &C =*vertices[2];
 
+    R2 PA(P,A), PB(P,B), PC(P,C);
+    l[0] = 0.5/mes*( (PB ^ PC));
+    l[1] = 0.5/mes*( (PC ^ PA));
+    l[2] = 1 - l[0] - l[1];
+    return l[0]*R2::KHat[0] + l[1]*R2::KHat[1] + l[2]*R2::KHat[2];
+  }
   Rd operator()(const RdHat & Phat) const {
     Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0]);
     for (int i=1;i<nv;++i)
@@ -221,6 +233,7 @@ struct DataQuad2  {
 class Quad2: public GenericElement<DataQuad2> {
 public:
   typedef Edge2 Face;
+  typedef Triangle2 TypeCutElement;
 
   Quad2() {}; // constructor empty for array
   Quad2(Vertex * v0,int * iv,int r=0, double mss=UnSetMesure) {
@@ -233,6 +246,7 @@ public:
     + Phat[1]*(*(Rd*) vertices[3]);
     return r;
   }
+
 
   // R2 H(int i) const { ASSERTION(i>=0 && i <3);
   //   R2 E=Edge(i);return E.perp()/(2.*this->mesure());
@@ -257,7 +271,18 @@ public:
     return R2(c1,c2);
 
   }
+  R2 toReferenceElement(const R2& P) const {
+    const R2 &A =*vertices[0];
+    const R2 &B =*vertices[1];
+    const R2 &C =*vertices[3];
 
+    R2 AB(A,B), AC(A,C);
+    R2 AP(A,P);
+    double c1 = (AP,AB)/AB.norme2();
+    double c2 = (AP,AC)/AC.norme2();
+    return R2(c1,c2);
+
+  }
   // R2 centroid() const {
   //   return 1./3*((*vertices[0])+(*vertices[1])+(*vertices[2]));
   // }

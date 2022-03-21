@@ -35,16 +35,24 @@ struct Cut_Part {
   // const Partition<E>& get_partition() const {return partition_;}
   void get_list_node (vector<typename E::Rd>& node) const{ partition_->get_list_node(node, sign_cut_); }
   CutElement<E> get_element(int k) const {return partition_->get_element(k);}
-  double mesure(int d) const {return partition_->mesure(d);}
+  double get_measure() const {return partition_->measure(sign_cut_);}
   Rd get_vertex(const_element_iterator it, const int i) const {return partition_->get_vertex(it,i);}
   bool multi_interface() const {return partition_ == &pp;}
   int nb_element() const {return partition_->nb_element(sign_cut_);}
 
+  int get_local_domain_id() const {
+    if(sign_cut_==0) return -1;  // not cout
+    else return (sign_cut_==-1);
+  }
   const_element_iterator element_begin () const{
      return partition_->element_begin(sign_cut_);
    }
   const_element_iterator element_end () const{
     return partition_->element_end(sign_cut_);
+  }
+
+  Rd toPhysicalElement(const_element_iterator it, const Rd Phat) const {
+    return partition_->toPhysicalElement(it, Phat);
   }
 
 };
@@ -123,7 +131,6 @@ public:
 private:
   void init(const Interface<Mesh>& interface);
   void init(const Time_Interface<Mesh>& interface);
-
   bool check_exist(int k, int dom) const {
     const auto it = idx_from_background_mesh_[dom].find(k);
     if(it == idx_from_background_mesh_[dom].end()) return false;
@@ -171,16 +178,26 @@ public:
     assert(0);
   }
 
-  bool isCut(int k, int t = 0) const {
+  bool isCut(int k, int t=0) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
     return (it != interface_id_[t].end());
   }
-  bool isCut(int k, int domain, int t = 0) const {
+
+  // bool isCut(int k, int domain, int t) const {
+  //   int kloc = idxK_in_domain(k, domain);
+  //   auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+  //   return (it != interface_id_[t].end());
+  // }
+  bool isCutFace(int k, int ifac, int t) const {
+    if(!isCut(k,t)) return false;
+    int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    return (it != interface_id_[t].end());
+    assert(it != interface_id_[t].end());
+    int kb = this->idxElementInBackMesh(k);
+    return it->second.at(0).first->isCutFace(kb,ifac);
   }
   bool isActive(int k) const {
 
@@ -258,6 +275,35 @@ public:
     return this->idxElementFromBackMesh(kbn, domain);
   }
 
+  void info() const {
+    std::cout << " ------------------------------- " << std::endl;
+    std::cout << " Cut Mesh has  \t" << get_nb_domain() << " domains" << std::endl;
+    for(int i=0;i<get_nb_domain();++i) {
+      std::cout << " nb elements in \t" << i << " => " << this->get_nb_element(i) << std::endl;
+    }
+    std::cout << " nb elements in total => \t" << this->get_nb_element() << std::endl;
+  }
+
+  #ifdef USE_MPI
+  virtual int first_element() const { return MPIcf::first_element(this->get_nb_element());}
+  virtual int next_element() const {  return MPIcf::next_element(this->get_nb_element());}
+  virtual int last_element() const {  return MPIcf::last_element(this->get_nb_element());}
+
+  virtual int first_boundary_element() const { return MPIcf::my_rank();}
+  virtual int next_boundary_element() const { return MPIcf::size();}
+  virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
+  #else
+  virtual int first_element() const { return 0;}
+  virtual int next_element() const {return 1;}
+  virtual int last_element() const { return this->get_nb_element();}
+
+  virtual int first_boundary_element() const { return 0;}
+  virtual int next_boundary_element() const { return 1;}
+  virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
+  #endif
+
+
+
 };
 
 
@@ -302,9 +348,6 @@ void Cut_Mesh<Mesh>::init(const Interface<Mesh>& interface){
   idx_element_domain.push_back(nt0);
   idx_element_domain.push_back(nt0+nt1);
 
-  std::cout << " nb elements in 0 \t" << this->get_nb_element(0) << std::endl;
-  std::cout << " nb elements in 1 \t" << this->get_nb_element(1) << std::endl;
-  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
 }
 
 template<typename Mesh>
@@ -418,14 +461,6 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
     idx_element_domain.push_back(sum_nt);
   }
 
-  for( int d=0; d<new_dom_id+1;++d){
-  std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
-  }
-  // std::cout << " nb elements in 0 \t" << this->get_nb_element(0) << std::endl;
-  // std::cout << " nb elements in 1 \t" << this->get_nb_element(1) << std::endl;
-
-  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
-
 }
 
 template<typename Mesh>
@@ -495,10 +530,6 @@ void Cut_Mesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain_r
     idx_element_domain.push_back(sum_nt);
   }
 
-  for( int d=0; d<dom_size;++d){
-  std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
-  }
-  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
 
 }
 
@@ -566,11 +597,6 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
     int sum_nt = idx_element_domain[d] + nt[d];
     idx_element_domain.push_back(sum_nt);
   }
-
-  for( int d=0; d<dom_size;++d){
-    std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
-  }
-  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
 
 }
 
@@ -648,11 +674,6 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
     idx_element_domain.push_back(sum_nt);
   }
 
-  for( int d=0; d<dom_size;++d){
-    std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
-  }
-  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
-
 }
 
 
@@ -718,9 +739,6 @@ void Cut_Mesh<Mesh>::init(const Time_Interface<Mesh>& interface){
   idx_element_domain.push_back(nt0);
   idx_element_domain.push_back(nt0+nt1);
 
-  std::cout << " nb elements in 0 \t" << this->get_nb_element(0) << std::endl;
-  std::cout << " nb elements in 1 \t" << this->get_nb_element(1) << std::endl;
-  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
 }
 
 template<typename Mesh>
@@ -809,11 +827,6 @@ void Cut_Mesh<Mesh>::truncate(const Time_Interface<Mesh>& interface,int sign_dom
     idx_element_domain.push_back(sum_nt);
   }
 
-  for( int d=0; d<dom_size;++d){
-  std::cout << " nb elements in  \t" << d << "\t" << this->get_nb_element(d) << std::endl;
-  }
-  std::cout << " nb elements  \t" << this->get_nb_element() << std::endl;
-
 }
 
 
@@ -894,10 +907,10 @@ Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition
   return partition;
 }
 
-typedef Cut_Mesh<Mesh2> Cut_MeshT2;
-typedef Cut_Mesh<Mesh3> Cut_MeshT3;
-typedef Cut_Mesh<MeshQuad2> Cut_MeshQ2;
-typedef Cut_Mesh<MeshHexa> Cut_MeshQ3;
+typedef Cut_Mesh<Mesh2> CutMeshT2;
+typedef Cut_Mesh<Mesh3> CutMeshT3;
+typedef Cut_Mesh<MeshQuad2> CutMeshQ2;
+typedef Cut_Mesh<MeshHexa> CutMeshQ3;
 
 
 

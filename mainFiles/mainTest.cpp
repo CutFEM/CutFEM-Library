@@ -250,49 +250,156 @@ R fun_levelSet(const R3 P, const int i) {
   // return 0.5*P.x +0.3*P.y - 0.5*P.z - 0.2;   // 6 cuts
   // return 0.5*P.x -0.5*P.y + 0.5*P.z - 0.2;   // 6 cuts
   // return -0.5*P.x +0.5*P.y + 0.5*P.z - 0.2;   // 6 cuts
-
-
 }
-R fun_id(const R3 P,const int i) {return P[i];}
-R fun_1(const R3 P,const int i) {return 1;}
-
+R fun_levelSet1(const R3 P, const int i) {
+  R shiftX = 0.75;
+  R shiftY = 0.75;
+  R shiftZ = 0.75;
+  R r = 0.6;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+}
+R fun_levelSet2(const R3 P, const int i) {
+  R shiftX = -0.75;
+  R shiftY = -0.75;
+  R shiftZ = -0.75;
+  R r = 0.6;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+}
+R fun_test(const R3 P,const int i, int d) {return d;}
+R fun_velocity(const R3 P, const int i){
+  if(i == 0) return P.z/10;
+  else if(i == 1) return 0;
+  else       return -P.x/10;
+}
+double fun_kappa_E1(int i, double hh, double meas, double measK, double meas_Cut) {
+    return meas_Cut/measK;
+}
+double fun_kappa_E2(int i, double hh, double meas, double measK, double meas_Cut) {
+    return 1-meas_Cut/measK;
+}
 
 int main(int argc, char** argv )
 {
-  typedef MeshHexa     Mesh;
-  typedef Cut_MeshQ3   CutMesh;
-  typedef FESpaceQ3    Space;
-  typedef CutFESpaceQ3 CutSpace;
-
-  typedef typename Space::FElement FElement;
+  typedef Mesh3       Mesh;
+  typedef CutMeshT3   CutMesh;
+  typedef FESpace3    Space;
+  typedef CutFESpaceT3 CutSpace;
+  typedef TestFunction<3> FunTest;
   typedef FunFEM<Mesh> Fun_h;
   const double cpubegin = CPUtime();
 
   MPIcf cfMPI(argc,argv);
 
-
+  // MESH PARAMETERS
+  // ---------------------------------------------------------------------------
   int    nx = 10, ny = 10, nz = 10;
   double lx = 3., ly = 3., lz = 3.;
-  MeshHexa Th(nx, ny, nz, -1.5, -1.5, -1.5, lx, ly, lz);
+  Mesh Th(nx, ny, nz, -1.5, -1.5, -1.5, lx, ly, lz);
   Th.info();
+  double h = lx/(nx-1);
+
+  // PROBLEM PARAMETERS
+  // ---------------------------------------------------------------------------
+  double A0 = 1.0, A1 = 1.0, A2 = 0.5;
+  double kappa1 = 2.0, kappa2 = 0.5, kappa01 = 1, kappa02 = 2;
+  double kappaTilde1 = kappa1/kappa01, kappaTilde2 = kappa2/kappa02;
+  CutFEM_Parameter kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
+  CutFEM_Parameter kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
+
+  // Local weights for average function across bulk faces
+  CutFEM_Parameter kappa_E1("kappa_E1", fun_kappa_E1);
+  CutFEM_Parameter kappa_E2("kappa_E2", fun_kappa_E2);
+
+  // FULLSTAB PARAMETERS
+  double tau_a0 = 1e0, tau_b0 = 0;
+  double tau_a1 = 1e1, tau_b1 = 0;
+  double tau_a2 = 1e1, tau_b2 = 0;
+  double lambdaB = A1*1e1/h;
+  double lambdaA0 = A0*5e3/h;
 
 
+  // LEVEL-SET & INTERFACE CONSTRUCTION
+  // ---------------------------------------------------------------------------
   Space Lh(Th, DataFE<Mesh>::P1);
   Fun_h levelSet(Lh, fun_levelSet);
   Interface_LevelSet<Mesh> interface(Th, levelSet);
+  // Fun_h levelSet1(Lh, fun_levelSet1);
+  // Interface_LevelSet<Mesh> interface1(Th, levelSet1);
+  // Fun_h levelSet2(Lh, fun_levelSet2);
+  // Interface_LevelSet<Mesh> interface2(Th, levelSet2);
+
+  // CUTMESH && SURFACE MESH CONSTRUCTION
+  // ---------------------------------------------------------------------------
+  Cut_Mesh<Mesh> Khi(Th, interface);
+  // Khi.add(interface1);
+  // Khi.add(interface2);
+  Khi.info();
+  Cut_Mesh<Mesh> Kh0(Th);
+  Kh0.create_surface_mesh(interface);
+
+  // FINITE ELEMENT SPACE
+  // ---------------------------------------------------------------------------
+  Space Vh(Th, DataFE<Mesh>::P1dc);
+  CutSpace Wh(Khi, Vh);
+  Wh.info();
+  CutSpace Sh(Kh0, Vh);
+  Sh.info();
 
 
-  Cut_Mesh<Mesh> Kh(Th, interface);
-  Cut_Mesh<Mesh> Sh(Th);
-  Sh.create_surface_mesh(interface);
+  // INTERPOLATION OF THE VELOCITY FIELD
+  // ---------------------------------------------------------------------------
+  Lagrange3 FEvelocity(1);
+  Space velVh(Th, FEvelocity);
+  Fun_h vel(velVh, fun_velocity);
+
+  // BUILDING THE SYSTEM
+  // ---------------------------------------------------------------------------
+  CutFEM<Mesh> problem({&Wh, &Sh});
+  FunTest u(Wh,1), v(Wh,1);         // Bulk
+  FunTest u0(Sh,1), v0(Sh,1);       // Surface
+  Normal n;
+  // BEGIN ASSEMBLY
+  // ---------------------------------------------------------------------------
+  std::cout << " -------------------  ASSEMBLY  -------------------" << std::endl;
+  double t0 = MPIcf::Wtime();
+  // problem.addBilinear(
+  //           innerProduct(kappaTildeA*grad(u),grad(v))                  // (3.12)
+  //         + innerProduct(kappaTilde*(vel.expression(),grad(u)), v)*0.5 // (3.14)
+  //         - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5  // (3.14)
+  //         , Khi
+  // );
+
+  problem.addBilinear(
+          - innerProduct(kappaTildeA*average(grad(u)*n),jump(v))      // (3.12)
+          - innerProduct(kappaTildeA*jump(u), average(grad(v)*n))         // (3.13)
+          + innerProduct(average((vel*n)*u), kappaTilde*jump(v))*0.5         // (3.15)
+          - innerProduct(jump((vel*n)*u),    kappaTilde*average(v))*0.5      // (3.15)
+          , Khi
+          , innerFace
+  );
 
 
 
+  // problem.addLinear(
+  //         innerProduct(1,v)
+  //       , Khi
+  // );
+  // matlab::Export(problem.get_matrix(), "A.dat");
+  // matlab::Export(problem.get_rhs(), "rhs.dat");
 
-  ParaviewCut<Mesh> writer(Th,"hexa_Test.vtk");
-  writer.add(levelSet, "levelSet", 0, 1);
+  double t1 = MPIcf::Wtime();
+  std::cout << " Time assembly \t" << t1-t0 << std::endl;
+  //
+  // Fun_h uh(Wh, problem.get_rhs());
+  Rn_ data_uh = problem.rhs_(SubArray(Wh.get_nb_dof(),0));
+  Fun_h uh(Wh, problem.get_rhs());
+  Fun_h ftest(Wh, fun_test);
+  // ftest.print();
 
-  // writer.add(ftest, "test_fun", 0, 1);
+  ParaviewCut<Mesh> writer(Khi,"hexa_Test.vtk");
+  // writer.add(levelSet2, "levelSet", 0, 1);
+  writer.add(uh, "sol", 0, 1);
+  writer.add(ftest, "domain", 0, 1);
 
 }
 

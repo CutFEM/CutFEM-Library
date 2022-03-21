@@ -115,7 +115,7 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
   for (int t=0;t<Mh.NbElement();  t+=1) {
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
-    const int domain = K.whichDomain();
+    const int domain = K.get_domain();
 
     for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
       const Rd & P(K.Pt(p));       // the coordinate of P in K hat
@@ -157,7 +157,7 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
   for (int t=0;t<Mh.NbElement();  t+=1) {
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
-    const int domain = K.whichDomain();
+    const int domain = K.get_domain();
 
     for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
       const Rd & P(K.Pt(p));       // the coordinate of P in K hat

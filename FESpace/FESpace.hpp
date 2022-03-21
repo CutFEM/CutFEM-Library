@@ -87,6 +87,7 @@ public:
   int index() const {return number;};
 
   int whichDomain() const {return Vh.whichDomain(number);}
+  int get_domain() const {return Vh.get_domain(number);}
   bool isCut() const {return Vh.isCut(number);}
   // const Interface<Mesh>& getInterface() const { Vh.get_interface(number);}
 };
@@ -351,6 +352,7 @@ public:
   // virtual bool faceInDomain(const Face& face, int dom) const {return true;}
   // const Face& get_face(int k) const {return Th.hyper_face(k);}
   virtual int whichDomain(int k) const { return -1;}
+  virtual int get_domain(int k) const { return -1;}
   virtual int getNumberOfSubDomain() const { return 1;}
   virtual int getNeighborElement(int k,int &j, int domain = 0) const { return Th.ElementAdj(k,j);}
   virtual int nbDomain() const {return 1;}
@@ -362,9 +364,14 @@ public:
   virtual const GFESpace& getBackSpace() const { return *backSpace;}
   const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
 
+  virtual const Cut_Mesh<Mesh>& get_mesh() const { assert(0); return Cut_Mesh<Mesh>(Th);}
+
+
   int NbNode() const { return this->nbNode;}
   int NbDoF() const { return this->nbDoF;}
   int NbElement() const { return this->nbElement;}
+  int get_nb_dof() const { return this->nbDoF;}
+
   // int NbInnerFaces() const { return Th.nbInnerFaces();}
   #ifdef USE_MPI
   virtual int first_element() const { return MPIcf::first_element(this->nbElement);}
@@ -515,7 +522,8 @@ public:
     int kb = cutTh.idxElementInBackMesh(k);
     return FElement(this,k, kb);
   }
-  int whichDomain(int k) const { return cutTh.get_domain_element(k);}
+  const Cut_Mesh<Mesh>& get_mesh() const { return cutTh;}
+  int get_domain(int k) const { return cutTh.get_domain_element(k);}
   bool isCut(int k) const { return cutTh.isCut(k);}
   int idxElementInBackMesh(int k) const { return cutTh.idxElementInBackMesh(k);}
   int idxElementFromBackMesh (int k) const { return cutTh.idxElementFromBackMesh(k) ;}
@@ -541,7 +549,7 @@ typedef CutFESpace<Mesh1>     CutFESpaceT1;
 typedef CutFESpace<Mesh2>     CutFESpaceT2;
 typedef CutFESpace<MeshQuad2> CutFESpaceQ2;
 typedef CutFESpace<MeshHexa>  CutFESpaceQ3;
-
+typedef CutFESpace<Mesh3>     CutFESpaceT3;
 typedef GFESpace<Mesh3> FESpace3;
 typedef GFElement<Mesh1> TimeSlab;
 typedef GFElement<Mesh2> FElement2;

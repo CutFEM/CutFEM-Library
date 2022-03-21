@@ -5,15 +5,49 @@
 #include "problem.hpp"
 #include "itemVF.hpp"
 #include "GenericMapping.hpp"
-// #include <omp.h>
 
 
 
 
-template<typename M>
-class FEMProblem : public ShapeOfProblem , public Solver {
+template<typename Mesh>
+class BaseFEM : public ShapeOfProblem<Mesh> , public QuadratureOfProblem<Mesh> {
+
+  typedef typename Mesh::Element Element;
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename FElement::Rd Rd;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::QFB QFB;
+protected:
+  double* databf_ = nullptr;
+
+public:
+
+  BaseFEM(const ProblemOption& option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(option) {}
+  BaseFEM(const list<FESpace*>& vh, const ProblemOption& option) : BaseFEM<Mesh>(option){
+    this->mapIdx0.clear();
+    int ndf = 0;
+    int NN = 0; int df_loc = 0;
+    for(auto it = vh.begin();it!=vh.end();++it) {
+      this->mapIdx0[*it] = ndf;
+      ndf += (*it)->NbDoF();
+      NN += (*it)->N;
+      df_loc += (**it)[0].NbDoF();
+    }
+    this->init(ndf);
+    databf_ = new double[20*df_loc*NN*op_DDall];
+  }
+  BaseFEM(const FESpace& vh, const ProblemOption& option)        : BaseFEM({&vh}, option) {}
 
 
+
+  // add local to Matrix or rhs
+  void addToMatrix(const ItemVF<Rd::d>& VF, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
+  void addToRHS(const ItemVF<Rd::d>& VF, const FElement& FKv, const RNMK_& fv, double Cint);
+
+
+  void addElementContribution(const ListItemVF<Rd::d>& VF, const int k);
+  void addEdgeContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
 
 };
 
@@ -275,35 +309,35 @@ public:
 
 
 
-template<typename M>
-class FEM : public BaseProblem<M>{
-  typedef M Mesh;
+template<typename Mesh>
+class FEM : public BaseFEM<Mesh>, public Solver{
   typedef GFESpace<Mesh> FESpace;
   typedef GenericMapping<Mesh> Mapping;
 
 public:
-  FEM(const FESpace& vh) : BaseProblem<M>(vh, 5) {}
-  FEM(const FESpace& vh, int orderSpace) : BaseProblem<M>(vh, orderSpace) {}
-  FEM(const FESpace& vh, const FESpace1& Ih, int orderSpace=5, int orderTime=3) : BaseProblem<M>(vh, Ih,orderSpace, orderTime) {}
+  FEM(const FESpace& vh,       const ProblemOption& option = defaultProblemOption) : BaseProblem<Mesh>(vh, option) {}
+  FEM(const list<FESpace*>& vh,const ProblemOption& option = defaultProblemOption) : BaseProblem<Mesh>(vh, option) {}
 
-  FEM(const list<FESpace*>& vh) : BaseProblem<M>(vh) {}
-
-
-  void solve() {
-    // matlab::Export(this->mat, "matRT.dat");
-    // matlab::Export(this->rhs, "rhs.dat");
-    R t0 = CPUtime();
-    Solver::solve(this->mat, this->rhs);
-    R t1 = CPUtime();
-    // std::cout << " Time Solver \t \t " << t1 - t0 << std::endl;
-  }
-
-  void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
-    R tt0 = MPIcf::Wtime();
-    Solver::solve(A, b);
-    std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
-
-  }
+  // FEM(const FESpace& vh, int orderSpace) : BaseProblem<M>(vh, orderSpace) {}
+  // FEM(const FESpace& vh, const FESpace1& Ih, int orderSpace=5, int orderTime=3) : BaseProblem<M>(vh, Ih,orderSpace, orderTime) {}
+  //
+  //
+  //
+  // void solve() {
+  //   // matlab::Export(this->mat, "matRT.dat");
+  //   // matlab::Export(this->rhs, "rhs.dat");
+  //   R t0 = CPUtime();
+  //   Solver::solve(this->mat, this->rhs);
+  //   R t1 = CPUtime();
+  //   // std::cout << " Time Solver \t \t " << t1 - t0 << std::endl;
+  // }
+  //
+  // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
+  //   R tt0 = MPIcf::Wtime();
+  //   Solver::solve(A, b);
+  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  //
+  // }
 
 };
 

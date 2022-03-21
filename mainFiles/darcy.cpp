@@ -32,7 +32,6 @@ void Scotty_diagonal_preconditioner(int N, std::map<std::pair<int,int>,R>& P){
   P.clear();
 
   // create the diagonal Matrix
-
   for(int i=0;i<B.n;++i){
     for(int k=B.p[i];k<B.p[i+1];++k){
       P[std::make_pair(i,i)] += B.a[k];
@@ -394,31 +393,31 @@ int main(int argc, char** argv ) {
 
 
 
-    // {  // Diagonal Preconditionning
-    //
-    //   std::map<std::pair<int,int>,R> P;
-    //   darcyCutMix.setMatrixTo(P);
-    //   darcyCutMix.addBilinear(
-    //     innerProduct(mu*u, v)
-    //     + innerProduct(p, q)
-    //   );
-    //   darcyCutMix.addBilinear(
-    //     innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
-    //     +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
-    //     ,interface
-    //   );
-    //
-    //   Scotty_diagonal_preconditioner(N, P);
-    //
-    //   // darcyCutMix.preconditionning(P);
-    //
-    //   darcyCutMix.pmat = &darcyCutMix.DF;
-    //
-    //   // matlab::Export(darcyCutMix.DF, "matP"+to_string(i)+".dat");
-    //   // matlab::Export(P, "matA"+to_string(i)+".dat");
-    //   // // // darcyCutMix.solve();
-    //   // return 0;
-    // }
+    {  // Diagonal Preconditionning
+
+      std::map<std::pair<int,int>,R> P;
+      darcyCutMix.setMatrixTo(P);
+      darcyCutMix.addBilinear(
+        innerProduct(mu*u, v)
+        + innerProduct(p, q)
+      );
+      darcyCutMix.addBilinear(
+        innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
+        +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
+        ,interface
+      );
+
+      Scotty_diagonal_preconditioner(N, P);
+
+      // darcyCutMix.preconditionning(P);
+
+      darcyCutMix.pmat = &darcyCutMix.DF;
+
+      // matlab::Export(darcyCutMix.DF, "matP"+to_string(i)+".dat");
+      // matlab::Export(P, "matA"+to_string(i)+".dat");
+      // // // darcyCutMix.solve();
+      // return 0;
+    }
 
   // matlab::Export(darcyCutMix.mat, "matA"+to_string(i)+".dat");
 

@@ -67,3 +67,5 @@ DONE ** 53) take away cutTh de paraview class and just be able to add many files
 57) should give a mesh in addIntegralFunction so it is clear where we integrate, if
     mixt terms are being used ...
 58) the rhs in problem should be private. BIG TROUBLE IF POINTING ON IT BEFORE IT IS RESIZE BY LAGRANGE MULTIPLIER eg
+59) Change ls to an struct eval coming from the interface representation or maybe just create and save the nodes
+60) remove whichDomain + other function renamed

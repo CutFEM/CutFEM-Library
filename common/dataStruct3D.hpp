@@ -125,9 +125,9 @@ struct DataTriangle3  {
 
   typedef Vertex3 V;
   typedef  V::Rd Rd ;
+  typedef Edge3 Face;
   typedef R2 RdHat;
   typedef R1 RdHatBord;
-  typedef Edge3 Face;
   static RdHat PBord(const int * nvb,const RdHatBord &P)  {
   return RdHat::KHat[nvb[0]]*(1-P.x)+R2::KHat[nvb[1]]*(P.x) ;}
 
@@ -137,6 +137,8 @@ struct DataTriangle3  {
 };
 class Triangle3: public GenericElement<DataTriangle3>  {
 public:
+  typedef Triangle3 TypeCutElement;
+  typedef Edge3 Face;
   Triangle3() {}; // constructor empty for array
 
   R3 Edge(int i) const {ASSERTION(i>=0 && i <3);
@@ -177,6 +179,7 @@ struct DataQuad3  {
   typedef Vertex3 V;
   typedef  V::Rd Rd ;
   typedef Edge3 Face;
+
   static R mesure(  V *  pv[NbOfVertices]) {
     return det(*pv[0],*pv[1],*pv[2]);
   }
@@ -188,7 +191,8 @@ struct DataQuad3  {
 };
 class Quad3: public GenericElement<DataQuad3>  {
 public:
-
+  typedef Edge3 Face;
+  typedef Triangle3 TypeCutElement;
   Quad3() {}; // constructor empty for array
 
 
@@ -228,6 +232,8 @@ struct DataTet  {
   typedef Vertex3 V;
   typedef  V::Rd Rd ;
   typedef Triangle3 Face;
+
+
   static R mesure(  V *  pv[NbOfVertices])
   {
     R3 AB(*pv[0],*pv[1]);
@@ -247,6 +253,7 @@ struct DataTet  {
 class Tet: public GenericElement<DataTet>  {
 public:
   typedef Triangle3 Face;
+  typedef Tet TypeCutElement;
 
   static const int oppEdgeOfEdge[ne] ;                   //
 
@@ -298,6 +305,19 @@ public:
     l[3] = 1 - l[0] - l[1] - l[2];
     return l[0]*R3::KHat[0] + l[1]*R3::KHat[1] + l[2]*R3::KHat[2] + l[3]*R3::KHat[3];
   }
+  R3 toReferenceElement(const R3 & P) const {
+    R l[4];
+    const R3 &A =at(0);
+    const R3 &B =at(1);
+    const R3 &C =at(2);
+    const R3 &D =at(3);
+    R3 PA(P,A), PB(P,B), PC(P,C), PD(P,D);
+    l[0] = fabs(det(PB,PC,PD)/(6*mes));
+    l[1] = fabs(det(PC,PA,PD)/(6*mes));
+    l[2] = fabs(det(PB,PA,PD)/(6*mes));
+    l[3] = 1 - l[0] - l[1] - l[2];
+    return l[0]*R3::KHat[0] + l[1]*R3::KHat[1] + l[2]*R3::KHat[2] + l[3]*R3::KHat[3];
+  }
 
   R3 toKref(const R2& P, int i) const;
   R mesureBord(int i) const;
@@ -324,6 +344,8 @@ struct DataHexa  {
   typedef Vertex3 V;
   typedef  V::Rd Rd ;
   typedef Quad3 Face;
+
+
   static R mesure(  V *  pv[NbOfVertices])
   {
     R3 AB(*pv[0],*pv[1]);
@@ -342,6 +364,7 @@ struct DataHexa  {
 class Hexa: public GenericElement<DataHexa> {
 public:
   typedef Quad3 Face;
+  typedef Tet TypeCutElement;
 
   static const int oppEdgeOfEdge[ne] ;                   //
   static const int (* const nodeConnectivity)[3];
@@ -364,6 +387,22 @@ public:
 
 
   R3 toKref(const R3& P) const {
+    const R3 &A =*vertices[0];
+    const R3 &B =*vertices[1];
+    const R3 &C =*vertices[3];
+    const R3 &D =*vertices[4];
+
+    R3 AB(A,B), AC(A,C), AD(A,D);
+    R3 AP(A,P);
+    double c1 = (AP,AB)/AB.norme2();
+    double c2 = (AP,AC)/AC.norme2();
+    double c3 = (AP,AD)/AD.norme2();
+
+    return R3(c1,c2,c3);
+
+  }
+
+  R3 toReferenceElement(const R3& P) const {
     const R3 &A =*vertices[0];
     const R3 &B =*vertices[1];
     const R3 &C =*vertices[3];

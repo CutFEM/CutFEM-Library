@@ -150,16 +150,11 @@ void solve(int argc, char** argv) {
     CutFEM_Parameter kappa_E1("kappa_E1", fun_kappa_E1);
     CutFEM_Parameter kappa_E2("kappa_E2", fun_kappa_E2);
 
-    // Penalty parameters, arbitrarily chosen at this time.
-
     // FULLSTAB PARAMETERS
     double tau_a0 = 1e0, tau_b0 = 0;
     double tau_a1 = 1e1, tau_b1 = 0;
     double tau_a2 = 1e1, tau_b2 = 0;
-//    double lambdaB = A1*2e2/h;    // coefficient on the outer boundary
-//    double lambdaA0 = A0*7e3/h;   // for the surface problem
-    double lambdaB = A1*1e1/h;    // coefficient on the outer boundary
-    //double lambdaA0 = A0*5e1/h;   // for the surface problem
+    double lambdaB = A1*1e1/h;
     double lambdaA0 = A0*5e3/h;
 
     // WANT

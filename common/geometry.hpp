@@ -51,6 +51,9 @@ namespace geometry{
   // }
 
 
+  R3 map_point_to_simplex(const R3 N[4], const R3 P);
+  R2 map_point_to_simplex(const R2 N[3], const R2 P);
+
   R measure_hyper_simplex(R2 N[2]);
   R measure_hyper_simplex(R3 N[3]);
   R mesure_simplex(R2 N[3]);

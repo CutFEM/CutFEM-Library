@@ -11,7 +11,7 @@ namespace matlab {
   template<class Vector>
   void Export(const Vector & a, std::string filename);
 
-  template<typename A>
+  template<class A>
   void Export(std::map<std::pair<A,A>,R> & dF, std::string filename);
 
   template<class A>

@@ -64,3 +64,47 @@ void Interface_LevelSet<Mesh2>::cut_partition(Physical_Partition<Element>& local
     }
   }
 }
+
+
+
+template<>
+bool Interface_LevelSet<Mesh3>::isCutFace(int k, int ifac) const {
+
+  for(int e=0;e<Element::Face::ne;++e){
+    int id_edge = Element::edgeOfFace[ifac][e];
+    int i1 = Element::nvedge[id_edge][0];
+    int i2 = Element::nvedge[id_edge][1];
+    if(ls_[this->backMesh->at(k,i1)] * ls_[this->backMesh->at(k,i2)] < 0) return true;
+  }
+  return false;
+}
+
+template<>
+bool Interface_LevelSet<Mesh2>::isCutFace(int k, int ifac) const {
+  int i1 = Element::nvedge[ifac][0];
+  int i2 = Element::nvedge[ifac][1];
+  if(ls_[this->backMesh->at(k,i1)] * ls_[this->backMesh->at(k,i2)] < 0) return true;
+  return false;
+
+}
+
+template<>
+bool Interface_LevelSet<MeshHexa>::isCutFace(int k, int ifac) const {
+  for(int e=0;e<Element::Face::ne;++e){
+    int id_edge = Element::edgeOfFace[ifac][e];
+    int i1 = Element::nvedge[id_edge][0];
+    int i2 = Element::nvedge[id_edge][1];
+    if(ls_[this->backMesh->at(k,i1)] * ls_[this->backMesh->at(k,i2)] < 0) return true;
+  }
+  return false;
+
+}
+
+template<>
+bool Interface_LevelSet<MeshQuad2>::isCutFace(int k, int ifac) const {
+  int i1 = Element::nvedge[ifac][0];
+  int i2 = Element::nvedge[ifac][1];
+  if(ls_[this->backMesh->at(k,i1)] * ls_[this->backMesh->at(k,i2)] < 0) return true;
+return false;
+
+}

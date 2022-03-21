@@ -72,7 +72,6 @@ public :
     return (face_of_element_.find(k) != face_of_element_.end());
   }
 
-
   const_face_iterator face_begin () const { return (faces_.begin()).base(); }
   const_face_iterator face_end   () const { return (faces_.end()).base(); }
 
@@ -92,8 +91,11 @@ public :
 
   virtual SignElement<Element> get_SignElement(int k) const =0;
   virtual Partition<Element> get_partition(int k) const = 0;
+
   virtual void cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part) const = 0;
   virtual R measure(const Face& f) const = 0;
+  virtual bool isCutFace(int k, int ifac) const = 0;
+
   // virtual Rd mapToFace(const Face& f, const typename Element::RdHatBord x ) const = 0;
   // virtual Rd computeDx(const Face& f) const = 0;
   // virtual CutData getCutData(const int k) const = 0;

@@ -53,12 +53,12 @@ struct ItemTestFunction {
   : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), dom(F.dom), expru(F.expru), fespace(F.fespace), pfun(f) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
   }
-  ItemTestFunction(const FunFEM<Mesh>& ff, int ic) : c(1.), cu(ic),du(op_id),dtu(0),dom(-1),fespace(ff.Vh),alloc_expr(true){
-    expru = new ExpressionFunFEM<Mesh>(ff, ic, op_id);
-  }
-  ItemTestFunction(const GFESpace<Mesh>& vh,  const ExpressionVirtual& ff) : c(1.), cu(ff.cu),du(ff.op),dtu(ff.opt),dom(-1),fespace(&vh){
-    expru = &ff;
-  }
+  // ItemTestFunction(const FunFEM<Mesh>& ff, int ic) : c(1.), cu(ic),du(op_id),dtu(0),dom(-1),fespace(ff.Vh),alloc_expr(true){
+  //   expru = new ExpressionFunFEM<Mesh>(ff, ic, op_id);
+  // }
+  // ItemTestFunction(const GFESpace<Mesh>& vh,  const ExpressionVirtual& ff) : c(1.), cu(0),du(-1),dtu(0),dom(-1),fespace(&vh){
+  //   expru = &ff;
+  // }
 
   ItemTestFunction& operator= (const ItemTestFunction& L) {
     c = L.c;
@@ -158,12 +158,12 @@ public:
     for(int i=0;i<U.size();++i) U(i) = new ItemTestFunction<N>(*L.U(i), f);
   }
 
-  ItemList(const FunFEM<Mesh>& ff, int ic) : U(1) {
-    U(0) = new ItemTestFunction<N>(ff, ic);
-  }
-  ItemList(const FESpace& Vh,const ExpressionVirtual& ff) : U(1) {
-    U(0) = new ItemTestFunction<N>(Vh, ff);
-  }
+  // ItemList(const FunFEM<Mesh>& ff, int ic) : U(1) {
+  //   U(0) = new ItemTestFunction<N>(ff, ic);
+  // }
+  // ItemList(const FESpace& Vh,const ExpressionVirtual& ff) : U(1) {
+  //   U(0) = new ItemTestFunction<N>(Vh, ff);
+  // }
 
   ItemList(const FESpace& Vh, double cc,int i,int j, int dd=-1) : U(1) {
     U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<string>());
@@ -257,27 +257,27 @@ public:
       }
     }
   }
-  TestFunction(const FESpace& Vh, const ExpressionVirtual& ff) {
-    A.init(1,1);
-    for(int i=0;i<1;++i)  A(i,0) = new ItemList<dim> (Vh, ff);
-  }
-  TestFunction(const FESpace& Vh, const ExpressionVirtual& ff, const ExpressionVirtual& gg) {
-    A.init(2,1);
-    A(0,0) = new ItemList<dim> (Vh,ff);
-    A(1,0) = new ItemList<dim> (Vh,gg);
-  }
-  TestFunction(const FESpace& Vh, const ExpressionVirtual& f1, const ExpressionVirtual& f2, const ExpressionVirtual& f3, const ExpressionVirtual& f4) {
-    A.init(4,1);
-    A(0,0) = new ItemList<dim> (Vh,f1);
-    A(1,0) = new ItemList<dim> (Vh,f2);
-    A(2,0) = new ItemList<dim> (Vh,f3);
-    A(3,0) = new ItemList<dim> (Vh,f4);
-  }
-  TestFunction(const FunFEM<Mesh>& ff, int i0, int nb_comp) {
-    int n = nb_comp;
-    A.init(n,1);
-    for(int i=i0,j=0;i<i0+nb_comp;++i,++j)  A(j,0) = new ItemList<dim> (ff, i);
-  }
+  // TestFunction(const FESpace& Vh, const ExpressionVirtual& ff) {
+  //   A.init(1,1);
+  //   for(int i=0;i<1;++i)  A(i,0) = new ItemList<dim> (Vh, ff);
+  // }
+  // TestFunction(const FESpace& Vh, const ExpressionVirtual& ff, const ExpressionVirtual& gg) {
+  //   A.init(2,1);
+  //   A(0,0) = new ItemList<dim> (Vh,ff);
+  //   A(1,0) = new ItemList<dim> (Vh,gg);
+  // }
+  // TestFunction(const FESpace& Vh, const ExpressionVirtual& f1, const ExpressionVirtual& f2, const ExpressionVirtual& f3, const ExpressionVirtual& f4) {
+  //   A.init(4,1);
+  //   A(0,0) = new ItemList<dim> (Vh,f1);
+  //   A(1,0) = new ItemList<dim> (Vh,f2);
+  //   A(2,0) = new ItemList<dim> (Vh,f3);
+  //   A(3,0) = new ItemList<dim> (Vh,f4);
+  // }
+  // TestFunction(const FunFEM<Mesh>& ff, int i0, int nb_comp) {
+  //   int n = nb_comp;
+  //   A.init(n,1);
+  //   for(int i=i0,j=0;i<i0+nb_comp;++i,++j)  A(j,0) = new ItemList<dim> (ff, i);
+  // }
 
   TestFunction t() const {
     TestFunction Ut(A.M(), A.N()); //Ut.init(A.M(), A.N());
@@ -605,7 +605,6 @@ TestFunction<N> operator * (const TestFunction<N>& F, const ExpressionVirtual& e
   }
   return multU;
 }
-
 
 template <int N>
 TestFunction<N> operator, (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {

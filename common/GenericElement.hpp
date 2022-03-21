@@ -193,7 +193,15 @@ public:
     return h;
   }
   R  mesure() const {return mes;}
-
+  R  get_measure() const {return mes;}
+  R get_h() const {
+    double h = 0;
+    for(int i=0;i<ne;++i) h += lenEdge(i);
+    return h / ne;
+  }
+  Rd map(const RdHat & Phat) const {
+    return (*this)(Phat);
+  }
 
 
 //   static  int NbNodes(int c)  // use the bit i of c to say if node in objet of dim  i existe

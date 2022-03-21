@@ -122,6 +122,8 @@ struct ItemVF {
   double fx_backMesh_V(int k, int dom, Rd mip, const R* normal = nullptr) const {
     return ((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
   }
+
+
 public:
   R getCoefU(const R* normal) const {
     R val = 1;
@@ -133,8 +135,6 @@ public:
     for(int i=0;i<ar_nv.size();++i) val *= normal[ar_nv(i)];
     return val;
   }
-
-public:
   R getCoef(const R* normal) const {
     return getCoefU(normal) * getCoefV(normal);
   }
@@ -185,7 +185,6 @@ public:
       int domCoef = domain;
       for(int i=0;i<listCoef.size();++i) {
         string coef = listCoef[i];
-
         if(this->parameterList.find(coef)) {
           CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
           val *= p(domCoef, h, meas, measK);
@@ -194,11 +193,35 @@ public:
     }
     return val;
   }
-
   void applyFunNL(RNMK_& bfu, RNMK_& bfv) const {
     pfunU(bfu, cu, du);
     pfunV(bfv, cv, dv);
   }
+
+// FOR NEW VERSION
+// const FESpace& get_spaceU() const {assert(fespaceU); return fespaceU;}
+// const FESpace& get_spaceV() const {assert(fespaceV); return fespaceV;}
+R computeCoefElement(double h, double meas, double measK, double measCut, int domain) const {
+  R val = 1;
+  for(int l=0;l<2;++l) {
+    const vector<string>& listCoef = (l==0)?coefu : coefv;
+    for(int i=0;i<listCoef.size();++i) {
+      string coef = listCoef[i];
+
+      if(parameterList.find(coef)) {
+        CutFEM_Parameter& p(*parameterList.listParameter[coef]);
+        val *= p(domain, h, meas, measK, measCut);
+      }
+    }
+  }
+  return val;
+}
+
+double evaluateFunctionOnBackgroundMesh(int k, int dom, Rd mip, const R* normal = nullptr) const {
+  return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1)
+        *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
+}
+
 
 
   friend std::ostream& operator <<(std::ostream& f, const ItemVF & u )
@@ -238,8 +261,11 @@ ItemVF<N> operator-(const ItemVF<N>& X) {
 template<int N = 2>
 class  ListItemVF {
 
+  typedef typename typeMesh<N>::Mesh Mesh;
+  typedef GFESpace<Mesh> FESpace;
   public :
   KN<ItemVF<N>> VF;
+  bool isRHS_ = true;
   ListItemVF(int l) : VF(l) {};
   const ItemVF<N>& operator()(int i) const {return VF(i);}
   const ItemVF<N>& operator[](int i) const {return VF[i];}
@@ -251,8 +277,6 @@ class  ListItemVF {
     for(int i=0;i<VF.size();++i) (*this)(i).c *= cc;
     return *this;
   }
-
-
   ListItemVF& operator+ (const ListItemVF& L) {
     int n0 = VF.size();
     int n = L.size() + this->size();
@@ -260,7 +284,6 @@ class  ListItemVF {
     for(int i=n0,j=0;i<n;++i,++j) (*this)(i) = L(j);
     return *this;
   }
-
   ListItemVF& operator- (const ListItemVF& L) {
     int n0 = VF.size();
     int n = L.size() + this->size();
@@ -268,7 +291,6 @@ class  ListItemVF {
     for(int i=n0,j=0;i<n;++i,++j) (*this)(i) = -L(j);
     return *this;
   }
-
   ListItemVF& operator- () {
     for(int i=0;i<this->size();++i) (*this)(i) = -(*this)(i);
     return *this;
@@ -311,6 +333,25 @@ class  ListItemVF {
       }
     }
   }
+
+  int get_lastOp() const {
+    int n = 0;
+    for(int i=0; i<this->size();++i) n = Max(n, getLastop(VF[i].du, VF[i].dv));
+    return n;
+  }
+  bool isRHS() const { return isRHS_;}
+  bool isNewSpace(int i) const {
+    if(i==0) return true;
+    if(isRHS_){
+      if(VF(i-1).fespaceV == VF(i).fespaceV) return false;
+      else return true;
+    }
+    else{
+      return ((VF(i-1).fespaceV != VF(i).fespaceV) || (VF(i-1).fespaceU != VF(i).fespaceU));
+    }
+  }
+  const FESpace& get_spaceU(int i) const {assert(VF(i).fespaceU||isRHS_); return (isRHS_)?*VF(i).fespaceV:*VF(i).fespaceU;}
+  const FESpace& get_spaceV(int i) const {assert(VF(i).fespaceV); return *VF(i).fespaceV;}
 
 
   friend std::ostream& operator <<(std::ostream& f, const ListItemVF & u )
@@ -372,6 +413,7 @@ ListItemVF<d> operator,(const TestFunction<d>& uu, const TestFunction<d>& vv) {
   }
 
   ListItemVF<d> item(l);
+  item.isRHS_ = false;
   int k=0, kloc=0;
   for(int i=0;i<uu.A.N();++i){
     for(int j=0;j<uu.A.M();++j){
@@ -498,7 +540,7 @@ ListItemVF<d> operator,(const ExpressionVirtual& fh, const TestFunction<d>& F) {
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c,0,0,v.cu,v.du,0,v.ar_nu,v.dom,v.dom,vector<string>(), v.coefu,0,v.dtu);
+        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.dom,v.dom,vector<string>(), v.coefu,0,v.dtu);
         item(k).expru = &fh;
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
@@ -533,7 +575,7 @@ ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*>
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c,0,0,v.cu,v.du,0,v.ar_nu,v.dom,v.dom,vector<string>(), v.coefu,0,v.dtu);
+        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.dom,v.dom,vector<string>(), v.coefu,0,v.dtu);
         item(k).expru = *it;
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;

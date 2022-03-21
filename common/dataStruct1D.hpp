@@ -100,6 +100,13 @@ public:
     R mes = fabs(B-A);
     return R1((P.x - A)/mes);
   }
+  R1 toReferenceElement(const R1& P) const {
+    const R &A =*vertices[0];
+    const R &B =*vertices[1];
+
+    R mes = fabs(B-A);
+    return R1((P.x - A)/mes);
+  }
   Rd operator()(const RdHat & Phat) const {
     Rd r= (1.-Phat.sum())*(*(Rd*) vertices[0]);
     for (int i=1;i<nv;++i)

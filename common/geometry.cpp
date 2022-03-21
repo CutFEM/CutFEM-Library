@@ -21,6 +21,15 @@ double geometry::measure_hyper_simplex(R3 N[3]){
   return Norme2(0.5 * (u ^ v));
 }
 
+R2 geometry::map_point_to_simplex(const R2 N[3], const R2 Phat) {
+  R2 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1] + Phat[1] * N[2];
+  return P;
+}
+R3 geometry::map_point_to_simplex(const R3 N[4], const R3 Phat) {
+  R3 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1] + Phat[1] * N[2];//+ Phat[2] * N[3];
+  return P;
+}
+
 template<> bool geometry::Segment<R2>::is_between(const R2 C) const {
   assert(0);
   return true;

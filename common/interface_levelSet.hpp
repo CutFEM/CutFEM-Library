@@ -41,7 +41,6 @@ public:
     }
     return SignElement<Element>(loc_ls);
   }
-
   Partition<Element> get_partition(int k) const {
     double loc_ls[Element::nv];
     for(int i=0;i<Element::nv;++i) {
@@ -51,6 +50,7 @@ public:
 
     return Partition<Element>((*this->backMesh)[k], loc_ls);
   }
+  bool isCutFace(int k, int ifac) const;
 
   void cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part)const {assert(0);} ;
 

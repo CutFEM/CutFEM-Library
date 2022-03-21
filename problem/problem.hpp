@@ -30,6 +30,7 @@
 #include "macroElement.hpp"
 
 
+
 struct CBorder {
   CBorder() {}
 };
@@ -140,7 +141,6 @@ public :
     multiply(N, N, P, rhs, x);
 
     rhs.resize(N);
-
     rhs = x;
 
   }
@@ -151,67 +151,136 @@ public :
 
 // Base class for problem.
 // contain info about the linear system
+template<typename Mesh>
 class ShapeOfProblem {
-  protected :
+  typedef std::map<std::pair<int,int>,R> Matrix;
 
+  typedef typename GFESpace<Mesh>::FElement FElement;
+
+public:
   // The right hand side vector
+  // Can be reassign user should not use it!
   KN<double> rhs_;
 
   // matrix is on a std::map form
-  std::map<std::pair<int,int>,R>  mat_;
+  Matrix mat_;
 
+protected:
   // pointer on a std::map
   // the user can give is own std::map
   // can be use for newton, matrix that wanna be saved by the user etc
-  std::map<std::pair<int,int>,R> *pmat_;
+  Matrix *pmat_;
 
   // std::map used to save CutFEM solution on the background mesh
   // for time dependent problem
   // std::pair(domain, dof_on backSpace) => value
-  std::map<std::pair<int,int>,R> mapU0_;
+  Matrix mapU0_;
 
   // local map matrix
   // to reduce the numer of access to the global std::map
   // when the integral is computed on an elements_to_integrate
   // the local contribution is added to the global matrix
   // pointed by pmat
-  std::map<std::pair<int,int>,R> local_contribution_matrix_;
+  Matrix local_contribution_matrix_;
 
   // number of degree of freedom of the problem
   // This is never modify after initialization
   // => not when adding lagrange multiplier
   Ulint nb_dof_;
 
-  //index where degree of freedom of consider space starts
+  // index where degree of freedom of consider space starts
   // this make possible to use as many space as we need
+  // it is saved in the map
+  // given the space it return the where the index start
+  std::map<const GFESpace<Mesh>*, int> mapIdx0;
   int index_i0_ = 0, index_j0_ = 0;
 
+
+
+
+
 public :
-  ShapeOfProblem() : nb_dof_(0) {};
-  ShapeOfProblem(int n) : nb_dof_(n), rhs_(n) {rhs_=0.0;}
+  ShapeOfProblem() : nb_dof_(0) { pmat_ = &mat_;};
+  ShapeOfProblem(int n) : nb_dof_(n), rhs_(n) {pmat_ = &mat_; rhs_=0.0;}
 
 
   // return the number of degrees of freedom
   // of the problem
   long get_size() const {return nb_dof_;}
-
   void set_map(std::map<std::pair<int,int>,R>& A) {
     pmat_ = &A;
   }
   void set_to_buildin_map() {
     pmat_ = &mat_;
   }
-  void CleanMatrix() {
+  void cleanMatrix() {
     mat_.clear();
   }
-
+  void init(int n) { nb_dof_=n; rhs_.init(nb_dof_);}
+  void initIndex(const FElement& FKu, const FElement& FKv) {
+    this->index_i0_ = mapIdx0[&FKv.Vh];
+    this->index_j0_ = mapIdx0[&FKu.Vh];
+  }
+  Matrix& get_matrix() {return *pmat_;}
+  Rn& get_rhs() {return rhs_;}
+  Rn_ get_solution() {
+    return Rn_(rhs_(SubArray(nb_dof_,0)));
+  }
 
 protected :
   double & operator()(int i, int j) { return (*pmat_)[std::make_pair(i,j)]; }
   double & addToLocalContribution(int i, int j) { return local_contribution_matrix_[std::make_pair(i+index_i0_,j+index_j0_)]; }
   double & operator()(int i) { return rhs_[i];}
+  void addLocalContribution() {
+    for (auto q=local_contribution_matrix_.begin(); q != this->local_contribution_matrix_.end(); ++q) {
+      (*this)(q->first.first,q->first.second) += q->second;
+    }
+    this->local_contribution_matrix_.clear();
+  }
 
 
+
+
+public:
+  // friend void matlab::Export(Matrix &, std::string);
+
+};
+
+struct ProblemOption {
+  int order_space_element_quadrature_ = 5;
+  int order_space_bord_quadrature_ = 5;
+  int order_time_quadrature_ = 1;
+  std::string solver_name_ = "mumps";
+};
+
+static ProblemOption defaultProblemOption;
+
+template<typename Mesh>
+class QuadratureOfProblem{
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename FElement::Rd Rd;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::QFB QFB;
+
+
+  int order_space_element_quadrature_ = 5;
+  int order_space_bord_quadrature_    = 5;
+  int order_time_quadrature_          = 1;
+
+public:
+  QuadratureOfProblem() {}
+  QuadratureOfProblem(const ProblemOption& option) {
+    order_space_element_quadrature_ = option.order_space_element_quadrature_;
+    order_space_bord_quadrature_    = option.order_space_bord_quadrature_;
+    order_time_quadrature_          = option.order_time_quadrature_;
+  }
+
+  const QF&  get_quadrature_formular_K()  const;
+  const QFB& get_quadrature_formular_dK() const;
+  template<typename E>
+  const QF&  get_quadrature_formular_cutK() const;
+  // const QFB&  get_quadrature_formular_cutFace() const;
 };
 
 
