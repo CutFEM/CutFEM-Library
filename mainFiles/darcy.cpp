@@ -34,11 +34,11 @@ void Scotty_diagonal_preconditioner(int N, std::map<std::pair<int,int>,R>& P){
 
   // create the diagonal Matrix
   for(int i=0;i<B.n;++i){
-    // for(int k=B.p[i];k<B.p[i+1];++k){
-    //   P[std::make_pair(i,i)] += B.a[k];
-      C[std::make_pair(i,i)] += P[std::make_pair(i,i)] ;
-
-    // }
+    for(int k=B.p[i];k<B.p[i+1];++k){
+      // P[std::make_pair(i,i)] += B.a[k];
+      C[std::make_pair(i,i)] += fabs(B.a[k]);
+      // C[std::make_pair(i,i)] += P[std::make_pair(i,i)] ;
+    }
   }
   P.clear();
   for(int i=0;i<B.n;++i){
@@ -274,12 +274,12 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 10; // 6
-  int ny = 10; // 6
+  int nx = 11; // 6
+  int ny = 11; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters =6;
+  int iters =3;
 
   for(int i=0;i<iters;++i) {
     Mesh2 Th(nx, ny, 0., 0., 1., 1.);
