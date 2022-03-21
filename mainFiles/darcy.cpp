@@ -29,17 +29,21 @@
 void Scotty_diagonal_preconditioner(int N, std::map<std::pair<int,int>,R>& P){
 
   SparseMatrixRC<double> B (N ,N ,P );
-  P.clear();
+  std::map<std::pair<int,int>,R> C;
+  // P.clear();
 
   // create the diagonal Matrix
+  for(int i=0;i<B.n;++i){
+    // for(int k=B.p[i];k<B.p[i+1];++k){
+    //   P[std::make_pair(i,i)] += B.a[k];
+      C[std::make_pair(i,i)] += P[std::make_pair(i,i)] ;
 
-  for(int i=0;i<B.n;++i){
-    for(int k=B.p[i];k<B.p[i+1];++k){
-      P[std::make_pair(i,i)] += B.a[k];
-    }
+    // }
   }
+  P.clear();
   for(int i=0;i<B.n;++i){
-    P[std::make_pair(i,i)] = 1./P[std::make_pair(i,i)];
+    double v = C[std::make_pair(i,i)];
+    P[std::make_pair(i,i)] = 1./sqrt(v);
   }
 
 }
@@ -275,7 +279,7 @@ int main(int argc, char** argv ) {
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters =5;
+  int iters =6;
 
   for(int i=0;i<iters;++i) {
     Mesh2 Th(nx, ny, 0., 0., 1., 1.);
@@ -289,8 +293,8 @@ int main(int argc, char** argv ) {
     Interface2 interface(Th, levelSet.v);
 
     KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT1;
-    arrayFE(1) = &DataFE<Mesh2>::P1dc;
+    arrayFE(0) = &DataFE<Mesh2>::RT0;
+    arrayFE(1) = &DataFE<Mesh2>::P0;
     GTypeOfFESum<Mesh2> mixedFE(arrayFE);
     FESpace2 Vh(Th, mixedFE);
     FESpace2 P0h(Th, DataFE<Mesh2>::P1); // for the RHS
@@ -313,6 +317,8 @@ int main(int argc, char** argv ) {
     // extension.tag_exhaust_edges(macro);
     ratioCut1.push_back((double)macro.nb_element_0 / (double)interface.nbElement());
     ratioCut2.push_back((double)macro.nb_element_1 / (double)interface.nbElement());
+    double min_ratio_cut = macro.get_minimal_cut();
+    std::cout << " Minimal cut ration \t" << min_ratio_cut / (hei*hei/2) << std::endl;
     // gnuplot::save(macro, extension);
     // gnuplot::save(interface);
     // return 0;
@@ -394,31 +400,35 @@ int main(int argc, char** argv ) {
 
 
 
-    // {  // Diagonal Preconditionning
-    //
-    //   std::map<std::pair<int,int>,R> P;
-    //   darcyCutMix.setMatrixTo(P);
-    //   darcyCutMix.addBilinear(
-    //     innerProduct(mu*u, v)
-    //     + innerProduct(p, q)
-    //   );
-    //   darcyCutMix.addBilinear(
-    //     innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
-    //     +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
-    //     ,interface
-    //   );
-    //
-    //   Scotty_diagonal_preconditioner(N, P);
-    //
-    //   // darcyCutMix.preconditionning(P);
-    //
-    //   darcyCutMix.pmat = &darcyCutMix.DF;
-    //
-    //   // matlab::Export(darcyCutMix.DF, "matP"+to_string(i)+".dat");
-    //   // matlab::Export(P, "matA"+to_string(i)+".dat");
-    //   // // // darcyCutMix.solve();
-    //   // return 0;
-    // }
+    {  // Diagonal Preconditionning
+
+      std::map<std::pair<int,int>,R> P;
+      darcyCutMix.setMatrixTo(P);
+      darcyCutMix.addBilinear(
+        innerProduct(mu*u, v)
+        + innerProduct(p, q)
+      );
+      darcyCutMix.addBilinear(
+        innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
+        +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
+        ,interface
+      );
+
+      Scotty_diagonal_preconditioner(N, P);
+
+      darcyCutMix.preconditionning(P);
+
+      darcyCutMix.pmat = &darcyCutMix.DF;
+
+      matlab::Export(darcyCutMix.DF, "matP"+to_string(i)+".dat");
+      // matlab::Export(P, "matA"+to_string(i)+".dat");
+      // darcyCutMix.solve();
+      // return 0;
+      nx =2*nx - 1;
+      ny =2*ny - 1;
+      continue;
+    }
+
 
   // matlab::Export(darcyCutMix.mat, "matA"+to_string(i)+".dat");
 
@@ -479,10 +489,10 @@ int main(int argc, char** argv ) {
   // extension.erase_rows_to_fix_RT0();
   // if(MPIcf::IamMaster()){
   //   std::cout << "dof = \t" << Wh.NbDoF()<< std::endl;
-  // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
-  // nx *= 2;
-  // ny *= 2;
-  // continue;
+  matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
+  nx *= 2;
+  ny *= 2;
+  continue;
 
   // return 0;
 

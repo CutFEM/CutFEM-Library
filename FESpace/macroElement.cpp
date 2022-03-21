@@ -4,6 +4,7 @@
 MacroElement::MacroElement(const FESpace2& vh, const double C) : GMacro() , Vh(vh) {
   double h = Vh[0].T.lenEdge(0);
   double meas = Vh[0].T.mesure();
+  min_cut_ = meas;
   nb_element_0 = 0;
   nb_element_1 = 0;
   tol = C  * meas;
@@ -27,7 +28,7 @@ void MacroElement::find_small_element() {
     const Partition2& cutK =  Partition2(FK.T, cutData);  // build the cut
     ElementSignEnum the_part = cutK.what_part(domain);
     double areaCut = cutK.mesure(domain);
-
+    min_cut_ = min(min_cut_, areaCut);
     if(areaCut < tol) {
       small_element[k] = SmallElement(k);
       if(domain == 0) { nb_element_0++;}else{ nb_element_1++;}

@@ -132,6 +132,28 @@ public :
 
     int N = nDoF;
     SparseMatrixRC<double> Pl(N,N,P);
+    {// P*A -> DF
+      SparseMatrixRC<double> A(N,N,DF);
+      multiply(Pl, A, DF);
+    }
+    {// (A*P)* -> DF
+      SparseMatrixRC<double> A(N,N,DF);
+      multiply(A, Pl, DF);
+    }
+
+    Rn x(N, 0.);
+
+    multiply(N, N, P, rhs, x);
+
+    rhs.resize(N);
+
+    rhs = x;
+
+  }
+  void leftPreconditionning(std::map<std::pair<int,int>,R>& P) {
+
+    int N = nDoF;
+    SparseMatrixRC<double> Pl(N,N,P);
     SparseMatrixRC<double> A(N,N,DF);
     multiply(Pl, A, DF);
 

@@ -71,6 +71,7 @@ class GMacro {
   map<int, MElement>     macro_element;   // idx_root -> idx_macroElement
   map<int, SmallElement> small_element;  // idx_element -> idx_small_element
   double tol;
+  double min_cut_;
 
   GMacro() {}
 
@@ -90,7 +91,7 @@ class GMacro {
   bool isRootFat(int k) const { return (macro_element.find(k) != macro_element.end());}
   int nb_macro_element() const { return macro_element.size();}
   bool isSmall(int k) const { return (small_element.find(k) != small_element.end());}
-
+  double get_minimal_cut() const {return min_cut_;}
 
 };
 
