@@ -1,8 +1,8 @@
 #ifndef BASE_CUTPROBLEM_HPP
 #define BASE_CUTPROBLEM_HPP
 
-#include "../FESpace/CutFESpace.hpp"
-#include "levelSet.hpp"
+
+#include "baseProblem.hpp"
 
 
 template<typename Mesh>
@@ -30,15 +30,67 @@ public:
   // integral on innerFace
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CHyperFace& b);
   void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CHyperFace& b);
-  void addEdgeContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
+  void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
 
 
   // integral on boundary
 
+  // integral on interface
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
+  void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac);
+};
+
+template<typename Mesh>
+class CutFEM : public BaseCutFEM<Mesh>{
+  typedef GFESpace<Mesh> FESpace;
+
+public:
+
+  CutFEM(const FESpace& vh        , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
+  CutFEM(const list<FESpace*>& vh , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
+  // CutFEM(const QuadratureFormular1d& qT, int orderSpace=5) :
+  // BaseCutProblem<M>(qT, orderSpace) {}
+  // void solve(string solverName = "mumps") {
+  //
+  //   // matlab::Export(this->mat, "matP.dat");
+  //   // matlab::Export(this->rhs, "rhsP.dat");
+  //   R t0 = CPUtime();
+  //   R tt0 = MPIcf::Wtime();
+  //   this->solver_name = solverName;
+  //   if(this->NL.size() > 0 || this->pmat == &this->NL) {
+  //     // add DF to NL
+  //
+  //     R t2 = CPUtime();
+  //     this->addMapToMap();
+  //     std::cout << " Add Non Linear Problem in solver \t" << CPUtime() - t2 << std::endl;
+  //     Solver::solve(this->NL, this->rhs);
+  //     this->pmat = &this->DF;
+  //   }
+  //   else {
+  //     Solver::solve(this->mat, this->rhs);
+  //   }
+  //   R t1 = CPUtime();
+  //   // std::cout << " Time CPU Solver \t \t " << t1 - t0 << std::endl;
+  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  //
+  // }
+  // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
+  //   R tt0 = MPIcf::Wtime();
+  //   Solver::solve(A, b);
+  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  //
+  // }
+
 };
 
 
+#include "baseCutProblem_Function.hpp"
 
+
+
+
+#ifdef OLD_PROBLEM
 
 template<typename M>
 class BaseCutProblem : public BaseProblem<M> {
@@ -161,53 +213,6 @@ public:
   R computeCoef(const ItemVF<Rd::d>&,int, const typename Mesh::Partition& cutK ) const;
 
 };
-
-
-template<typename Mesh>
-class CutFEM : public BaseCutFEM<Mesh>{
-  typedef GFESpace<Mesh> FESpace;
-
-public:
-
-  CutFEM(const FESpace& vh        , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
-  CutFEM(const list<FESpace*>& vh , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
-  // CutFEM(const QuadratureFormular1d& qT, int orderSpace=5) :
-  // BaseCutProblem<M>(qT, orderSpace) {}
-  // void solve(string solverName = "mumps") {
-  //
-  //   // matlab::Export(this->mat, "matP.dat");
-  //   // matlab::Export(this->rhs, "rhsP.dat");
-  //   R t0 = CPUtime();
-  //   R tt0 = MPIcf::Wtime();
-  //   this->solver_name = solverName;
-  //   if(this->NL.size() > 0 || this->pmat == &this->NL) {
-  //     // add DF to NL
-  //
-  //     R t2 = CPUtime();
-  //     this->addMapToMap();
-  //     std::cout << " Add Non Linear Problem in solver \t" << CPUtime() - t2 << std::endl;
-  //     Solver::solve(this->NL, this->rhs);
-  //     this->pmat = &this->DF;
-  //   }
-  //   else {
-  //     Solver::solve(this->mat, this->rhs);
-  //   }
-  //   R t1 = CPUtime();
-  //   // std::cout << " Time CPU Solver \t \t " << t1 - t0 << std::endl;
-  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
-  //
-  // }
-  // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
-  //   R tt0 = MPIcf::Wtime();
-  //   Solver::solve(A, b);
-  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
-  //
-  // }
-
-};
-
-
-#include "baseCutProblem_Function.hpp"
 
 
 
@@ -888,9 +893,6 @@ void BaseCutProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF , const i
 
 
 
-
-
-
 inline int getIdDomain(int id0, int domain) {
   if(domain == -1) return id0;
   return id0 + domain;
@@ -990,6 +992,9 @@ void BaseCutProblem<M>::initialSolution(Rn& u0) {
 
 
 #include "baseCutProblemTime.hpp"
+#endif
+
+
 
 
 

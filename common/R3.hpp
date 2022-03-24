@@ -3,18 +3,18 @@
 #define  R3_HPP
 
 #include <iostream>
-#include "R1.hpp" 
-#include "R2.hpp" 
+#include "R1.hpp"
+#include "R2.hpp"
 
 class R3  {
 
-public:  
+public:
   typedef double R;
 
   static const int d=3;
-  
+
   R x,y,z;
- 
+
   R3 () :x(0),y(0),z(0) {};
   R3 (R a,R b,R c):x(a),y(b),z(c)  {}
   R3 (const R * a):x(a[0]),y(a[1]) ,z(a[2]) {}
@@ -25,7 +25,7 @@ public:
   static  R3 diag(R a){ return R3(a,a,a);}
   operator const double* () const {return &x;}
 
-  R3 &  operator=(const R* P)  {x = P[0]; y = P[1];z = P[2];return *this;}  
+  R3 &  operator=(const R* P)  {x = P[0]; y = P[1];z = P[2];return *this;}
   R3 & operator=(const R2 &P2) {x=P2.x;y=P2.y;z=0;return *this;}
   R3   operator+(const R3 &P)const   {return R3(x+P.x,y+P.y,z+P.z);}
   R3 & operator+=(const R3 &P)  {x += P.x;y += P.y;z += P.z;return *this;}
@@ -47,19 +47,19 @@ public:
   R norm() const { return std::sqrt(x*x+y*y+z*z);}
   R norme2() const { return (x*x+y*y+z*z);}
   R sum() const { return x+y+z;}
-  R * toBary(R * b) const  { b[0]=1.-x-y-z;b[1]=x;b[2]=y;b[3]=z;return b;}    
+  R * toBary(R * b) const  { b[0]=1.-x-y-z;b[1]=x;b[2]=y;b[3]=z;return b;}
   R  X() const {return x;}
   R  Y() const {return y;}
   R  Z() const {return z;}
 
-  R3 Bary(const R3 P[d+1]) const { return (1-x-y-z)*P[0]+x*P[1]+y*P[2]+z*P[3];}  // add FH 
-  R3 Bary(const R3 **P ) const { return (1-x-y-z)*(*P[0])+x*(*P[1])+y*(*P[2])+z*(*P[3]);}  // add FH 
+  R3 Bary(const R3 P[d+1]) const { return (1-x-y-z)*P[0]+x*P[1]+y*P[2]+z*P[3];}  // add FH
+  R3 Bary(const R3 **P ) const { return (1-x-y-z)*(*P[0])+x*(*P[1])+y*(*P[2])+z*(*P[3]);}  // add FH
   friend std::ostream& operator <<(std::ostream& f, const R3 & P )
   { f << P.x << ' ' << P.y << ' ' << P.z   ; return f; }
   friend std::istream& operator >>(std::istream& f,  R3 & P)
   { f >>  P.x >>  P.y >>  P.z  ; return f; }
 
-  friend R det( R3 A, R3 B,  R3 C) 
+  friend R det( R3 A, R3 B,  R3 C)
   {
     R  s=1.;
     if(abs(A.x)<abs(B.x)) Exchange(A,B),s = -s;
@@ -74,10 +74,10 @@ public:
       }
     else return 0.   ;
   }
-  
+
   friend R  det(const R3 &A,const R3 &B, const R3 &C, const R3 &D) { return det(R3(A,B),R3(A,C),R3(A,D));}
   static const R3 KHat[d+1];
-  
+
   R2 p2() const { return R2(x,y);}
 };
 
@@ -100,6 +100,10 @@ struct lessRd
 };
 
 
+template<int d> struct typeRd {typedef R0 Rd;};
+template<> struct typeRd<1> {typedef R1 Rd;};
+template<> struct typeRd<2> {typedef R2 Rd;};
+template<> struct typeRd<3> {typedef R3 Rd;};
+
 
 #endif
-

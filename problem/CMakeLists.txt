@@ -1,16 +1,16 @@
 
 
 set(PROBLEM_SOURCES
-  problem.cpp
-  levelSet.cpp
-  reinitialization.cpp
-  #cutLevelSet.cpp
-  GenericMapping.cpp
   CutFEM_parameter.cpp
-  itemVF.cpp
   testFunction.cpp
-  extension.cpp
+  itemVF.cpp
+  problem.cpp
   baseProblem.cpp
+  GenericMapping.cpp
+  extension.cpp
+  #  levelSet.cpp
+  #  reinitialization.cpp
+
 )
 
 add_library(problem SHARED ${PROBLEM_SOURCES})

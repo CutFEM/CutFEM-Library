@@ -14,7 +14,7 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, cons
 template<typename M>
 void BaseFEM<M>::addToRHS(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint) {
   for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
-      (*this)(FKv.loc2glb(i)) =1;//+=   Cint * fv(i,VFi.cv,VFi.dv);
+      (*this)(FKv.loc2glb(i)) =Cint;//+=   Cint * fv(i,VFi.cv,VFi.dv);
   }
 }
 
@@ -101,6 +101,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip);
       Cint *= coef * VF[l].c;
 
+
       if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
@@ -184,7 +185,6 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
         if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
         else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
-
       }
     }
   }
@@ -209,8 +209,8 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
       std::pair<int,int> e1 = std::make_pair(k,ifac);
       std::pair<int,int> e2 = std::make_pair(kn,jfac);
       // CHECK IF IT IS A CUT EDGE
-      if(Th.isCutFace(k, ifac, 0)) BaseCutFEM<M>::addEdgeContribution(VF, e1, e2);
-      else BaseFEM<M>::addEdgeContribution(VF, e1, e2);
+      if(Th.isCutFace(k, ifac, 0)) BaseCutFEM<M>::addFaceContribution(VF, e1, e2);
+      else BaseFEM<M>::addFaceContribution(VF, e1, e2);
     }
     this->addLocalContribution();
   }
@@ -230,8 +230,8 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, co
       std::pair<int,int> e1 = std::make_pair(k,ifac);
       std::pair<int,int> e2 = std::make_pair(kn,jfac);
       // CHECK IF IT IS A CUT EDGE
-      if(Th.isCutFace(k, ifac, 0)) BaseCutFEM<M>::addEdgeContribution(VF, e1, e2);
-      else BaseFEM<M>::addEdgeContribution(VF, e1, e2);
+      if(Th.isCutFace(k, ifac, 0)) BaseCutFEM<M>::addFaceContribution(VF, e1, e2);
+      else BaseFEM<M>::addFaceContribution(VF, e1, e2);
     }
   }
 }
@@ -239,7 +239,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, co
 
 
 template<typename M>
-void BaseFEM<M>::addEdgeContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2) {
+void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2) {
 
   typedef typename FElement::RdHatBord RdHatBord;
 
@@ -315,7 +315,7 @@ void BaseFEM<M>::addEdgeContribution(const ListItemVF<Rd::d>& VF, const std::pai
 }
 
 template<typename M>
-void BaseCutFEM<M>::addEdgeContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2)  {
+void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2)  {
 
   typedef typename FElement::RdHatBord RdHatBord;
 
@@ -405,3 +405,66 @@ void BaseCutFEM<M>::addEdgeContribution(const ListItemVF<Rd::d>& VF, const std::
     }
   }
 }
+
+
+
+// INTEGRATION ON INTERFACE
+template<typename M>
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma,list<int> label) {
+  assert(!VF.isRHS());
+  bool all_label = (label.size() == 0);
+
+  for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
+    const typename Interface<M>::Face& face = gamma[iface];  // the face
+    if(util::contain(label, face.lab) || all_label) {
+
+      addInterfaceContribution(VF, gamma, iface);
+
+    }
+  }
+
+  this->addLocalContribution();
+}
+
+template<typename M>
+void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma,list<int> label) {
+  assert(VF.isRHS());
+  bool all_label = (label.size() == 0);
+
+  for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
+    const typename Interface<M>::Face& face = gamma[iface];  // the face
+    if(util::contain(label, face.lab) || all_label) {
+
+      addInterfaceContribution(VF, gamma, iface);
+
+    }
+  }
+
+  this->addLocalContribution();
+}
+
+
+template<typename M>
+void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<M>& interface, int ifac) {
+
+  // GET IDX ELEMENT CONTAINING FACE ON BACKMESH
+  const int kb = interface.idxElementOfFace(ifac);
+  const typename Interface<M>::Face& face = interface[ifac];
+  const Element & K(interface.get_element(kb));
+  double measK = K.measure();
+  double h     = K.get_h() ;
+  double meas  = interface.measure(ifac);
+
+  const Rd normal(-interface.normal(ifac));
+  //
+
+}
+
+
+
+
+
+
+
+
+//dd

@@ -29,6 +29,9 @@
 #include "finiteElement.hpp"
 #include "macroElement.hpp"
 
+#include "itemVF.hpp"
+#include "../FESpace/FESpace.hpp"
+
 
 
 struct CBorder {

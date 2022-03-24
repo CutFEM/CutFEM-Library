@@ -278,6 +278,11 @@ double fun_kappa_E2(int i, double hh, double meas, double measK, double meas_Cut
     return 1-meas_Cut/measK;
 }
 
+double fun_parameter_test(int domain, double h, double meas, double measK, double meas_cut) {
+  double mu = CutFEM_ParameterList::listParameter["mu"]->evaluate(domain,h,meas,measK,meas_cut);
+  return 2*mu;
+}
+
 int main(int argc, char** argv )
 {
   typedef Mesh3       Mesh;
@@ -303,12 +308,21 @@ int main(int argc, char** argv )
   double A0 = 1.0, A1 = 1.0, A2 = 0.5;
   double kappa1 = 2.0, kappa2 = 0.5, kappa01 = 1, kappa02 = 2;
   double kappaTilde1 = kappa1/kappa01, kappaTilde2 = kappa2/kappa02;
-  CutFEM_Parameter kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
-  CutFEM_Parameter kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
 
-  // Local weights for average function across bulk faces
-  CutFEM_Parameter kappa_E1("kappa_E1", fun_kappa_E1);
-  CutFEM_Parameter kappa_E2("kappa_E2", fun_kappa_E2);
+
+  std::vector<double> data_mu = {0,2,4};
+  CutFEM_Parameter mu("mu", data_mu);
+  CutFEM_Parameter rho(fun_parameter_test);
+
+  std::vector<R3> data_beta = {R3(1,1,1), R3(2,2,2), R3(3,3,3)};
+  CutFEM_R3 beta(data_beta);
+
+  // CutFEM_Parameter kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
+  // CutFEM_Parameter kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
+  //
+  // // Local weights for average function across bulk faces
+  // CutFEM_Parameter kappa_E1("kappa_E1", fun_kappa_E1);
+  // CutFEM_Parameter kappa_E2("kappa_E2", fun_kappa_E2);
 
   // FULLSTAB PARAMETERS
   double tau_a0 = 1e0, tau_b0 = 0;
@@ -380,17 +394,28 @@ int main(int argc, char** argv )
   //         , innerFace
   // );
 
+  problem.addBilinear(
+          innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
+          // + innerProduct((vel.expression(),gradS(u0)),v0)*0.5     // (3.14)
+          // - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
+          , interface1
+  );
 
+
+  problem.addLinear(
+          innerProduct(1,mu*v)
+        , interface1
+      );
 
   // problem.addLinear(
-  //         innerProduct(1,v)
+  //         innerProduct(1,mu*v)
   //       , Khi
   // );
-  problem.addLinear(
-          innerProduct(1,jump(v))
-        , Khi
-        , innerFace
-  );
+  // problem.addLinear(
+  //         innerProduct(1,jump(v))
+  //       , Khi
+  //       , innerFace
+  // );
   // matlab::Export(problem.get_matrix(), "A.dat");
   // matlab::Export(problem.get_rhs(), "rhs.dat");
 

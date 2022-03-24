@@ -17,9 +17,9 @@ ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Componen
 ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Component_Z& cc){
   return ExpressionMultConst(f1, cc);
 }
-ExpressionMultConst operator*(const CutFEM_Parameter& v, const ExpressionVirtual& f1){
-  return ExpressionMultConst(f1, R2(v.val1, v.val2));
-}
+// ExpressionMultConst operator*(const CutFEM_Parameter& v, const ExpressionVirtual& f1){
+//   return ExpressionMultConst(f1, R2(v.val1, v.val2));
+// }
 
 ExpressionAbs fabs(const ExpressionVirtual& f1) {
   return ExpressionAbs(f1);

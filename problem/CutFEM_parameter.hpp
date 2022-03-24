@@ -9,6 +9,8 @@
 #include "../common/R3.hpp"
 struct CutFEM_Parameter;
 
+
+
 class CutFEM_ParameterList {
 public:
   static std::map<std::string,CutFEM_Parameter*> listParameter;
@@ -21,131 +23,198 @@ public:
 class Parameter { public:
   static CutFEM_Parameter h;
   static CutFEM_Parameter invh;
-  static CutFEM_Parameter kappa1;
-  static CutFEM_Parameter kappa2;
-  static CutFEM_Parameter lambdaG;
-  static CutFEM_Parameter lambdaG3;
-  static CutFEM_Parameter lambdaB;
-  static CutFEM_Parameter lambdaB3;
   static CutFEM_Parameter meas;
   static CutFEM_Parameter invmeas;
 };
 
-// struct CutFEM_double {
-//   double v1, v2;
-//   CutFEM_double(const double a, const double b) : v1(a), v2(b) {}
-// };
+// VIRTUAL CLASS FOR HANDLING OPERATION ON PARAMETER
+//------------------------------------------------------------------------------
+class Virtual_CutFEM_Parameter {
 
-
-
-// defined parameter
-class CutFEM_Parameter {
-  public :
-  typedef double (pfun)(int, double, double, double, double);
-  std::string name;
-  double val1, val2;
-  double (*fun_expression)(int i, double hh, double meas, double measK, double meas_Cut) = nullptr;
 public:
-  CutFEM_Parameter(std::string n, pfun f) :
-  name(n), fun_expression(f), val1(0), val2(0) {
+  virtual double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const = 0;
+
+};
+
+
+template<int N>
+struct CutFEM_Rd {
+  typedef typename typeRd<N>::Rd Rd;
+
+  std::vector<CutFEM_Parameter> p;
+  std::string name_;
+
+  CutFEM_Rd(std::vector<Rd> a) : p(3) {
+    int n = a.size();
+    std::vector<double> v(n);
+    for(int i=0;i<Rd::d;++i){
+      for(int j=0;j<n;++j) v[j] = a[j][i];
+      p[i].set(v);
+    }
+  }
+  CutFEM_Rd(std::string l, std::vector<Rd> a) : p(3) {
+    int n = a.size();
+    std::string head[3] = {"_x", "_y", "_z"};
+    std::vector<double> v(n);
+    for(int i=0;i<Rd::d;++i){
+      for(int j=0;j<n;++j) {v[j] = a[j][i];}
+      p[i].set(l+head[i], v);
+    }
+  }
+
+  const CutFEM_Parameter& get_parameter(int i) const {
+    return p[i];
+  }
+};
+
+typedef CutFEM_Rd<2> CutFEM_R2;
+typedef CutFEM_Rd<3> CutFEM_R3;
+
+// THE CLASSIC CUTFEM_PARAMETER CLASS
+//------------------------------------------------------------------------------
+class CutFEM_Parameter : public Virtual_CutFEM_Parameter {
+
+  typedef double (pfun)(int, double, double, double, double);
+  std::string name_;
+  std::vector<double> val_;
+  double (*fun_expression_)(int domain, double hh, double meas, double measK, double meas_Cut) = nullptr;
+
+public:
+  CutFEM_Parameter(): name_(), val_(0), fun_expression_(nullptr){}
+  CutFEM_Parameter(const std::vector<double>& x) : name_(), val_(x), fun_expression_(nullptr) {}
+  CutFEM_Parameter(std::string n,const std::vector<double>& x) : name_(n), val_(x), fun_expression_(nullptr) {
     addToList();
   }
-  CutFEM_Parameter(std::string n, double v1) :
-  name(n), val1(v1), val2(v1), fun_expression(nullptr)  {
-    addToList();
-  }
-  CutFEM_Parameter(std::string n, double v1, double v2) :
-  name(n), val1(v1), val2(v2) , fun_expression(nullptr) {
+  CutFEM_Parameter(pfun f) : name_(), val_(0), fun_expression_(f){}
+  CutFEM_Parameter(std::string n, pfun f) : name_(n), fun_expression_(f), val_(0) {
     addToList();
   }
 
-  void set(double v1, double v2 = 0) {
-    val1 = v1;
-    val2 = v2;
-    fun_expression = nullptr;
+  CutFEM_Parameter(double v1) : name_(), val_(v1), fun_expression_(nullptr)  {
+    val_.push_back(v1);
+  }
+  CutFEM_Parameter(std::string n, double v1) : name_(n), val_(v1), fun_expression_(nullptr)  {
+    val_.push_back(v1);
+    addToList();
+  }
+  CutFEM_Parameter(double v1, double v2) : CutFEM_Parameter(v1)  {
+    val_.push_back(v2);
+  }
+  CutFEM_Parameter(std::string n, double v1, double v2) : CutFEM_Parameter(n,v1)  {
+    val_.push_back(v2);
+  }
+  CutFEM_Parameter(const CutFEM_Parameter& F):name_(F.name_), val_(F.val_), fun_expression_(F.fun_expression_) {}
+
+  void set(std::string n, const std::vector<double>& x) {
+    name_=n;
+    val_ = x;
+    fun_expression_ = nullptr;
+    addToList();
+  }
+  void set(const std::vector<double>& x) {
+    name_= "";
+    val_ = x;
+    fun_expression_ = nullptr;
   }
 
-
-  double operator()(int i, double hh, double meas, double measK, double meas_Cut=0) const {
-    if(fun_expression != nullptr) return fun_expression(i,hh,meas,measK, meas_Cut);
-    else return (i==0)?val1 : val2;
+  double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
+    if(fun_expression_ != nullptr) return fun_expression_(domain ,h, meas, measK, meas_Cut);
+    else {assert(domain >=0 && domain< val_.size()); return val_[domain];}
   };
-  virtual double expression(int i=0, double hh=0, double meas = 0, double measK=0, double meas_Cut=0) const {
-    if(fun_expression != nullptr) return fun_expression(i,hh,meas,measK,meas_Cut);
-    else return (i==0)?val1 : val2;
-  };
 
-
-  CutFEM_Parameter& operator=(const CutFEM_Parameter& F);
-  std::string getName() const {return name;}
 
 private:
   void addToList() ;
-  bool checkAlreadyExist() const ;
-
-  // CutFEM_Parameter(const CutFEM_Parameter&);
+  // bool checkAlreadyExist() const ;
+  CutFEM_Parameter& operator=(const CutFEM_Parameter& F) ;
 };
 
-struct CutFEM_R2 {
-  CutFEM_Parameter p1, p2;
-  std::string name;
-  CutFEM_R2(std::string n, const R2 a, const R2 b) : p1(n+"_x", a.x, b.x), p2(n+"_y", a.y, b.y) {}
-  std::string getName(int i) const {
-    return (i == 0)? p1.getName() : p2.getName();}
-};
 
-// Class for optimizing constant multiplication parameters
-//-----------------------------------------------------------------------------------
-class Pow_Par {
+// CLASS TO BE ABLE MULTIPLY BY A CONSTANT
+//------------------------------------------------------------------------------
+class Mul_Cst_Parameter : public Virtual_CutFEM_Parameter{
+
+  double cst_;
+  const Virtual_CutFEM_Parameter* parameter_;
+
 public:
-  std::vector<std::string> list_name;
-  std::vector<double> list_cst;
-  Pow_Par(const Pow_Par& B) {
-    for(int ll=0;ll<B.list_name.size();++ll){
-      list_name.push_back(B.list_name[ll]);
-    }
-    for(int ll=0;ll<B.list_cst.size();++ll){
-      list_cst.push_back(B.list_cst[ll]);
-    }
-  }
-  Pow_Par(const Pow_Par& A, const Pow_Par& B) : Pow_Par(A) {
-    for(int ll=0;ll<B.list_name.size();++ll){
-      list_name.push_back(B.list_name[ll]);
-    }
-    for(int ll=0;ll<B.list_cst.size();++ll){
-      list_cst.push_back(B.list_cst[ll]);
-    }
-  }
-  Pow_Par(const CutFEM_Parameter& A,  const CutFEM_Parameter& B){
-    list_name.push_back(A.getName());
-    list_name.push_back(B.getName());
-  }
-  Pow_Par(const double a,  const CutFEM_Parameter& B){
-    list_cst.push_back(a);
-    list_name.push_back(B.getName());
-  }
-  Pow_Par(const double a,  const Pow_Par& B) : Pow_Par(B){
-    list_cst.push_back(a);
-  }
-  Pow_Par(const CutFEM_Parameter& A,  const Pow_Par& B) : Pow_Par(B){
-    list_name.push_back(A.getName());
-  }
 
-  Pow_Par(const CutFEM_Parameter& A, int n) {
-    assert(n>=0);
-    for(int i=0;i<n;++i) list_name.push_back(A.getName());
-  }
+  Mul_Cst_Parameter(const double a,  const Virtual_CutFEM_Parameter& B)
+  : cst_(a), parameter_(&B) { }
 
+  double evaluate(int domain, double h, double meas, double measK, double meas_cut) const {
+    double val = parameter_->evaluate(domain,h,meas,measK,meas_cut);
+    return cst_*val;
+  }
 };
-Pow_Par operator*(const CutFEM_Parameter& A, const CutFEM_Parameter& B);
-Pow_Par operator*(const double a, const CutFEM_Parameter& B);
-Pow_Par operator*(const CutFEM_Parameter& B, const double a);
-Pow_Par operator*(const Pow_Par& B, const double a);
-Pow_Par operator*(const double a, const Pow_Par& B);
-Pow_Par operator*(const CutFEM_Parameter& A, const Pow_Par& B);
-Pow_Par operator*(const Pow_Par& B, const CutFEM_Parameter& A);
-Pow_Par operator*(const Pow_Par& A, const Pow_Par& B);
-Pow_Par pow(const CutFEM_Parameter& A, int n);
-Pow_Par operator^(const CutFEM_Parameter& A, int n);
+Mul_Cst_Parameter operator*(const double a, const Virtual_CutFEM_Parameter& B);
+Mul_Cst_Parameter operator*(const Virtual_CutFEM_Parameter& B, const double a);
+
+
+// CLASS TO USE POWER OF A PARAMETER
+//------------------------------------------------------------------------------
+class Pow_Parameter : public Virtual_CutFEM_Parameter{
+
+  // std::vector<double> list_cst_;
+  const Virtual_CutFEM_Parameter* parameter_;
+  int n;
+
+public:
+  Pow_Parameter(const Virtual_CutFEM_Parameter& A, int nn): parameter_(&A) , n(nn) {}
+  double evaluate(int domain, double h, double meas, double measK, double meas_cut) const {
+    double val = parameter_->evaluate(domain,h,meas,measK,meas_cut);
+    return pow(val, n);
+  }
+};
+Pow_Parameter pow(const Virtual_CutFEM_Parameter& A, int n) ;
+Pow_Parameter operator^(const Virtual_CutFEM_Parameter& A, int n) ;
+
+
+// TO HANDLE LINEAR COMBINAISON OF PARAMETER
+//------------------------------------------------------------------------------
+class SumDiff_Parameter : public Virtual_CutFEM_Parameter{
+
+  double a_,b_;
+  const Virtual_CutFEM_Parameter* A_;
+  const Virtual_CutFEM_Parameter* B_;
+
+public:
+
+  SumDiff_Parameter(double a, const Virtual_CutFEM_Parameter& A,  double b, const Virtual_CutFEM_Parameter& B) :
+  a_(a), A_(&A), b_(b), B_(&B){}
+
+
+  double evaluate(int domain, double h, double meas, double measK, double meas_cut) const {
+    double val1 = A_->evaluate(domain,h,meas,measK,meas_cut);
+    double val2 = B_->evaluate(domain,h,meas,measK,meas_cut);
+
+    return a_*val1 + b_*val2;
+  }
+};
+SumDiff_Parameter operator+(const Virtual_CutFEM_Parameter& A, const Virtual_CutFEM_Parameter& B);
+SumDiff_Parameter operator-(const Virtual_CutFEM_Parameter& A, const Virtual_CutFEM_Parameter& B);
+
+// TO MULTIPLY PARAMETERS
+//------------------------------------------------------------------------------
+class Mult_Parameter : public Virtual_CutFEM_Parameter{
+
+  const Virtual_CutFEM_Parameter* A_;
+  const Virtual_CutFEM_Parameter* B_;
+
+public:
+
+  Mult_Parameter(const Virtual_CutFEM_Parameter& A, const Virtual_CutFEM_Parameter& B) : A_(&A),B_(&B){}
+
+
+  double evaluate(int domain, double h, double meas, double measK, double meas_cut) const {
+    double val1 = A_->evaluate(domain,h,meas,measK,meas_cut);
+    double val2 = B_->evaluate(domain,h,meas,measK,meas_cut);
+    return val1*val2;
+  }
+};
+Mult_Parameter operator*(const Virtual_CutFEM_Parameter& A, const CutFEM_Parameter& B);
+
+
+
 
 #endif

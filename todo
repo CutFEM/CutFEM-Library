@@ -72,3 +72,6 @@ DONE ** 53) take away cutTh de paraview class and just be able to add many files
 61) change Rd::Khat from dataStuct to Rd.hpp files
 62) add   R2 toReferenceElement(const R1& P, int i) const; and other for quad and hexa
 62) remove doublon dans datastuct files
+
+
+63) CHECK PowPar * TestFunction

@@ -1,3 +1,4 @@
+
 #ifndef _TEST_FUNCTION_HPP
 #define _TEST_FUNCTION_HPP
 
@@ -21,8 +22,6 @@ static int D2(int i, int j){
 }
 
 
-
-
 void f_id(RNMK_&  x, int cu, int du) ;
 void f_ln(RNMK_&  x, int cu, int du) ;
 
@@ -34,7 +33,7 @@ struct ItemTestFunction {
   double c;
   int cu,du,dtu;
   KN<int> ar_nu;
-  vector<string> coefu;
+  std::vector<const Virtual_CutFEM_Parameter*> coefu;
   int domain_id_, face_side_;
   const ExpressionVirtual * expru = nullptr;
   GFESpace<Mesh> const * fespace = nullptr;
@@ -43,7 +42,7 @@ struct ItemTestFunction {
 
 
   ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),domain_id_(-1){}
-  ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<string> cou)
+  ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<const Virtual_CutFEM_Parameter*> cou)
   : c(cc), cu(i),du(j),dtu(tu), domain_id_(dd){ coefu =cou;}
   ItemTestFunction(const ItemTestFunction& F)
   : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), expru(F.expru), fespace(F.fespace) {
@@ -88,7 +87,10 @@ struct ItemTestFunction {
     if(Ni == 1) c*=-1;  //(-b,a) with (a,b) normal
   }
 
-  void addParameter(string x) {
+  void addParameter(const Virtual_CutFEM_Parameter& x) {
+    coefu.push_back(&x);
+  }
+  void addParameter(const Virtual_CutFEM_Parameter* x) {
     coefu.push_back(x);
   }
 
@@ -110,7 +112,7 @@ struct ItemTestFunction {
     << whichOperator(u.du, u.cu);
     for(int i=0;i<u.ar_nu.size();++i) f << " * " << n[u.ar_nu(i)];
 
-    for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
+    // for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
     f << "\t in Omega_" << u.domain_id_ ;
     f << "\n";
     return f;
@@ -140,9 +142,9 @@ public:
     U(0) = nullptr;//new ItemTestFunction<N>();
   }
   ItemList(double cc,int i,int j, int dd=-1) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<string>());
+    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_CutFEM_Parameter*>());
   }
-  ItemList(double cc,int i,int j,int tu, int dd, const vector<string>& cuu) : U(1) {
+  ItemList(double cc,int i,int j,int tu, int dd, const vector<const Virtual_CutFEM_Parameter*>& cuu) : U(1) {
     U(0) = new ItemTestFunction<N>(cc,i,j,tu,dd,cuu);
   }
 
@@ -166,7 +168,7 @@ public:
   // }
 
   ItemList(const FESpace& Vh, double cc,int i,int j, int dd=-1) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<string>());
+    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_CutFEM_Parameter*>());
     U(0)->fespace = &Vh;
   }
 
@@ -469,15 +471,11 @@ public:
   }
 
 
-
-// friend A foo<T>(A& a);
-
 template<int N> friend TestFunction<N> grad(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> gradS(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> div(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> divS(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> divT(const TestFunction<N> & T);
-
 
 template<int N> friend TestFunction<N> Eps(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> grad2(const TestFunction<N> & T);
@@ -489,10 +487,7 @@ template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const Tes
 
 
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T, double v1, double v2);
-template<int N> friend TestFunction<N> average1(const TestFunction<N> & T);
-template<int N> friend TestFunction<N> average2(const TestFunction<N> & T);
-template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const CutFEM_Parameter& para, const CutFEM_Parameter& para2);
-template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const CutFEM_Parameter& para);
+template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const Virtual_CutFEM_Parameter& para, const Virtual_CutFEM_Parameter& para2);
 
 template<int N> friend TestFunction<N> dx(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> dy(const TestFunction<N> & T);
@@ -507,7 +502,7 @@ template<int N> friend TestFunction<N> dt(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> operator - (const TestFunction<N>& F1, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator + (const TestFunction<N>& F1, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator , (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F2);
-template<int N> friend TestFunction<N> operator * (const CutFEM_R2& cc, const TestFunction<N>& T);
+// template<int N> friend TestFunction<N> operator * (const CutFEM_R2& cc, const TestFunction<N>& T);
 
 };
 
@@ -712,13 +707,13 @@ TestFunction<N> ln(const TestFunction<N>& F) {
 // }
 
 template <int N>
-TestFunction<N> operator * (const TestFunction<N>& F, const CutFEM_Parameter& cc ) {
+TestFunction<N> operator * (const TestFunction<N>& F, const Virtual_CutFEM_Parameter& cc ) {
   TestFunction<N> multU(F);
   for(int i=0;i<F.A.N();++i) {
     for(int j=0;j<F.A.M();++j) {
       for(int ui=0;ui<multU.A(i,j)->size();++ui) {
         ItemTestFunction<N>& v(multU.A(i,j)->getItem(ui));
-        v.addParameter(cc.getName());
+        v.addParameter(cc);
       }
     }
   }
@@ -726,13 +721,13 @@ TestFunction<N> operator * (const TestFunction<N>& F, const CutFEM_Parameter& cc
 }
 
 template <int N>
-TestFunction<N> operator * (const CutFEM_Parameter& cc, const TestFunction<N>& F) {
+TestFunction<N> operator * (const Virtual_CutFEM_Parameter& cc, const TestFunction<N>& F) {
   TestFunction<N> multU(F);
   for(int i=0;i<F.A.N();++i) {
     for(int j=0;j<F.A.M();++j) {
       for(int ui=0;ui<multU.A(i,j)->size();++ui) {
         ItemTestFunction<N>& v(multU.A(i,j)->getItem(ui));
-        v.addParameter(cc.getName());
+        v.addParameter(cc);
       }
     }
   }
@@ -740,7 +735,7 @@ TestFunction<N> operator * (const CutFEM_Parameter& cc, const TestFunction<N>& F
 }
 
 template <int d>
-TestFunction<d> operator * (const CutFEM_R2& cc, const TestFunction<d>& T) {
+TestFunction<d> operator * (const CutFEM_Rd<d>& cc, const TestFunction<d>& T) {
   assert(T.A.M() == 1);
   int N = T.A.N();
 
@@ -756,7 +751,7 @@ TestFunction<d> operator * (const CutFEM_R2& cc, const TestFunction<d>& T) {
         const ItemTestFunction<d>& v(T.A(0,0)->getItem(ui));
         ItemTestFunction<d>& u(resU.A(j,0)->getItem(ui));
         u = v;
-        u.addParameter(cc.getName(j));
+        u.addParameter(cc.get_parameter(j));
       }
     }
   }
@@ -774,7 +769,7 @@ TestFunction<d> operator * (const CutFEM_R2& cc, const TestFunction<d>& T) {
         const ItemTestFunction<d>& v(T.A(j,0)->getItem(ui));
         ItemTestFunction<d>& u(resU.A(0,0)->getItem(k++));
         u = v;
-        u.addParameter(cc.getName(j));
+        u.addParameter(cc.get_parameter(j));
        }
       }
     }
@@ -782,24 +777,6 @@ TestFunction<d> operator * (const CutFEM_R2& cc, const TestFunction<d>& T) {
   }
 
 
-template <int N>
-TestFunction<N> operator * (Pow_Par cc, const TestFunction<N>& F) {
-  TestFunction<N> multU(F);
-  for(int i=0;i<F.A.N();++i) {
-    for(int j=0;j<F.A.M();++j) {
-      for(int ui=0;ui<multU.A(i,j)->size();++ui) {
-        ItemTestFunction<N>& v(multU.A(i,j)->getItem(ui));
-        for(int ll=0;ll<cc.list_name.size();++ll){
-          v.addParameter(cc.list_name[ll]);
-        }
-        for(int ll=0;ll<cc.list_cst.size();++ll){
-          v.c *= cc.list_cst[ll];
-        }
-      }
-    }
-  }
-  return multU;
-}
 
 
 
@@ -1325,59 +1302,59 @@ TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
 
 
 
-template <int d>
-TestFunction<d> average1(const TestFunction<d> & T){
-  assert(T.A.M() == 1);
-  int N = T.A.N();
-  TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
-  for(int i=0;i<N;++i) {
-    int l = T.A(i,0)->size();
-    jumpU.A(i,0) = new ItemList<d>(2*l);
-    for(int e=0;e<l;++e) {
-      const ItemTestFunction<d>& v(T.A(i,0)->getItem(e));
-      {
-        ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
-        u = v;
-        u.face_side_ = 0;
-        u.addParameter("kappa1");
-      }
-      {
-        ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
-        u=v;
-        u.face_side_ = 1;
-        u.addParameter("kappa2");
-      }
-    }
-  }
-  return jumpU;
-}
+// template <int d>
+// TestFunction<d> average1(const TestFunction<d> & T){
+//   assert(T.A.M() == 1);
+//   int N = T.A.N();
+//   TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
+//   for(int i=0;i<N;++i) {
+//     int l = T.A(i,0)->size();
+//     jumpU.A(i,0) = new ItemList<d>(2*l);
+//     for(int e=0;e<l;++e) {
+//       const ItemTestFunction<d>& v(T.A(i,0)->getItem(e));
+//       {
+//         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
+//         u = v;
+//         u.face_side_ = 0;
+//         u.addParameter("kappa1");
+//       }
+//       {
+//         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
+//         u=v;
+//         u.face_side_ = 1;
+//         u.addParameter("kappa2");
+//       }
+//     }
+//   }
+//   return jumpU;
+// }
 
-template <int d>
-TestFunction<d> average2(const TestFunction<d> & T){
-  assert(T.A.M() == 1);
-  int N = T.A.N();
-  TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
-  for(int i=0;i<N;++i) {
-    int l = T.A(i,0)->size();
-    jumpU.A(i,0) = new ItemList<d>(2*l);
-    for(int e=0;e<l;++e) {
-      const ItemTestFunction<d>& v(T.A(i,0)->getItem(e));
-      {
-        ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
-        u = v;
-        u.face_side_ = 0;
-        u.addParameter("kappa2");
-      }
-      {
-        ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
-        u=v;
-        u.face_side_ = 1;
-        u.addParameter("kappa1");
-      }
-    }
-  }
-  return jumpU;
-}
+// template <int d>
+// TestFunction<d> average2(const TestFunction<d> & T){
+//   assert(T.A.M() == 1);
+//   int N = T.A.N();
+//   TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
+//   for(int i=0;i<N;++i) {
+//     int l = T.A(i,0)->size();
+//     jumpU.A(i,0) = new ItemList<d>(2*l);
+//     for(int e=0;e<l;++e) {
+//       const ItemTestFunction<d>& v(T.A(i,0)->getItem(e));
+//       {
+//         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
+//         u = v;
+//         u.face_side_ = 0;
+//         u.addParameter("kappa2");
+//       }
+//       {
+//         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
+//         u=v;
+//         u.face_side_ = 1;
+//         u.addParameter("kappa1");
+//       }
+//     }
+//   }
+//   return jumpU;
+// }
 
 template <int d>
 TestFunction<d> average(const TestFunction<d> & T, double v1=0.5, double v2=0.5){
@@ -1407,7 +1384,7 @@ TestFunction<d> average(const TestFunction<d> & T, double v1=0.5, double v2=0.5)
 }
 
 template <int d>
-TestFunction<d> average(const TestFunction<d> & T, const CutFEM_Parameter& para1, const CutFEM_Parameter& para2){
+TestFunction<d> average(const TestFunction<d> & T, const Virtual_CutFEM_Parameter& para1, const Virtual_CutFEM_Parameter& para2){
   assert(T.A.M() == 1);
   int N = T.A.N();
   TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());
@@ -1420,13 +1397,13 @@ TestFunction<d> average(const TestFunction<d> & T, const CutFEM_Parameter& para1
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
         u = v;
         u.face_side_ = 0;
-        u.addParameter(para1.name);
+        u.addParameter(para1);
       }
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
         u=v;
         u.face_side_ = 1;
-        u.addParameter(para2.name);
+        u.addParameter(para2);
       }
     }
   }

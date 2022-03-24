@@ -1,10 +1,11 @@
 #ifndef BASE_PROBLEM_HPP
 #define BASE_PROBLEM_HPP
 
-#include "../FESpace/FESpace.hpp"
+
+
 #include "problem.hpp"
-#include "itemVF.hpp"
-#include "GenericMapping.hpp"
+// #include "../FESpace/CutFESpace.hpp"
+// #include "GenericMapping.hpp"
 
 
 
@@ -47,10 +48,46 @@ public:
 
 
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k);
-  void addEdgeContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
+  void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
 
 };
 
+
+template<typename Mesh>
+class FEM : public BaseFEM<Mesh>, public Solver{
+  typedef GFESpace<Mesh> FESpace;
+  // typedef GenericMapping<Mesh> Mapping;
+
+public:
+  FEM(const FESpace& vh,       const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option) {}
+  FEM(const list<FESpace*>& vh,const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option) {}
+
+  // FEM(const FESpace& vh, int orderSpace) : BaseProblem<M>(vh, orderSpace) {}
+  // FEM(const FESpace& vh, const FESpace1& Ih, int orderSpace=5, int orderTime=3) : BaseProblem<M>(vh, Ih,orderSpace, orderTime) {}
+  //
+  //
+  //
+  // void solve() {
+  //   // matlab::Export(this->mat, "matRT.dat");
+  //   // matlab::Export(this->rhs, "rhs.dat");
+  //   R t0 = CPUtime();
+  //   Solver::solve(this->mat, this->rhs);
+  //   R t1 = CPUtime();
+  //   // std::cout << " Time Solver \t \t " << t1 - t0 << std::endl;
+  // }
+  //
+  // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
+  //   R tt0 = MPIcf::Wtime();
+  //   Solver::solve(A, b);
+  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  //
+  // }
+
+};
+
+
+
+#ifdef OLD_PROBLEM
 template<typename M>
 class BaseProblem : public ShapeOfNonLinProblem , public Solver {
 public:
@@ -306,40 +343,6 @@ public:
   }
 };
 
-
-
-
-template<typename Mesh>
-class FEM : public BaseFEM<Mesh>, public Solver{
-  typedef GFESpace<Mesh> FESpace;
-  typedef GenericMapping<Mesh> Mapping;
-
-public:
-  FEM(const FESpace& vh,       const ProblemOption& option = defaultProblemOption) : BaseProblem<Mesh>(vh, option) {}
-  FEM(const list<FESpace*>& vh,const ProblemOption& option = defaultProblemOption) : BaseProblem<Mesh>(vh, option) {}
-
-  // FEM(const FESpace& vh, int orderSpace) : BaseProblem<M>(vh, orderSpace) {}
-  // FEM(const FESpace& vh, const FESpace1& Ih, int orderSpace=5, int orderTime=3) : BaseProblem<M>(vh, Ih,orderSpace, orderTime) {}
-  //
-  //
-  //
-  // void solve() {
-  //   // matlab::Export(this->mat, "matRT.dat");
-  //   // matlab::Export(this->rhs, "rhs.dat");
-  //   R t0 = CPUtime();
-  //   Solver::solve(this->mat, this->rhs);
-  //   R t1 = CPUtime();
-  //   // std::cout << " Time Solver \t \t " << t1 - t0 << std::endl;
-  // }
-  //
-  // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
-  //   R tt0 = MPIcf::Wtime();
-  //   Solver::solve(A, b);
-  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
-  //
-  // }
-
-};
 
 template<typename M>
 void BaseProblem<M>::addDiagonal(double epsilon_machine) {
@@ -1023,79 +1026,7 @@ void BaseProblem<M>::setElementStrongBC(int ifac, const ExpressionVirtual& gh) {
 #include "baseSurfProblem.hpp"
 
 
-
-
-
-//
-// template<typename M>
-// void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k) {
-//
-//   typedef typename QFB::QuadraturePoint QuadraturePoint;
-//   typedef typename FElement::RdHatBord RdHatBord;
-//   typedef typename Mesh::Element Element;
-//
-//   const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
-//   this->initIndex(VF[0].fespaceU, VF[0].fespaceV);
-//
-//   const FElement& FK(Sh[k]);
-//   const Element & K = FK.T;                  // the triangle
-//   double measK = FK.getMeasure();
-//   for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
-//     int ifacn = ifac;
-//     int kn = Sh.Th.ElementAdj(k,ifacn);
-//     if(kn == -1) continue;
-//     if(k > kn) continue;      // only compute one time
-//
-//     const R h = FK.T.lenEdge(ifac);
-//
-//     const FElement & FKn(Sh[kn]);                     // the neighboor finite element
-//     Rd normal = FK.T.N(ifac);
-//
-//     const R meas = FK.T.mesureBord( ifac);
-//
-//     for(int l=0; l<VF.size();++l) {
-//
-//       assert(VF[l].fespaceU == VF[l].fespaceV);
-//       int lastop = getLastop(VF[l].du, VF[l].dv);
-//
-//       double coef = computeCoef(VF[l],h,meas,measK) * VF[l].getCoef(normal) ;
-//
-//       const int ku = (VF[l].domu == 0)? k : kn;
-//       const int kv = (VF[l].domv == 0)? k : kn;
-//       bool same = (ku == kv && VF[l].fespaceU==VF[l].fespaceV);
-//       const FElement& FKu(Sh[ku]);
-//       const FElement& FKv(Sh[kv]);
-//       this->initIndex(FKu, FKv);
-//
-//
-//       RNMK_ fv(this->databf,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
-//       RNMK_ fu(this->databf+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
-//       What_d Fop = Fwhatd(lastop);
-//
-//       for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-//
-//         QuadraturePoint ip(qfb[ipq]); // integration point
-//         const Rd ip_Kref = K.toKref((RdHatBord)ip, ifac);
-//         const R Cint = meas * ip.getWeight();
-//
-//         FKu.BF(Fop,ip_Kref, fu); // need point in local reference element
-//         if(!same) FKv.BF(Fop,ip_Kref, fv);
-//
-//         for(int i = FKv.dfcbegin(VF[l].cv); i < FKv.dfcend(VF[l].cv); ++i) {
-//           for(int j = FKu.dfcbegin(VF[l].cu); j < FKu.dfcend(VF[l].cu); ++j) {
-//             // (*this)(FKv.loc2glb(i),FKu.loc2glb(j))  +=  Cint * coef * VF[l].c * fu(j,VF[l].cu,VF[l].du)*fv(i,VF[l].cv,VF[l].dv);
-//             this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) += Cint * coef * VF[l].c * fu(j,VF[l].cu,VF[l].du)*fv(i,VF[l].cv,VF[l].dv);
-//           }
-//         }
-//       }
-//     }
-//   }
-//   this->resetIndex();
-//   this->addLocalContribution();
-// }
-//
-
-
+#endif
 
 
 #endif

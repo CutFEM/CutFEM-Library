@@ -13,7 +13,7 @@ struct ItemVF {
   KN<int> ar_nu, ar_nv;
   int domu, domv;
   // int domain_id_;
-  vector<string> coefu, coefv ;
+  std::vector<const Virtual_CutFEM_Parameter*> coefu, coefv ;
   int dtu, dtv;
   const ExpressionVirtual* expru=nullptr;
   const ExpressionVirtual* exprv=nullptr;
@@ -35,7 +35,8 @@ struct ItemVF {
   : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),domu(-1),domv(-1), dtu(-1),dtv(-1){}
   ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm, int dou, int dov)
   : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),domu(dou),domv(dov),dtu(-1),dtv(-1){}
-  ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm, int dou, int dov,const vector<string>& weu, const vector<string>& wev, int tu, int tv)
+  ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm, int dou, int dov,
+    const vector<const Virtual_CutFEM_Parameter*>& weu, const vector<const Virtual_CutFEM_Parameter*>& wev, int tu, int tv)
   : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),domu(dou),domv(dov),dtu(tu),dtv(tv){
     for(int i=0;i<weu.size();++i) coefu.push_back(weu[i]);
     for(int i=0;i<wev.size();++i) coefv.push_back(wev[i]);
@@ -70,14 +71,13 @@ struct ItemVF {
 
 // NEED TO BE CHANGED
 // CANNOT WORK WITH DOMAIN DIFFERENT FROM 0 1
-  bool on(int d) const {
-    assert(0);
-    return ((domu == domv) && (domu == -1 || domu == d));
-  }
+  // bool on(int d) const {
+  //   assert(0);
+  //   return ((domu == domv) && (domu == -1 || domu == d));
+  // }
 
   bool same() const {
     return (fespaceU == fespaceV) && (pfunU == pfunV); }
-
   bool operator==(const ItemVF& F){
     if(cu == F.cu && cv == F.cv && du == F.du && dv == F.dv
         && F.domu == domu && domv == F.domv && dtu == F.dtu && dtv == F.dtv
@@ -98,105 +98,89 @@ struct ItemVF {
   }
 
 
-  double fxU(int k, Rd mip, const R* normal = nullptr) const {
-    return ((expru)? expru->eval(k, mip, normal) : 1);
-  }
-  double fxV(int k, Rd mip, const R* normal = nullptr) const {
-    return ((exprv)? exprv->eval(k, mip, normal) : 1);
-  }
-  double fxu(int k, Rd mip) const {
-    return ((expru)? expru->eval(k, mip) : 1)*((exprv)? exprv->eval(k, mip) : 1);
-  }
-  double fxu(int k, Rd mip, double t) const {
-    return ((expru)? expru->eval(k, mip, t) : 1)*((exprv)? exprv->eval(k, mip,t) : 1);
-  }
-
-  double fxu_backMesh(int k, int dom, Rd mip, const R* normal = nullptr) const {
-    return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1)
-          *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
-  }
-  double fxu_backMesh(int k, int dom, Rd mip, double t, const R* normal = nullptr) const {
-    return ((expru)? expru->GevalOnBackMesh(k, dom, mip, t, normal) : 1)
-           *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, t, normal) : 1);
-  }
-
-  double fx_backMesh_U(int k, int dom, Rd mip, const R* normal = nullptr) const {
-    return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1);
-  }
-  double fx_backMesh_V(int k, int dom, Rd mip, const R* normal = nullptr) const {
-    return ((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
-  }
+  // double fxU(int k, Rd mip, const R* normal = nullptr) const {
+  //   return ((expru)? expru->eval(k, mip, normal) : 1);
+  // }
+  // double fxV(int k, Rd mip, const R* normal = nullptr) const {
+  //   return ((exprv)? exprv->eval(k, mip, normal) : 1);
+  // }
+  // double fxu(int k, Rd mip) const {
+  //   return ((expru)? expru->eval(k, mip) : 1)*((exprv)? exprv->eval(k, mip) : 1);
+  // }
+  // double fxu(int k, Rd mip, double t) const {
+  //   return ((expru)? expru->eval(k, mip, t) : 1)*((exprv)? exprv->eval(k, mip,t) : 1);
+  // }
+  //
+  // double fxu_backMesh(int k, int dom, Rd mip, const R* normal = nullptr) const {
+  //   return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1)
+  //         *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
+  // }
+  // double fxu_backMesh(int k, int dom, Rd mip, double t, const R* normal = nullptr) const {
+  //   return ((expru)? expru->GevalOnBackMesh(k, dom, mip, t, normal) : 1)
+  //          *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, t, normal) : 1);
+  // }
+  //
+  // double fx_backMesh_U(int k, int dom, Rd mip, const R* normal = nullptr) const {
+  //   return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1);
+  // }
+  // double fx_backMesh_V(int k, int dom, Rd mip, const R* normal = nullptr) const {
+  //   return ((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
+  // }
 
 
 public:
-  R getCoefU(const R* normal) const {
-    R val = 1;
-    for(int i=0;i<ar_nu.size();++i) val *= normal[ar_nu(i)];
-    return val;
-  }
-  R getCoefV(const R* normal) const {
-    R val = 1;
-    for(int i=0;i<ar_nv.size();++i) val *= normal[ar_nv(i)];
-    return val;
-  }
-  R getCoef(const R* normal) const {
-    return getCoefU(normal) * getCoefV(normal);
-  }
-  R computeNormal(const R* normal) const {
-    return getCoef(normal);
-  }
 
-  R computeCoef(double h, double meas, double measK, int domain) const {
-    R val = 1;
-    for(int l=0;l<2;++l) {
-      const vector<string>& listCoef = (l==0)?coefu : coefv;
-      for(int i=0;i<listCoef.size();++i) {
-        string coef = listCoef[i];
-
-        if(parameterList.find(coef)) {
-          CutFEM_Parameter& p(*parameterList.listParameter[coef]);
-          val *= p(domain, h, meas, measK);
-        }
-      }
-    }
-    return val;
-  }
-  R computeCoefInterface( double h, double meas, double measK) const {
-    R val = 1;
-    for(int l=0;l<2;++l) {
-      const vector<string>& listCoef = (l==0)?coefu : coefv;
-      int domCoef = (l==0)?domu : domv;
-      if(domCoef == -1) domCoef = 0;
-      assert(domCoef == 0 || domCoef == 1);
-      for(int i=0;i<listCoef.size();++i) {
-        string coef = listCoef[i];
-
-        if(this->parameterList.find(coef)) {
-          CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
-          val *= p(domCoef, h, meas, measK);
-        }
-      }
-    }
-    return val;
-  }
-  R computeCoef(int domain, const typename Mesh::Partition& cutK) const {
-    R val = 1;
-    double h = cutK.getEdgeLength();
-    double meas = cutK.mesure(domain);
-    double measK = cutK.T.mesure();
-    for(int l=0;l<2;++l) {
-      const vector<string>& listCoef = (l==0)?coefu : coefv;
-      int domCoef = domain;
-      for(int i=0;i<listCoef.size();++i) {
-        string coef = listCoef[i];
-        if(this->parameterList.find(coef)) {
-          CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
-          val *= p(domCoef, h, meas, measK);
-        }
-      }
-    }
-    return val;
-  }
+  // R computeCoef(double h, double meas, double measK, int domain) const {
+  //   R val = 1;
+  //   for(int l=0;l<2;++l) {
+  //     const vector<string>& listCoef = (l==0)?coefu : coefv;
+  //     for(int i=0;i<listCoef.size();++i) {
+  //       string coef = listCoef[i];
+  //
+  //       if(parameterList.find(coef)) {
+  //         Virtual_CutFEM_Parameter& p(*parameterList.listParameter[coef]);
+  //         val *= p(domain, h, meas, measK);
+  //       }
+  //     }
+  //   }
+  //   return val;
+  // }
+  // R computeCoefInterface( double h, double meas, double measK) const {
+  //   R val = 1;
+  //   for(int l=0;l<2;++l) {
+  //     const vector<string>& listCoef = (l==0)?coefu : coefv;
+  //     int domCoef = (l==0)?domu : domv;
+  //     if(domCoef == -1) domCoef = 0;
+  //     assert(domCoef == 0 || domCoef == 1);
+  //     for(int i=0;i<listCoef.size();++i) {
+  //       string coef = listCoef[i];
+  //
+  //       if(this->parameterList.find(coef)) {
+  //         Virtual_CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
+  //         val *= p(domCoef, h, meas, measK);
+  //       }
+  //     }
+  //   }
+  //   return val;
+  // }
+  // R computeCoef(int domain, const typename Mesh::Partition& cutK) const {
+  //   R val = 1;
+  //   double h = cutK.getEdgeLength();
+  //   double meas = cutK.mesure(domain);
+  //   double measK = cutK.T.mesure();
+  //   for(int l=0;l<2;++l) {
+  //     const vector<string>& listCoef = (l==0)?coefu : coefv;
+  //     int domCoef = domain;
+  //     for(int i=0;i<listCoef.size();++i) {
+  //       string coef = listCoef[i];
+  //       if(this->parameterList.find(coef)) {
+  //         Virtual_CutFEM_Parameter& p(*this->parameterList.listParameter[coef]);
+  //         val *= p(domCoef, h, meas, measK);
+  //       }
+  //     }
+  //   }
+  //   return val;
+  // }
   void applyFunNL(RNMK_& bfu, RNMK_& bfv) const {
     pfunU(bfu, cu, du);
     pfunV(bfv, cv, dv);
@@ -205,17 +189,19 @@ public:
 // FOR NEW VERSION
 // const FESpace& get_spaceU() const {assert(fespaceU); return fespaceU;}
 // const FESpace& get_spaceV() const {assert(fespaceV); return fespaceV;}
+
 double computeCoefElement(double h, double meas, double measK, double measCut, int domain) const {
   R val = 1;
   for(int l=0;l<2;++l) {
-    const vector<string>& listCoef = (l==0)?coefu : coefv;
+    const vector<const Virtual_CutFEM_Parameter*>& listCoef = (l==0)?coefu : coefv;
     for(int i=0;i<listCoef.size();++i) {
-      string coef = listCoef[i];
 
-      if(parameterList.find(coef)) {
-        CutFEM_Parameter& p(*parameterList.listParameter[coef]);
-        val *= p(domain, h, meas, measK, measCut);
-      }
+      val *= listCoef[i]->evaluate(domain, h, meas, measK, measCut);
+
+      // if(parameterList.find(coef)) {
+      //   Virtual_CutFEM_Parameter& p(*parameterList.listParameter[coef]);
+      //   val *= p(domain, h, meas, measK, measCut);
+      // }
     }
   }
   return val;
@@ -229,7 +215,7 @@ double evaluateFunctionOnBackgroundMesh(const std::pair<int,int>& k, const std::
         *((exprv)? exprv->GevalOnBackMesh(k.second, dom.second, mip, normal) : 1);
 }
 double computeCoefFromNormal(const R* normal) const {
-  return getCoefU(normal) * getCoefV(normal);
+  return computeNormalU(normal) * computeNormalV(normal);;
 }
 int onWhatElementIsTrialFunction (int ki, int kj) const {
   assert(domu != -1); return (domu==0)? ki : kj;
@@ -237,6 +223,20 @@ int onWhatElementIsTrialFunction (int ki, int kj) const {
 int onWhatElementIsTestFunction  (int ki, int kj) const {
   assert(domv != -1); return (domv==0)? ki : kj;
 }
+
+private:
+  double computeNormalU(const R* normal) const {
+    R val = 1;
+    for(int i=0;i<ar_nu.size();++i) val *= normal[ar_nu(i)];
+    return val;
+  }
+  double computeNormalV(const R* normal) const {
+    R val = 1;
+    for(int i=0;i<ar_nv.size();++i) val *= normal[ar_nv(i)];
+    return val;
+  }
+
+public:
 
 
 
@@ -248,10 +248,10 @@ friend std::ostream& operator <<(std::ostream& f, const ItemVF & u )
   f << " FESpaces => " << u.fespaceU << " and " << u.fespaceV << "\t";
   f << u.c << "\t" << whichOperator( u.dtu) << whichOperator( u.du,u.cu);
   for(int i=0;i<u.ar_nu.size();++i) f << " * " << n[u.ar_nu(i)];
-  for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
+  // for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
   f << " * " << whichOperator( u.dtv) << whichOperatorV( u.dv,u.cv);
   for(int i=0;i<u.ar_nv.size();++i) f << " * " << n[u.ar_nv(i)];
-  for(int i=0;i<u.coefv.size();++i) f << " * " << u.coefv[i];
+  // for(int i=0;i<u.coefv.size();++i) f << " * " << u.coefv[i];
   if(u.domu == u.domv && u.domu != -1) f << "\t in Omega_" << u.domu+1;
 
   f << std::endl;
@@ -455,7 +455,7 @@ ListItemVF<d> operator,(const R c, const TestFunction<d>& F) {
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c*c,v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<string>(), v.coefu,-1,v.dtu);
+        item(k) = ItemVF<d>( v.c*c,v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_CutFEM_Parameter*>(), v.coefu,-1,v.dtu);
         item(k).expru = v.expru;
         item(k).fespaceV = v.fespace;
         k++;
@@ -484,7 +484,7 @@ ListItemVF<d> operator,(const Rnm& c, const TestFunction<d>& F) {
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c*c(i,j),v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<string>(), v.coefu,-1,v.dtu);
+        item(k) = ItemVF<d>( v.c*c(i,j),v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_CutFEM_Parameter*>(), v.coefu,-1,v.dtu);
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
 
@@ -515,12 +515,12 @@ ListItemVF<d> operator,(const Projection& c, const TestFunction<d>& F) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
 
         if(i==j) {
-          item(k) = ItemVF<d>( v.c,v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<string>(), v.coefu,-1,v.dtu);
+          item(k) = ItemVF<d>( v.c,v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_CutFEM_Parameter*>(), v.coefu,-1,v.dtu);
           item(k).exprv = v.expru;
           item(k).fespaceV = v.fespace;
           k++;
         }
-        item(k) = ItemVF<d>( v.c*(-1),v.cu,0,v.cu,v.du,c(i,j),v.ar_nu,v.face_side_,v.face_side_,vector<string>(), v.coefu,-1,v.dtu);
+        item(k) = ItemVF<d>( v.c*(-1),v.cu,0,v.cu,v.du,c(i,j),v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_CutFEM_Parameter*>(), v.coefu,-1,v.dtu);
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
         k++;
@@ -548,7 +548,7 @@ ListItemVF<d> operator,(const ExpressionVirtual& fh, const TestFunction<d>& F) {
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<string>(), v.coefu,0,v.dtu);
+        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_CutFEM_Parameter*>(), v.coefu,0,v.dtu);
         item(k).expru = &fh;
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
@@ -583,7 +583,7 @@ ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*>
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<string>(), v.coefu,0,v.dtu);
+        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_CutFEM_Parameter*>(), v.coefu,0,v.dtu);
         item(k).expru = *it;
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;

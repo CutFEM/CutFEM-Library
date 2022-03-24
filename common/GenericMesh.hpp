@@ -28,10 +28,7 @@ using namespace ::std;
 inline int maxdfon(const int *dfon){
   return max(max(dfon[0],dfon[1]),max(dfon[2],dfon[3]));}
 
-template<int d> struct typeRd {typedef R0 Rd;};
-template<> struct typeRd<1> {typedef R1 Rd;};
-template<> struct typeRd<2> {typedef R2 Rd;};
-template<> struct typeRd<3> {typedef R3 Rd;};
+
 
 
 const int NbTypeItemElement = 4;

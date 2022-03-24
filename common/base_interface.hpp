@@ -71,6 +71,7 @@ public :
   bool isCut(const int k) const {
     return (face_of_element_.find(k) != face_of_element_.end());
   }
+  const Element& get_element(int k) const{return (*backMesh)[k];}
 
   const_face_iterator face_begin () const { return (faces_.begin()).base(); }
   const_face_iterator face_end   () const { return (faces_.end()).base(); }
@@ -95,6 +96,8 @@ public :
 
   virtual void cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part) const = 0;
   virtual R measure(const Face& f) const = 0;
+  virtual R measure(int i) const {return measure(faces_[i]);};
+
   virtual bool isCutFace(int k, int ifac) const = 0;
 
   // virtual Rd mapToFace(const Face& f, const typename Element::RdHatBord x ) const = 0;
