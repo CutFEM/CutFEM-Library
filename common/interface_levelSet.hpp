@@ -50,6 +50,15 @@ public:
 
     return Partition<Element>((*this->backMesh)[k], loc_ls);
   }
+  Partition<typename Element::Face> get_partition_face(const typename Element::Face& face, int k, int ifac) const {
+    double loc_ls[Element::Face::nv];
+    for(int i=0;i<Element::Face::nv;++i) {
+      int j = Element::nvhyperFace[ifac][i];
+      int iglb = this->backMesh->at(k,j);
+      loc_ls[i] = ls_[iglb];
+    }
+    return Partition<typename Element::Face>(face, loc_ls);
+  }
   bool isCutFace(int k, int ifac) const;
 
   void cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part)const {assert(0);} ;
@@ -156,7 +165,6 @@ Interface_LevelSet<M>::make_face (const typename RefPatch<Element>::FaceIdx& ref
 }
 
 
-
 template<typename M>
 typename Interface_LevelSet<M>::Rd
 Interface_LevelSet<M>::make_normal (const typename Mesh::Element& K, const double lset[Element::nv]) {
@@ -170,9 +178,6 @@ Interface_LevelSet<M>::make_normal (const typename Mesh::Element& K, const doubl
   // normal_ls /= normal_ls.norm();
   return normal_ls;
 }
-
-
-
 
 template<typename Mesh>
 void Time_Interface<Mesh>::init(int i, const Mesh & Th, const FunFEMVirtual& ls) {

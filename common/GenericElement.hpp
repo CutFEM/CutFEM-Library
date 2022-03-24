@@ -40,6 +40,9 @@ public:
 
   static const int (* const nvedge)[2] ;                  //idx nodes on edges
   static const int (* const nvface)[nvOnFace] ;                  //idx nodes on faces
+
+  static const int (* const nvhyperFace)[nva] ; 
+
   static const int (* const onWhatBorder)[nitem] ;        //
   static const int (* const commonVertOfEdges)[ne] ;      //
   static const int (* const refElement)[nv] ;           //
@@ -193,7 +196,7 @@ public:
     return h;
   }
   R  mesure() const {return mes;}
-  R  get_measure() const {return mes;}
+  R  measure() const {return mes;}
   R get_h() const {
     double h = 0;
     for(int i=0;i<ne;++i) h += lenEdge(i);
@@ -202,7 +205,9 @@ public:
   Rd map(const RdHat & Phat) const {
     return (*this)(Phat);
   }
-
+  Rd mapToPhysicalElement(const RdHat & Phat) const {
+    return (*this)(Phat);
+  }
 
 //   static  int NbNodes(int c)  // use the bit i of c to say if node in objet of dim  i existe
 //   { int c0=(c&1)!=0, c1=(c&2)!=0, c2=(c&4)!=0, c3=(c&8)!=0;

@@ -278,9 +278,9 @@ public:
 
   const QF&  get_quadrature_formular_K()  const;
   const QFB& get_quadrature_formular_dK() const;
-  template<typename E>
-  const QF&  get_quadrature_formular_cutK() const;
-  // const QFB&  get_quadrature_formular_cutFace() const;
+
+  const QF&  get_quadrature_formular_cutK()   const;
+  const QFB& get_quadrature_formular_cutFace() const;
 };
 
 

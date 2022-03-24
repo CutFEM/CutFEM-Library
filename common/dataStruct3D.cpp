@@ -83,6 +83,7 @@ static const int onWhatIsEdgeQuad3[4][9] = {
 
 template<> const int (* const GenericElement<DataTriangle3>::nvface)[3] = nvfaceTria ;
 template<> const int (* const GenericElement<DataTriangle3>::nvedge)[2] = nvedgeTria ;
+template<> const int (* const GenericElement<DataTriangle3>::nvhyperFace)[2] = nvedgeTria ;
 template<> const int (* const GenericElement<DataTriangle3>::nvadj)[2] = nvedgeTria ;
 template<> const int  GenericElement<DataTriangle3>::nitemdim[4] = {3,3,1,0 }  ;
 template<> const int (* const GenericElement<DataTriangle3>::onWhatBorder)[7] = onWhatIsEdge3 ;
@@ -90,13 +91,14 @@ template<> const int (* const GenericElement<DataTriangle3>::commonVertOfEdges)[
 
 
 template<> const int (* const GenericElement<DataQuad3>::nvface)[4] = nvfaceQuad3 ;
+template<> const int (* const GenericElement<DataQuad3>::nvhyperFace)[2] = nvedgeQuad3 ;
 template<> const int (* const GenericElement<DataQuad3>::nvedge)[2] = nvedgeQuad3 ;
 template<> const int (* const GenericElement<DataQuad3>::nvadj)[2]  = nvedgeQuad3 ;
 template<> const int  GenericElement<DataQuad3>::nitemdim[4] = {4,4,1,0 }  ;
 template<> const int (* const GenericElement<DataQuad3>::commonVertOfEdges)[4] = commonVertOfEdgeQuad3 ;
 template<> const int (* const GenericElement<DataQuad3>::onWhatBorder)[9] = onWhatIsEdgeQuad3 ;
 
-
+template<> const int (* const GenericElement<DataTet>::nvhyperFace)[3] = nvfaceTet ;
 template<> const int (* const GenericElement<DataTet>::nvface)[3] = nvfaceTet ;
 template<> const int (* const GenericElement<DataTet>::nvedge)[2] = nvedgeTet ;
 template<> const int (* const GenericElement<DataTet>::nvadj)[3] = nvfaceTet ;
@@ -110,6 +112,7 @@ const int  Tet::oppEdgeOfEdge[6] = {5,4,3,2,1,0}  ;
 
 template<> const int (* const GenericElement<DataHexa>::nvedge)[2] = nvedgeHexa ;
 template<> const int (* const GenericElement<DataHexa>::nvface)[4] = nvfaceHexa;
+template<> const int (* const GenericElement<DataHexa>::nvhyperFace)[4] = nvfaceHexa;
 template<> const int (* const GenericElement<DataHexa>::nvadj)[4] = nvfaceHexa;
 // template<> const int (* const GenericElement<DataHexa>::onWhatBorder)[27] = ;
 template<> const int (* const GenericElement<DataHexa>::commonVertOfEdges)[12] = commonVertOfEdgeHexa;
@@ -139,6 +142,10 @@ R3 Tet::toKref(const R2& P, int i) const {
     return (1 - P.x - P.y) * R3::KHat[nvface[i][0]] + P.x * R3::KHat[nvface[i][1]]
       + P.y * R3::KHat[nvface[i][2]];
   }
+  R3 Tet::mapToReferenceElement(const R2& P, int i) const {
+      return (1 - P.x - P.y) * R3::KHat[nvface[i][0]] + P.x * R3::KHat[nvface[i][1]]
+        + P.y * R3::KHat[nvface[i][2]];
+    }
 
 R Tet::mesureBord(int i) const {
   R3 AB(at(nvface[i][0]),at(nvface[i][1]));

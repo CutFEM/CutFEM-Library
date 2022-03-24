@@ -1,32 +1,57 @@
 #include "geometry.hpp"
 
 
-R geometry::mesure_simplex(R2 N[3]){
-  return std::fabs(det(N[0],N[1],N[2]))*0.5;
-}
-R geometry::mesure_simplex(R3 N[4]) {
-  R3 AB(N[0],N[1]);
-  R3 AC(N[0],N[2]);
-  R3 AD(N[0],N[3]);
-  return std::fabs(det(AB,AC,AD))/6.;
-}
+
+
 
 double geometry::measure_hyper_simplex(R2 N[2]){
   R2 u(N[0],N[1]);
   return u.norm();
 }
 double geometry::measure_hyper_simplex(R3 N[3]){
+
   R3 u(N[0],N[1]);
   R3 v(N[0],N[2]);
   return Norme2(0.5 * (u ^ v));
 }
+
+template<> double geometry::mesure_simplex<1>(R2 N[2]){
+  return measure_hyper_simplex(N);
+}
+template<> double geometry::mesure_simplex<2>(R2 N[3]){
+  return std::fabs(det(N[0],N[1],N[2]))*0.5;
+}
+
+template<> double geometry::mesure_simplex<1>(R3 N[2]){
+  R3 u(N[0],N[1]);
+  return u.norm();
+}
+template<> double geometry::mesure_simplex<2>(R3 N[3]){
+  return measure_hyper_simplex(N);
+}
+template<> double geometry::mesure_simplex<3>(R3 N[4]){
+  R3 AB(N[0],N[1]);
+  R3 AC(N[0],N[2]);
+  R3 AD(N[0],N[3]);
+  return std::fabs(det(AB,AC,AD))/6.;
+}
+
 
 R2 geometry::map_point_to_simplex(const R2 N[3], const R2 Phat) {
   R2 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1] + Phat[1] * N[2];
   return P;
 }
 R3 geometry::map_point_to_simplex(const R3 N[4], const R3 Phat) {
-  R3 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1] + Phat[1] * N[2];//+ Phat[2] * N[3];
+  R3 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1] + Phat[1] * N[2] + Phat[2] * N[3];
+  return P;
+}
+
+R2 geometry::map_point_to_simplex(const R2 N[2], const R1 Phat) {
+  R2 P = (1-Phat[0]) * N[0] + Phat[0] * N[1];
+  return P;
+}
+R3 geometry::map_point_to_simplex(const R3 N[3], const R2 Phat) {
+  R3 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1];
   return P;
 }
 

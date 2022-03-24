@@ -256,14 +256,14 @@ R fun_levelSet1(const R3 P, const int i) {
   R shiftY = 0.75;
   R shiftZ = 0.75;
   R r = 0.6;
-  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+  return -sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) + r;
 }
 R fun_levelSet2(const R3 P, const int i) {
   R shiftX = -0.75;
   R shiftY = -0.75;
   R shiftZ = -0.75;
   R r = 0.6;
-  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+  return -sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) + r;
 }
 R fun_test(const R3 P,const int i, int d) {return d;}
 R fun_velocity(const R3 P, const int i){
@@ -321,21 +321,22 @@ int main(int argc, char** argv )
   // LEVEL-SET & INTERFACE CONSTRUCTION
   // ---------------------------------------------------------------------------
   Space Lh(Th, DataFE<Mesh>::P1);
-  Fun_h levelSet(Lh, fun_levelSet);
-  Interface_LevelSet<Mesh> interface(Th, levelSet);
-  // Fun_h levelSet1(Lh, fun_levelSet1);
-  // Interface_LevelSet<Mesh> interface1(Th, levelSet1);
-  // Fun_h levelSet2(Lh, fun_levelSet2);
-  // Interface_LevelSet<Mesh> interface2(Th, levelSet2);
+  // Fun_h levelSet(Lh, fun_levelSet);
+  // Interface_LevelSet<Mesh> interface(Th, levelSet);
+
+  Fun_h levelSet1(Lh, fun_levelSet1);
+  Interface_LevelSet<Mesh> interface1(Th, levelSet1);
+  Fun_h levelSet2(Lh, fun_levelSet2);
+  Interface_LevelSet<Mesh> interface2(Th, levelSet2);
 
   // CUTMESH && SURFACE MESH CONSTRUCTION
   // ---------------------------------------------------------------------------
-  Cut_Mesh<Mesh> Khi(Th, interface);
-  // Khi.add(interface1);
-  // Khi.add(interface2);
+  Cut_Mesh<Mesh> Khi(Th);//, interface);
+  Khi.add(interface1);
+  Khi.add(interface2);
   Khi.info();
   Cut_Mesh<Mesh> Kh0(Th);
-  Kh0.create_surface_mesh(interface);
+  Kh0.create_surface_mesh(interface1);
 
   // FINITE ELEMENT SPACE
   // ---------------------------------------------------------------------------
@@ -356,6 +357,7 @@ int main(int argc, char** argv )
   // ---------------------------------------------------------------------------
   CutFEM<Mesh> problem({&Wh, &Sh});
   FunTest u(Wh,1), v(Wh,1);         // Bulk
+  // FunTest u(Wh,1,0,2), v(Wh,1,0,2);         // Bulk
   FunTest u0(Sh,1), v0(Sh,1);       // Surface
   Normal n;
   // BEGIN ASSEMBLY
@@ -369,14 +371,14 @@ int main(int argc, char** argv )
   //         , Khi
   // );
 
-  problem.addBilinear(
-          - innerProduct(kappaTildeA*average(grad(u)*n),jump(v))      // (3.12)
-          - innerProduct(kappaTildeA*jump(u), average(grad(v)*n))         // (3.13)
-          + innerProduct(average((vel*n)*u), kappaTilde*jump(v))*0.5         // (3.15)
-          - innerProduct(jump((vel*n)*u),    kappaTilde*average(v))*0.5      // (3.15)
-          , Khi
-          , innerFace
-  );
+  // problem.addBilinear(
+  //         - innerProduct(kappaTildeA*average(grad(u)*n),jump(v))      // (3.12)
+  //         - innerProduct(kappaTildeA*jump(u), average(grad(v)*n))         // (3.13)
+  //         + innerProduct(average((vel*n)*u), kappaTilde*jump(v))*0.5         // (3.15)
+  //         - innerProduct(jump((vel*n)*u),    kappaTilde*average(v))*0.5      // (3.15)
+  //         , Khi
+  //         , innerFace
+  // );
 
 
 
@@ -384,6 +386,11 @@ int main(int argc, char** argv )
   //         innerProduct(1,v)
   //       , Khi
   // );
+  problem.addLinear(
+          innerProduct(1,jump(v))
+        , Khi
+        , innerFace
+  );
   // matlab::Export(problem.get_matrix(), "A.dat");
   // matlab::Export(problem.get_rhs(), "rhs.dat");
 

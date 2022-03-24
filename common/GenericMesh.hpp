@@ -283,12 +283,16 @@ public:
 // protected
   V *vertices;
   T *elements;
-  // Face *inner_faces_;
   B *borderelements;
 
   int *TheAdjacencesLink; // to store the adj link  k*nea+i -> k'*nea+i'
   int *BoundaryElementHeadLink; //
   int *ElementConteningVertex;
+
+  // From index of two cut element, get the face
+  // index element are in backMesh
+  // Face *inner_faces_;
+  // std::map<pairIndex, int> cut_face_;  // (ki,kj) -> edge_idx,
 
   // For mesh build from interface
   Uint *ElementIndexInBackMesh;   // from loc to BackMesh

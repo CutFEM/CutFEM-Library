@@ -69,3 +69,6 @@ DONE ** 53) take away cutTh de paraview class and just be able to add many files
 58) the rhs in problem should be private. BIG TROUBLE IF POINTING ON IT BEFORE IT IS RESIZE BY LAGRANGE MULTIPLIER eg
 59) Change ls to an struct eval coming from the interface representation or maybe just create and save the nodes
 60) remove whichDomain + other function renamed
+61) change Rd::Khat from dataStuct to Rd.hpp files
+62) add   R2 toReferenceElement(const R1& P, int i) const; and other for quad and hexa
+62) remove doublon dans datastuct files

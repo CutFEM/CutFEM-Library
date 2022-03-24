@@ -91,6 +91,7 @@ public :
 
   virtual SignElement<Element> get_SignElement(int k) const =0;
   virtual Partition<Element> get_partition(int k) const = 0;
+  virtual Partition<typename Element::Face> get_partition_face(const typename Element::Face& face, int k, int ifac) const = 0;
 
   virtual void cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part) const = 0;
   virtual R measure(const Face& f) const = 0;

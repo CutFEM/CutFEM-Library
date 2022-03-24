@@ -51,13 +51,25 @@ namespace geometry{
   // }
 
 
+  // template argument is RdHat::d
+
   R3 map_point_to_simplex(const R3 N[4], const R3 P);
   R2 map_point_to_simplex(const R2 N[3], const R2 P);
+  // maps to face simplex
+  R3 map_point_to_simplex(const R3 N[3], const R2 P);
+  R2 map_point_to_simplex(const R2 N[2], const R1 P);
+
 
   R measure_hyper_simplex(R2 N[2]);
   R measure_hyper_simplex(R3 N[3]);
-  R mesure_simplex(R2 N[3]);
-  R mesure_simplex(R3 N[4]);
+
+  //change to template maybe
+  template<int d>
+  R mesure_simplex(R2 N[d+1]);
+  template<int d>
+  R mesure_simplex(R3 N[d+1]);
+  // R mesure_simplex(R2 N[2]);
+  // R mesure_simplex(R3 N[3]);
 }
 
 #endif

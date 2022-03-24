@@ -370,6 +370,7 @@ public:
   int NbNode() const { return this->nbNode;}
   int NbDoF() const { return this->nbDoF;}
   int NbElement() const { return this->nbElement;}
+  int get_nb_element() const { return this->nbElement;}
   int get_nb_dof() const { return this->nbDoF;}
 
   // int NbInnerFaces() const { return Th.nbInnerFaces();}

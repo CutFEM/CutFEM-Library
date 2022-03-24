@@ -305,7 +305,7 @@ public:
     l[3] = 1 - l[0] - l[1] - l[2];
     return l[0]*R3::KHat[0] + l[1]*R3::KHat[1] + l[2]*R3::KHat[2] + l[3]*R3::KHat[3];
   }
-  R3 toReferenceElement(const R3 & P) const {
+  R3 mapToReferenceElement(const R3 & P) const {
     R l[4];
     const R3 &A =at(0);
     const R3 &B =at(1);
@@ -320,6 +320,7 @@ public:
   }
 
   R3 toKref(const R2& P, int i) const;
+  R3 mapToReferenceElement(const R2& P, int i) const;
   R mesureBord(int i) const;
 
 
@@ -402,7 +403,7 @@ public:
 
   }
 
-  R3 toReferenceElement(const R3& P) const {
+  R3 mapToReferenceElement(const R3& P) const {
     const R3 &A =*vertices[0];
     const R3 &B =*vertices[1];
     const R3 &C =*vertices[3];

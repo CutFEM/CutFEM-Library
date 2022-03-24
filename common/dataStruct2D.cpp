@@ -37,6 +37,7 @@ static const int onWhatIsEdgeQuad[4][9] = {  {1,1,0,0, 2,0,0,0, 0}, // edge 0
 
 template<> const int (* const GenericElement<DataTriangle2>::nvface)[3] = nvfaceTria ;
 template<> const int (* const GenericElement<DataTriangle2>::nvedge)[2] = nvedgeTria ;
+template<> const int (* const GenericElement<DataTriangle2>::nvhyperFace)[2] = nvedgeTria ;
 template<> const int (* const GenericElement<DataTriangle2>::nvadj)[2]  = nvedgeTria ;
 template<> const int  GenericElement<DataTriangle2>::nitemdim[4] = {3,3,1,0 }  ;
 template<> const int (* const GenericElement<DataTriangle2>::commonVertOfEdges)[3] = commonVertOfEdge ;
@@ -46,6 +47,7 @@ template<> const int (* const GenericElement<DataTriangle2>::onWhatBorder)[7] = 
 
 template<> const int (* const GenericElement<DataQuad2>::nvface)[4] = nvfaceQuad ;
 template<> const int (* const GenericElement<DataQuad2>::nvedge)[2] = nvedgeQuad ;
+template<> const int (* const GenericElement<DataQuad2>::nvhyperFace)[2] = nvedgeQuad ;
 template<> const int (* const GenericElement<DataQuad2>::nvadj)[2]  = nvedgeQuad ;
 template<> const int  GenericElement<DataQuad2>::nitemdim[4] = {4,4,1,0 }  ;
 template<> const int (* const GenericElement<DataQuad2>::commonVertOfEdges)[4] = commonVertOfEdgeQuad ;
@@ -55,6 +57,7 @@ template<> const int (* const GenericElement<DataQuad2>::onWhatBorder)[9] = onWh
 
 template<> const int (* const GenericElement<DataSeg2>::nvface)[1] = 0 ;
 template<> const int (* const GenericElement<DataSeg2>::nvedge)[2] = nvedgeSeg; //nvedgeTria ;
+// template<> const int (* const GenericElement<DataSeg2>::hyperface)[2] = nvedgeSeg; //nvedgeTria ;
 template<> const int (* const GenericElement<DataSeg2>::nvadj)[1] = nvadjSeg ;
 template<> const int  GenericElement<DataSeg2>::nitemdim[4] = {2,1,0,0 }  ;
 
@@ -66,6 +69,9 @@ template<> const int  GenericElement<DataSeg2>::nitemdim[4] = {2,1,0,0 }  ;
 
 
 R2 Triangle2::toKref(const R1& P, int i) const {
+  return (1 - P.x) * R2::KHat[nvedge[i][0]] + P.x * R2::KHat[nvedge[i][1]];
+}
+R2 Triangle2::mapToReferenceElement(const R1& P, int i) const {
   return (1 - P.x) * R2::KHat[nvedge[i][0]] + P.x * R2::KHat[nvedge[i][1]];
 }
 

@@ -35,28 +35,28 @@ struct ItemTestFunction {
   int cu,du,dtu;
   KN<int> ar_nu;
   vector<string> coefu;
-  int dom;
+  int domain_id_, face_side_;
   const ExpressionVirtual * expru = nullptr;
   GFESpace<Mesh> const * fespace = nullptr;
   void (*pfun)(RNMK_&, int , int) = f_id;
   bool alloc_expr = false;
 
 
-  ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),dom(-1){}
+  ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),domain_id_(-1){}
   ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<string> cou)
-  : c(cc), cu(i),du(j),dtu(tu), dom(dd){ coefu =cou;}
+  : c(cc), cu(i),du(j),dtu(tu), domain_id_(dd){ coefu =cou;}
   ItemTestFunction(const ItemTestFunction& F)
-  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), dom(F.dom), expru(F.expru), fespace(F.fespace) {
+  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), expru(F.expru), fespace(F.fespace) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
   }
   ItemTestFunction(const ItemTestFunction& F, void(*f)(RNMK_&,int,int))
-  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), dom(F.dom), expru(F.expru), fespace(F.fespace), pfun(f) {
+  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), expru(F.expru), fespace(F.fespace), pfun(f) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
   }
-  // ItemTestFunction(const FunFEM<Mesh>& ff, int ic) : c(1.), cu(ic),du(op_id),dtu(0),dom(-1),fespace(ff.Vh),alloc_expr(true){
+  // ItemTestFunction(const FunFEM<Mesh>& ff, int ic) : c(1.), cu(ic),du(op_id),dtu(0),domain_id_(-1),fespace(ff.Vh),alloc_expr(true){
   //   expru = new ExpressionFunFEM<Mesh>(ff, ic, op_id);
   // }
-  // ItemTestFunction(const GFESpace<Mesh>& vh,  const ExpressionVirtual& ff) : c(1.), cu(0),du(-1),dtu(0),dom(-1),fespace(&vh){
+  // ItemTestFunction(const GFESpace<Mesh>& vh,  const ExpressionVirtual& ff) : c(1.), cu(0),du(-1),dtu(0),domain_id_(-1),fespace(&vh){
   //   expru = &ff;
   // }
 
@@ -66,7 +66,8 @@ struct ItemTestFunction {
     du = L.du;
     dtu = L.dtu;
     ar_nu.init(L.ar_nu);
-    dom = L.dom;
+    domain_id_ = L.domain_id_;
+    face_side_ = L.face_side_;
     coefu = L.coefu;
     expru = L.expru;
     fespace = L.fespace;
@@ -108,10 +109,9 @@ struct ItemTestFunction {
     f << to_string(u.c) << " * "
     << whichOperator(u.du, u.cu);
     for(int i=0;i<u.ar_nu.size();++i) f << " * " << n[u.ar_nu(i)];
-    // f << "\n";
+
     for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
-    if(u.dom != -1) f << "\t in Omega_" << u.dom+1;
-    else f << "\t in Omega";
+    f << "\t in Omega_" << u.domain_id_ ;
     f << "\n";
     return f;
   }
@@ -224,6 +224,11 @@ private :
    A = nullptr;
  }
 
+ TestFunction(const FESpace& Vh,int d, int comp0, int domm) {
+   A.init(d,1);
+   for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (Vh,1,comp0+i,0, domm);
+ }
+
 
 public:
 
@@ -234,10 +239,6 @@ public:
   TestFunction(const FESpace& Vh, int d, int comp0) {
     A.init(d,1);
     for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (Vh, 1,comp0+i,0);
-  }
-  TestFunction(const FESpace& Vh,int d, int comp0, int domm) {
-    A.init(d,1);
-    for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (Vh,1,comp0+i,0, domm);
   }
 
 
@@ -1017,7 +1018,7 @@ TestFunction<d> dt(const TestFunction<d> & T){
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
     int irow = i;
     int jrow = 0;
-    gradU.A(irow,jrow) = new ItemList<d>(1);//(v.c,i,v.du,D(0),v.dom,v.coefu);
+    gradU.A(irow,jrow) = new ItemList<d>(1);
     ItemTestFunction<d>& u(gradU.A(irow,jrow)->getItem(0));
     u = v;
     u . dtu = D(0);
@@ -1039,7 +1040,7 @@ TestFunction<d> dx(const TestFunction<d> & T){
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
     int irow = i;
     int jrow = 0;
-    gradU.A(irow,jrow) = new ItemList<d>(1);//(v.c,i,D(0),v.dtu,v.dom,v.coefu);
+    gradU.A(irow,jrow) = new ItemList<d>(1);
     ItemTestFunction<d>& u(gradU.A(irow,jrow)->getItem(0));
     u = v;
     u . du = D(0);
@@ -1061,7 +1062,7 @@ TestFunction<d> dy(const TestFunction<d> & T){
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
     int irow = i;
     int jrow = 0;
-    gradU.A(irow,jrow) = new ItemList<d>(1);//(v.c,i,D(1),v.dtu,v.dom,v.coefu);
+    gradU.A(irow,jrow) = new ItemList<d>(1);
     ItemTestFunction<d>& u(gradU.A(irow,jrow)->getItem(0));
     u = v;
     u . du = D(1);
@@ -1083,7 +1084,7 @@ TestFunction<d> dz(const TestFunction<d> & T){
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
     int irow = i;
     int jrow = 0;
-    gradU.A(irow,jrow) = new ItemList<d>(1);//(v.c,i,D(2),v.dtu,v.dom,v.coefu);
+    gradU.A(irow,jrow) = new ItemList<d>(1);
     ItemTestFunction<d>& u(gradU.A(irow,jrow)->getItem(0));
     u = v;
     u . du = D(2);
@@ -1101,7 +1102,7 @@ TestFunction<d> dxS(const TestFunction<d> & T){
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
 
-    gradU.A(i,0) = new ItemList<d>(d+1);//(v.c,i,D(0),v.dtu,v.dom,v.coefu);
+    gradU.A(i,0) = new ItemList<d>(d+1);
     {
       ItemTestFunction<d>& u1(gradU.A(i,0)->getItem(0));
       u1 = v;
@@ -1130,7 +1131,7 @@ TestFunction<d> dyS(const TestFunction<d> & T){
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
 
-    gradU.A(i,0) = new ItemList<d>(d+1);//(v.c,i,D(0),v.dtu,v.dom,v.coefu);
+    gradU.A(i,0) = new ItemList<d>(d+1);
     {
       ItemTestFunction<d>& u1(gradU.A(i,0)->getItem(0));
       u1 = v;
@@ -1159,7 +1160,7 @@ TestFunction<d> dzS(const TestFunction<d> & T){
     assert(T.A(i,0)->size() == 1);
     const ItemTestFunction<d>& v(T.A(i,0)->getItem(0));
 
-    gradU.A(i,0) = new ItemList<d>(d+1);//(v.c,i,D(0),v.dtu,v.dom,v.coefu);
+    gradU.A(i,0) = new ItemList<d>(d+1);
     {
       ItemTestFunction<d>& u1(gradU.A(i,0)->getItem(0));
       u1 = v;
@@ -1193,9 +1194,7 @@ TestFunction<d> Eps(const TestFunction<d> & T){
         epsU.A(i,j) = new ItemList<d>(1);
         ItemTestFunction<d>& u(epsU.A(i,j)->getItem(0));
         u = v;
-        // u.cu = i;
         u.du = D(i);
-        //(v.c,i,D(i),v.dtu,v.dom,v.coefu);
 
       }
       else  {
@@ -1206,9 +1205,6 @@ TestFunction<d> Eps(const TestFunction<d> & T){
           u.c = 0.5*v.c;
           u.cu = i;
           u.du = D(j);
-          // u.dom = v.dom;
-          // u.dtu = v.dtu;
-          // u.coefu =v.coefu;
         }
         {
           ItemTestFunction<d>& u(epsU.A(i,j)->getItem(1));
@@ -1216,9 +1212,6 @@ TestFunction<d> Eps(const TestFunction<d> & T){
           u.c = 0.5*v.c;
           u.cu = j;
           u.du = D(i);
-          // u.dom = v.dom;
-          // u.dtu = v.dtu;
-          // u.coefu =v.coefu;
         }
       }
     }
@@ -1272,13 +1265,13 @@ TestFunction<d> jump(const TestFunction<d> & T, int c1, int c2){
           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e));
           u = v;
           u.c *= c1;
-          u.dom = 0;
+          u.face_side_ = 0;
         }
         {
           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e+1));
           u=v;
           u.c *= c2;
-          u.dom = 1;
+          u.face_side_ = 1;
         }
       }
     }
@@ -1290,38 +1283,40 @@ TestFunction<d> jump(const TestFunction<d> & T){
   return jump(T, 1, -1);
 }
 
-template <int d>
-TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V, int c1, int c2){
-  assert(U.A.M() == 1 && U.A.N() == 1);
-  assert(V.A.M() == 1 && V.A.N() == 1);
-  int N = U.A.N();
-  int M = U.A.M();
-  TestFunction<d> jumpU(U.A.N(), U.A.M()); //jumpU.init(U.A.N(), U.A.M());
-  for(int i=0;i<N;++i) {
-    for(int j=0;j<M;++j) {
-      assert(U.A(i,j)->size() == V.A(i,j)->size());
-      int l = U.A(i,j)->size();
-      jumpU.A(i,j) = new ItemList<d>(2*l);
-      for(int e=0;e<l;++e) {
-        {
-          const ItemTestFunction<d>& v(U.A(i,j)->getItem(e));
-          ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e));
-          u = v;
-          u.c *= c1;
-          // u.dom = 0;
-        }
-        {
-          const ItemTestFunction<d>& v(V.A(i,j)->getItem(e));
-          ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e+1));
-          u=v;
-          u.c *= c2;
-          // u.dom = 1;
-        }
-      }
-    }
-  }
-  return jumpU;
-}
+// NEED DO FIXE THIS FUNCTION
+// HAS TO WORK FOR GENERAL DOMAIN
+// template <int d>
+// TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V, int c1, int c2){
+//   assert(U.A.M() == 1 && U.A.N() == 1);
+//   assert(V.A.M() == 1 && V.A.N() == 1);
+//   int N = U.A.N();
+//   int M = U.A.M();
+//   TestFunction<d> jumpU(U.A.N(), U.A.M()); //jumpU.init(U.A.N(), U.A.M());
+//   for(int i=0;i<N;++i) {
+//     for(int j=0;j<M;++j) {
+//       assert(U.A(i,j)->size() == V.A(i,j)->size());
+//       int l = U.A(i,j)->size();
+//       jumpU.A(i,j) = new ItemList<d>(2*l);
+//       for(int e=0;e<l;++e) {
+//         {
+//           const ItemTestFunction<d>& v(U.A(i,j)->getItem(e));
+//           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e));
+//           u = v;
+//           u.c *= c1;
+//           // u.dom = 0;
+//         }
+//         {
+//           const ItemTestFunction<d>& v(V.A(i,j)->getItem(e));
+//           ItemTestFunction<d>& u(jumpU.A(i,j)->getItem(2*e+1));
+//           u=v;
+//           u.c *= c2;
+//           // u.dom = 1;
+//         }
+//       }
+//     }
+//   }
+//   return jumpU;
+// }
 
 template <int d>
 TestFunction<d> jump(const TestFunction<d> & U, const TestFunction<d> & V){
@@ -1343,15 +1338,13 @@ TestFunction<d> average1(const TestFunction<d> & T){
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
         u = v;
-        // u.c *= kap1;
-        u.dom = 0;
+        u.face_side_ = 0;
         u.addParameter("kappa1");
       }
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
         u=v;
-        // u.c *= kap2;
-        u.dom = 1;
+        u.face_side_ = 1;
         u.addParameter("kappa2");
       }
     }
@@ -1372,15 +1365,13 @@ TestFunction<d> average2(const TestFunction<d> & T){
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
         u = v;
-        // u.c *= kap2;
-        u.dom = 0;
+        u.face_side_ = 0;
         u.addParameter("kappa2");
       }
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
         u=v;
-        // u.c *= kap1;
-        u.dom = 1;
+        u.face_side_ = 1;
         u.addParameter("kappa1");
       }
     }
@@ -1402,13 +1393,13 @@ TestFunction<d> average(const TestFunction<d> & T, double v1=0.5, double v2=0.5)
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
         u = v;
         u.c *= v1;
-        u.dom = 0;
+        u.face_side_ = 0;
       }
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
         u=v;
         u.c *= v2;
-        u.dom = 1;
+        u.face_side_ = 1;
       }
     }
   }
@@ -1428,13 +1419,13 @@ TestFunction<d> average(const TestFunction<d> & T, const CutFEM_Parameter& para1
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e));
         u = v;
-        u.dom = 0;
+        u.face_side_ = 0;
         u.addParameter(para1.name);
       }
       {
         ItemTestFunction<d>& u(jumpU.A(i,0)->getItem(2*e+1));
         u=v;
-        u.dom = 1;
+        u.face_side_ = 1;
         u.addParameter(para2.name);
       }
     }

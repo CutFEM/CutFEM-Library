@@ -466,10 +466,11 @@ template<typename E> int RefPartition<E>::InitializerCL::init_count_= 0;
 template<typename E>
 class CutElement {
   typedef typename E::Rd Rd;
-  typedef SortArray<Ubyte, Rd::d+1> TriaIdx;
+  static const int dim = E::RdHat::d;
+  typedef SortArray<Ubyte, dim+1> TriaIdx;
 
   public :
-  static const int nv = Rd::d+1;
+  static const int nv = dim+1;
   Rd  vertices[nv];
   int lab;
 
@@ -495,10 +496,11 @@ class Virtual_Partition {
   typedef SortArray<Ubyte, dim+1> ElementIdx;           // the vertices of a triangle of the cut:
   typedef const ElementIdx* const_element_iterator;
   typedef       ElementIdx*       element_iterator;
+  typedef typename E::RdHat RdHat;
+  typedef typename E::Rd Rd;
 
 public:
 
-  typedef typename E::Rd Rd;
   virtual void get_list_node (vector<Rd>& node, int s) const = 0;
   virtual CutElement<E> get_element(int k) const = 0;
   virtual int nb_element(int) const = 0;
@@ -506,7 +508,8 @@ public:
   virtual const_element_iterator element_end (int s) const = 0;
   virtual Rd get_vertex(const_element_iterator it, const int i) const = 0;
   virtual double measure(int s) const = 0;
-  virtual Rd toPhysicalElement(const_element_iterator it, const Rd Phat) const  = 0;
+  virtual double measure(const_element_iterator it) const = 0;
+  virtual Rd mapToPhysicalElement(const_element_iterator it, const RdHat Phat) const  = 0;
 
 
 };
@@ -521,6 +524,8 @@ public :
   typedef const ElementIdx* const_element_iterator;
   typedef       ElementIdx*       element_iterator;
   typedef typename E::Rd Rd;
+  typedef typename E::RdHat RdHat;
+
   typedef E Element;
 
   const RefPartition<E>& patch;
@@ -575,7 +580,7 @@ public :
 //   }
 
 
-  double mesure(const_element_iterator it) const {
+  double measure(const_element_iterator it) const {
     if( patch.is_uncut() && E::nb_ntcut==1) return T.mesure();
     Rd N[dim+1];
 
@@ -588,10 +593,8 @@ public :
         N[i] = (1-t) * ((Rd) T[v0]) + t * ((Rd) T[v1]) ;
       }
     }
-    return geometry::mesure_simplex(N);
+    return geometry::mesure_simplex<RdHat::d>(N);
   }
-
-
   double measure(int s) const {
     if( patch.is_uncut()) return T.mesure();
     R mes = 0;
@@ -606,11 +609,13 @@ public :
           N[i] = (1-t) * ((Rd) T[v0]) + t * ((Rd) T[v1]) ;
         }
       }
-      mes += geometry::mesure_simplex(N);
+      mes += geometry::mesure_simplex<RdHat::d>(N);
     }
     return mes;
   }
-//
+
+  // double measureBord(int s, int ifac) const
+
 //   R mesureEdge(int e, int dom) const {
 //     assert(cutData);
 //     if( patch.is_uncut()) return T.lenEdge(e);
@@ -638,7 +643,7 @@ public :
 //     return E;
 //   }
 //
-Rd toPhysicalElement(const_element_iterator it, const Rd Phat) const {
+Rd mapToPhysicalElement(const_element_iterator it, const RdHat Phat) const {
 
   if( patch.is_uncut()) return T(Phat);
   Rd N[dim+1];
@@ -654,15 +659,15 @@ Rd toPhysicalElement(const_element_iterator it, const Rd Phat) const {
   return geometry::map_point_to_simplex(N, Phat);
 }
 
-  Rd get_vertex(const_element_iterator it, const int i) const {
-    Uint idx = (*it)[i];
-    if(idx < E::nv) return (Rd) T[idx];
-    else {
-      const Ubyte v0= Element::nvedge[idx - E::nv][0], v1= Element::nvedge[idx - E::nv][1];
-      const R t = -ls[v0]/(ls[v1]-ls[v0]);
-      return (1-t) * ((Rd)T[v0]) + t * ((Rd) T[v1]) ;
-    }
+Rd get_vertex(const_element_iterator it, const int i) const {
+  Uint idx = (*it)[i];
+  if(idx < E::nv) return (Rd) T[idx];
+  else {
+    const Ubyte v0= Element::nvedge[idx - E::nv][0], v1= Element::nvedge[idx - E::nv][1];
+    const R t = -ls[v0]/(ls[v1]-ls[v0]);
+    return (1-t) * ((Rd)T[v0]) + t * ((Rd) T[v1]) ;
   }
+}
 
 private:
   Rd get_vertex(const int idx) const {
@@ -673,25 +678,25 @@ private:
       //   // return cutData->pointFromEdge(idx-E::nv);
       // }
       // else {
-        const Ubyte v0= Element::nvedge[idx - E::nv][0], v1= Element::nvedge[idx - E::nv][1];
-        const R t = -ls[v0]/(ls[v1]-ls[v0]);
-        return (1-t) * ((Rd)T[v0]) + t * ((Rd) T[v1]) ;
+      const Ubyte v0= Element::nvedge[idx - E::nv][0], v1= Element::nvedge[idx - E::nv][1];
+      const R t = -ls[v0]/(ls[v1]-ls[v0]);
+      return (1-t) * ((Rd)T[v0]) + t * ((Rd) T[v1]) ;
       // }
     }
   }
   //   R get_LSvalue(const_element_iterator it, const int i) const {
-//     Uint idx = (*it)[i];
-//     if(idx < 3) return ls[idx];
-//     else {
-//       const Ubyte v0= Element::nvedge[idx - 3][0], v1= Element::nvedge[idx - 3][1];
-//       const R t = -ls[v0]/(ls[v1]-ls[v0]);
-//       return (1-t) * ls[v0] + t * ls[v1] ;
-//     }
-//   }
+  //     Uint idx = (*it)[i];
+  //     if(idx < 3) return ls[idx];
+  //     else {
+  //       const Ubyte v0= Element::nvedge[idx - 3][0], v1= Element::nvedge[idx - 3][1];
+  //       const R t = -ls[v0]/(ls[v1]-ls[v0]);
+  //       return (1-t) * ls[v0] + t * ls[v1] ;
+  //     }
+  //   }
 public:
-void get_list_node (vector<Rd>& node, int s) const {assert(0);};
-CutElement<E> get_element(int k) const { assert(0); return CutElement<E>();};
-int nb_element(int s) const {assert(0);return patch.end_-patch.begin_;}
+  void get_list_node (vector<Rd>& node, int s) const {assert(0);};
+  CutElement<E> get_element(int k) const { assert(0); return CutElement<E>();};
+  int nb_element(int s) const {assert(0);return patch.end_-patch.begin_;}
 
 };
 
@@ -703,6 +708,8 @@ class Physical_Partition : public Virtual_Partition<E>{
   typedef const ElementIdx* const_element_iterator;
   typedef       ElementIdx*       element_iterator;
   typedef typename E::Rd Rd;
+  typedef typename E::RdHat RdHat;
+
   typedef E Element;
   static const int size_max_ = 50;
 public:
@@ -740,8 +747,9 @@ public:
     return vertices_[(*it)[i]];
   }
   double measure(int domain) const {assert(0); return 0.;}
+  double measure(const_element_iterator it) const {assert(0); return 0;}
 
-  Rd toPhysicalElement(const_element_iterator it, const Rd Phat) const {
+  Rd mapToPhysicalElement(const_element_iterator it, const RdHat Phat) const {
     Rd N[dim+1];
     for(int i=0; i<dim+1;++i) {
       Uint idx = (*it)[i];

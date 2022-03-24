@@ -15,6 +15,8 @@ struct Cut_Part {
   typedef const ElementIdx* const_element_iterator;
   typedef       ElementIdx*       element_iterator;
   typedef typename E::Rd Rd;
+  typedef typename E::RdHat RdHat;
+
 
   const Virtual_Partition<E>* partition_;
   const Partition<E> ip;
@@ -31,19 +33,33 @@ struct Cut_Part {
     if(p.partition_ == &p.pp) partition_ = &pp;
     else partition_ = &ip;
   }
+
+  // GETTERS
   int get_sign() const {return sign_cut_;}
-  // const Partition<E>& get_partition() const {return partition_;}
   void get_list_node (vector<typename E::Rd>& node) const{ partition_->get_list_node(node, sign_cut_); }
   CutElement<E> get_element(int k) const {return partition_->get_element(k);}
-  double get_measure() const {return partition_->measure(sign_cut_);}
   Rd get_vertex(const_element_iterator it, const int i) const {return partition_->get_vertex(it,i);}
-  bool multi_interface() const {return partition_ == &pp;}
-  int nb_element() const {return partition_->nb_element(sign_cut_);}
-
+  int get_nb_element() const {return partition_->nb_element(sign_cut_);}
   int get_local_domain_id() const {
     if(sign_cut_==0) return -1;  // not cout
     else return (sign_cut_==-1);
   }
+
+  // OTHER METHODS
+  // GIVE THE MEASURE OF THE CUT PART IN Rd
+  double measure() const {return partition_->measure(sign_cut_);}
+  double measure(const_element_iterator it) const {return partition_->measure(it);}
+
+  // //GIVE THE MEASURE OF CUT PART OF A FACE IN RdBord
+  // double measureBord(int ifac) const {return partition_->measureBord(sign_cut_, ifac);}
+
+  bool multi_interface() const {return partition_ == &pp;}
+
+  Rd mapToPhysicalElement(const_element_iterator it, const RdHat Phat) const {
+    return partition_->mapToPhysicalElement(it, Phat);
+  }
+
+  // ITERATORS
   const_element_iterator element_begin () const{
      return partition_->element_begin(sign_cut_);
    }
@@ -51,9 +67,7 @@ struct Cut_Part {
     return partition_->element_end(sign_cut_);
   }
 
-  Rd toPhysicalElement(const_element_iterator it, const Rd Phat) const {
-    return partition_->toPhysicalElement(it, Phat);
-  }
+
 
 };
 
@@ -63,9 +77,11 @@ class Cut_Mesh {
 
 public:
   typedef typename Mesh::Element Element;
+  typedef typename Element::Face Face;
   typedef typename Mesh::Rd Rd;
   typedef typename Mesh::BorderElement BorderElement;
   typedef typename Element::RdHat RdHat;// for parametrization
+  typedef SortArray<int, 2> pairIndex;
   static const int nea=Element::nea; //  numbering of adj (4 in Tet,  3 in Tria, 2 in seg)
   static const int nva=Element::nva; //  numbering of vertex in Adj hyperface
 
@@ -75,6 +91,7 @@ public:
   std::vector<std::map<int,int>>  idx_from_background_mesh_; // [domain](idxK_backMesh) -> idxK_cutMesh
   std::vector<std::map<std::pair<int,int>, std::vector<std::pair<const Interface<Mesh>*, int>>>> interface_id_; // (domain_id, idx_k) -> [time_quad][n_interface](interface, sign)
   std::vector<int> idx_element_domain;
+
 
   // For time problem
   int nb_quadrature_time_;
@@ -141,7 +158,7 @@ private:
     return k - this->idx_element_domain[i];
   }
   Physical_Partition<Element> build_local_partition(const int k, int t=0) const ;
-
+  Physical_Partition<Face> build_local_partition(Face& face, const int k, int ifac, int t=0) const ;
 public:
   DataFENodeDF BuildDFNumbering(int ndfv,int ndfe,int ndff,int ndft, int nndv,int nnde,int nndf,int nndt, int N=1, const PeriodicBC* PPeriod = nullptr) const {
         assert(0);
@@ -184,12 +201,6 @@ public:
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
     return (it != interface_id_[t].end());
   }
-
-  // bool isCut(int k, int domain, int t) const {
-  //   int kloc = idxK_in_domain(k, domain);
-  //   auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-  //   return (it != interface_id_[t].end());
-  // }
   bool isCutFace(int k, int ifac, int t) const {
     if(!isCut(k,t)) return false;
     int domain = get_domain_element(k);
@@ -244,6 +255,26 @@ public:
     return Cut_Part<Element>(it->second.at(0).first->get_partition(kb), it->second.at(0).second);
     else
     return Cut_Part<Element>(this->build_local_partition(k), 0);
+  }
+  Cut_Part<typename Element::Face> get_cut_face(Face& face, int k, int ifac, int t = 0) const {
+
+    // BUILD THE FACE
+    // In the class mesh the inner faces are not built
+    int kb = this->idxElementInBackMesh(k);
+    int iv[Face::nv];
+    for(int i=0;i<Face::nv;++i) iv[i] = Th(kb, Element::nvface[ifac][i]);
+    face.set(Th.vertices, iv, 0);
+
+    // GET THE INTERFACE
+    int domain = get_domain_element(k);
+    int kloc = idxK_in_domain(k, domain);
+    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    assert(it != interface_id_[t].end());
+
+    if(it->second.size() == 1)
+    return Cut_Part<Face>(it->second.at(0).first->get_partition_face(face,kb,ifac), it->second.at(0).second);
+    else
+    return Cut_Part<Face>(this->build_local_partition(face, k, ifac), 0);
   }
 
   int idxElementFromBackMesh(int k) const {
@@ -350,6 +381,7 @@ void Cut_Mesh<Mesh>::init(const Interface<Mesh>& interface){
 
 }
 
+//  constructor a subdopmain corresponding to the positive sign
 template<typename Mesh>
 void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
 
@@ -377,7 +409,6 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
       int k   = it_k->second;
 
 
-      // std::cout << "domain \t" << d << " element back " << kb << "\t => loc id " << k << std::endl;
       auto it_gamma = interface_id_[0].find(std::make_pair(d, k));
 
 
@@ -390,16 +421,23 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
       for(int i=0;i<nb_interface;++i) ss[i] = it_gamma->second[i].second;
 
       if(it_gamma != interface_id_[0].end()) {
-        // std::cout << " found old interface " << std::endl;
         auto ittt =   interface_id_[0].erase(it_gamma);
       }
 
       if(signK.sign() == sign_domain || signK.cut()) {
-        sub_is_cut = true;
 
-        // if(new_dom_id == 3) {
-        //   std::cout << nt[new_dom_id] << "\t" << kb << " nb interface found " << nb_interface << std::endl;
-        // }
+        // Initialize first time we find a cut element
+        if(!sub_is_cut && new_dom_id !=dom_size){
+           new_dom_id++;
+           idx_in_background_mesh_.resize(new_dom_id+1);
+           idx_from_background_mesh_.resize(new_dom_id+1);
+           idx_in_background_mesh_[new_dom_id].resize(0);
+           int nt_max = idx_from_background_mesh_[d+1].size();
+           idx_in_background_mesh_[new_dom_id].reserve(nt_max);
+         }
+
+
+        sub_is_cut = true;
         idx_in_background_mesh_[new_dom_id].push_back(kb);
         idx_from_background_mesh_[new_dom_id][kb] = nt[new_dom_id];
 
@@ -442,16 +480,16 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
       }
     }
 
-    if(sub_is_cut && d+1 !=dom_size){
-       new_dom_id++;
-       idx_in_background_mesh_.resize(new_dom_id+1);
-       idx_from_background_mesh_.resize(new_dom_id+1);
-       idx_in_background_mesh_[new_dom_id].resize(0);
-       int nt_max = idx_from_background_mesh_[d+1].size();
-       idx_in_background_mesh_[new_dom_id].reserve(nt_max);
-
-     }
+    // if(sub_is_cut && d+1 !=dom_size){
+    //    new_dom_id++;
+    //    idx_in_background_mesh_.resize(new_dom_id+1);
+    //    idx_from_background_mesh_.resize(new_dom_id+1);
+    //    idx_in_background_mesh_[new_dom_id].resize(0);
+    //    int nt_max = idx_from_background_mesh_[d+1].size();
+    //    idx_in_background_mesh_[new_dom_id].reserve(nt_max);
+    //  }
   }
+
 
   idx_element_domain.push_back(0);
   for( int d=0; d<new_dom_id+1;++d){
@@ -907,6 +945,14 @@ Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition
   return partition;
 }
 
+template<typename Mesh>
+Physical_Partition<typename Mesh::Element::Face> Cut_Mesh<Mesh>::build_local_partition(Face& face, const int k, int ifac, int t) const {
+
+  Physical_Partition<typename Element::Face> partition(face);
+
+  return partition;
+
+}
 typedef Cut_Mesh<Mesh2> CutMeshT2;
 typedef Cut_Mesh<Mesh3> CutMeshT3;
 typedef Cut_Mesh<MeshQuad2> CutMeshQ2;

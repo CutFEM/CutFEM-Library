@@ -152,7 +152,7 @@ static double paraviewFormat( double x) {
 
           if(cutK.multi_interface()){
             // Here we need to create triangles to feel the multi cut
-            for(int l = 0; l < cutK.nb_element();++l) {
+            for(int l = 0; l < cutK.get_nb_element();++l) {
               check_and_resize_array(kk);
               CutElement<Element> K = cutK.get_element(l);
               for(int i=0;i< nvCutCell_;++i) {
@@ -868,7 +868,7 @@ public :
            int iii=0;
            for(typename PartitionT::const_element_iterator it = cutK.element_begin(the_part);
            it != cutK.element_end(the_part); ++it){
-             double vv = cutK.mesure(it);
+             double vv = cutK.measure(it);
              area += vv;
              aaa += vv;
              assert(mesh_node.size() > kk);
