@@ -34,16 +34,20 @@ void Scotty_diagonal_preconditioner(int N, std::map<std::pair<int,int>,R>& P){
 
   // create the diagonal Matrix
   for(int i=0;i<B.n;++i){
-    for(int k=B.p[i];k<B.p[i+1];++k){
-      // P[std::make_pair(i,i)] += B.a[k];
-      C[std::make_pair(i,i)] += fabs(B.a[k]);
-      // C[std::make_pair(i,i)] += P[std::make_pair(i,i)] ;
-    }
+    // for(int k=B.p[i];k<B.p[i+1];++k){
+    //   // P[std::make_pair(i,i)] += B.a[k];
+    //   C[std::make_pair(i,i)] += fabs(B.a[k]);
+    // }
+    C[std::make_pair(i,i)] += P[std::make_pair(i,i)] ;
   }
   P.clear();
   for(int i=0;i<B.n;++i){
     double v = C[std::make_pair(i,i)];
-    P[std::make_pair(i,i)] = 1./sqrt(v);
+    if(v < 0){
+      std::cout << i << " => "<< v <<  std::endl;
+    }else{
+      P[std::make_pair(i,i)] = 1./sqrt(v);
+    }
   }
 
 }
@@ -293,7 +297,7 @@ int main(int argc, char** argv ) {
     Interface2 interface(Th, levelSet.v);
 
     KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT0;
+    arrayFE(0) = &DataFE<Mesh2>::BDM1;
     arrayFE(1) = &DataFE<Mesh2>::P0;
     GTypeOfFESum<Mesh2> mixedFE(arrayFE);
     FESpace2 Vh(Th, mixedFE);
@@ -405,6 +409,7 @@ int main(int argc, char** argv ) {
       std::map<std::pair<int,int>,R> P;
       darcyCutMix.setMatrixTo(P);
       darcyCutMix.addBilinear(
+        // innerProduct(mu*u, v)
         innerProduct(mu*u, v)
         + innerProduct(p, q)
       );
@@ -415,6 +420,8 @@ int main(int argc, char** argv ) {
       );
 
       Scotty_diagonal_preconditioner(N, P);
+      // getchar();
+      // darcyCutMix.preconditionning(P);
 
       darcyCutMix.preconditionning(P);
 
@@ -426,6 +433,7 @@ int main(int argc, char** argv ) {
       // return 0;
       nx =2*nx - 1;
       ny =2*ny - 1;
+
       continue;
     }
 
