@@ -41,15 +41,15 @@ struct ItemTestFunction {
   bool alloc_expr = false;
 
 
-  ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),domain_id_(-1){}
+  ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),domain_id_(-1),face_side_(-1){}
   ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<const Virtual_CutFEM_Parameter*> cou)
-  : c(cc), cu(i),du(j),dtu(tu), domain_id_(dd){ coefu =cou;}
+  : c(cc), cu(i),du(j),dtu(tu), domain_id_(dd), face_side_(-1){ coefu =cou;}
   ItemTestFunction(const ItemTestFunction& F)
-  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), expru(F.expru), fespace(F.fespace) {
+  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), face_side_(F.face_side_),expru(F.expru), fespace(F.fespace) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
   }
   ItemTestFunction(const ItemTestFunction& F, void(*f)(RNMK_&,int,int))
-  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), expru(F.expru), fespace(F.fespace), pfun(f) {
+  : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), face_side_(F.face_side_),expru(F.expru), fespace(F.fespace), pfun(f) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
   }
   // ItemTestFunction(const FunFEM<Mesh>& ff, int ic) : c(1.), cu(ic),du(op_id),dtu(0),domain_id_(-1),fespace(ff.Vh),alloc_expr(true){

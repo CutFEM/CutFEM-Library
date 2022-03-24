@@ -127,7 +127,6 @@ public:
     nb_quadrature_time_ = 1;
     this->init(interface);
   }
-
   Cut_Mesh(const Mesh& th, const Time_Interface<Mesh>& interface) :  Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
@@ -194,6 +193,8 @@ public:
     }
     assert(0);
   }
+
+
 
   bool isCut(int k, int t=0) const {
     int domain = get_domain_element(k);
@@ -277,9 +278,19 @@ public:
     return Cut_Part<Face>(this->build_local_partition(face, k, ifac), 0);
   }
 
+  vector<int> idxAllElementFromBackMesh(int k) const {
+    std::vector<int> idx(0);
+    for(int i=0;i<get_nb_domain();++i) {
+      int ret = idxElementFromBackMesh(k,  i);
+      if(ret != -1) idx.push_back(ret);
+    }
+    assert(idx.size()>0 && idx.size() < 3);
+    return idx;
+  }
+
   int idxElementFromBackMesh(int k) const {
     assert(0);
-    return Th.idxElementFromBackMesh(k);
+    return -1;
   }
   int idxElementFromBackMesh(int k, int i) const {
     if(i==-1) assert(0);

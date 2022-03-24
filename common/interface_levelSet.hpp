@@ -83,6 +83,12 @@ private:
     return geometry::measure_hyper_simplex(l);
   };
 
+  Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x ) const {
+    Rd N[nve];
+    for(int i=0;i<nve;++i) N[i] = this->vertices_[this->faces_[ifac][i]];
+    return geometry::map_point_to_simplex(N, x);
+  }
+
 };
 
 

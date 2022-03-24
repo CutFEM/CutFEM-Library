@@ -360,6 +360,8 @@ public:
   virtual bool isCut(int k) const { return false;}
   virtual bool isCut() const { return (this->gamma.size()>0);}
   virtual bool isCutSpace() const {return false;}
+  virtual vector<int> idxAllElementFromBackMesh (int k) const { vector<int> v = {idxElementFromBackMesh(k)}; return v ;}
+
 
   virtual const GFESpace& getBackSpace() const { return *backSpace;}
   const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
@@ -529,6 +531,9 @@ public:
   int idxElementInBackMesh(int k) const { return cutTh.idxElementInBackMesh(k);}
   int idxElementFromBackMesh (int k) const { return cutTh.idxElementFromBackMesh(k) ;}
   int idxElementFromBackMesh(int k,int i) const { return cutTh.idxElementFromBackMesh(k,i); }
+  vector<int> idxAllElementFromBackMesh (int k) const { return cutTh.idxAllElementFromBackMesh(k) ;}
+
+
   // const Interface<Mesh>& get_interface(int k) const { cutTh.getInterface(k);}
 
   // virtual bool isCut(int k) const { return false;}

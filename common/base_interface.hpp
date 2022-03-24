@@ -100,7 +100,7 @@ public :
 
   virtual bool isCutFace(int k, int ifac) const = 0;
 
-  // virtual Rd mapToFace(const Face& f, const typename Element::RdHatBord x ) const = 0;
+  virtual Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x ) const = 0;
   // virtual Rd computeDx(const Face& f) const = 0;
   // virtual CutData getCutData(const int k) const = 0;
 

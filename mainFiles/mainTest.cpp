@@ -310,7 +310,7 @@ int main(int argc, char** argv )
   double kappaTilde1 = kappa1/kappa01, kappaTilde2 = kappa2/kappa02;
 
 
-  std::vector<double> data_mu = {0,2,4};
+  std::vector<double> data_mu = {1,2,3};
   CutFEM_Parameter mu("mu", data_mu);
   CutFEM_Parameter rho(fun_parameter_test);
 
@@ -394,16 +394,16 @@ int main(int argc, char** argv )
   //         , innerFace
   // );
 
-  problem.addBilinear(
-          innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
-          // + innerProduct((vel.expression(),gradS(u0)),v0)*0.5     // (3.14)
-          // - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
-          , interface1
-  );
+  // problem.addBilinear(
+  //         innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
+  //         // + innerProduct((vel.expression(),gradS(u0)),v0)*0.5     // (3.14)
+  //         // - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
+  //         , interface1
+  // );
 
 
   problem.addLinear(
-          innerProduct(1,mu*v)
+          innerProduct(1,mu*u0)
         , interface1
       );
 
@@ -423,16 +423,27 @@ int main(int argc, char** argv )
   std::cout << " Time assembly \t" << t1-t0 << std::endl;
   //
   // Fun_h uh(Wh, problem.get_rhs());
+  int idx0_s = Wh.get_nb_dof();
   Rn_ data_uh = problem.rhs_(SubArray(Wh.get_nb_dof(),0));
-  Fun_h uh(Wh, problem.get_rhs());
+  Rn_ data_sh = problem.rhs_(SubArray(Sh.get_nb_dof(),idx0_s));
+
+
+
+  // Fun_h uh(Wh, problem.get_rhs());
+  Fun_h uh(Wh, data_uh);
+  // Fun_h us(Sh, data_sh);
   Fun_h ftest(Wh, fun_test);
   // ftest.print();
 
   ParaviewCut<Mesh> writer(Khi,"hexa_Test.vtk");
   // writer.add(levelSet2, "levelSet", 0, 1);
   writer.add(uh, "sol", 0, 1);
+  // writer.add(us, "sol_surf", 0, 1);
   writer.add(ftest, "domain", 0, 1);
 
+  // ParaviewCut<Mesh> writer(Khi,"hexa_Test.vtk");
+  // // writer.add(levelSet2, "levelSet", 0, 1);
+  // writer.add(uh, "sol", 0, 1);
 }
 
 

@@ -195,13 +195,18 @@ double computeCoefElement(double h, double meas, double measK, double measCut, i
   for(int l=0;l<2;++l) {
     const vector<const Virtual_CutFEM_Parameter*>& listCoef = (l==0)?coefu : coefv;
     for(int i=0;i<listCoef.size();++i) {
-
       val *= listCoef[i]->evaluate(domain, h, meas, measK, measCut);
-
-      // if(parameterList.find(coef)) {
-      //   Virtual_CutFEM_Parameter& p(*parameterList.listParameter[coef]);
-      //   val *= p(domain, h, meas, measK, measCut);
-      // }
+    }
+  }
+  return val;
+}
+double computeCoefInterface(double h, double meas, double measK, double measCut, int domi, int domj) const {
+  R val = 1;
+  for(int l=0;l<2;++l) {
+    const vector<const Virtual_CutFEM_Parameter*>& listCoef = (l==0)?coefu : coefv;
+    int dom = (l==0)?domi:domj;
+    for(int i=0;i<listCoef.size();++i) {
+      val *= listCoef[i]->evaluate(dom, h, meas, measK, measCut);
     }
   }
   return val;
@@ -222,6 +227,14 @@ int onWhatElementIsTrialFunction (int ki, int kj) const {
 }
 int onWhatElementIsTestFunction  (int ki, int kj) const {
   assert(domv != -1); return (domv==0)? ki : kj;
+}
+int onWhatElementIsTrialFunction (std::vector<int> k) const {
+  if(k.size()==1) {assert(domu == -1); return k[0];}
+  else {assert(domu != -1); return (domu==0)? k[0] : k[1];}
+}
+int onWhatElementIsTestFunction  (std::vector<int> k) const {
+  if(k.size()==1) {assert(domv == -1); return k[0];}
+  else {assert(domv != -1); return (domv==0)? k[0] : k[1];}
 }
 
 private:
