@@ -15,6 +15,8 @@ class BaseCutFEM : public BaseFEM<Mesh> {
   typedef typename FElement::QF QF;
   typedef typename FElement::QFB QFB;
   typedef typename Mesh::Element Element;
+  typedef typename Mesh::BorderElement BorderElement;
+
 
 public:
   BaseCutFEM(const ProblemOption& option) : BaseFEM<Mesh>(option) {}
@@ -34,6 +36,10 @@ public:
 
 
   // integral on boundary
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b);
+  void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b);
+  void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac);
+
 
   // integral on interface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});

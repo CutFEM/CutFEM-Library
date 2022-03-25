@@ -89,7 +89,7 @@ public:
 
   std::vector<std::vector<int>> idx_in_background_mesh_;   // [domain][idxK_cutMesh] -> idxK_backMesh
   std::vector<std::map<int,int>>  idx_from_background_mesh_; // [domain](idxK_backMesh) -> idxK_cutMesh
-  std::vector<std::map<std::pair<int,int>, std::vector<std::pair<const Interface<Mesh>*, int>>>> interface_id_; // (domain_id, idx_k) -> [time_quad][n_interface](interface, sign)
+  std::vector<std::map<std::pair<int,int>, std::vector<std::pair<const Interface<Mesh>*, int>>>> interface_id_; // [time_quad](domain_id, idx_k) -> [n_interface](interface, sign)
   std::vector<int> idx_element_domain;
 
 
@@ -174,6 +174,7 @@ public:
     int k = idxElementInBackMesh(i);
     return Th[k];
   }
+  const BorderElement& be(int i) const {return Th.be(i);}
 
   int get_nb_domain() const {return idx_in_background_mesh_.size();}
   int get_nb_element(int i) const {
@@ -208,6 +209,8 @@ public:
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
     assert(it != interface_id_[t].end());
+    int s = it->second.at(0).second;
+    if(s == 0) return false; // means surface mesh
     int kb = this->idxElementInBackMesh(k);
     return it->second.at(0).first->isCutFace(kb,ifac);
   }

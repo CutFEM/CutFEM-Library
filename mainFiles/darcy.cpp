@@ -547,31 +547,31 @@ int main(int argc, char** argv ) {
   R maxErrDiv = maxNormCut(femSol_0dx+femSol_1dy,fun_div,Wh);
 
   // [PLOTTING]
-  // {
-  //   Paraview2 writerS(Wh, levelSet, "darcyPaperPlotExample1_"+to_string(i)+".vtk");
-  //   writerS.add(femSolh, "velocity" , 0, 2);
-  //   // writerS.add(femSolh, "velocityExt", 0, 2, macro);
-  //   writerS.add(femSolh, "pressure" , 2, 1);
-  //   writerS.add(femSol_0dx+femSol_1dy, "divergence");
-  //   // writerS.add(femSol_0dx+femSol_1dy, "divergenceExt", macro);
-  //   Fun_h solh(Wh, fun_exact);
-  //
-  //   // [For looking at the error]
-  //   solh.v -= femSolh.v;
-  //   solh.v.map(fabs);
-  //   writerS.add(solh, "velocityError" , 0, 2);
-  //
-  //   Fun_h divSolh(Wh, fun_div);
-  //   ExpressionFunFEM<Mesh2> femDiv(divSolh, 0, op_id);
-  //
-  //     // Paraview2 writerS2(Wh, levelSet, "darcyCutMixedEx"+to_string(i)+".vtk");
-  //   // writerS2.add(solh, "velocity", 0, 2);
-  //   // writerS2.add(solh, "pressure", 2, 1);
-  //   // writerS2.add(divSolh, "divergence",0,1);
-  //   // writerS.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceErrorExt", macro);
-  //   writerS.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceError");
-  //
-  // }
+  {
+    Paraview2 writerS(Wh, levelSet, "darcyPaperPlotExample1_"+to_string(i)+".vtk");
+    writerS.add(femSolh, "velocity" , 0, 2);
+    // writerS.add(femSolh, "velocityExt", 0, 2, macro);
+    writerS.add(femSolh, "pressure" , 2, 1);
+    writerS.add(femSol_0dx+femSol_1dy, "divergence");
+    // writerS.add(femSol_0dx+femSol_1dy, "divergenceExt", macro);
+    Fun_h solh(Wh, fun_exact);
+
+    // [For looking at the error]
+    solh.v -= femSolh.v;
+    solh.v.map(fabs);
+    writerS.add(solh, "velocityError" , 0, 2);
+
+    Fun_h divSolh(Wh, fun_div);
+    ExpressionFunFEM<Mesh2> femDiv(divSolh, 0, op_id);
+
+      // Paraview2 writerS2(Wh, levelSet, "darcyCutMixedEx"+to_string(i)+".vtk");
+    // writerS2.add(solh, "velocity", 0, 2);
+    // writerS2.add(solh, "pressure", 2, 1);
+    // writerS2.add(divSolh, "divergence",0,1);
+    // writerS.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceErrorExt", macro);
+    writerS.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceError");
+
+  }
 
   pPrint.push_back(errP);
   uPrint.push_back(errU);

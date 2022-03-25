@@ -19,6 +19,8 @@ class BaseFEM : public ShapeOfProblem<Mesh> , public QuadratureOfProblem<Mesh> {
   typedef typename FElement::Rd Rd;
   typedef typename FElement::QF QF;
   typedef typename FElement::QFB QFB;
+  typedef typename Mesh::BorderElement BorderElement;
+
 protected:
   double* databf_ = nullptr;
 
@@ -49,6 +51,7 @@ public:
 
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k);
   void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
+  void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac);
 
 };
 

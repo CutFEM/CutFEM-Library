@@ -231,9 +231,9 @@ public :
   }
 
 protected :
-  double & operator()(int i, int j) { return (*pmat_)[std::make_pair(i,j)]; }
   double & addToLocalContribution(int i, int j) { return local_contribution_matrix_[std::make_pair(i+index_i0_,j+index_j0_)]; }
-  double & operator()(int i) { return rhs_[i];}
+  R & operator()(int i, int j) { return (*pmat_)[std::make_pair(i+index_i0_,j+index_j0_)]; }
+  R & operator()(int i) { return rhs_[i+index_i0_];}
   void addLocalContribution() {
     for (auto q=local_contribution_matrix_.begin(); q != this->local_contribution_matrix_.end(); ++q) {
       (*this)(q->first.first,q->first.second) += q->second;

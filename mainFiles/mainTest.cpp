@@ -242,7 +242,7 @@ R fun_levelSet(const R3 P, const int i) {
   R shiftY = 0.;
   R shiftZ = 0.;
   R r = 1.0001;
-  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
+  // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) - r;
   // return -0.25*P.x - 0.25*P.y + 0.25*P.z - 0.125;  // 3 cuts
   // return P.x - 0.5;  // 4 cuts
   // return 0.5*P.x +0.5*P.y - P.z - 0.2;   // 5 cuts
@@ -250,19 +250,22 @@ R fun_levelSet(const R3 P, const int i) {
   // return 0.5*P.x +0.3*P.y - 0.5*P.z - 0.2;   // 6 cuts
   // return 0.5*P.x -0.5*P.y + 0.5*P.z - 0.2;   // 6 cuts
   // return -0.5*P.x +0.5*P.y + 0.5*P.z - 0.2;   // 6 cuts
+
+  return -P.x - P.y - 0.03876;
+
 }
 R fun_levelSet1(const R3 P, const int i) {
-  R shiftX = 0.75;
-  R shiftY = 0.75;
-  R shiftZ = 0.75;
-  R r = 0.6;
+  R shiftX = 0.6;
+  R shiftY = 0.6;
+  R shiftZ = 0.6;
+  R r = 0.4;
   return -sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) + r;
 }
 R fun_levelSet2(const R3 P, const int i) {
-  R shiftX = -0.75;
-  R shiftY = -0.75;
-  R shiftZ = -0.75;
-  R r = 0.6;
+  R shiftX = -0.6;
+  R shiftY = -0.6;
+  R shiftZ = -0.6;
+  R r = 0.4;
   return -sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY) + (P.z-shiftZ)*(P.z-shiftZ)) + r;
 }
 R fun_test(const R3 P,const int i, int d) {return d;}
@@ -297,7 +300,7 @@ int main(int argc, char** argv )
 
   // MESH PARAMETERS
   // ---------------------------------------------------------------------------
-  int    nx = 10, ny = 10, nz = 10;
+  int    nx = 20, ny = 20, nz = 20;
   double lx = 3., ly = 3., lz = 3.;
   Mesh Th(nx, ny, nz, -1.5, -1.5, -1.5, lx, ly, lz);
   Th.info();
@@ -335,8 +338,8 @@ int main(int argc, char** argv )
   // LEVEL-SET & INTERFACE CONSTRUCTION
   // ---------------------------------------------------------------------------
   Space Lh(Th, DataFE<Mesh>::P1);
-  // Fun_h levelSet(Lh, fun_levelSet);
-  // Interface_LevelSet<Mesh> interface(Th, levelSet);
+  Fun_h levelSet(Lh, fun_levelSet);
+  Interface_LevelSet<Mesh> interface(Th, levelSet);
 
   Fun_h levelSet1(Lh, fun_levelSet1);
   Interface_LevelSet<Mesh> interface1(Th, levelSet1);
@@ -345,7 +348,7 @@ int main(int argc, char** argv )
 
   // CUTMESH && SURFACE MESH CONSTRUCTION
   // ---------------------------------------------------------------------------
-  Cut_Mesh<Mesh> Khi(Th);//, interface);
+  Cut_Mesh<Mesh> Khi(Th, interface);
   Khi.add(interface1);
   Khi.add(interface2);
   Khi.info();
@@ -401,21 +404,27 @@ int main(int argc, char** argv )
   //         , interface1
   // );
 
+  // problem.addLinear(
+  //         innerProduct(1,mu*u)
+  //         , Khi
+  //         , boundary
+  //     );
 
-  problem.addLinear(
-          innerProduct(1,mu*u0)
-        , interface1
-      );
+
+  // problem.addLinear(
+  //         innerProduct(1,mu*u0)
+  //       , interface1
+  //     );
 
   // problem.addLinear(
   //         innerProduct(1,mu*v)
   //       , Khi
   // );
-  // problem.addLinear(
-  //         innerProduct(1,jump(v))
-  //       , Khi
-  //       , innerFace
-  // );
+  problem.addLinear(
+          innerProduct(1,jump(v0))
+        , Kh0
+        , innerFace
+  );
   // matlab::Export(problem.get_matrix(), "A.dat");
   // matlab::Export(problem.get_rhs(), "rhs.dat");
 
@@ -431,7 +440,7 @@ int main(int argc, char** argv )
 
   // Fun_h uh(Wh, problem.get_rhs());
   Fun_h uh(Wh, data_uh);
-  // Fun_h us(Sh, data_sh);
+  Fun_h us(Sh, data_sh);
   Fun_h ftest(Wh, fun_test);
   // ftest.print();
 
@@ -440,6 +449,11 @@ int main(int argc, char** argv )
   writer.add(uh, "sol", 0, 1);
   // writer.add(us, "sol_surf", 0, 1);
   writer.add(ftest, "domain", 0, 1);
+
+  ParaviewCut<Mesh> writerS(Kh0,"surface_Test.vtk");
+  writerS.add(us, "sol", 0, 1);
+  writerS.add(levelSet1, "levelSet", 0, 1);
+
 
   // ParaviewCut<Mesh> writer(Khi,"hexa_Test.vtk");
   // // writer.add(levelSet2, "levelSet", 0, 1);
