@@ -661,3 +661,16 @@ template<> void Partition<Quad2>::get_list_node(vector<R2>& node, int s) const {
     }
   }
 }
+template<> void Partition<Hexa>::get_list_node(vector<R3>& node, int s) const {
+  assert(0);
+}
+template<> void Partition<Tet>::get_list_node(vector<R3>& node, int s) const {
+  assert(0);
+}
+
+
+
+
+
+
+// end file

@@ -35,7 +35,7 @@ struct Cut_Part {
   // const Partition<E>& get_partition() const {return partition_;}
   void get_list_node (vector<typename E::Rd>& node) const{ partition_->get_list_node(node, sign_cut_); }
   CutElement<E> get_element(int k) const {return partition_->get_element(k);}
-  double mesure(int d) const {return partition_->mesure(d);}
+  double mesure() const {return partition_->mesure(sign_cut_);}
   Rd get_vertex(const_element_iterator it, const int i) const {return partition_->get_vertex(it,i);}
   bool multi_interface() const {return partition_ == &pp;}
   int nb_element() const {return partition_->nb_element(sign_cut_);}
@@ -135,6 +135,14 @@ private:
   }
   Physical_Partition<Element> build_local_partition(const int k, int t=0) const ;
 
+  bool isInactive(int k, int t) const {
+    int domain = get_domain_element(k);
+    int kloc = idxK_in_domain(k, domain);
+    auto it = in_active_mesh_[domain][t].find(kloc);
+    if(it == in_active_mesh_[domain][t].end()) return false;
+    return true;
+  }
+
 public:
   DataFENodeDF BuildDFNumbering(int ndfv,int ndfe,int ndff,int ndft, int nndv,int nnde,int nndf,int nndt, int N=1, const PeriodicBC* PPeriod = nullptr) const {
         assert(0);
@@ -177,21 +185,20 @@ public:
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
     return (it != interface_id_[t].end());
   }
-  bool isCut(int k, int domain, int t = 0) const {
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    return (it != interface_id_[t].end());
-  }
-  bool isActive(int k) const {
-
-    int domain = get_domain_element(k);
-    int kb = idxElementInBackMesh(k, domain);
-    int count = 0;
-    for(int i=0;i<get_nb_domain();++i){
-      if(check_exist(kb, i)) count++;
+  // bool isCut(int k, int domain, int t) const {
+  //   int kloc = idxK_in_domain(k, domain);
+  //   auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+  //   return (it != interface_id_[t].end());
+  // }
+  bool isStabilizeElement(int k) const {
+    // is cut or not always active
+    for(int i=0;i<nb_quadrature_time_;++i){
+      if(this->isCut(k,i) || this->isInactive(k,i)) return true;
     }
-    return (count>=2);
+    return false;
   }
+
+
 
   const Interface<Mesh>& get_interface(int k, int t = 0) const {
     int domain = get_domain_element(k);
@@ -578,6 +585,10 @@ template<typename Mesh>
 void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
 
   int n_tid = interface.size();
+  nb_quadrature_time_ = n_tid;
+  in_active_mesh_.resize(10);
+  for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
+
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
 
@@ -608,6 +619,11 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
         }
       }
 
+      if( !active_element) {
+        it_k = idx_from_background_mesh_[d].erase(it_k);
+        continue;
+      }
+
 
       // SAVE AND ERASE OLD INTERFACES EACH TIME STEP
       for( int it=0; it< n_tid; ++it) {
@@ -620,6 +636,7 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
         if(it_gamma != interface_id_[it].end()) {
           auto ittt =   interface_id_[it].erase(it_gamma);
         }
+
         // PUT BACK INTERFACES
         for(int i=0; i<nb_interface;++i) {
           interface_id_[it][std::make_pair(d,nt[d])].push_back(std::make_pair(old_interface[i],  ss[i]));

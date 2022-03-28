@@ -206,6 +206,9 @@ static double paraviewFormat( double x) {
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
+      mesh_node.clear();
+      idx_in_Vh.clear();
+      num_cell.clear();
       mesh_node.resize(cutTh.NbElement());
       idx_in_Vh.resize(cutTh.NbElement());
       num_cell.resize (cutTh.NbElement());
@@ -239,7 +242,9 @@ static double paraviewFormat( double x) {
       int kk = 0;
       for(int k=0; k<cutTh.NbElement(); ++k) {
         int kb = cutTh.idxElementInBackMesh(k);
-        if( cutTh.isActive(k) && (cutTh.get_domain_element(k)==domain) || domain == -1) {
+        if( (cutTh.isStabilizeElement(k) && cutTh.get_domain_element(k)==domain) || domain == -1) {
+        // if((cutTh.get_domain_element(k)==domain || domain == -1)) {
+
           const Element& K(cutTh[k]);
           for(int e=0;e<Element::nea;++e){
             check_and_resize_array(kk);
@@ -513,7 +518,7 @@ static double paraviewFormat( double x) {
 
    } mesh_data;
 
-   ParaviewCut(std::string name) { }
+   ParaviewCut() { }
    ParaviewCut(const Cut_Mesh<Mesh>& cutTh, std::string name) {
      outFile_ = name;
      mesh_data.build(cutTh);
@@ -1021,8 +1026,8 @@ public:
     writeFileCell();
   }
   Paraview2(const FESpace & vh, Fun_h& ls , std::string n= "my_output2.vtk") : Paraview(vh,&ls,n) {
-    writeFileMesh();
-    writeFileCell();
+    // writeFileMesh();
+    // writeFileCell();
   }
 
 };

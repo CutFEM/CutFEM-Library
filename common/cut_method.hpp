@@ -505,7 +505,7 @@ public:
   virtual const_element_iterator element_begin (int s) const = 0;
   virtual const_element_iterator element_end (int s) const = 0;
   virtual Rd get_vertex(const_element_iterator it, const int i) const = 0;
-  // virtual double mesure(int domain) const = 0;
+  virtual double mesure(int domain) const = 0;
 };
 
 // Class that does computation on cut elements from refPartition
@@ -589,28 +589,27 @@ public :
   }
 
 
-  // R mesure(int domain) const {
-  //   if( patch.is_uncut()) return T.mesure();
-  //   R mes = 0;
-  //   ElementSignEnum the_part = what_part(domain);
-  //
-  //   for(const_element_iterator it = element_begin(the_part);
-  //   it != element_end(the_part); ++it) {
-  //
-  //     Rd N[3];
-  //     for(int i=0; i<3;++i) {
-  //       Uint idx = (*it)[i];
-  //       if(idx < 3) {N[i] = T[idx];}
-  //       else {
-  //         const Ubyte v0= Element::nvedge[idx - 3][0], v1= Element::nvedge[idx - 3][1];
-  //         const R t = -ls[v0]/(ls[v1]-ls[v0]);
-  //         N[i] = (1-t) * ((Rd) T[v0]) + t * ((Rd) T[v1]) ;
-  //       }
-  //     }
-  //     mes += geometry::mesure_simplex(N);
-  //   }
-  //   return mes;
-  // }
+  R mesure(int domain) const {
+    if( patch.is_uncut()) return T.mesure();
+    R mes = 0;
+
+    for(const_element_iterator it = element_begin(domain);
+    it != element_end(domain); ++it) {
+
+      Rd N[3];
+      for(int i=0; i<3;++i) {
+        Uint idx = (*it)[i];
+        if(idx < 3) {N[i] = T[idx];}
+        else {
+          const Ubyte v0= Element::nvedge[idx - 3][0], v1= Element::nvedge[idx - 3][1];
+          const R t = -ls[v0]/(ls[v1]-ls[v0]);
+          N[i] = (1-t) * ((Rd) T[v0]) + t * ((Rd) T[v1]) ;
+        }
+      }
+      mes += geometry::mesure_simplex(N);
+    }
+    return mes;
+  }
 //
 //   R mesureEdge(int e, int dom) const {
 //     assert(cutData);
@@ -703,7 +702,7 @@ private:
 //     }
 //   }
 public:
-void get_list_node (vector<Rd>& node, int s) const {assert(0);};
+void get_list_node (vector<Rd>& node, int s) const;// {assert(0);};
 CutElement<E> get_element(int k) const { assert(0); return CutElement<E>();};
 int nb_element(int s) const {assert(0);return patch.end_-patch.begin_;}
 
@@ -763,7 +762,7 @@ public:
   Rd get_vertex(const_element_iterator it, const int i) const{
     return vertices_[(*it)[i]];
   }
-  // double mesure(int domain) const {assert(0); return 0.;}
+  double mesure(int domain) const {assert(0); return 0.;}
 };
 
 

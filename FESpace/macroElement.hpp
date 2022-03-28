@@ -187,8 +187,7 @@ void MacroElementCL<Mesh>::findSmallElement() {
 
     const Cut_Part<typename Mesh::Element> cutK(Th_.get_cut_part(k));
     const int domain = Th_.get_domain_element(k);
-    double areaCut = cutK.mesure(domain);
-
+    double areaCut = cutK.mesure();
     if(areaCut < tol) {
       small_element[k] = SmallElement(k);
       if(domain == 0) { nb_element_0++;}else{ nb_element_1++;}

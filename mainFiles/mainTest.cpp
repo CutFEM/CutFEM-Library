@@ -17,7 +17,7 @@
 #include "baseCutProblem.hpp"
 
 // #include "gnuplot.hpp"
-#define TEST_3D
+#define TEST_2D
 
 
 
@@ -33,8 +33,8 @@ R fun_levelSet(const R2 P, const int i) {
 }
 
 R fun_levelSet2_1(const R2 P, const int i) {
-  R shiftX = 0.5;
-  R shiftY = 0.5;
+  R shiftX = 0.45;
+  R shiftY = 0.45;
   R r = 0.250001;//0.3;
   double x=P.x, y=P.y;
   // return 0.5*(sqrt(x*x + y*y) -0.075*cos(5*atan2(y,x)+2) - 0.25);
@@ -45,11 +45,11 @@ R fun_levelSet2_1(const R2 P, const int i) {
 }
 
 R fun_levelSet2_2(const R2 P, const int i) {
-  R shiftX = 1.5;
-  R shiftY = 0.5;
-  R r = 0.3;
-  // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
-  return P.x - 2*P.y - .2197;
+  R shiftX = 0.55;
+  R shiftY = 0.55;
+  R r = 0.250001;//0.3;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+  // return P.x - 2*P.y - .2197;
   // return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
   // return P.x+P.y - 0.40753;
 
@@ -104,8 +104,8 @@ int main(int argc, char** argv ){
   MPIcf cfMPI(argc,argv);
 
 
-  int nx = 20;
-  int ny = 20;
+  int nx = 18;
+  int ny = 18;
   int nz = 3;
   // MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
   // Mesh Th(nx, ny, -0.5, -0.5, 1., 1.);  // Flower shape
@@ -117,7 +117,7 @@ int main(int argc, char** argv ){
   // Fun_h levelSet(Lh, fun_levelSet3);
   Space Lh(Th, DataFE<Mesh>::P1);
   Fun_h levelSet1(Lh, fun_levelSet2_1);
-  // Fun_h levelSet2(Lh, fun_levelSet2_2);
+  Fun_h levelSet2(Lh, fun_levelSet2_2);
   // Fun_h levelSet3(Lh, fun_levelSet2_3);
   // Fun_h levelSet4(Lh, fun_levelSet2_4);
 
@@ -125,7 +125,7 @@ int main(int argc, char** argv ){
   // ls(0).init(Lh, fun_levelSet);
   // ls(1).init(Lh, fun_levelSet2_2);
 
-  Interface_LevelSet<Mesh> interface1(Th, levelSet1);
+  // Interface_LevelSet<Mesh> interface1(Th, levelSet1);
   // Interface_LevelSet<Mesh> interface2(Th, levelSet2);
   // Interface_LevelSet<Mesh> interface3(Th, levelSet3);
   // Interface_LevelSet<Mesh> interface4(Th, levelSet4);
@@ -134,15 +134,15 @@ int main(int argc, char** argv ){
   // ls(1) = &interface2;
 
 
-  // Time_Interface<Mesh> interface(2);
-  // interface.init(0,Th, ls[0]);
-  // interface.init(1,Th, ls[1]);
+  Time_Interface<Mesh> interface1(2);
+  interface1.init(0,Th, levelSet1);
+  interface1.init(1,Th, levelSet2);
 
   // interface.init(Th, &levelSet1);
 
 
-  Cut_Mesh<Mesh> cutTh(Th,interface1);
-  // cutTh.truncate(interface1, -1);
+  Cut_Mesh<Mesh> cutTh(Th);//,interface1);
+  cutTh.truncate(interface1, 1);
   // cutTh.create_surface_mesh(interface1);
   // cutTh.add(interface1);
   // cutTh.add(interface2);
@@ -156,8 +156,8 @@ int main(int argc, char** argv ){
 
   // CutSpace Vh(cutTh, Lh);
   // Fun_h ftest(Vh, fun_test);
-  MacroElementCL<Mesh> macro(cutTh, 2e-1);
-  // MacroElementSurfaceCL<Mesh> macro_surface(interface1, 1e-1);
+  // MacroElementCL<Mesh> macro(cutTh, 1);
+  // MacroElementSurfaceCL<Mesh> macro(interface1, 1e-1);
 
 
   // const MeshHexa::Element& T(Th[0]);
@@ -201,12 +201,24 @@ int main(int argc, char** argv ){
   // ParaviewCut<Mesh> writer4 (cutTh, "macro_surface_inner_edge.vtk");
   // writer4.writeMacroInnerEdge(macro_surface);
 
-  ParaviewCut<Mesh> writer (cutTh, "macro_element.vtk");
-  writer.write_macro_element(macro, 0);
-  ParaviewCut<Mesh> writer2 (cutTh, "macro_inner_edge.vtk");
-  writer2.writeMacroInnerEdge(macro, 0);
-  ParaviewCut<Mesh> writer3 (cutTh, "macro_outter_edge.vtk");
-  writer3.writeMacroOutterEdge(macro, 0);
+
+  Paraview<Mesh> writer0 (Lh, nullptr, "backgroundMesh.vtk");
+  writer0.add(levelSet1, "levelSet1", 0, 1);
+  writer0.add(levelSet2, "levelSet2", 0, 1);
+
+  ParaviewCut<Mesh> writer1,writer2,writer3,writer4;
+  writer1.writeActiveMesh(cutTh, "activeMesh.vtk");
+  writer2.writeFaceStab(cutTh, 0, "faceStab.vtk");
+  // writer2.writeMacroElement(macro, 0, "macroElement.vtk");
+  // writer3.writeMacroInnerEdge(macro, 0, "macroInnerEdge.vtk");
+  // writer4.writeMacroOutterEdge(macro, 0, "macroOutterEdge.vtk");
+
+  // ParaviewCut<Mesh> writer (cutTh, "macro_element.vtk");
+  // writer.write_macro_element(macro, 0);
+  // ParaviewCut<Mesh> writer2 (cutTh, "macro_inner_edge.vtk");
+  // writer2.writeMacroInnerEdge(macro, 0);
+  // ParaviewCut<Mesh> writer3 (cutTh, "macro_outter_edge.vtk");
+  // writer3.writeMacroOutterEdge(macro, 0);
 
 
 
