@@ -286,6 +286,15 @@ double fun_parameter_test(int domain, double h, double meas, double measK, doubl
   return 2*mu;
 }
 
+class  TestParameter : public Virtual_CutFEM_Parameter {
+public:
+  const CutFEM_Parameter& mu;
+  TestParameter(const CutFEM_Parameter& m) : mu(m){}
+  double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
+    return 2*mu.evaluate(domain,h,meas,measK,meas_Cut);
+  };
+};
+
 int main(int argc, char** argv )
 {
   typedef Mesh3       Mesh;
@@ -313,12 +322,14 @@ int main(int argc, char** argv )
   double kappaTilde1 = kappa1/kappa01, kappaTilde2 = kappa2/kappa02;
 
 
-  std::vector<double> data_mu = {1,2,3};
-  CutFEM_Parameter mu("mu", data_mu);
+  std::vector<double> data_mu = {1,2,3,4};
+  CutFEM_Parameter mu(data_mu);
   CutFEM_Parameter rho(fun_parameter_test);
 
   std::vector<R3> data_beta = {R3(1,1,1), R3(2,2,2), R3(3,3,3)};
   CutFEM_R3 beta(data_beta);
+
+  TestParameter mu2(mu);
 
   // CutFEM_Parameter kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
   // CutFEM_Parameter kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
@@ -416,15 +427,15 @@ int main(int argc, char** argv )
   //       , interface1
   //     );
 
-  // problem.addLinear(
-  //         innerProduct(1,mu*v)
-  //       , Khi
-  // );
   problem.addLinear(
-          innerProduct(1,jump(v0))
-        , Kh0
-        , innerFace
+          innerProduct(1,(1./mu2)*v)
+        , Khi
   );
+  // problem.addLinear(
+  //         innerProduct(1,jump(v0))
+  //       , Kh0
+  //       , innerFace
+  // );
   // matlab::Export(problem.get_matrix(), "A.dat");
   // matlab::Export(problem.get_rhs(), "rhs.dat");
 
@@ -450,9 +461,9 @@ int main(int argc, char** argv )
   // writer.add(us, "sol_surf", 0, 1);
   writer.add(ftest, "domain", 0, 1);
 
-  ParaviewCut<Mesh> writerS(Kh0,"surface_Test.vtk");
-  writerS.add(us, "sol", 0, 1);
-  writerS.add(levelSet1, "levelSet", 0, 1);
+  // ParaviewCut<Mesh> writerS(Kh0,"surface_Test.vtk");
+  // writerS.add(us, "sol", 0, 1);
+  // writerS.add(levelSet1, "levelSet", 0, 1);
 
 
   // ParaviewCut<Mesh> writer(Khi,"hexa_Test.vtk");

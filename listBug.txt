@@ -1,0 +1,76 @@
+A changer:
+
+In paraview.
+
+Need to clear and resize when adding many FileS
+mesh_node.clear();
+idx_in_Vh.clear();
+num_cell.clear();
+
+
+And change         if( cutTh.isActive(k) && (cutTh.get_domain_element(k)==domain) || domain == -1) {
+  to      if( (cutTh.isStabilizeElement(k) && cutTh.get_domain_element(k)==domain) || domain == -1) {
+-----------------------------------------------
+
+in Macro elements
+
+Check line 190
+double areaCut = cutK.mesure(domain); wrong.
+=>
+double areaCut = cutK.mesure();
+-----------------------------------------------
+
+Dans constructeur cutMesh, surface time mesh, dois initialiser les vecteurs et aussi add remove element dans map.
+
+
+-----------------------------------------------
+
+Checker isActive method dans cutMesh class
+maybe remove this one
+bool isActive(int k) const {
+  for(int i=0;i<nb_quadrature_time_;++i){
+    if(this->isCut(k,i)) return true;
+  }
+  return false;
+}
+
+change to
+bool isStabilizeElement(int k) const {
+  // is cut or not always active
+  for(int i=0;i<nb_quadrature_time_;++i){
+    if(this->isCut(k,i) || this->isInactive(k,i)) return true;
+  }
+  return false;
+}
+with
+bool isInactive(int k, int t) const {
+  int domain = get_domain_element(k);
+  int kloc = idxK_in_domain(k, domain);
+  auto it = in_active_mesh_[domain][t].find(kloc);
+  if(it == in_active_mesh_[domain][t].end()) return false;
+  return true;
+}
+
+
+-----------------------------------------------
+In cutMetod list node give assert, need to defined
+
+template<> void Partition<Hexa>::get_list_node(vector<R3>& node, int s) const {
+  assert(0);
+}
+template<> void Partition<Tet>::get_list_node(vector<R3>& node, int s) const {
+  assert(0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+#

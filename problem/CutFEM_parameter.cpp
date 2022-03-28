@@ -41,8 +41,12 @@ SumDiff_Parameter operator-(const Virtual_CutFEM_Parameter& A, const Virtual_Cut
 Mult_Parameter operator*(const Virtual_CutFEM_Parameter& A, const Virtual_CutFEM_Parameter& B){
   return Mult_Parameter(A,B);
 }
-
-
+Inverse_Parameter operator/(double a, const Virtual_CutFEM_Parameter& A){
+  return Inverse_Parameter(a,A);
+}
+Inverse_Parameter inv(const Virtual_CutFEM_Parameter& A){
+  return Inverse_Parameter(1.,A);
+}
 
 
 ///  OLD STUFF

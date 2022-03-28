@@ -215,6 +215,27 @@ public:
 Mult_Parameter operator*(const Virtual_CutFEM_Parameter& A, const CutFEM_Parameter& B);
 
 
+// TO INVERSE PARAMETERS
+//------------------------------------------------------------------------------
+class Inverse_Parameter : public Virtual_CutFEM_Parameter{
+
+  double a_;
+  const Virtual_CutFEM_Parameter* A_;
+
+public:
+
+  Inverse_Parameter(double a, const Virtual_CutFEM_Parameter& A) : a_(a), A_(&A){}
+
+
+  double evaluate(int domain, double h, double meas, double measK, double meas_cut) const {
+    double val1 = A_->evaluate(domain,h,meas,measK,meas_cut);
+    return a_/val1;
+  }
+};
+Inverse_Parameter operator/(double a, const Virtual_CutFEM_Parameter& A);
+Inverse_Parameter inv(const Virtual_CutFEM_Parameter& A);
+
+
 
 
 #endif
