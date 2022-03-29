@@ -130,7 +130,7 @@ void TypeOfFE_P0Lagrange2d::FB(const What_d whatd, const Element & K,
   RN_ f0(val('.',0,op_id));
 
   if (whatd & Fop_D0) {
-    f0[0] = 1.;
+    f0[0] = 1.;///sqrt(K.mesure());
   }
 
 }
@@ -197,7 +197,7 @@ void TypeOfFE_P0Lagrange3d::FB(const What_d whatd, const Element & K,
   RN_ f0(val('.',0,op_id));
 
   if (whatd & Fop_D0) {
-    f0[0] = 1.;
+    f0[0] = 1.;///sqrt(K.mesure());
   }
 
 }

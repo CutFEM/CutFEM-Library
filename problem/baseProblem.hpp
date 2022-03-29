@@ -154,6 +154,8 @@ protected:
 public :
 
 void addDiagonal(double epsilon_machine);
+void addDiagonal(const FESpace& Qh, double );
+void setDiagonal(const FESpace& Qh, double );
 
 // STANDARD FEM
 // -----------------------------------------------------------------------------------
@@ -306,9 +308,23 @@ void BaseProblem<M>::addDiagonal(double epsilon_machine) {
   for(int i=0;i<this->nDoF;++i){
     this->mat[std::make_pair(i,i)] += epsilon_machine;
   }
-
 }
-
+template<typename M>
+void BaseProblem<M>::addDiagonal(const FESpace& Qh, double val){
+  int idxBegin = mapIdx0[&Qh];
+  int idxEnd   = Qh.nbDoF;
+  for(int i=idxBegin;i<idxEnd ;++i){
+    this->mat[std::make_pair(i,i)] += val;
+  }
+}
+template<typename M>
+void BaseProblem<M>::setDiagonal(const FESpace& Qh, double val){
+  int idxBegin = mapIdx0[&Qh];
+  int idxEnd   = Qh.nbDoF;
+  for(int i=idxBegin;i<idxEnd ;++i){
+    this->mat[std::make_pair(i,i)] = val;
+  }
+}
 
 template<typename M>
 R BaseProblem<M>::computeCoef(const ItemVF<Rd::d>& item, double h, double meas, double measK, int domain) const {

@@ -17,10 +17,11 @@
 #include "generalNorm.hpp"
 
 
+#define DARCY_FEM
 // #define PROBLEM_CUT_MIXED_DARCY
 // #define PROBLEM_CUT_MIXED_DARCY_BLOCK
 // #define DARCY_EXAMPLE_PUPPI
-#define DARCY_EXAMPLE_PUPPI_CIRCLE
+// #define DARCY_EXAMPLE_PUPPI_CIRCLE
 
 // #define DARCY_FRACTURE
 // #define DARCY_MULTI_FRACTURE
@@ -56,6 +57,99 @@ void Scotty_diagonal_preconditioner(int N, std::map<std::pair<int,int>,R>& P){
 
 
 
+#ifdef DARCY_FEM
+
+
+namespace Data_p{
+  R d_x = 2.;
+  R d_y = 2.;
+
+  R fun_neumann(const R2 P, int compInd) {
+    return 0;
+  }
+  R fun_div(const R2 P, int compInd, int dom) {// is also exact divergence
+    return 0;
+  }
+
+
+}
+using namespace Data_p;
+
+
+int main(int argc, char** argv ) {
+  typedef TestFunction<2> FunTest;
+  typedef FunFEM<Mesh2> Fun_h;
+  MPIcf cfMPI(argc,argv);
+  const double cpubegin = CPUtime();
+  bool set_p = false;
+  int nx = 2; // 6
+  int ny = 2; // 6
+
+  vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
+  vector<double> ratioCut1, ratioCut2;
+  int iters =5;
+
+  for(int i=0;i<iters;++i) {
+    Mesh2 Th(nx, ny, 0., 0., 1., 1.);
+    Th.info();
+    double h = 1./(nx-1);
+
+
+    if(set_p){
+      KN<const GTypeOfFE<Mesh2>* > arrayFE(1);
+      arrayFE(0) = &DataFE<Mesh2>::RT0;
+      GTypeOfFESum<Mesh2> mixedFE(arrayFE);
+      FESpace2 Vh(Th, mixedFE);
+      FEM<Mesh2> darcy(Vh);
+      FunTest u(Vh,2), v(Vh,2);
+
+      // [ASSEMBLY]
+      darcy.addBilinear(
+        //innerProduct(u, v)
+        +innerProduct(div(u), div(v))
+      );
+      darcy.setDiagonal(Vh, 1.);
+      matlab::Export(darcy.mat, "matB"+to_string(i)+".dat");
+      nx = 2*nx -1;
+      ny = nx;
+      continue;
+
+    }
+    else{
+      KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
+      arrayFE(0) = &DataFE<Mesh2>::RT0;
+      arrayFE(1) = &DataFE<Mesh2>::P0;
+      FESpace2 Vh(Th, DataFE<Mesh2>::RT0);
+      FESpace2 Ph(Th, DataFE<Mesh2>::P0);
+      FEM<Mesh2> darcy(Vh); darcy.add(Ph);
+      FunTest u(Vh,2), v(Vh,2),p(Ph,1), q(Ph,1);
+      Vh.info();
+      Ph.info();
+      // [ASSEMBLY]
+      darcy.addBilinear(
+        innerProduct(u, v)
+      );
+      darcy.addBilinear(
+        + innerProduct(1./h*div(u), q)
+      );
+      darcy.addBilinear(
+        - innerProduct(1./h*p, div(v))
+      );
+      // darcy.setDiagonal(Vh, 1.);
+
+      matlab::Export(darcy.mat, "matB"+to_string(i)+".dat");
+      nx = 2*nx-1;
+      ny = nx;
+      continue;
+
+    }
+
+  }
+
+}
+
+#endif
+
 #ifdef PROBLEM_CUT_MIXED_DARCY
 
 namespace Data_CutMixedDarcy {
@@ -68,7 +162,7 @@ namespace Data_CutMixedDarcy {
     return (P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift);
   }
   R fun_levelSet(const R2 P, const int i) {
-    return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad;
+    return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad ;
   }
 
   R fun_dirichlet(const R2 P, int compInd) {
@@ -280,12 +374,12 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 20; // 6
-  int ny = 20; // 6
+  int nx = 10; // 6
+  int ny = 10; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters =1;
+  int iters =5;
 
   for(int i=0;i<iters;++i) {
     Mesh2 Th(nx, ny, 0., 0., 1., 1.);
@@ -364,12 +458,24 @@ int main(int argc, char** argv ) {
       -innerProduct(p, div(v))
       +innerProduct(div(u), q)
     );
+    //
+    // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
+    // nx = 2*nx -1;
+    // ny = nx;
+    // continue;
+
 
     darcyCutMix.addBilinear(
-      innerProduct((1-theta)*mu_G*average(u.t()*n), average(v.t()*n))
-      +innerProduct((1-theta)*xi0*mu_G*jump(u.t()*n), jump(v.t()*n)) // b(p,v)-b(q,u) bdry terms
+      innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
+      +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
       ,interface
     );
+
+    matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
+    nx *= 2;
+    ny *= 2;
+    continue;
+
 
     // l(v)_Omega
     darcyCutMix.addLinear(
@@ -443,21 +549,21 @@ int main(int argc, char** argv ) {
   // matlab::Export(darcyCutMix.mat, "matA"+to_string(i)+".dat");
 
   // Full/macro Stabilization
-  FunTest grad2un = grad(grad(u)*n)*n;
+  // FunTest grad2un = grad(grad(u)*n)*n;
   darcyCutMix.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
-  innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
-  +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
-  // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-  +innerProduct(pPenParam*hei*jump(p), jump(q))
-  // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
-
-  //  innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+  // innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
   // +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
   // // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-  // +innerProduct(pPenParam*hei*jump(p), jump(div(v)))
-  // +innerProduct(pPenParam*hei*jump(div(u)), jump(q))
-  // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
-  // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(div(v))) , jump(grad(q)))
+  // +innerProduct(pPenParam*hei*jump(p), jump(q))
+  // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
+
+   innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+  +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
+  // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
+  +innerProduct(pPenParam*hei*jump(p), jump(div(v)))
+  +innerProduct(pPenParam*hei*jump(div(u)), jump(q))
+  // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
+  // +innerProduct(pPenParam*pow(hei,3)*jump(grad(div(v))) , jump(grad(q)))
   , macro
 );
 
