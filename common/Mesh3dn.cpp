@@ -7,8 +7,6 @@
 #include "RNM.hpp"
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"
-#include "Interface3dn.hpp"
-#include "timeInterface.hpp"
 #include "base_interface.hpp"
 
 
@@ -160,7 +158,7 @@ int Mesh3::load(const string & filename) {
     }
 
 
-    void Mesh3::readmsh(ifstream & f) {
+void Mesh3::readmsh(ifstream & f) {
       f >> nv >> nt >> nbe;
       if(verbosity>2)
       cout << " GRead : nv " << nv << " " << nt << " " << nbe << endl;
@@ -193,7 +191,7 @@ int Mesh3::load(const string & filename) {
       }
     }
 
-    Mesh3::Mesh3(int nnv, int nnt, int nnbe, Vertex3 *vv, Tet *tt, Triangle3 *bb) {
+Mesh3::Mesh3(int nnv, int nnt, int nnbe, Vertex3 *vv, Tet *tt, Triangle3 *bb) {
 
       nv = nnv;
       nt = nnt;
@@ -228,7 +226,7 @@ int Mesh3::load(const string & filename) {
       assert(mes>=0.);
     }
 
-    Mesh3::Mesh3(int nnv, int nnbe, Vertex3 *vv, Triangle3 *bb) {
+Mesh3::Mesh3(int nnv, int nnbe, Vertex3 *vv, Triangle3 *bb) {
 
       nv = nnv;
       nbe =nnbe;
@@ -257,7 +255,7 @@ int Mesh3::load(const string & filename) {
     }
 
 
-    int  signe_permutation(int i0,int i1,int i2,int i3){
+int  signe_permutation(int i0,int i1,int i2,int i3){
       int p=1;
       if(i0>i1) Exchange(i0,i1), p = -p;
       if(i0>i2) Exchange(i0,i2), p = -p;
@@ -268,7 +266,7 @@ int Mesh3::load(const string & filename) {
       return p;
     }
 
-    Mesh3::Mesh3(int nx, int ny, int nz, R orx, R ory, R orz, R lx, R ly, R lz) {
+Mesh3::Mesh3(int nx, int ny, int nz, R orx, R ory, R orz, R lx, R ly, R lz) {
 
       const int idQ[6][4] = {{1,3,2,5},{1,2,4,5},{0,1,2,4},
       {6,3,5,2},{6,2,5,4},{7,3,5,6}};
@@ -409,181 +407,181 @@ int Mesh3::load(const string & filename) {
 
     }
 
-    // To build mesh for time problem
-    Mesh3::Mesh3( TimeInterface3 &gamma) {
-
-      const Uint nInterface = gamma.size();
-      const Mesh3& backMesh(*(gamma[0]->backMesh));                   // the back-ground mesh
-
-
-      for(Uint i=0;i<nInterface-1;++i) {             // all interface must have the same backMesh
-        assert(gamma[i]->backMesh == gamma[i+1]->backMesh);
-      }
-
-      int mmt = 0;
-      for(Uint i=0;i<nInterface;++i) {
-        mmt += gamma[i]->nbElement();            // exact approximation (2D)
-      }
-      const int mt = backMesh.nt;//2*mmt;
-      const int mv = 4*mt;                         // large approximation
-      const int mbe = 0;
-
-      if (mt==0) { nt=0;nv=0;nbe=0; return;}
-
-      this->set(mv,mt,mbe);
-      nv=0;  nt=0;
-      ElementIndexInBackMesh = new Uint[mt];
-      VertexIndexInBackMesh = new Uint[mv];
-      ElementIndexInLocMesh = new Uint[backMesh.nt];
-
-
-      KN<int> foundVertex(backMesh.nv); foundVertex = -1;
-      KN<byte> createdTet(backMesh.nt); createdTet = static_cast<byte>(0);
-      int indT[4];
-
-
-      for(Uint iInterface=0; iInterface<nInterface; ++iInterface) {
-        for(Uint ifac=0; ifac != gamma[iInterface]->nbElement(); ++ifac) {
-
-          const int k = gamma[iInterface]->idxElementOfFace(ifac);
-          const Element & K = (backMesh)[k];
-
-          if(createdTet(k)) continue;                 // already created
-
-          for( int i=0; i<4;++i) {
-            const int idxG = (backMesh)(K[i]);
-
-            if(foundVertex(idxG) == -1) {
-
-              foundVertex(idxG) = nv;
-              vertices[nv].x = K[i].x;
-              vertices[nv].y = K[i].y;
-              vertices[nv].z = K[i].z;
-              VertexIndexInBackMesh[nv] = idxG;
-              indT[i] = nv++;
-            }
-            else {
-              indT[i] = foundVertex(idxG);
-            }
-          }
-          ElementIndexInBackMesh[nt] = k;
-          ElementIndexInLocMesh[k] = nt;
-
-          elements[nt++].set(vertices, indT, 0);
-          createdTet(k) = static_cast<byte>(1);
-        }
-      }
-
-      // we need to get the elements that change domain during the time slab
-      for(int k=0; k<backMesh.nt;++k) {
-        if(createdTet(k) == static_cast<byte>(0)) {
-
-          const Element & K = (backMesh)[k];
-
-          // We only need to look at the sign of one of the node
-          bool changeSign = false;    // excluded by default
-          for(Uint i=0; i<nInterface-1;++i) {
-            int idx1 = (backMesh)(K[i]);
-            // if( (gamma[i].levelSet)[idx1] * (gamma[i+1].levelSet)[idx1] <= 0 )
-            if( (gamma[i]->ls_sign)[idx1] * (gamma[i+1]->ls_sign)[idx1] <= 0 )
-            changeSign = true;
-          }
-          if(changeSign) {
-            for( int i=0; i<4;++i) {
-              const int idxG = (backMesh)(K[i]);
-
-              if(foundVertex(idxG) == -1) {
-
-                foundVertex(idxG) = nv;
-                vertices[nv].x = K[i].x;
-                vertices[nv].y = K[i].y;
-                vertices[nv].z = K[i].z;
-                VertexIndexInBackMesh[nv] = idxG;
-                indT[i] = nv++;
-              }
-              else {
-                indT[i] = foundVertex(idxG);
-              }
-            }
-            if(nt>=mt) assert(0);//ElementIndexInBackMesh.resize(2*mt);//assert(0);
-
-            createdTet(k) = static_cast<byte>(1);
-            ElementIndexInBackMesh[nt] = k;
-            ElementIndexInLocMesh[k] = nt;
-            elements[nt++].set(vertices, indT, 0);
-          }
-        }
-      }
-      BuildBound();
-      if(nt > 0){
-        BuildAdj();
-        BuildjElementConteningVertex();
-      }
-
-
-    }
-
-    Mesh3::Mesh3(const Interface& gamma) {
-
-      const Mesh3& backMesh(*gamma.backMesh);                  // the back-ground mesh
-
-      const int mt = gamma.nbElement();            // large approximation
-      const int mv = 4*mt;                         // very large approximation
-      const int mbe = 0;
-
-      if (mt==0) { nt=0;nv=0;nbe=0; return;}
-
-      this->set(mv,mt,mbe);
-      nv=0;  nt=0;
-      ElementIndexInBackMesh = new Uint[mt];
-      VertexIndexInBackMesh = new Uint[mv];
-      ElementIndexInLocMesh = new Uint[backMesh.nt];
-
-
-      KN<int> foundVertex(backMesh.nv); foundVertex = -1;
-      KN<byte> createdTet(backMesh.nt); createdTet = static_cast<byte>(0);
-      int indT[4];
-
-
-
-      for(Uint ifac=0; ifac != gamma.nbElement(); ++ifac) {
-
-        const int k = gamma.idxElementOfFace(ifac);
-        const Element & K = (backMesh)[k];
-
-        if(createdTet(k)) continue;                 // already created
-
-        for( int i=0; i<4;++i) {
-          const int idxG = (backMesh)(K[i]);
-
-          if(foundVertex(idxG) == -1) {
-
-            foundVertex(idxG) = nv;
-            vertices[nv].x = K[i].x;
-            vertices[nv].y = K[i].y;
-            vertices[nv].z = K[i].z;
-            VertexIndexInBackMesh[nv] = idxG;
-            indT[i] = nv++;
-          }
-          else {
-            indT[i] = foundVertex(idxG);
-          }
-        }
-        ElementIndexInBackMesh[nt] = k;
-        ElementIndexInLocMesh[k] = nt;
-
-        elements[nt++].set(vertices, indT, 0);
-        createdTet(k) = static_cast<byte>(1);
-      }
-
-      BuildBound();
-      if(nt > 0){
-        BuildAdj();
-        BuildjElementConteningVertex();
-      }
-
-    }
-
+//     // To build mesh for time problem
+// Mesh3::Mesh3( TimeInterface3 &gamma) {
+//
+//       const Uint nInterface = gamma.size();
+//       const Mesh3& backMesh(*(gamma[0]->backMesh));                   // the back-ground mesh
+//
+//
+//       for(Uint i=0;i<nInterface-1;++i) {             // all interface must have the same backMesh
+//         assert(gamma[i]->backMesh == gamma[i+1]->backMesh);
+//       }
+//
+//       int mmt = 0;
+//       for(Uint i=0;i<nInterface;++i) {
+//         mmt += gamma[i]->nbElement();            // exact approximation (2D)
+//       }
+//       const int mt = backMesh.nt;//2*mmt;
+//       const int mv = 4*mt;                         // large approximation
+//       const int mbe = 0;
+//
+//       if (mt==0) { nt=0;nv=0;nbe=0; return;}
+//
+//       this->set(mv,mt,mbe);
+//       nv=0;  nt=0;
+//       ElementIndexInBackMesh = new Uint[mt];
+//       VertexIndexInBackMesh = new Uint[mv];
+//       ElementIndexInLocMesh = new Uint[backMesh.nt];
+//
+//
+//       KN<int> foundVertex(backMesh.nv); foundVertex = -1;
+//       KN<byte> createdTet(backMesh.nt); createdTet = static_cast<byte>(0);
+//       int indT[4];
+//
+//
+//       for(Uint iInterface=0; iInterface<nInterface; ++iInterface) {
+//         for(Uint ifac=0; ifac != gamma[iInterface]->nbElement(); ++ifac) {
+//
+//           const int k = gamma[iInterface]->idxElementOfFace(ifac);
+//           const Element & K = (backMesh)[k];
+//
+//           if(createdTet(k)) continue;                 // already created
+//
+//           for( int i=0; i<4;++i) {
+//             const int idxG = (backMesh)(K[i]);
+//
+//             if(foundVertex(idxG) == -1) {
+//
+//               foundVertex(idxG) = nv;
+//               vertices[nv].x = K[i].x;
+//               vertices[nv].y = K[i].y;
+//               vertices[nv].z = K[i].z;
+//               VertexIndexInBackMesh[nv] = idxG;
+//               indT[i] = nv++;
+//             }
+//             else {
+//               indT[i] = foundVertex(idxG);
+//             }
+//           }
+//           ElementIndexInBackMesh[nt] = k;
+//           ElementIndexInLocMesh[k] = nt;
+//
+//           elements[nt++].set(vertices, indT, 0);
+//           createdTet(k) = static_cast<byte>(1);
+//         }
+//       }
+//
+//       // we need to get the elements that change domain during the time slab
+//       for(int k=0; k<backMesh.nt;++k) {
+//         if(createdTet(k) == static_cast<byte>(0)) {
+//
+//           const Element & K = (backMesh)[k];
+//
+//           // We only need to look at the sign of one of the node
+//           bool changeSign = false;    // excluded by default
+//           for(Uint i=0; i<nInterface-1;++i) {
+//             int idx1 = (backMesh)(K[i]);
+//             // if( (gamma[i].levelSet)[idx1] * (gamma[i+1].levelSet)[idx1] <= 0 )
+//             if( (gamma[i]->ls_sign)[idx1] * (gamma[i+1]->ls_sign)[idx1] <= 0 )
+//             changeSign = true;
+//           }
+//           if(changeSign) {
+//             for( int i=0; i<4;++i) {
+//               const int idxG = (backMesh)(K[i]);
+//
+//               if(foundVertex(idxG) == -1) {
+//
+//                 foundVertex(idxG) = nv;
+//                 vertices[nv].x = K[i].x;
+//                 vertices[nv].y = K[i].y;
+//                 vertices[nv].z = K[i].z;
+//                 VertexIndexInBackMesh[nv] = idxG;
+//                 indT[i] = nv++;
+//               }
+//               else {
+//                 indT[i] = foundVertex(idxG);
+//               }
+//             }
+//             if(nt>=mt) assert(0);//ElementIndexInBackMesh.resize(2*mt);//assert(0);
+//
+//             createdTet(k) = static_cast<byte>(1);
+//             ElementIndexInBackMesh[nt] = k;
+//             ElementIndexInLocMesh[k] = nt;
+//             elements[nt++].set(vertices, indT, 0);
+//           }
+//         }
+//       }
+//       BuildBound();
+//       if(nt > 0){
+//         BuildAdj();
+//         BuildjElementConteningVertex();
+//       }
+//
+//
+//     }
+//
+// Mesh3::Mesh3(const Interface& gamma) {
+//
+//       const Mesh3& backMesh(*gamma.backMesh);                  // the back-ground mesh
+//
+//       const int mt = gamma.nbElement();            // large approximation
+//       const int mv = 4*mt;                         // very large approximation
+//       const int mbe = 0;
+//
+//       if (mt==0) { nt=0;nv=0;nbe=0; return;}
+//
+//       this->set(mv,mt,mbe);
+//       nv=0;  nt=0;
+//       ElementIndexInBackMesh = new Uint[mt];
+//       VertexIndexInBackMesh = new Uint[mv];
+//       ElementIndexInLocMesh = new Uint[backMesh.nt];
+//
+//
+//       KN<int> foundVertex(backMesh.nv); foundVertex = -1;
+//       KN<byte> createdTet(backMesh.nt); createdTet = static_cast<byte>(0);
+//       int indT[4];
+//
+//
+//
+//       for(Uint ifac=0; ifac != gamma.nbElement(); ++ifac) {
+//
+//         const int k = gamma.idxElementOfFace(ifac);
+//         const Element & K = (backMesh)[k];
+//
+//         if(createdTet(k)) continue;                 // already created
+//
+//         for( int i=0; i<4;++i) {
+//           const int idxG = (backMesh)(K[i]);
+//
+//           if(foundVertex(idxG) == -1) {
+//
+//             foundVertex(idxG) = nv;
+//             vertices[nv].x = K[i].x;
+//             vertices[nv].y = K[i].y;
+//             vertices[nv].z = K[i].z;
+//             VertexIndexInBackMesh[nv] = idxG;
+//             indT[i] = nv++;
+//           }
+//           else {
+//             indT[i] = foundVertex(idxG);
+//           }
+//         }
+//         ElementIndexInBackMesh[nt] = k;
+//         ElementIndexInLocMesh[k] = nt;
+//
+//         elements[nt++].set(vertices, indT, 0);
+//         createdTet(k) = static_cast<byte>(1);
+//       }
+//
+//       BuildBound();
+//       if(nt > 0){
+//         BuildAdj();
+//         BuildjElementConteningVertex();
+//       }
+//
+//     }
+//
 
 
 

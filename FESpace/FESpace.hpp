@@ -240,7 +240,7 @@ public:
   typedef GTypeOfFE<Mesh> TypeOfFE;
   typedef GQuadratureFormular<typename Element::RdHat> QFElement;
   typedef GQuadratureFormular<typename BorderElement::RdHat>  QFBorderElement;
-  typedef GenericInterface<Mesh> GInterface;
+  // typedef GenericInterface<Mesh> GInterface;
 
 
   const Mesh &Th;
@@ -249,7 +249,7 @@ public:
   const int Nproduit; // 1 if non constant Max number df par node. else Max number df par node..
   GFESpace const * backSpace = this;
   const PeriodicBC* periodicBC = nullptr;
-  KN<const GInterface*> gamma;
+  // KN<const GInterface*> gamma;
   // KN<const GInterface*>* gamma2;
 
 
@@ -275,24 +275,24 @@ public:
     {
     }
 
-    GFESpace(const Mesh & TTh,
-      TimeInterface<Mesh>& g,
-      const GTypeOfFE<Mesh> & tfe=DataFE<Mesh>::P1,
-      const PeriodicBC* PPeriod = nullptr) :
-      GFESpace(TTh, tfe, PPeriod)
-      {
-        this->gamma.resize(g.size());
-        for(int i=0;i<g.size();++i) this->gamma[i]= g[i];
-      }
-      GFESpace(const Mesh & TTh,
-        const GInterface& g,
-        const GTypeOfFE<Mesh> & tfe=DataFE<Mesh>::P1,
-        const PeriodicBC* PPeriod = nullptr) :
-        GFESpace(TTh, tfe, PPeriod)
-        {
-          this->gamma.resize(1);
-          this->gamma[0]= &g;
-        }
+    // GFESpace(const Mesh & TTh,
+    //   // TimeInterface<Mesh>& g,
+    //   const GTypeOfFE<Mesh> & tfe=DataFE<Mesh>::P1,
+    //   const PeriodicBC* PPeriod = nullptr) :
+    //   GFESpace(TTh, tfe, PPeriod)
+    //   {
+    //     // this->gamma.resize(g.size());
+    //     // for(int i=0;i<g.size();++i) this->gamma[i]= g[i];
+    //   }
+    //   GFESpace(const Mesh & TTh,
+    //     // const GInterface& g,
+    //     const GTypeOfFE<Mesh> & tfe=DataFE<Mesh>::P1,
+    //     const PeriodicBC* PPeriod = nullptr) :
+    //     GFESpace(TTh, tfe, PPeriod)
+    //     {
+    //       // this->gamma.resize(1);
+    //       // this->gamma[0]= &g;
+    //     }
 
       // for CutSpace
   GFESpace( const GFESpace& vh, const DataFENodeDF& data,const PeriodicBC* PPeriod = nullptr) :
@@ -358,13 +358,13 @@ public:
   virtual int nbDomain() const {return 1;}
   virtual bool containBackElement(int k)const {return true;}
   virtual bool isCut(int k) const { return false;}
-  virtual bool isCut() const { return (this->gamma.size()>0);}
+  // virtual bool isCut() const { return (this->gamma.size()>0);}
   virtual bool isCutSpace() const {return false;}
   virtual vector<int> idxAllElementFromBackMesh (int k) const { vector<int> v = {idxElementFromBackMesh(k)}; return v ;}
 
 
   virtual const GFESpace& getBackSpace() const { return *backSpace;}
-  const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
+  // const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
 
   virtual const ActiveMesh<Mesh>& get_mesh() const { assert(0); return ActiveMesh<Mesh>(Th);}
 

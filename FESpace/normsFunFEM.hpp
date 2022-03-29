@@ -130,7 +130,7 @@ double L2norm_2(const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
 
 
 template<typename M>
-double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int domain, const GFESpace<M>& Vh, const MacroElement* macro) {
+double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int domain, const GFESpace<M>& Vh, const MacroElement<M>* macro) {
   typedef Mesh2 Mesh;
   typedef GFESpace<Mesh> FESpace;
   typedef typename FESpace::FElement FElement;
@@ -189,7 +189,7 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 
 }
 template<typename M>
-double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int domain, const GFESpace<M>& Vh, double t, const MacroElement* macro) {
+double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int domain, const GFESpace<M>& Vh, double t, const MacroElement<M>* macro) {
   typedef Mesh2 Mesh;
   typedef GFESpace<Mesh> FESpace;
   typedef typename FESpace::FElement FElement;
@@ -249,13 +249,13 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 }
 
 template<typename M>
-double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement* macro) {
+double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement<M>* macro) {
 
   return L2normCut_2(fh,fex, 0, Vh, macro) + L2normCut_2(fh,fex,1, Vh, macro);
 }
 
 template<typename M>
-double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, double t, const MacroElement* macro) {
+double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, double t, const MacroElement<M>* macro) {
 
   return L2normCut_2(fh,fex, 0, Vh, t, macro) + L2normCut_2(fh,fex,1, Vh, t, macro);
 }
@@ -305,7 +305,7 @@ double L2norm( const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
 
 
 template<typename M>
-double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom, double tt), double t, int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d, const MacroElement* macro=nullptr) {
+double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom, double tt), double t, int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d, const MacroElement<M>* macro=nullptr) {
 
   const GFESpace<M>& Vh(*fh.Vh);
 
@@ -318,7 +318,7 @@ double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FEleme
 }
 
 template<typename M>
-double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d, const MacroElement* macro=nullptr) {
+double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d, const MacroElement<M>* macro=nullptr) {
 
   const GFESpace<M>& Vh(*fh.Vh);
 
@@ -331,7 +331,7 @@ double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FEleme
 }
 
 template<typename M>
-double L2normCut( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement* macro=nullptr) {
+double L2normCut( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement<M>* macro=nullptr) {
 
     double val = L2normCut_2(fh,fex, Vh, macro);
 
@@ -436,7 +436,7 @@ Integrates only over elements whose edges are not part of the stabilised edges,
 thereby neglecting elements messed up by the mcdonald stab
 */
 template<typename M>
-double L2normCutLoc_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int domain, const GFESpace<M>& Vh, const MacroElement& bigMac ) {
+double L2normCutLoc_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom),int domain, const GFESpace<M>& Vh, const MacroElement<M>& bigMac ) {
   typedef Mesh2 Mesh;
   typedef GFESpace<Mesh> FESpace;
   typedef typename FESpace::FElement FElement;
@@ -517,13 +517,13 @@ assert(0);
 }
 
 template<typename M>
-double L2normCutLoc_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement& bigMac) {
+double L2normCutLoc_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement<M>& bigMac) {
   return L2normCutLoc_2(fh,fex,0,Vh,bigMac) + L2normCutLoc_2(fh,fex,1,Vh,bigMac);
 }
 
 // Several components, ie vector valued L2norm
 template<typename M>
-double L2normCutLoc( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), int c0, int num_comp , const MacroElement& bigMac) {
+double L2normCutLoc( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), int c0, int num_comp , const MacroElement<M>& bigMac) {
 
   const GFESpace<M>& Vh(*fh.Vh);
 
@@ -537,7 +537,7 @@ double L2normCutLoc( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FEl
 
 // Only one component
 template<typename M>
-double L2normCutLoc( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement& bigMac) {
+double L2normCutLoc( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const GFESpace<M>& Vh, const MacroElement<M>& bigMac) {
   double val = L2normCutLoc_2(fh,fex,Vh,bigMac);
   return sqrt(val);
 }

@@ -2,7 +2,8 @@
 #define _MACRO_ELEMENT_HPP
 
 #include "base_interface.hpp"
-#include "CutFESpace.hpp"
+#include "cut_mesh.hpp"
+// #include "CutFESpace.hpp"
 #include<set>
 
 class Extension;
@@ -94,64 +95,64 @@ class GMacro {
 
 };
 
-class MacroElementSurface : public GMacro {
-  typedef typename Interface2::FaceIdx Face;
-public:
-  const Interface2& interface;
-
-  MacroElementSurface(const Interface2& , const double) ;
-  void find_small_element() ;
-  void find_root_element()  ;
-  int check_direction(const int, const int, int&);
-};
-
-class MacroElement : public GMacro {
-
-public:
-
-  const FESpace2& Vh;
-
-  R tol;
-  int nb_element_0, nb_element_1;
-
-  MacroElement(const FESpace2& vh, const double C);
-
-  MacroElement(const CutFESpaceT2& vh, const double C);
-
-
-private:
-  void find_small_element();
-  void findSmallElement();
-  void find_root_element();
-  void findRootElement();
-
-
-  friend class Extension;
-};
-
+// class MacroElementSurface : public GMacro {
+//   typedef typename Interface2::FaceIdx Face;
+// public:
+//   const Interface2& interface;
+//
+//   MacroElementSurface(const Interface2& , const double) ;
+//   void find_small_element() ;
+//   void find_root_element()  ;
+//   int check_direction(const int, const int, int&);
+// };
+//
+// class MacroElement : public GMacro {
+//
+// public:
+//
+//   const FESpace2& Vh;
+//
+//   R tol;
+//   int nb_element_0, nb_element_1;
+//
+//   MacroElement(const FESpace2& vh, const double C);
+//
+//   MacroElement(const CutFESpaceT2& vh, const double C);
+//
+//
+// private:
+//   void find_small_element();
+//   void findSmallElement();
+//   void find_root_element();
+//   void findRootElement();
+//
+//
+//   friend class Extension;
+// };
+//
 
 
 template<typename Mesh>
-class MacroElementSurfaceCL : public GMacro {
+class MacroElementSurface : public GMacro {
   // typedef typename Interface2::FaceIdx Face;
 public:
   const Interface<Mesh>& interface;
 
-  MacroElementSurfaceCL(const Interface<Mesh>& , const double) ;
+  MacroElementSurface(const Interface<Mesh>& , const double) ;
   void findSmallElement() ;
   void findRootElement()  ;
   int checkDirection(const int, const int, int&);
 };
 
 template<typename Mesh>
-class MacroElementCL : public GMacro {
+class MacroElement : public GMacro {
 public:
 
   const ActiveMesh<Mesh>& Th_;
   R tol_;
   int nb_element_0, nb_element_1;
 
-  MacroElementCL(const ActiveMesh<Mesh>& th, const double C);
+  MacroElement(const ActiveMesh<Mesh>& th, const double C);
 
 private:
   void findSmallElement();
@@ -162,7 +163,7 @@ private:
 };
 
 template<typename Mesh>
-MacroElementCL<Mesh>::MacroElementCL(const ActiveMesh<Mesh>& th, const double C) : Th_(th){
+MacroElement<Mesh>::MacroElement(const ActiveMesh<Mesh>& th, const double C) : Th_(th){
   double h = Th_[0].lenEdge(0);
   double meas = Th_[0].mesure();
   nb_element_0 = 0;
@@ -178,7 +179,7 @@ MacroElementCL<Mesh>::MacroElementCL(const ActiveMesh<Mesh>& th, const double C)
 }
 
 template<typename Mesh>
-void MacroElementCL<Mesh>::findSmallElement() {
+void MacroElement<Mesh>::findSmallElement() {
   for(int k=0; k<Th_.get_nb_element(); k+= 1) {
     if(!Th_.isCut(k)) continue;
 
@@ -196,7 +197,7 @@ void MacroElementCL<Mesh>::findSmallElement() {
 }
 
 template<typename Mesh>
-void MacroElementCL<Mesh>::createMacroElement(){
+void MacroElement<Mesh>::createMacroElement(){
 
   vector<std::pair<int,int>> idx_small_K_temp(small_element.size());
   vector<int> small_or_fat_K(Th_.get_nb_element());
@@ -264,6 +265,116 @@ void MacroElementCL<Mesh>::createMacroElement(){
   }
 
 }
+
+
+template<typename Mesh>
+MacroElementSurface<Mesh>::MacroElementSurface(const Interface<Mesh>& gh, const double C) : interface(gh) {
+  double h = (*interface.backMesh)[0].lenEdge(0);
+  tol = C * h;
+
+  std::cout << " tolerance macro surface\t" << tol << std::endl;
+  findSmallElement();
+  std::cout << " Found " << small_element.size() << " small elements " << std::endl;
+  findRootElement();
+}
+
+template<typename Mesh>
+void MacroElementSurface<Mesh>::findSmallElement() {
+  for(int iface=interface.first_element(); iface<interface.last_element(); iface+= interface.next_element()) {
+
+    const typename Interface<Mesh>::Face& face = interface[iface];
+    const int kb = interface.idxElementOfFace(iface);
+    const R meas = interface.measure(face);
+
+    if(meas > tol) continue;
+
+    small_element[iface] = SmallElement(iface);
+  }
+}
+template<typename Mesh>
+void MacroElementSurface<Mesh>::findRootElement(){
+  const Mesh& Th(*interface.backMesh);
+  for( auto it=small_element.begin(); it!=small_element.end(); ++it) {
+
+    int iface = it->first;
+    const typename Interface<Mesh>::Face& face = interface[iface];
+    const int kb = interface.idxElementOfFace(iface);
+    KN<int> root_v(2), chain_position_v(2), ie_v(2);
+
+    for(int i=0;i<2;++i) {
+      int chain_position = 0;
+
+      int idx_node = face[i];
+      int ie = interface.edge_of_node_[idx_node];
+      int root_K = checkDirection(kb, ie, chain_position);
+
+      root_v(i) = root_K;
+      chain_position_v(i) = chain_position;
+      ie_v(i) = ie;
+    }
+
+    int i = (chain_position_v(0) <= chain_position_v(1))? 0:1;
+    if(root_v(i) == -1) {i = (i==0);}
+    int root = interface.face_of_element_.find(root_v(i))->second;
+    it->second.setRoot(root);
+    it->second.setChainPosition(chain_position_v(i));
+    it->second.setEdgeDirection(ie_v(i));
+
+  }
+
+  for( auto it=small_element.begin(); it!=small_element.end(); ++it) {
+
+    int idx_root = it->second.index_root;
+    auto pRoot = macro_element.find(idx_root);
+    int k_loc  = it->first;
+    int k  = interface.idxElementOfFace(k_loc);
+    int ie = it->second.idx_edge_to_root;
+    int je = ie;
+    int kn = Th.ElementAdj(k, je);
+    assert(kn != -1);
+    int kn_loc = interface.idxFaceOfElement(kn);
+    assert(kn != -1);
+    int kk = (k < kn)? k_loc : kn_loc;
+    int ke = (k < kn)? ie : je;
+    if(pRoot != macro_element.end()) {   // already exist
+      pRoot->second.add(k_loc, std::make_pair(kk, ke));
+    }
+    else{
+      macro_element[idx_root] = MElement(idx_root);
+      macro_element[idx_root].add(k_loc, std::make_pair(kk, ke));
+    }
+  }
+
+}
+
+template<typename Mesh>
+int MacroElementSurface<Mesh>::checkDirection(const int k, const int ie, int& chain_position){
+  assert(chain_position < interface.nbElement());
+  const Mesh& Th(*interface.backMesh);
+  int e1 = ie;
+  int kn = Th.ElementAdj(k,e1);
+
+  if(kn == -1) {
+    return -1;
+  }
+
+  chain_position++;
+  int kn_loc = interface.idxFaceOfElement(kn);
+  if(small_element.find(kn_loc) == small_element.end()) { // fat element
+    return kn;
+  }
+  // find which edge to look at
+  int iface = interface.face_of_element_.find(kn)->second;
+  const typename Interface<Mesh>::Face& face = interface[iface];
+  int ie_next = (interface.edge_of_node_[face[0]]==e1)?
+  interface.edge_of_node_[face[1]] : interface.edge_of_node_[face[0]];
+
+  return checkDirection(kn, ie_next, chain_position);
+}
+
+#endif
+
+
 
 // template<typename Mesh>
 // void MacroElementCL<Mesh>::createMacroElementInside(){
@@ -339,112 +450,3 @@ void MacroElementCL<Mesh>::createMacroElement(){
 //   }
 //   path = optimal_path;
 // }
-
-template<typename Mesh>
-MacroElementSurfaceCL<Mesh>::MacroElementSurfaceCL(const Interface<Mesh>& gh, const double C) : interface(gh) {
-  double h = (*interface.backMesh)[0].lenEdge(0);
-  tol = C * h;
-
-  std::cout << " tolerance macro surface\t" << tol << std::endl;
-  findSmallElement();
-  std::cout << " Found " << small_element.size() << " small elements " << std::endl;
-  findRootElement();
-}
-
-template<typename Mesh>
-void MacroElementSurfaceCL<Mesh>::findSmallElement() {
-  for(int iface=interface.first_element(); iface<interface.last_element(); iface+= interface.next_element()) {
-
-    const typename Interface<Mesh>::Face& face = interface[iface];
-    const int kb = interface.idxElementOfFace(iface);
-    const R meas = interface.measure(face);
-
-    if(meas > tol) continue;
-
-    small_element[iface] = SmallElement(iface);
-  }
-}
-template<typename Mesh>
-void MacroElementSurfaceCL<Mesh>::findRootElement(){
-  const Mesh& Th(*interface.backMesh);
-  for( auto it=small_element.begin(); it!=small_element.end(); ++it) {
-
-    int iface = it->first;
-    const typename Interface<Mesh>::Face& face = interface[iface];
-    const int kb = interface.idxElementOfFace(iface);
-    KN<int> root_v(2), chain_position_v(2), ie_v(2);
-
-    for(int i=0;i<2;++i) {
-      int chain_position = 0;
-
-      int idx_node = face[i];
-      int ie = interface.edge_of_node_[idx_node];
-      int root_K = checkDirection(kb, ie, chain_position);
-
-      root_v(i) = root_K;
-      chain_position_v(i) = chain_position;
-      ie_v(i) = ie;
-    }
-
-    int i = (chain_position_v(0) <= chain_position_v(1))? 0:1;
-    if(root_v(i) == -1) {i = (i==0);}
-    int root = interface.face_of_element_.find(root_v(i))->second;
-    it->second.setRoot(root);
-    it->second.setChainPosition(chain_position_v(i));
-    it->second.setEdgeDirection(ie_v(i));
-
-  }
-
-  for( auto it=small_element.begin(); it!=small_element.end(); ++it) {
-
-    int idx_root = it->second.index_root;
-    auto pRoot = macro_element.find(idx_root);
-    int k_loc  = it->first;
-    int k  = interface.idxElementOfFace(k_loc);
-    int ie = it->second.idx_edge_to_root;
-    int je = ie;
-    int kn = Th.ElementAdj(k, je);
-    assert(kn != -1);
-    int kn_loc = interface.idxFaceOfElement(kn);
-    assert(kn != -1);
-    int kk = (k < kn)? k_loc : kn_loc;
-    int ke = (k < kn)? ie : je;
-    if(pRoot != macro_element.end()) {   // already exist
-      pRoot->second.add(k_loc, std::make_pair(kk, ke));
-    }
-    else{
-      macro_element[idx_root] = MElement(idx_root);
-      macro_element[idx_root].add(k_loc, std::make_pair(kk, ke));
-    }
-  }
-
-}
-
-
-
-template<typename Mesh>
-int MacroElementSurfaceCL<Mesh>::checkDirection(const int k, const int ie, int& chain_position){
-  assert(chain_position < interface.nbElement());
-  const Mesh& Th(*interface.backMesh);
-  int e1 = ie;
-  int kn = Th.ElementAdj(k,e1);
-
-  if(kn == -1) {
-    return -1;
-  }
-
-  chain_position++;
-  int kn_loc = interface.idxFaceOfElement(kn);
-  if(small_element.find(kn_loc) == small_element.end()) { // fat element
-    return kn;
-  }
-  // find which edge to look at
-  int iface = interface.face_of_element_.find(kn)->second;
-  const typename Interface<Mesh>::Face& face = interface[iface];
-  int ie_next = (interface.edge_of_node_[face[0]]==e1)?
-  interface.edge_of_node_[face[1]] : interface.edge_of_node_[face[0]];
-
-  return checkDirection(kn, ie_next, chain_position);
-}
-
-#endif

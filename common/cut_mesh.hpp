@@ -127,7 +127,7 @@ public:
     nb_quadrature_time_ = 1;
     this->init(interface);
   }
-  ActiveMesh(const Mesh& th, const Time_Interface<Mesh>& interface) :  Th(th) {
+  ActiveMesh(const Mesh& th, const TimeInterface<Mesh>& interface) :  Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(2);
@@ -140,13 +140,13 @@ public:
   }
 
   void truncate(const Interface<Mesh>& interface, int sign_domain);
-  void truncate(const Time_Interface<Mesh>& interface, int sign_domain);
+  void truncate(const TimeInterface<Mesh>& interface, int sign_domain);
   void add(const Interface<Mesh>& interface);
   void create_surface_mesh(const Interface<Mesh>& interface);
-  void create_surface_mesh(const Time_Interface<Mesh>& interface);
+  void create_surface_mesh(const TimeInterface<Mesh>& interface);
 private:
   void init(const Interface<Mesh>& interface);
-  void init(const Time_Interface<Mesh>& interface);
+  void init(const TimeInterface<Mesh>& interface);
   bool check_exist(int k, int dom) const {
     const auto it = idx_from_background_mesh_[dom].find(k);
     if(it == idx_from_background_mesh_[dom].end()) return false;
@@ -656,7 +656,7 @@ void ActiveMesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
 }
 
 template<typename Mesh>
-void ActiveMesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::create_surface_mesh(const TimeInterface<Mesh>& interface){
 
   int n_tid = interface.size();
   nb_quadrature_time_ = n_tid;
@@ -743,7 +743,7 @@ void ActiveMesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface
 
 //  constructor for basic 2 subdomains problem {1, -1}
 template<typename Mesh>
-void ActiveMesh<Mesh>::init(const Time_Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::init(const TimeInterface<Mesh>& interface){
 
   int n_tid = interface.size();
   nb_quadrature_time_ = n_tid;
@@ -806,7 +806,7 @@ void ActiveMesh<Mesh>::init(const Time_Interface<Mesh>& interface){
 }
 
 template<typename Mesh>
-void ActiveMesh<Mesh>::truncate(const Time_Interface<Mesh>& interface,int sign_domain_remove){
+void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh>& interface,int sign_domain_remove){
 
   int n_tid = interface.size();
   nb_quadrature_time_ = n_tid;

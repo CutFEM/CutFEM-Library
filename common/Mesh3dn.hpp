@@ -31,8 +31,8 @@ public:
   Mesh3(int nnv, int nnt, int nnbe, Vertex3 *vv, Tet *tt, Triangle3 *bb);
   Mesh3(int nnv, int nnbe, Vertex3 *vv, Triangle3 *bb);  // surface mesh
   Mesh3(int nx, int ny, int nz, R orx, R ory, R orz, R lx, R ly, R lz);
-  Mesh3(const Interface& gamma);
-  Mesh3(TimeInterface3& gamma);
+  // Mesh3(const Interface& gamma);
+  // Mesh3(TimeInterface3& gamma);
 
   // Mesh3(const Mesh3&, std::string whatToDo);
 

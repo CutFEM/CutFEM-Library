@@ -112,7 +112,7 @@ private:
 };
 
 template<typename Mesh>
-class Time_Interface {
+class TimeInterface {
 public:
 	// typedef FunFEM<Mesh> Fun_h;
 private:
@@ -121,7 +121,7 @@ private:
 
 public:
 
-  Time_Interface(int nt) : interface(nt), n(nt) {
+  TimeInterface(int nt) : interface(nt), n(nt) {
     for(int i=0;i<n;++i){ interface[i] = nullptr;}
   }
 
@@ -139,15 +139,15 @@ public:
 
   int size() const { return n;}
 
-  ~Time_Interface(){
+  ~TimeInterface(){
     for(int i=0;i<n;++i){
       if(interface[i]) delete interface[i];
     }
   }
 
 private:
-  Time_Interface(const Time_Interface&);
-  void operator=(const Time_Interface &);
+  TimeInterface(const TimeInterface&);
+  void operator=(const TimeInterface &);
 };
 
 

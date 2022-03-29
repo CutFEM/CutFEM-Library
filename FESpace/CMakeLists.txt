@@ -15,10 +15,10 @@ set(FESPACE_SOURCES
   finiteElement.cpp
   GTypeOfFE.cpp
   FESpace.cpp
-  CutFESpace.cpp
+  #CutFESpace.cpp
   expression.cpp
   macroElement.cpp
-  limiter.cpp
+  #limiter.cpp
   paraview.cpp
 )
 

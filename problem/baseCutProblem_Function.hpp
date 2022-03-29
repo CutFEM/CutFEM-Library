@@ -101,7 +101,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip);
       Cint *= coef * VF[l].c;
 
-
+      Cint = coef;
       if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
@@ -181,7 +181,7 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
         // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
         Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip);
         Cint *= coef * VF[l].c;
-
+        Cint = coef;
         if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
         else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 

@@ -186,7 +186,7 @@ InterfaceLevelSet<M>::make_normal (const typename Mesh::Element& K, const double
 }
 
 template<typename Mesh>
-void Time_Interface<Mesh>::init(int i, const Mesh & Th, const FunFEMVirtual& ls) {
+void TimeInterface<Mesh>::init(int i, const Mesh & Th, const FunFEMVirtual& ls) {
   assert(0 <= i && i < n);
   if(interface[i]) {
     delete interface[i];
@@ -194,7 +194,7 @@ void Time_Interface<Mesh>::init(int i, const Mesh & Th, const FunFEMVirtual& ls)
   interface[i] = new InterfaceLevelSet<Mesh>(Th,ls);
 }
 template<typename Mesh>
-void Time_Interface<Mesh>::init(const Mesh & Th, const KN<FunFEMVirtual>& ls) {
+void TimeInterface<Mesh>::init(const Mesh & Th, const KN<FunFEMVirtual>& ls) {
   for(int i=0;i<n;++i){
     if(interface[i]) { delete interface[i];}
   }

@@ -17,7 +17,7 @@
 // #include "../FESpace/interpolationCutFEM.hpp"
 // #include "../FESpace/integration.hpp"
 #include "../FESpace/restriction.hpp"
-#include "../FESpace/CutFESpace.hpp"
+// #include "../FESpace/CutFESpace.hpp"
 #include "../FESpace/integrationFunFEM.hpp"
 // #include "../toolFEM/TimeIntegration.hpp"
 //#include "../num/OperationMV.hpp"
