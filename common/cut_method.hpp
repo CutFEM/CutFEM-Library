@@ -694,7 +694,7 @@ private:
   //     }
   //   }
 public:
-  void get_list_node (vector<Rd>& node, int s) const {assert(0);};
+  void get_list_node (vector<Rd>& node, int s) const;//{assert(0);};
   CutElement<E> get_element(int k) const { assert(0); return CutElement<E>();};
   int nb_element(int s) const {assert(0);return patch.end_-patch.begin_;}
 

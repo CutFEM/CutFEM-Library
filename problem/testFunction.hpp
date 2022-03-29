@@ -33,7 +33,7 @@ struct ItemTestFunction {
   double c;
   int cu,du,dtu;
   KN<int> ar_nu;
-  std::vector<const Virtual_CutFEM_Parameter*> coefu;
+  std::vector<const Virtual_Parameter*> coefu;
   int domain_id_, face_side_;
   const ExpressionVirtual * expru = nullptr;
   GFESpace<Mesh> const * fespace = nullptr;
@@ -42,7 +42,7 @@ struct ItemTestFunction {
 
 
   ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),domain_id_(-1),face_side_(-1){}
-  ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<const Virtual_CutFEM_Parameter*> cou)
+  ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<const Virtual_Parameter*> cou)
   : c(cc), cu(i),du(j),dtu(tu), domain_id_(dd), face_side_(-1){ coefu =cou;}
   ItemTestFunction(const ItemTestFunction& F)
   : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), face_side_(F.face_side_),expru(F.expru), fespace(F.fespace) {
@@ -87,10 +87,10 @@ struct ItemTestFunction {
     if(Ni == 1) c*=-1;  //(-b,a) with (a,b) normal
   }
 
-  void addParameter(const Virtual_CutFEM_Parameter& x) {
+  void addParameter(const Virtual_Parameter& x) {
     coefu.push_back(&x);
   }
-  void addParameter(const Virtual_CutFEM_Parameter* x) {
+  void addParameter(const Virtual_Parameter* x) {
     coefu.push_back(x);
   }
 
@@ -142,9 +142,9 @@ public:
     U(0) = nullptr;//new ItemTestFunction<N>();
   }
   ItemList(double cc,int i,int j, int dd=-1) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_CutFEM_Parameter*>());
+    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_Parameter*>());
   }
-  ItemList(double cc,int i,int j,int tu, int dd, const vector<const Virtual_CutFEM_Parameter*>& cuu) : U(1) {
+  ItemList(double cc,int i,int j,int tu, int dd, const vector<const Virtual_Parameter*>& cuu) : U(1) {
     U(0) = new ItemTestFunction<N>(cc,i,j,tu,dd,cuu);
   }
 
@@ -168,7 +168,7 @@ public:
   // }
 
   ItemList(const FESpace& Vh, double cc,int i,int j, int dd=-1) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_CutFEM_Parameter*>());
+    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_Parameter*>());
     U(0)->fespace = &Vh;
   }
 
@@ -487,7 +487,7 @@ template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const Tes
 
 
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T, double v1, double v2);
-template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const Virtual_CutFEM_Parameter& para, const Virtual_CutFEM_Parameter& para2);
+template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const Virtual_Parameter& para, const Virtual_Parameter& para2);
 
 template<int N> friend TestFunction<N> dx(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> dy(const TestFunction<N> & T);
@@ -707,7 +707,7 @@ TestFunction<N> ln(const TestFunction<N>& F) {
 // }
 
 template <int N>
-TestFunction<N> operator * (const TestFunction<N>& F, const Virtual_CutFEM_Parameter& cc ) {
+TestFunction<N> operator * (const TestFunction<N>& F, const Virtual_Parameter& cc ) {
   TestFunction<N> multU(F);
   for(int i=0;i<F.A.N();++i) {
     for(int j=0;j<F.A.M();++j) {
@@ -721,7 +721,7 @@ TestFunction<N> operator * (const TestFunction<N>& F, const Virtual_CutFEM_Param
 }
 
 template <int N>
-TestFunction<N> operator * (const Virtual_CutFEM_Parameter& cc, const TestFunction<N>& F) {
+TestFunction<N> operator * (const Virtual_Parameter& cc, const TestFunction<N>& F) {
   TestFunction<N> multU(F);
   for(int i=0;i<F.A.N();++i) {
     for(int j=0;j<F.A.M();++j) {
@@ -1384,7 +1384,7 @@ TestFunction<d> average(const TestFunction<d> & T, double v1=0.5, double v2=0.5)
 }
 
 template <int d>
-TestFunction<d> average(const TestFunction<d> & T, const Virtual_CutFEM_Parameter& para1, const Virtual_CutFEM_Parameter& para2){
+TestFunction<d> average(const TestFunction<d> & T, const Virtual_Parameter& para1, const Virtual_Parameter& para2){
   assert(T.A.M() == 1);
   int N = T.A.N();
   TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());

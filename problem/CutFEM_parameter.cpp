@@ -1,50 +1,50 @@
 #include "CutFEM_parameter.hpp"
-std::map<std::string,CutFEM_Parameter*> CutFEM_ParameterList::listParameter = std::map<std::string,CutFEM_Parameter*>();
+std::map<std::string,ParameterCutFEM*> CutFEM_ParameterList::listParameter = std::map<std::string,ParameterCutFEM*>();
 
 static double fun_meas(int i, double hh, double meas, double measK, double meas_Cut) {return meas;}
 static double fun_invmeas(int i, double hh, double meas, double measK, double meas_Cut) {return 1./meas;}
 static double fun_h(int i, double hh, double meas, double measK, double meas_Cut) {return hh;}
 static double fun_invh(int i, double hh, double meas, double measK, double meas_Cut) {return 1./hh;}
 
-CutFEM_Parameter Parameter::h        = CutFEM_Parameter("h", fun_h);
-CutFEM_Parameter Parameter::invh     = CutFEM_Parameter("invh", fun_invh);
-CutFEM_Parameter Parameter::meas     = CutFEM_Parameter("meas", fun_meas);
-CutFEM_Parameter Parameter::invmeas  = CutFEM_Parameter("invmeas", fun_invmeas);
+ParameterCutFEM Parameter::h        = ParameterCutFEM("h", fun_h);
+ParameterCutFEM Parameter::invh     = ParameterCutFEM("invh", fun_invh);
+ParameterCutFEM Parameter::meas     = ParameterCutFEM("meas", fun_meas);
+ParameterCutFEM Parameter::invmeas  = ParameterCutFEM("invmeas", fun_invmeas);
 
 
-void CutFEM_Parameter::addToList() {
+void ParameterCutFEM::addToList() {
   CutFEM_ParameterList::listParameter[name_] = this;
 }
 
 
-Mul_Cst_Parameter operator*(const double a, const Virtual_CutFEM_Parameter& B) {
+Mul_Cst_Parameter operator*(const double a, const Virtual_Parameter& B) {
   return Mul_Cst_Parameter(a, B);
 }
-Mul_Cst_Parameter operator*(const Virtual_CutFEM_Parameter& B, const double a){
+Mul_Cst_Parameter operator*(const Virtual_Parameter& B, const double a){
   return Mul_Cst_Parameter(a, B);
 }
 
-Pow_Parameter pow(const Virtual_CutFEM_Parameter& A, int n) {
+Pow_Parameter pow(const Virtual_Parameter& A, int n) {
   return Pow_Parameter(A,n);
 }
-Pow_Parameter operator^(const Virtual_CutFEM_Parameter& A, int n){
+Pow_Parameter operator^(const Virtual_Parameter& A, int n){
   return Pow_Parameter(A,n);
 }
 
-SumDiff_Parameter operator+(const Virtual_CutFEM_Parameter& A, const Virtual_CutFEM_Parameter& B){
+SumDiff_Parameter operator+(const Virtual_Parameter& A, const Virtual_Parameter& B){
   return SumDiff_Parameter(1,A,1,B);
 }
-SumDiff_Parameter operator-(const Virtual_CutFEM_Parameter& A, const Virtual_CutFEM_Parameter& B){
+SumDiff_Parameter operator-(const Virtual_Parameter& A, const Virtual_Parameter& B){
   return SumDiff_Parameter(1,A,-1,B);
 }
 
-Mult_Parameter operator*(const Virtual_CutFEM_Parameter& A, const Virtual_CutFEM_Parameter& B){
+Mult_Parameter operator*(const Virtual_Parameter& A, const Virtual_Parameter& B){
   return Mult_Parameter(A,B);
 }
-Inverse_Parameter operator/(double a, const Virtual_CutFEM_Parameter& A){
+Inverse_Parameter operator/(double a, const Virtual_Parameter& A){
   return Inverse_Parameter(a,A);
 }
-Inverse_Parameter inv(const Virtual_CutFEM_Parameter& A){
+Inverse_Parameter inv(const Virtual_Parameter& A){
   return Inverse_Parameter(1.,A);
 }
 
@@ -53,13 +53,13 @@ Inverse_Parameter inv(const Virtual_CutFEM_Parameter& A){
 // --------------------------------------------------------------
 
 //
-// CutFEM_Parameter Parameter::kappa1   = CutFEM_Parameter("kappa1", fun_kappa1);
-// CutFEM_Parameter Parameter::kappa2   = CutFEM_Parameter("kappa2", fun_kappa2);
-// CutFEM_Parameter Parameter::lambdaG  = CutFEM_Parameter("lambdaG", fun_lambdaG);
-// CutFEM_Parameter Parameter::lambdaB  = CutFEM_Parameter("lambdaB", fun_lambdaB);
+// ParameterCutFEM Parameter::kappa1   = ParameterCutFEM("kappa1", fun_kappa1);
+// ParameterCutFEM Parameter::kappa2   = ParameterCutFEM("kappa2", fun_kappa2);
+// ParameterCutFEM Parameter::lambdaG  = ParameterCutFEM("lambdaG", fun_lambdaG);
+// ParameterCutFEM Parameter::lambdaB  = ParameterCutFEM("lambdaB", fun_lambdaB);
 
-// CutFEM_Parameter Parameter::lambdaB3 = CutFEM_Parameter("lambdaB3", fun_lambdaB3);
-// CutFEM_Parameter Parameter::lambdaG3 = CutFEM_Parameter("lambdaG3", fun_lambdaG3);
+// ParameterCutFEM Parameter::lambdaB3 = ParameterCutFEM("lambdaB3", fun_lambdaB3);
+// ParameterCutFEM Parameter::lambdaG3 = ParameterCutFEM("lambdaG3", fun_lambdaG3);
 //
 
 // static double fun_kappa1(int i, double hh, double meas, double measK, double meas_Cut) {

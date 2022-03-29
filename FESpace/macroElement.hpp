@@ -147,11 +147,11 @@ template<typename Mesh>
 class MacroElementCL : public GMacro {
 public:
 
-  const Cut_Mesh<Mesh>& Th_;
+  const ActiveMesh<Mesh>& Th_;
   R tol_;
   int nb_element_0, nb_element_1;
 
-  MacroElementCL(const Cut_Mesh<Mesh>& th, const double C);
+  MacroElementCL(const ActiveMesh<Mesh>& th, const double C);
 
 private:
   void findSmallElement();
@@ -162,7 +162,7 @@ private:
 };
 
 template<typename Mesh>
-MacroElementCL<Mesh>::MacroElementCL(const Cut_Mesh<Mesh>& th, const double C) : Th_(th){
+MacroElementCL<Mesh>::MacroElementCL(const ActiveMesh<Mesh>& th, const double C) : Th_(th){
   double h = Th_[0].lenEdge(0);
   double meas = Th_[0].mesure();
   nb_element_0 = 0;
@@ -186,7 +186,7 @@ void MacroElementCL<Mesh>::findSmallElement() {
 
     const Cut_Part<typename Mesh::Element> cutK(Th_.get_cut_part(k));
     const int domain = Th_.get_domain_element(k);
-    double areaCut = cutK.mesure(domain);
+    double areaCut = cutK.measure();
 
     if(areaCut < tol) {
       small_element[k] = SmallElement(k);

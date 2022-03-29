@@ -306,7 +306,7 @@ public:
     }
 
 
-    GFESpace(const Cut_Mesh<Mesh> & TTh, const GFESpace& vh, const PeriodicBC* PPeriod = nullptr) :
+    GFESpace(const ActiveMesh<Mesh> & TTh, const GFESpace& vh, const PeriodicBC* PPeriod = nullptr) :
       DataFENodeDF(vh.BuildDFNumbering(TTh)),
       Th(TTh.Th),
       TFE(1,0,vh.TFE(0)),
@@ -316,7 +316,7 @@ public:
        {
        }
 
-       DataFENodeDF BuildDFNumbering(const Cut_Mesh<Mesh> & TTh) const;
+       DataFENodeDF BuildDFNumbering(const ActiveMesh<Mesh> & TTh) const;
 
 
   const int * PtrFirstNodeOfElement(int k) const {
@@ -366,7 +366,7 @@ public:
   virtual const GFESpace& getBackSpace() const { return *backSpace;}
   const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
 
-  virtual const Cut_Mesh<Mesh>& get_mesh() const { assert(0); return Cut_Mesh<Mesh>(Th);}
+  virtual const ActiveMesh<Mesh>& get_mesh() const { assert(0); return ActiveMesh<Mesh>(Th);}
 
 
   int NbNode() const { return this->nbNode;}
@@ -421,7 +421,7 @@ public:
 };
 
 template<typename Mesh>
-DataFENodeDF GFESpace<Mesh>::BuildDFNumbering(const Cut_Mesh<Mesh> & TTh) const{
+DataFENodeDF GFESpace<Mesh>::BuildDFNumbering(const ActiveMesh<Mesh> & TTh) const{
 
 int ndfon[4] = {this->ndfonVertex(), this->ndfonEdge(),this->ndfonFace(), this->ndfonTet()};
 int nSub = TTh.get_nb_domain();
@@ -517,15 +517,15 @@ public:
   typedef typename Mesh::Element  Element;
   typedef typename Mesh::BorderElement  BorderElement;
 
-  const Cut_Mesh<Mesh> & cutTh;
+  const ActiveMesh<Mesh> & cutTh;
 
-  CutFESpace(const Cut_Mesh<Mesh> & TTh, const GFESpace<Mesh>& vh, const PeriodicBC* PPeriod = nullptr) : GFESpace<Mesh>(TTh, vh, PPeriod), cutTh(TTh) {this->backSpace = &vh;}
+  CutFESpace(const ActiveMesh<Mesh> & TTh, const GFESpace<Mesh>& vh, const PeriodicBC* PPeriod = nullptr) : GFESpace<Mesh>(TTh, vh, PPeriod), cutTh(TTh) {this->backSpace = &vh;}
 
   FElement operator[](int k) const {
     int kb = cutTh.idxElementInBackMesh(k);
     return FElement(this,k, kb);
   }
-  const Cut_Mesh<Mesh>& get_mesh() const { return cutTh;}
+  const ActiveMesh<Mesh>& get_mesh() const { return cutTh;}
   int get_domain(int k) const { return cutTh.get_domain_element(k);}
   bool isCut(int k) const { return cutTh.isCut(k);}
   int idxElementInBackMesh(int k) const { return cutTh.idxElementInBackMesh(k);}

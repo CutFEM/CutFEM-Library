@@ -110,161 +110,15 @@ namespace Data_CutMixedDarcy {
     return 0;
   }
 }
-namespace Data_CutMixedDarcyNOJUMP {
-  bool solHasJump = false;
-
-  R interfaceRad = 0.250001; // not exactly 1/4 to avoid bad cuts
-  R shift = 0.5;
-
-  R fun_radius2(const R2 P){
-    return (P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift);
-  }
-  R fun_levelSet(const R2 P, const int i) {
-    return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad;
-  }
-
-  R fun_dirichlet(const R2 P, int compInd) {
-    if (compInd == 0)
-    // return 2*sin(2*pi*P[0])*sin(4*pi*P[1]);
-    return 0;
-    else
-    return 0;
-  }
-  R fun_neumann(const R2 P, int compInd, int dom) {
-    if (compInd == 2) {
-      R r2 = fun_radius2(P);
-      R radius2 = interfaceRad*interfaceRad;
-      return r2/(2*radius2)+3./2.;
-    }
-    else
-    return 0;
-  }
-
-  R fun_force(const R2 P, int compInd) {
-    return 0;
-  }
-  R fun_div(const R2 P, int compInd, int dom) { // is also exact divergence
-    R radius2 = interfaceRad*interfaceRad;
-    return -2./radius2;
-  }
-  R fun_exact(const R2 P, int compInd, int dom) {
-    Diff<R,2> X(P.x,0), Y(P.y,1);
-    Diff<R,2> r2 = (X-shift)*(X-shift) + (Y-shift)*(Y-shift);
-    R radius2 = interfaceRad*interfaceRad;
-    Diff<R, 2> val = r2/(2*radius2) + 3./2;
-    if (compInd==2) {
-      return val.val;
-    }
-    else {
-      return -val.d[compInd];
-    }
-  }
-  R fun_interfacePr(const R2 P, int compInd) {
-    return fun_exact(P,2,0);
-  }
-}
-
-namespace Data_Puppy{
-  R d_x = 2.;
-  R d_y = 2.;
-  R shift = 0;
-  R interfaceRad = 0.501;
-  R mu_G = 2./3*interfaceRad; // xi0*mu_G = 1/8*2/3*1/4
-
-  R fun_radius2(const R2 P){
-    return (P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift);
-  }
-  R fun_levelSet(const R2 P, const int i) {
-    return P.y-1.051;
-  }
-
-  // R fun_neumann_east(const R2 P, int compInd) {
-  //   return -sin(P.x)*sinh(P.y) - (cos(1) - 1)*(cosh(1) - 1);
-  // }
-  R fun_neumann(const R2 P, int compInd) {
-    return -sin(P.x)*sinh(P.y) - (cos(1) - 1)*(cosh(1) - 1);
-  }
-
-
-
-  R fun_force(const R2 P, int compInd) {
-    return 0;
-  }
-  R fun_div(const R2 P, int compInd, int dom) {// is also exact divergence
-    return 0;
-  }
-  R fun_exact(const R2 P, int compInd, int dom) {
-    if (compInd==2) {
-      return -sin(P.x)*sinh(P.y) - (cos(1) - 1)*(cosh(1) - 1);
-    } else if (compInd==0) {
-      return cos(P.x)*sinh(P.y);
-    } else {
-      return sin(P.x)*cosh(P.y);
-    }
-  }
-  R fun_interfacePr(const R2 P, int compInd) {
-    if (compInd == 2)
-    return 0;//19./12;
-    else
-    return 0;
-  }
-
-}
 using namespace Data_CutMixedDarcy;
-
-static void exactRHSintegration(const CutFESpace2& Vh, Rn& rhs, R (*f)(const R2)){
-  typedef typename Mesh2::BorderElement BorderElement;
-  typedef typename FESpace2::FElement FElement;
-  typedef typename Mesh2::Element Element;
-  typedef typename FElement::QFB QFB;
-  typedef typename QFB::QuadraturePoint QuadraturePoint;
-
-
-  KNMK<double> fv(Vh[0].NbDoF(),3,1); //  the value for basic fonction
-  What_d Fop = Fwhatd(1);
-  const QFB &qfb(*QF_Simplex<R1>(5));
-
-  for( int ifac = Vh.first_boundary_element(); ifac < Vh.last_boundary_element(); ifac+=Vh.next_boundary_element()) {
-
-    const BorderElement & BE(Vh.Th.be(ifac)); // The face
-    int ifaceK; // index of face of triangle corresp to edge (0,1,2)
-    const int kb = Vh.Th.BoundaryElement(ifac, ifaceK); // index of element (triangle), ifaceK gets modified inside
-    const int k = Vh.idxElementFromBackMesh(kb, 0);
-
-    const FElement& FK((Vh)[k]);
-    R2 normal = FK.T.N(ifaceK);
-    const R meas = BE.mesure();
-
-    int nb_face_onB = 0;
-    for(int i=0;i<Element::nea;++i){
-      int ib = i;
-      if(Vh.Th.ElementAdj(kb,ib) == -1) nb_face_onB += 1;
-    }
-    assert(nb_face_onB > 0);
-    double measOnB = nb_face_onB*meas;
-    const int kv = Vh.idxElementFromBackMesh(kb, 0);
-
-    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-
-      QuadraturePoint ip(qfb[ipq]); // integration point
-      const R2 mip = BE((R1)ip); // mip is in the global edge
-      const R Cint = meas * ip.getWeight();
-
-      FK.BF(Fop,FK.T.toKref(mip), fv);
-      double val_fh = f(mip);
-
-      for(int d=0;d<2;++d){
-        for(int i = FK.dfcbegin(d); i < FK.dfcend(d); ++i) {
-          rhs(FK.loc2glb(i)) +=  -Cint * val_fh * fv(i,d,op_id)*normal[d];
-        }
-      }
-    }
-  }
-}
-
 int main(int argc, char** argv ) {
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
+  typedef Mesh2 Mesh;
+  typedef ActiveMeshT2 CutMesh;
+  typedef FESpace2   Space;
+  typedef CutFESpaceT2 CutSpace;
+
 
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
@@ -274,18 +128,16 @@ int main(int argc, char** argv ) {
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters =5;
+  int iters =3;
 
   for(int i=0;i<iters;++i) {
-    Mesh2 Th(nx, ny, 0., 0., 1., 1.);
-    // Mesh2 Th(nx, ny, 0., 0., 2., 2.);
+    Mesh Kh(nx, ny, 0., 0., 1., 1.);
     Th.info();
-    std::cout << "nx = \t" << nx << std::endl;
-    // Mesh2 Th("../mesh/RTmesh20.msh");
-    FESpace2 Lh(Th, DataFE<Mesh2>::P1);
-    Fun_h levelSet(Lh, fun_levelSet);
 
-    Interface2 interface(Th, levelSet.v);
+
+    Space Lh(Kh, DataFE<Mesh2>::P1);
+    Fun_h levelSet(Lh, fun_levelSet);
+    InterfaceLevelSet<Mesh> interface(Th, levelSet);
 
     KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
     arrayFE(0) = &DataFE<Mesh2>::RT1;

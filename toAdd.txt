@@ -1,0 +1,16 @@
+template<typename M>
+void BaseProblem<M>::addDiagonal(const FESpace& Qh, double val){
+  int idxBegin = mapIdx0[&Qh];
+  int idxEnd   = Qh.nbDoF;
+  for(int i=idxBegin;i<idxEnd ;++i){
+    this->mat[std::make_pair(i,i)] += val;
+  }
+}
+template<typename M>
+void BaseProblem<M>::setDiagonal(const FESpace& Qh, double val){
+  int idxBegin = mapIdx0[&Qh];
+  int idxEnd   = Qh.nbDoF;
+  for(int i=idxBegin;i<idxEnd ;++i){
+    this->mat[std::make_pair(i,i)] = val;
+  }
+}

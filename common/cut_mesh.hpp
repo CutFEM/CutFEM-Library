@@ -73,7 +73,7 @@ struct Cut_Part {
 
 
 template<typename Mesh>
-class Cut_Mesh {
+class ActiveMesh {
 
 public:
   typedef typename Mesh::Element Element;
@@ -101,7 +101,7 @@ public:
 public:
   // Create a CutMesh without cut on the backMesh
   // Usefull if wanna add sub domains
-  Cut_Mesh(const Mesh& th) : Th(th) {
+  ActiveMesh(const Mesh& th) : Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(1);
@@ -118,7 +118,7 @@ public:
   }
   // Give the background mesh and a sign Function defined on the mesh nodes
   // Will create 2 subdomains
-  Cut_Mesh(const Mesh& th, const Interface<Mesh>& interface) :  Th(th) {
+  ActiveMesh(const Mesh& th, const Interface<Mesh>& interface) :  Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(2);
@@ -127,7 +127,7 @@ public:
     nb_quadrature_time_ = 1;
     this->init(interface);
   }
-  Cut_Mesh(const Mesh& th, const Time_Interface<Mesh>& interface) :  Th(th) {
+  ActiveMesh(const Mesh& th, const Time_Interface<Mesh>& interface) :  Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(2);
@@ -214,17 +214,20 @@ public:
     int kb = this->idxElementInBackMesh(k);
     return it->second.at(0).first->isCutFace(kb,ifac);
   }
-  bool isActive(int k) const {
-
-    int domain = get_domain_element(k);
-    int kb = idxElementInBackMesh(k, domain);
-    int count = 0;
-    for(int i=0;i<get_nb_domain();++i){
-      if(check_exist(kb, i)) count++;
+  bool isStabilizeElement(int k) const {
+    // is cut or not always active
+    for(int i=0;i<nb_quadrature_time_;++i){
+      if(this->isCut(k,i) || this->isInactive(k,i)) return true;
     }
-    return (count>=2);
+    return false;
   }
-
+  bool isInactive(int k, int t) const {
+    int domain = get_domain_element(k);
+    int kloc = idxK_in_domain(k, domain);
+    auto it = in_active_mesh_[domain][t].find(kloc);
+    if(it == in_active_mesh_[domain][t].end()) return false;
+    return true;
+  }
   const Interface<Mesh>& get_interface(int k, int t = 0) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
@@ -355,7 +358,7 @@ public:
 
 //  constructor for basic 2 subdomains problem {1, -1}
 template<typename Mesh>
-void Cut_Mesh<Mesh>::init(const Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::init(const Interface<Mesh>& interface){
 
   idx_in_background_mesh_[0].reserve(Th.nt);
   idx_in_background_mesh_[1].reserve(Th.nt);
@@ -397,7 +400,7 @@ void Cut_Mesh<Mesh>::init(const Interface<Mesh>& interface){
 
 //  constructor a subdopmain corresponding to the positive sign
 template<typename Mesh>
-void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::add(const Interface<Mesh>& interface){
 
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
@@ -516,7 +519,7 @@ void Cut_Mesh<Mesh>::add(const Interface<Mesh>& interface){
 }
 
 template<typename Mesh>
-void Cut_Mesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain_remove){
+void ActiveMesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain_remove){
 
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
@@ -587,7 +590,7 @@ void Cut_Mesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain_r
 
 
 template<typename Mesh>
-void Cut_Mesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
 
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
@@ -653,9 +656,13 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
 }
 
 template<typename Mesh>
-void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
 
   int n_tid = interface.size();
+  nb_quadrature_time_ = n_tid;
+  in_active_mesh_.resize(10);
+  for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
+
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
 
@@ -684,6 +691,11 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
           active_element = true;
           break;
         }
+      }
+
+      if(!active_element){
+        it_k = idx_from_background_mesh_[d].erase(it_k);
+        continue;
       }
 
 
@@ -731,7 +743,7 @@ void Cut_Mesh<Mesh>::create_surface_mesh(const Time_Interface<Mesh>& interface){
 
 //  constructor for basic 2 subdomains problem {1, -1}
 template<typename Mesh>
-void Cut_Mesh<Mesh>::init(const Time_Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::init(const Time_Interface<Mesh>& interface){
 
   int n_tid = interface.size();
   nb_quadrature_time_ = n_tid;
@@ -794,7 +806,7 @@ void Cut_Mesh<Mesh>::init(const Time_Interface<Mesh>& interface){
 }
 
 template<typename Mesh>
-void Cut_Mesh<Mesh>::truncate(const Time_Interface<Mesh>& interface,int sign_domain_remove){
+void ActiveMesh<Mesh>::truncate(const Time_Interface<Mesh>& interface,int sign_domain_remove){
 
   int n_tid = interface.size();
   nb_quadrature_time_ = n_tid;
@@ -884,7 +896,7 @@ void Cut_Mesh<Mesh>::truncate(const Time_Interface<Mesh>& interface,int sign_dom
 
 
 template<typename Mesh>
-Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition(const int k, int t) const {
+Physical_Partition<typename Mesh::Element> ActiveMesh<Mesh>::build_local_partition(const int k, int t) const {
 
   int nvc = Element::Rd::d+1;
   typedef SortArray<Ubyte, Element::Rd::d+1> ElementIdx;
@@ -960,17 +972,17 @@ Physical_Partition<typename Mesh::Element> Cut_Mesh<Mesh>::build_local_partition
 }
 
 template<typename Mesh>
-Physical_Partition<typename Mesh::Element::Face> Cut_Mesh<Mesh>::build_local_partition(Face& face, const int k, int ifac, int t) const {
+Physical_Partition<typename Mesh::Element::Face> ActiveMesh<Mesh>::build_local_partition(Face& face, const int k, int ifac, int t) const {
 
   Physical_Partition<typename Element::Face> partition(face);
 
   return partition;
 
 }
-typedef Cut_Mesh<Mesh2> CutMeshT2;
-typedef Cut_Mesh<Mesh3> CutMeshT3;
-typedef Cut_Mesh<MeshQuad2> CutMeshQ2;
-typedef Cut_Mesh<MeshHexa> CutMeshQ3;
+typedef ActiveMesh<Mesh2> ActiveMeshT2;
+typedef ActiveMesh<Mesh3> ActiveMeshT3;
+typedef ActiveMesh<MeshQuad2> ActiveMeshQ2;
+typedef ActiveMesh<MeshHexa> ActiveMeshQ3;
 
 
 

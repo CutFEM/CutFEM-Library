@@ -8,7 +8,7 @@
 template<typename Mesh>
 class BaseCutFEM : public BaseFEM<Mesh> {
 
-  typedef Cut_Mesh<Mesh> CutMesh;
+  typedef ActiveMesh<Mesh> CutMesh;
   typedef GFESpace<Mesh> FESpace;
   typedef typename FESpace::FElement FElement;
   typedef typename FElement::Rd Rd;

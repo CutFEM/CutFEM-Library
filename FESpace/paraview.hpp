@@ -74,8 +74,25 @@ static double paraviewFormat( double x) {
       idx_in_Vh.resize((int)(3*size0/2));
       num_cell.resize((int)(3*size0/2));
     }
-    void build(const Cut_Mesh<Mesh> & cutTh);
-    void buildCut(const Cut_Mesh<Mesh> & cutTh) {
+
+    void clearAndResize(int size0){
+      mesh_node.clear();
+      idx_in_Vh.clear();
+      num_cell.clear();
+      mesh_node.resize(size0);
+      idx_in_Vh.resize(size0);
+      num_cell.resize (size0);
+    }
+    void shrinkToFit(int kk){
+      mesh_node.resize(kk);
+      mesh_node.shrink_to_fit();
+      idx_in_Vh.resize(kk);
+      idx_in_Vh.shrink_to_fit();
+      num_cell.resize(kk);
+      num_cell.shrink_to_fit();
+    }
+    void build(const ActiveMesh<Mesh> & cutTh);
+    void buildCut(const ActiveMesh<Mesh> & cutTh) {
 
       ntCut_ = 0;
       ntNotcut_ = 0;
@@ -83,10 +100,7 @@ static double paraviewFormat( double x) {
       // std::vector<Rd> list_node;
       int kk=0;
       int size0 = 1.5*cutTh.NbElement();
-      mesh_node.resize(size0);
-      idx_in_Vh.resize(size0);
-      num_cell.resize (size0);
-
+      clearAndResize(size0);
       double area = 0.;
       for(int k=0; k<cutTh.NbElement(); ++k) {
         int domain = cutTh.get_domain_element(k);
@@ -124,22 +138,16 @@ static double paraviewFormat( double x) {
           kk++;
         }
       }
-      mesh_node.resize(kk+1);
-      mesh_node.shrink_to_fit();
-      idx_in_Vh.resize(kk+1);
-      idx_in_Vh.shrink_to_fit();
-      num_cell.resize(kk+1);
-      num_cell.shrink_to_fit();
+      shrinkToFit(kk+1);
     }
-    void buildNoCut(const Cut_Mesh<Mesh> & cutTh) {
+    void buildNoCut(const ActiveMesh<Mesh> & cutTh) {
 
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
       int size0 = 1.5*cutTh.NbElement();
-      mesh_node.resize(size0);
-      idx_in_Vh.resize(size0);
-      num_cell.resize (size0);
+      clearAndResize(size0);
+
       std::vector<Rd> list_node;
       int kk = 0;
       for(int k=0; k<cutTh.NbElement(); ++k) {
@@ -194,21 +202,15 @@ static double paraviewFormat( double x) {
           kk++;
         }
       }
-      mesh_node.resize(kk+1);
-      mesh_node.shrink_to_fit();
-      idx_in_Vh.resize(kk+1);
-      idx_in_Vh.shrink_to_fit();
-      num_cell.resize(kk+1);
-      num_cell.shrink_to_fit();
+      shrinkToFit(kk+1);
     }
-    void build_active_mesh(const Cut_Mesh<Mesh> & cutTh) {
+    void build_active_mesh(const ActiveMesh<Mesh> & cutTh) {
 
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      mesh_node.resize(cutTh.NbElement());
-      idx_in_Vh.resize(cutTh.NbElement());
-      num_cell.resize (cutTh.NbElement());
+      int size0 = cutTh.NbElement();
+      clearAndResize(size0);
       std::vector<Rd> list_node;
       int kk = 0;
       for(int k=0; k<cutTh.NbElement(); ++k) {
@@ -225,21 +227,21 @@ static double paraviewFormat( double x) {
         ntNotcut_++;
         kk++;
       }
+      shrinkToFit(kk+1);
     }
-    void build_face_stab(const Cut_Mesh<Mesh> & cutTh,int domain) {
+    void build_face_stab(const ActiveMesh<Mesh> & cutTh,int domain) {
 
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
       int size0 = cutTh.NbElement();
-      mesh_node.resize(size0);
-      idx_in_Vh.resize(size0);
-      num_cell.resize (size0);
+      clearAndResize(size0);
+
       std::vector<Rd> list_node;
       int kk = 0;
       for(int k=0; k<cutTh.NbElement(); ++k) {
         int kb = cutTh.idxElementInBackMesh(k);
-        if( cutTh.isActive(k) && (cutTh.get_domain_element(k)==domain) || domain == -1) {
+        if( (cutTh.isStabilizeElement(k) && cutTh.get_domain_element(k)==domain) || domain == -1) {
           const Element& K(cutTh[k]);
           for(int e=0;e<Element::nea;++e){
             check_and_resize_array(kk);
@@ -261,22 +263,16 @@ static double paraviewFormat( double x) {
           }
         }
       }
-      mesh_node.resize(kk+1);
-      mesh_node.shrink_to_fit();
-      idx_in_Vh.resize(kk+1);
-      idx_in_Vh.shrink_to_fit();
-      num_cell.resize(kk+1);
-      num_cell.shrink_to_fit();
+      shrinkToFit(kk+1);
     }
     void build_macro_element(const MacroElementCL<M> & macro, int dom) {
 
-      const Cut_Mesh<Mesh>& cutTh(macro.Th_);
+      const ActiveMesh<Mesh>& cutTh(macro.Th_);
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      mesh_node.resize(cutTh.NbElement());
-      idx_in_Vh.resize(cutTh.NbElement());
-      num_cell.resize (cutTh.NbElement());
+      int size0 = cutTh.NbElement();
+      clearAndResize(size0);
       std::vector<Rd> list_node;
       int kk = 0;
 
@@ -299,16 +295,16 @@ static double paraviewFormat( double x) {
           kk++;
         }
       }
+      shrinkToFit(kk+1);
     }
     void buildMacroInnerEdge(const MacroElementCL<M> & macro, int dom) {
 
-      const Cut_Mesh<Mesh>& cutTh(macro.Th_);
+      const ActiveMesh<Mesh>& cutTh(macro.Th_);
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      mesh_node.resize(cutTh.NbElement());
-      idx_in_Vh.resize(cutTh.NbElement());
-      num_cell.resize (cutTh.NbElement());
+      int size0 = cutTh.NbElement();
+      clearAndResize(size0);
       std::vector<Rd> list_node;
       int kk = 0;
       int nv_loc = M::Element::nva;
@@ -333,16 +329,16 @@ static double paraviewFormat( double x) {
           kk++;
         }
       }
+      shrinkToFit(kk+1);
     }
     void buildMacroOutterEdge(const MacroElementCL<M> & macro, int dom) {
 
-      const Cut_Mesh<Mesh>& cutTh(macro.Th_);
+      const ActiveMesh<Mesh>& cutTh(macro.Th_);
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      mesh_node.resize(cutTh.NbElement());
-      idx_in_Vh.resize(cutTh.NbElement());
-      num_cell.resize (cutTh.NbElement());
+      int size0 = cutTh.NbElement();
+      clearAndResize(size0);
       std::vector<Rd> list_node;
       int kk = 0;
       int nv_loc = M::Element::nva;
@@ -371,6 +367,7 @@ static double paraviewFormat( double x) {
 
         }
       }
+      shrinkToFit(kk+1);
     }
 
     void build_macro_element( const MacroElementSurfaceCL<M> & macro) {
@@ -379,9 +376,8 @@ static double paraviewFormat( double x) {
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      mesh_node.resize(Th.nbElements());
-      idx_in_Vh.resize(Th.nbElements());
-      num_cell.resize (Th.nbElements());
+      int size0 = Th.nbElements();
+      clearAndResize(size0);
       std::vector<Rd> list_node;
       int kk = 0;
 
@@ -404,12 +400,7 @@ static double paraviewFormat( double x) {
           kk++;
         }
       }
-      mesh_node.resize(kk+1);
-      mesh_node.shrink_to_fit();
-      idx_in_Vh.resize(kk+1);
-      idx_in_Vh.shrink_to_fit();
-      num_cell.resize(kk+1);
-      num_cell.shrink_to_fit();
+      shrinkToFit(kk+1);
     }
     void buildMacroOutterEdge(const MacroElementSurfaceCL<M> & macro) {
 
@@ -417,9 +408,8 @@ static double paraviewFormat( double x) {
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      mesh_node.resize(Th.nbElements());
-      idx_in_Vh.resize(Th.nbElements());
-      num_cell.resize (Th.nbElements());
+      int size0 = Th.nbElements();
+      clearAndResize(size0);
       std::vector<Rd> list_node;
       int kk = 0;
       int nv_loc = M::Element::nva;
@@ -452,12 +442,7 @@ static double paraviewFormat( double x) {
 
         }
       }
-      mesh_node.resize(kk+1);
-      mesh_node.shrink_to_fit();
-      idx_in_Vh.resize(kk+1);
-      idx_in_Vh.shrink_to_fit();
-      num_cell.resize(kk+1);
-      num_cell.shrink_to_fit();
+      shrinkToFit(kk+1);
     }
     void buildMacroInnerEdge( const MacroElementSurfaceCL<M> & macro) {
 
@@ -465,9 +450,8 @@ static double paraviewFormat( double x) {
       ntCut_ = 0;
       ntNotcut_ = 0;
       nv_ = 0;
-      mesh_node.resize(Th.nbElements());
-      idx_in_Vh.resize(Th.nbElements());
-      num_cell.resize (Th.nbElements());
+      int size0 = Th.nbElements();
+      clearAndResize(size0);
       std::vector<Rd> list_node;
       int kk = 0;
       int nv_loc = M::Element::nva;
@@ -491,6 +475,7 @@ static double paraviewFormat( double x) {
           kk++;
         }
       }
+      shrinkToFit(kk+1);
     }
 
     bool isCut(int k) const {
@@ -513,21 +498,21 @@ static double paraviewFormat( double x) {
 
    } mesh_data;
 
-   ParaviewCut(std::string name) { }
-   ParaviewCut(const Cut_Mesh<Mesh>& cutTh, std::string name) {
+   ParaviewCut() { }
+   ParaviewCut(const ActiveMesh<Mesh>& cutTh, std::string name) {
      outFile_ = name;
      mesh_data.build(cutTh);
      this->writeFileMesh();
      this->writeFileCell();
    }
 
-   void writeFaceStab(const Cut_Mesh<Mesh>& cutTh, int domain, std::string name) {
+   void writeFaceStab(const ActiveMesh<Mesh>& cutTh, int domain, std::string name) {
      outFile_ = name;
      mesh_data.build_face_stab(cutTh, domain);
      this->writeFileMesh();
      this->writeFileCell();
    }
-   void writeActiveMesh(const Cut_Mesh<Mesh>& cutTh, std::string name) {
+   void writeActiveMesh(const ActiveMesh<Mesh>& cutTh, std::string name) {
      outFile_ = name;
      mesh_data.build_active_mesh(cutTh);
      this->writeFileMesh();

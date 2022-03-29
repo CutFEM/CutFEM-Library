@@ -6,7 +6,7 @@
 
 
 template<typename M>
-class Interface_LevelSet  : public Interface<M> {
+class InterfaceLevelSet  : public Interface<M> {
 
   typedef M Mesh;
   typedef typename Mesh::Element Element;
@@ -20,13 +20,13 @@ class Interface_LevelSet  : public Interface<M> {
   const FunFEMVirtual& fun;
 
 public:
-  // Interface_LevelSet(const Mesh & MM, const KN<double>& lss, int label = 0)
+  // InterfaceLevelSet(const Mesh & MM, const KN<double>& lss, int label = 0)
   // : Interface<M>(MM) , ls_(lss)
   // {
   //   make_patch(ls_, label);
   // }
-  // Interface_LevelSet(const Mesh & MM, const FunFEM<Mesh>& lss, int label = 0)
-  Interface_LevelSet(const Mesh & MM, const FunFEMVirtual& lss, int label = 0)
+  // InterfaceLevelSet(const Mesh & MM, const FunFEM<Mesh>& lss, int label = 0)
+  InterfaceLevelSet(const Mesh & MM, const FunFEMVirtual& lss, int label = 0)
 
   : Interface<M>(MM) , ls_(lss.v), fun(lss)
   {
@@ -93,7 +93,7 @@ private:
 
 
 template<typename M>
-void Interface_LevelSet<M>::make_patch(const KN<double>& ls, int label) {
+void InterfaceLevelSet<M>::make_patch(const KN<double>& ls, int label) {
 
   assert(this->backMesh);
   this->faces_.resize( 0);                          // reinitialize arrays
@@ -134,8 +134,8 @@ void Interface_LevelSet<M>::make_patch(const KN<double>& ls, int label) {
 }
 
 template<typename M>
-const typename Interface_LevelSet<M>::Face
-Interface_LevelSet<M>::make_face (const typename RefPatch<Element>::FaceIdx& ref_tri,
+const typename InterfaceLevelSet<M>::Face
+InterfaceLevelSet<M>::make_face (const typename RefPatch<Element>::FaceIdx& ref_tri,
 				  const typename Mesh::Element& K,
 				  const double lset[Element::nv],
 				  int label)
@@ -172,8 +172,8 @@ Interface_LevelSet<M>::make_face (const typename RefPatch<Element>::FaceIdx& ref
 
 
 template<typename M>
-typename Interface_LevelSet<M>::Rd
-Interface_LevelSet<M>::make_normal (const typename Mesh::Element& K, const double lset[Element::nv]) {
+typename InterfaceLevelSet<M>::Rd
+InterfaceLevelSet<M>::make_normal (const typename Mesh::Element& K, const double lset[Element::nv]) {
 
   Rd grad[Element::nv];
   // K.Gradlambda(grad);
@@ -191,7 +191,7 @@ void Time_Interface<Mesh>::init(int i, const Mesh & Th, const FunFEMVirtual& ls)
   if(interface[i]) {
     delete interface[i];
   }
-  interface[i] = new Interface_LevelSet<Mesh>(Th,ls);
+  interface[i] = new InterfaceLevelSet<Mesh>(Th,ls);
 }
 template<typename Mesh>
 void Time_Interface<Mesh>::init(const Mesh & Th, const KN<FunFEMVirtual>& ls) {
@@ -203,7 +203,7 @@ void Time_Interface<Mesh>::init(const Mesh & Th, const KN<FunFEMVirtual>& ls) {
     interface.resize(n);
   }
   for(int i=0;i<n;++i){
-    interface[i] = new Interface_LevelSet<Mesh>(Th,ls[i]);
+    interface[i] = new InterfaceLevelSet<Mesh>(Th,ls[i]);
   }
 }
 

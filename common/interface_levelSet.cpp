@@ -1,7 +1,7 @@
 #include "interface_levelSet.hpp"
 
 template<>
-void Interface_LevelSet<Mesh2>::cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part)const {
+void InterfaceLevelSet<Mesh2>::cut_partition(Physical_Partition<Element>& local_partition, vector<ElementIdx>& new_element_idx, std::list<int>& erased_element, int sign_part)const {
   new_element_idx.resize(0);
   erased_element.resize(0);
   byte ls[3];
@@ -68,7 +68,7 @@ void Interface_LevelSet<Mesh2>::cut_partition(Physical_Partition<Element>& local
 
 
 template<>
-bool Interface_LevelSet<Mesh3>::isCutFace(int k, int ifac) const {
+bool InterfaceLevelSet<Mesh3>::isCutFace(int k, int ifac) const {
 
   for(int e=0;e<Element::Face::ne;++e){
     int id_edge = Element::edgeOfFace[ifac][e];
@@ -80,7 +80,7 @@ bool Interface_LevelSet<Mesh3>::isCutFace(int k, int ifac) const {
 }
 
 template<>
-bool Interface_LevelSet<Mesh2>::isCutFace(int k, int ifac) const {
+bool InterfaceLevelSet<Mesh2>::isCutFace(int k, int ifac) const {
   int i1 = Element::nvedge[ifac][0];
   int i2 = Element::nvedge[ifac][1];
   if(ls_[this->backMesh->at(k,i1)] * ls_[this->backMesh->at(k,i2)] < 0) return true;
@@ -89,7 +89,7 @@ bool Interface_LevelSet<Mesh2>::isCutFace(int k, int ifac) const {
 }
 
 template<>
-bool Interface_LevelSet<MeshHexa>::isCutFace(int k, int ifac) const {
+bool InterfaceLevelSet<MeshHexa>::isCutFace(int k, int ifac) const {
   for(int e=0;e<Element::Face::ne;++e){
     int id_edge = Element::edgeOfFace[ifac][e];
     int i1 = Element::nvedge[id_edge][0];
@@ -101,7 +101,7 @@ bool Interface_LevelSet<MeshHexa>::isCutFace(int k, int ifac) const {
 }
 
 template<>
-bool Interface_LevelSet<MeshQuad2>::isCutFace(int k, int ifac) const {
+bool InterfaceLevelSet<MeshQuad2>::isCutFace(int k, int ifac) const {
   int i1 = Element::nvedge[ifac][0];
   int i2 = Element::nvedge[ifac][1];
   if(ls_[this->backMesh->at(k,i1)] * ls_[this->backMesh->at(k,i2)] < 0) return true;
