@@ -127,7 +127,7 @@ int main(int argc, char** argv ){
 
   //----------------------------------------------
   problem.addBilinear((jump(u),jump(v)) , innerEdge);
-  problem.addLinear((1,jump(v)), boundary);
+  problem.addLinear((1,jump(v)), innerEdge);
   matlab::Export(problem.mat, "matdK.dat");
   matlab::Export(problem.rhs, "rhsdK.dat");
   problem.cleanMatrix();
