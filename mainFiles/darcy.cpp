@@ -209,10 +209,10 @@ namespace Data_CutMixedDarcy {
     }
   }
   R fun_interfacePr(const R2 P, int compInd) {
-    if (compInd == 2)
+    // if (compInd == 2)
     return 19./12;
-    else
-    return 0;
+    // else
+    // return 0;
   }
 }
 namespace Data_Puppy{
@@ -332,7 +332,7 @@ int main(int argc, char** argv ) {
     Fun_h fq(Qh, fun_div);
     // Fun_h u0(Wh, fun_dirichlet);
     Fun_h p0(Lh, fun_neumann);
-    Fun_h phat(Wh, fun_interfacePr);
+    Fun_h phat(Qh, fun_interfacePr);
 
     Normal n;
     Tangent t;
