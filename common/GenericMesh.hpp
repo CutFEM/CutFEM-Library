@@ -356,6 +356,25 @@ public:
     assert( nt >=0 && elements);
     assert( nv >0 && vertices);
   }
+
+  #ifdef USE_MPI
+  virtual int first_element() const { return MPIcf::first_element(this->nbElements());}
+  virtual int next_element() const {  return MPIcf::next_element(this->nbElements());}
+  virtual int last_element() const {  return MPIcf::last_element(this->nbElements());}
+
+  virtual int first_boundary_element() const { return MPIcf::my_rank();}
+  virtual int next_boundary_element() const { return MPIcf::size();}
+  virtual int last_boundary_element() const {return this->nbBrdElmts();}
+  #else
+  virtual int first_element() const { return 0;}
+  virtual int next_element() const {return 1;}
+  virtual int last_element() const { return this->nbElements();}
+
+  virtual int first_boundary_element() const { return 0;}
+  virtual int next_boundary_element() const { return 1;}
+  virtual int last_boundary_element() const {return this->nbBrdElmts();}
+  #endif
+
   // #ifdef USE_MPI
   // int first_element() const { return MPIcf::my_rank();}
   // int next_element() const {return MPIcf::size();}

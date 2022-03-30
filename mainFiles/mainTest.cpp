@@ -15,9 +15,10 @@
 #include "interface_levelSet.hpp"
 #include "cut_mesh.hpp"
 #include "baseCutProblem.hpp"
+#include "paraview.hpp"
 
-// #include "gnuplot.hpp"
-#define TEST_3D
+#include "../num/matlab.hpp"
+#define TEST_2D
 
 
 
@@ -96,22 +97,61 @@ int main(int argc, char** argv ){
 
   typedef typename Space::FElement FElement;
   typedef FunFEM<Mesh> Fun_h;
-  //
-  // const QuadratureFormular1d& QFB = QF_GaussLegendre2;
+  typedef TestFunction<2> FunTest;
+
+  // const QuadratureFormular1d& QFB = QF_GaussLegendre2
 
   const double cpubegin = CPUtime();
 
   MPIcf cfMPI(argc,argv);
 
-
-  int nx = 20;
-  int ny = 20;
-  int nz = 3;
-  // MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
-  // Mesh Th(nx, ny, -0.5, -0.5, 1., 1.);  // Flower shape
-  // Mesh Th(nx, ny, 0., 0., 2., 2.);
-  Mesh Th(nx, ny, 0., 0., 1., 1.);
+  Mesh Th(10, 10, 0., 0., 1., 1.);
   Th.info();
+  Space Vh(Th, DataFE<Mesh2>::P1);
+  FEM<Mesh2> problem(Vh);
+
+  FunTest u(Vh,1), v(Vh,1);
+  //----------------------------------------------
+  problem.addBilinear((u,v) + (grad(u), grad(v)) , Th);
+  problem.addLinear((1,v), Th);
+  matlab::Export(problem.mat_, "matK_new.dat");
+  matlab::Export(problem.rhs_, "rhsK_new.dat");
+  problem.cleanMatrix();
+  problem.rhs_ = 0.;
+
+  //----------------------------------------------
+  problem.addBilinear((u,v) + (grad(u), grad(v)) , Th, boundary);
+  problem.addLinear((1,v), Th, boundary);
+  matlab::Export(problem.mat_, "matdw_new.dat");
+  matlab::Export(problem.rhs_, "rhsdw_new.dat");
+  problem.cleanMatrix();
+  problem.rhs_ = 0.;
+
+  //----------------------------------------------
+  problem.addBilinear((jump(u),jump(v)), Th, innerEdge);
+  // problem.addLinear((1,jump(v)), Th, boundary);
+  matlab::Export(problem.mat_, "matdK_new.dat");
+  matlab::Export(problem.rhs_, "rhsdK_new.dat");
+  problem.cleanMatrix();
+  problem.rhs_ = 0.;
+
+
+  return 0;
+
+
+  // const double cpubegin = CPUtime();
+  //
+  // MPIcf cfMPI(argc,argv);
+  //
+  //
+  // int nx = 20;
+  // int ny = 20;
+  // int nz = 3;
+  // // MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
+  // // Mesh Th(nx, ny, -0.5, -0.5, 1., 1.);  // Flower shape
+  // // Mesh Th(nx, ny, 0., 0., 2., 2.);
+  // Mesh Th(nx, ny, 0., 0., 1., 1.);
+  // Th.info();
 
   // FESpaceQ3 Lh(Th, DataFE<Mesh>::P1);
   // Fun_h levelSet(Lh, fun_levelSet3);
@@ -156,7 +196,7 @@ int main(int argc, char** argv ){
 
   // CutSpace Vh(cutTh, Lh);
   // Fun_h ftest(Vh, fun_test);
-  MacroElementCL<Mesh> macro(cutTh, 2e-1);
+  MacroElement<Mesh> macro(cutTh, 2e-1);
   // MacroElementSurfaceCL<Mesh> macro_surface(interface1, 1e-1);
 
 
@@ -201,13 +241,13 @@ int main(int argc, char** argv ){
   // ParaviewCut<Mesh> writer4 (cutTh, "macro_surface_inner_edge.vtk");
   // writer4.writeMacroInnerEdge(macro_surface);
 
-  ParaviewCut<Mesh> writer;// (cutTh, "macro_element.vtk");
-  writer.writeMacroElement(macro, 0, "macro_element.vtk");
-  // ParaviewCut<Mesh> writer2 (cutTh, "macro_inner_edge.vtk");
-  writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
-  // ParaviewCut<Mesh> writer3 (cutTh, "macro_outter_edge.vtk");
-  writer.writeMacroOutterEdge(macro, 0, "macro_outter_edge.vtk");
-
+  // Paraview<Mesh> writer;// (cutTh, "macro_element.vtk");
+  // writer.writeMacroElement(macro, 0, "macro_element.vtk");
+  // // ParaviewCut<Mesh> writer2 (cutTh, "macro_inner_edge.vtk");
+  // writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
+  // // ParaviewCut<Mesh> writer3 (cutTh, "macro_outter_edge.vtk");
+  // writer.writeMacroOutterEdge(macro, 0, "macro_outter_edge.vtk");
+  //
 
 
   // writer.add(levelSet1, "levelSet1", 0, 1);

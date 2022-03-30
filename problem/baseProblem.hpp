@@ -22,26 +22,41 @@ class BaseFEM : public ShapeOfProblem<Mesh> , public QuadratureOfProblem<Mesh> {
   typedef typename Mesh::BorderElement BorderElement;
 
 protected:
+  int N_component_max_ = 0;
+  int df_loc_max_ = 0;
   double* databf_ = nullptr;
 
 public:
 
   BaseFEM(const ProblemOption& option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(option) {}
-  BaseFEM(const list<FESpace*>& vh, const ProblemOption& option) : BaseFEM<Mesh>(option){
+  BaseFEM(const FESpace& vh, const ProblemOption& option) : BaseFEM<Mesh>(option)  {
     this->mapIdx0_.clear();
-    int ndf = 0;
-    int NN = 0; int df_loc = 0;
-    for(auto it = vh.begin();it!=vh.end();++it) {
-      this->mapIdx0_[*it] = ndf;
-      ndf += (*it)->NbDoF();
-      NN += (*it)->N;
-      df_loc += (**it)[0].NbDoF();
-    }
+    this->mapIdx0_[&vh] = 0;
+    int ndf = vh.NbDoF();
     this->init(ndf);
-    databf_ = new double[20*df_loc*NN*op_DDall];
-  }
-  BaseFEM(const FESpace& vh, const ProblemOption& option)        : BaseFEM({&vh}, option) {}
 
+    N_component_max_ = vh.N;
+    df_loc_max_ = vh[0].NbDoF();
+    databf_ = new double[df_loc_max_*N_component_max_*op_DDall];
+  }
+  void add(const FESpace& Qh) {
+    this->mapIdx0[&Qh] = this->nDoF;
+    int ndf = this->get_nb_dof() + Qh.NbDoF();
+    this->init(ndf);
+    N_component_max_ = max(N_component_max_, Qh.N);
+    df_loc_max_ = max(df_loc_max_, Qh[0].NbDoF());
+    delete databf_;
+    databf_ = new double[df_loc_max_*N_component_max_*op_DDall];
+  }
+
+
+  // void add(const FESpace& Qh, const TimeSlab& IIn) {
+  //   this->mapIdx0[&Qh] = this->nDoF;
+  //   this->nDoF += Qh.NbDoF() * IIn.NbDoF();
+  //   this->rhs.resize(this->nDoF); this->rhs = 0.0;
+  //   this->mapIdx0_K[&Qh] = this->nt;
+  //   this->nt += Qh.NbElement();
+  // }
 
 
   // add local to Matrix or rhs
@@ -52,8 +67,19 @@ public:
   void addDiagonal(const FESpace& Qh, double val);
   void setDiagonal(const FESpace& Qh, double val);
 
+  // Integral on K
+  void addBilinear(  const ListItemVF<Rd::d>& VF, const Mesh&) ;
+  void addLinear(  const ListItemVF<Rd::d>& VF, const Mesh&) ;
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k);
+
+  // integral on innerFace
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CHyperFace& b);
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CHyperFace& b);
   void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
+
+  // integral on boundary
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b);
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b);
   void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac);
 
 };
@@ -92,6 +118,8 @@ public:
 };
 
 
+
+#include "baseProblem_Function.hpp"
 
 #ifdef OLD_PROBLEM
 template<typename M>

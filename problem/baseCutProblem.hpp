@@ -20,7 +20,7 @@ class BaseCutFEM : public BaseFEM<Mesh> {
 
 public:
   BaseCutFEM(const ProblemOption& option) : BaseFEM<Mesh>(option) {}
-  BaseCutFEM(const list<FESpace*>& vh,const ProblemOption& option) : BaseFEM<Mesh>(vh, option) {}
+  // BaseCutFEM(const list<FESpace*>& vh,const ProblemOption& option) : BaseFEM<Mesh>(vh, option) {}
   BaseCutFEM(const FESpace& vh,const ProblemOption& option) : BaseFEM<Mesh>(vh, option) {}
 
 
