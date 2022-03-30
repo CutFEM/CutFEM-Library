@@ -15,7 +15,7 @@
 // #include "projection.hpp"
 // #include "../common/fracture.hpp"
 
-
+// #define DARCY_FEM
 #define PROBLEM_CUT_MIXED_DARCY
 // #define PROBLEM_CUT_MIXED_DARCY_BLOCK
 // #define DARCY_EXAMPLE_PUPPI
@@ -42,6 +42,92 @@ void Scotty_diagonal_preconditioner(int N, std::map<std::pair<int,int>,R>& P){
 
 }
 
+
+#ifdef DARCY_FEM
+
+
+namespace Data_p{
+  R d_x = 2.;
+  R d_y = 2.;
+
+  R fun_neumann(const R2 P, int compInd) {
+    return 0;
+  }
+  R fun_div(const R2 P, int compInd, int dom) {// is also exact divergence
+    return 0;
+  }
+
+
+}
+using namespace Data_p;
+
+
+int main(int argc, char** argv ) {
+  typedef TestFunction<2> FunTest;
+  typedef FunFEM<Mesh2> Fun_h;
+  typedef Mesh2 Mesh;
+  typedef ActiveMeshT2 CutMesh;
+  typedef FESpace2   Space;
+  typedef CutFESpaceT2 CutSpace;
+
+
+  MPIcf cfMPI(argc,argv);
+  const double cpubegin = CPUtime();
+  bool set_p = false;
+  int nx = 2; // 6
+  int ny = 2; // 6
+
+  vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
+  vector<double> ratioCut1, ratioCut2;
+  int iters =5;
+
+  for(int i=0;i<iters;++i) {
+    Mesh Kh(nx, ny, 0., 0., 1., 1.);
+    Kh.info();
+    double h = 1./(nx-1);
+
+
+    if(set_p){
+      Space Vh(Kh, DataFE<Mesh2>::RT0);
+      FEM<Mesh> darcy(Vh);
+      FunTest u(Vh,2), v(Vh,2);
+      // [ASSEMBLY]
+      darcy.addBilinear(
+        innerProduct(u, v) + innerProduct(div(u), div(v))
+        , Kh
+      );
+      matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
+      nx = 2*nx -1;
+      ny = nx;
+      continue;
+
+    }
+    else{
+      Space Vh(Kh, DataFE<Mesh>::RT0);
+      Space Ph(Kh, DataFE<Mesh>::P0sc);
+      FEM<Mesh> darcy(Vh); darcy.add(Ph);
+      FunTest u(Vh,2), v(Vh,2),p(Ph,1), q(Ph,1);
+      Vh.info();
+      Ph.info();
+      // [ASSEMBLY]
+      darcy.addBilinear(
+        innerProduct(u, v)
+        + innerProduct(div(u), q) - innerProduct(p, div(v))
+        , Kh
+      );
+
+      matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
+      nx = 2*nx-1;
+      ny = nx;
+      continue;
+
+    }
+
+  }
+
+}
+
+#endif
 
 
 #ifdef PROBLEM_CUT_MIXED_DARCY
@@ -119,8 +205,8 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 51; // 6
-  int ny = 51; // 6
+  int nx = 20; // 6
+  int ny = 20; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
@@ -139,14 +225,14 @@ int main(int argc, char** argv ) {
     FESpace2 Qh(Kh, DataFE<Mesh2>::P0);
 
 
-    ActiveMesh<Mesh> Kh_i(Kh, interface);
+    ActiveMesh<Mesh> Kh_i(Kh);//, interface);
     Kh_i.info();
     // CutFEM stuff
     CutSpace Wh(Kh_i, Vh);
     CutSpace Ph(Kh_i, Qh);
 
 
-    CutFEM<Mesh2> darcy({&Wh, &Ph});
+    CutFEM<Mesh2> darcy(Wh); darcy.add(Ph);
 
     const R h = 1./(nx-1);
     const R invh = 1./h;
@@ -192,7 +278,7 @@ int main(int argc, char** argv ) {
     // );
 
 
-    // matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
+    matlab::Export(darcy.mat_, "matNew.dat");
     // nx = 2*nx-1;
     // ny = 2*ny-1;
     // continue;
@@ -218,6 +304,7 @@ int main(int argc, char** argv ) {
       // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
       , Kh_i, boundary
     );
+    matlab::Export(darcy.mat_, "rhsNew.dat");
 
     // ExpressionFunFEM<Mesh2> pphat(phat, 2, op_id,0,0);
     // FunTest ppphat(phat, 2, 1);

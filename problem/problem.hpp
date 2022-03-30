@@ -210,6 +210,7 @@ public :
   // return the number of degrees of freedom
   // of the problem
   long get_size() const {return nb_dof_;}
+  long get_nb_dof() const {return nb_dof_;}
   void set_map(std::map<std::pair<int,int>,R>& A) {
     pmat_ = &A;
   }

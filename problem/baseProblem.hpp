@@ -40,7 +40,7 @@ public:
     databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
   }
   void add(const FESpace& Qh) {
-    this->mapIdx0[&Qh] = this->nDoF;
+    this->mapIdx0_[&Qh] = this->get_nb_dof();
     int ndf = this->get_nb_dof() + Qh.NbDoF();
     this->init(ndf);
     N_component_max_ = max(N_component_max_, Qh.N);
