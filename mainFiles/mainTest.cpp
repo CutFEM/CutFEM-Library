@@ -92,7 +92,7 @@ int main(int argc, char** argv ){
   typedef Cut_MeshT2 CutMesh;
   typedef FESpace2       Space;
   typedef CutFESpaceT2 CutSpace;
-
+  typedef TestFunction<2> FunTest;
 
   typedef typename Space::FElement FElement;
   typedef FunFEM<Mesh> Fun_h;
@@ -103,15 +103,40 @@ int main(int argc, char** argv ){
 
   MPIcf cfMPI(argc,argv);
 
-
-  int nx = 18;
-  int ny = 18;
-  int nz = 3;
-  // MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
-  // Mesh Th(nx, ny, -0.5, -0.5, 1., 1.);  // Flower shape
-  // Mesh Th(nx, ny, 0., 0., 2., 2.);
-  Mesh Th(nx, ny, 0., 0., 1., 1.);
+  Mesh Th(10, 10, 0., 0., 1., 1.);
   Th.info();
+  FESpace2 Vh(Th, DataFE<Mesh2>::P1);
+  FEM<Mesh2> problem(Vh);
+
+  FunTest u(Vh,1), v(Vh,1);
+  //----------------------------------------------
+  problem.addBilinear((u,v) + (grad(u), grad(v)) );
+  problem.addLinear((1,v));
+  matlab::Export(problem.mat, "matK.dat");
+  matlab::Export(problem.rhs, "rhsK.dat");
+  problem.cleanMatrix();
+  problem.rhs = 0.;
+
+  //----------------------------------------------
+  problem.addBilinear((u,v) + (grad(u), grad(v)) , boundary);
+  problem.addLinear((1,v), boundary);
+  matlab::Export(problem.mat, "matdw.dat");
+  matlab::Export(problem.rhs, "rhsdw.dat");
+  problem.cleanMatrix();
+  problem.rhs = 0.;
+
+  //----------------------------------------------
+  problem.addBilinear((jump(u),jump(v)) , innerEdge);
+  problem.addLinear((1,jump(v)), boundary);
+  matlab::Export(problem.mat, "matdK.dat");
+  matlab::Export(problem.rhs, "rhsdK.dat");
+  problem.cleanMatrix();
+  problem.rhs = 0.;
+
+
+  return 0;
+
+
 
   // FESpaceQ3 Lh(Th, DataFE<Mesh>::P1);
   // Fun_h levelSet(Lh, fun_levelSet3);
