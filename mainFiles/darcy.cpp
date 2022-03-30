@@ -17,8 +17,8 @@
 #include "generalNorm.hpp"
 
 
-#define DARCY_FEM
-// #define PROBLEM_CUT_MIXED_DARCY
+// #define DARCY_FEM
+#define PROBLEM_CUT_MIXED_DARCY
 // #define PROBLEM_CUT_MIXED_DARCY_BLOCK
 // #define DARCY_EXAMPLE_PUPPI
 // #define DARCY_EXAMPLE_PUPPI_CIRCLE
@@ -162,7 +162,7 @@ namespace Data_CutMixedDarcy {
     return (P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift);
   }
   R fun_levelSet(const R2 P, const int i) {
-    return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad ;
+    return 10+sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad ;
   }
 
   R fun_dirichlet(const R2 P, int compInd) {
@@ -317,56 +317,6 @@ namespace Data_Puppy{
 }
 using namespace Data_CutMixedDarcy;
 
-static void exactRHSintegration(const CutFESpace2& Vh, Rn& rhs, R (*f)(const R2)){
-  typedef typename Mesh2::BorderElement BorderElement;
-  typedef typename FESpace2::FElement FElement;
-  typedef typename Mesh2::Element Element;
-  typedef typename FElement::QFB QFB;
-  typedef typename QFB::QuadraturePoint QuadraturePoint;
-
-
-  KNMK<double> fv(Vh[0].NbDoF(),3,1); //  the value for basic fonction
-  What_d Fop = Fwhatd(1);
-  const QFB &qfb(*QF_Simplex<R1>(5));
-
-  for( int ifac = Vh.first_boundary_element(); ifac < Vh.last_boundary_element(); ifac+=Vh.next_boundary_element()) {
-
-    const BorderElement & BE(Vh.Th.be(ifac)); // The face
-    int ifaceK; // index of face of triangle corresp to edge (0,1,2)
-    const int kb = Vh.Th.BoundaryElement(ifac, ifaceK); // index of element (triangle), ifaceK gets modified inside
-    const int k = Vh.idxElementFromBackMesh(kb, 0);
-
-    const FElement& FK((Vh)[k]);
-    R2 normal = FK.T.N(ifaceK);
-    const R meas = BE.mesure();
-
-    int nb_face_onB = 0;
-    for(int i=0;i<Element::nea;++i){
-      int ib = i;
-      if(Vh.Th.ElementAdj(kb,ib) == -1) nb_face_onB += 1;
-    }
-    assert(nb_face_onB > 0);
-    double measOnB = nb_face_onB*meas;
-    const int kv = Vh.idxElementFromBackMesh(kb, 0);
-
-    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-
-      QuadraturePoint ip(qfb[ipq]); // integration point
-      const R2 mip = BE((R1)ip); // mip is in the global edge
-      const R Cint = meas * ip.getWeight();
-
-      FK.BF(Fop,FK.T.toKref(mip), fv);
-      double val_fh = f(mip);
-
-      for(int d=0;d<2;++d){
-        for(int i = FK.dfcbegin(d); i < FK.dfcend(d); ++i) {
-          rhs(FK.loc2glb(i)) +=  -Cint * val_fh * fv(i,d,op_id)*normal[d];
-        }
-      }
-    }
-  }
-}
-
 int main(int argc, char** argv ) {
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
@@ -374,8 +324,8 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 10; // 6
-  int ny = 10; // 6
+  int nx = 20; // 6
+  int ny = 20; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
@@ -392,21 +342,20 @@ int main(int argc, char** argv ) {
 
     Interface2 interface(Th, levelSet.v);
 
-    KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT0;
-    arrayFE(1) = &DataFE<Mesh2>::P0;
-    GTypeOfFESum<Mesh2> mixedFE(arrayFE);
-    FESpace2 Vh(Th, mixedFE);
-    FESpace2 P0h(Th, DataFE<Mesh2>::P1); // for the RHS
-    FESpace2 Ph (Th, DataFE<Mesh2>::P1); // for the RHS
+    // KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
+    // arrayFE(0) = &DataFE<Mesh2>::RT0;
+    // arrayFE(1) = &DataFE<Mesh2>::P0;
+    // GTypeOfFESum<Mesh2> mixedFE(arrayFE);
+    FESpace2 Vh(Th, DataFE<Mesh2>::RT0);
+    FESpace2 Ph(Th, DataFE<Mesh2>::P0);
 
     // CutFEM stuff
     CutFESpace2 Wh(Vh , interface, {1,-1});
-    CutFESpace2 CPh(Ph, interface, {1,-1});
+    CutFESpace2 Qh(Ph,  interface, {1,-1});
 
     // gnuplot::save(Wh,0,"Vh1.dat");
     // gnuplot::save(Wh,1,"Vh2.dat");
-    CutFEM<Mesh2> darcyCutMix(Wh);
+    CutFEM<Mesh2> darcyCutMix(Wh); darcyCutMix.add(Qh);
     const R hei = 1./(nx-1);//Th[0].lenEdge(0);
 
     MacroElement macro(Wh, 1e-1);
@@ -434,14 +383,14 @@ int main(int argc, char** argv ) {
 
     // We define fh on the cutSpace
     Fun_h fv(Wh, fun_force);
-    Fun_h fq(CPh, fun_div);
+    Fun_h fq(Qh, fun_div);
     // Fun_h u0(Wh, fun_dirichlet);
-    Fun_h p0(Ph, fun_neumann);
+    Fun_h p0(Lh, fun_neumann);
     Fun_h phat(Wh, fun_interfacePr);
 
     Normal n;
     Tangent t;
-    FunTest p(Wh,1,2), q(Wh,1,2), u(Wh,2), v(Wh,2);
+    FunTest p(Qh,1), q(Qh,1), u(Wh,2), v(Wh,2);
 
     // u=1e-2 p=1e1 REALLY GOOD for jump problem!
     double uPenParam = 1e0;//1e-2; //cont 1e-1`
@@ -465,16 +414,16 @@ int main(int argc, char** argv ) {
     // continue;
 
 
-    darcyCutMix.addBilinear(
-      innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
-      +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
-      ,interface
-    );
-
-    matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
-    nx *= 2;
-    ny *= 2;
-    continue;
+    // darcyCutMix.addBilinear(
+    //   innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
+    //   +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
+    //   ,interface
+    // );
+    matlab::Export(darcyCutMix.mat, "matOld.dat");
+    // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
+    // nx *= 2;
+    // ny *= 2;
+    // continue;
 
 
     // l(v)_Omega
@@ -498,6 +447,10 @@ int main(int argc, char** argv ) {
       // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
       , boundary
     );
+
+    matlab::Export(darcyCutMix.rhs, "rhsOld.dat");
+    return 0;
+
 
     // ExpressionFunFEM<Mesh2> pphat(phat, 2, op_id,0,0);
     FunTest ppphat(phat, 2, 1);
