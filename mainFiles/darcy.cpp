@@ -266,8 +266,8 @@ int main(int argc, char** argv ) {
     //:: a(u,v)_Omega
     darcy.addBilinear(
       innerProduct(u, v)
-      -innerProduct(invh*p, div(v))
-      +innerProduct(invh*div(u), q)
+      -innerProduct(p, div(v))
+      +innerProduct(div(u), q)
       , Kh_i
     );
 
@@ -304,7 +304,7 @@ int main(int argc, char** argv ) {
       // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
       , Kh_i, boundary
     );
-    matlab::Export(darcy.mat_, "rhsNew.dat");
+    matlab::Export(darcy.rhs_, "rhsNew.dat");
 
     // ExpressionFunFEM<Mesh2> pphat(phat, 2, op_id,0,0);
     // FunTest ppphat(phat, 2, 1);
