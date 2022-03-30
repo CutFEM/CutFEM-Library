@@ -251,7 +251,7 @@ int main(int argc, char** argv ) {
     // const R hei = Th[0].lenEdge(0);
 
     // We define fh on the cutSpace
-    Fun_h fq(Lh, fun_div);
+    Fun_h fq(Ph, fun_div);
     Fun_h p0(Lh, fun_neumann);
     Fun_h phat(Ph, fun_interfacePr);
 
