@@ -208,9 +208,7 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pai
     bool same = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
     int lastop = getLastop(VF[l].du, VF[l].dv);
     RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop);
-    RNMK_ fu(this->databf_+FKv.NbDoF()*FKv.N*lastop ,FKu.NbDoF(),FKu.N,lastop);
-
-    // RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
+    RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
     What_d Fop = Fwhatd(lastop);
 
     // COMPUTE COEFFICIENT

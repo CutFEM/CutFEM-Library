@@ -128,8 +128,8 @@ int main(int argc, char** argv ){
   // problem.rhs_ = 0.;
 
   //----------------------------------------------
-  problem.addBilinear((jump(u),jump(v)), Th, innerEdge);
-  problem.addLinear((1,jump(v)), Th, innerEdge);
+  problem.addBilinear((jump(grad(u)),jump(grad(v))), Th, innerEdge);
+  problem.addLinear((1,jump(grad(v))), Th, innerEdge);
   matlab::Export(problem.mat_, "matdK_new.dat");
   matlab::Export(problem.rhs_, "rhsdK_new.dat");
   problem.cleanMatrix();
