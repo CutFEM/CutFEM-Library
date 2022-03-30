@@ -176,12 +176,12 @@ typename InterfaceLevelSet<M>::Rd
 InterfaceLevelSet<M>::make_normal (const typename Mesh::Element& K, const double lset[Element::nv]) {
 
   Rd grad[Element::nv];
-  // K.Gradlambda(grad);
+  K.Gradlambda(grad);
   Rd normal_ls;
-  // for(int i=0; i<Element::nv;++i) {
-  //   normal_ls += grad[i]*lset[i];
-  // }
-  // normal_ls /= normal_ls.norm();
+  for(int i=0; i<Mesh::Element::nv;++i) {
+    normal_ls += grad[i]*lset[i];
+  }
+  normal_ls /= normal_ls.norm();
   return normal_ls;
 }
 

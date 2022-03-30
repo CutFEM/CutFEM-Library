@@ -264,16 +264,16 @@ int main(int argc, char** argv ) {
     double jumpParam = 1e0; // [anything<1e0 doesn't give full u convergence]
 
     //:: a(u,v)_Omega
-    darcy.addBilinear(
-      innerProduct(u, v)
-      -innerProduct(p, div(v))
-      +innerProduct(div(u), q)
-      , Kh_i
-    );
+    // darcy.addBilinear(
+    //   innerProduct(u, v)
+    //   -innerProduct(p, div(v))
+    //   +innerProduct(div(u), q)
+    //   , Kh_i
+    // );
 
     darcy.addBilinear(
-      innerProduct(mu_G*average(u.t()*n), average(v.t()*n))
-      +innerProduct(xi0*mu_G*jump(u.t()*n), jump(v.t()*n)) // b(p,v)-b(q,u) bdry terms
+      innerProduct(mu_G*average(u*n), average(v*n))
+      +innerProduct(xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
       ,interface
     );
 
