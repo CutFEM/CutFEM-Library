@@ -112,24 +112,24 @@ int main(int argc, char** argv ){
 
   FunTest u(Vh,1), v(Vh,1);
   //----------------------------------------------
-  problem.addBilinear((u,v) + (grad(u), grad(v)) , Th);
-  problem.addLinear((1,v), Th);
-  matlab::Export(problem.mat_, "matK_new.dat");
-  matlab::Export(problem.rhs_, "rhsK_new.dat");
-  problem.cleanMatrix();
-  problem.rhs_ = 0.;
-
-  //----------------------------------------------
-  problem.addBilinear((u,v) + (grad(u), grad(v)) , Th, boundary);
-  problem.addLinear((1,v), Th, boundary);
-  matlab::Export(problem.mat_, "matdw_new.dat");
-  matlab::Export(problem.rhs_, "rhsdw_new.dat");
-  problem.cleanMatrix();
-  problem.rhs_ = 0.;
+  // problem.addBilinear((u,v) + (grad(u), grad(v)) , Th);
+  // problem.addLinear((1,v), Th);
+  // matlab::Export(problem.mat_, "matK_new.dat");
+  // matlab::Export(problem.rhs_, "rhsK_new.dat");
+  // problem.cleanMatrix();
+  // problem.rhs_ = 0.;
+  //
+  // //----------------------------------------------
+  // problem.addBilinear((u,v) + (grad(u), grad(v)) , Th, boundary);
+  // problem.addLinear((1,v), Th, boundary);
+  // matlab::Export(problem.mat_, "matdw_new.dat");
+  // matlab::Export(problem.rhs_, "rhsdw_new.dat");
+  // problem.cleanMatrix();
+  // problem.rhs_ = 0.;
 
   //----------------------------------------------
   problem.addBilinear((jump(u),jump(v)), Th, innerEdge);
-  // problem.addLinear((1,jump(v)), Th, boundary);
+  problem.addLinear((1,jump(v)), Th, innerEdge);
   matlab::Export(problem.mat_, "matdK_new.dat");
   matlab::Export(problem.rhs_, "rhsdK_new.dat");
   problem.cleanMatrix();
