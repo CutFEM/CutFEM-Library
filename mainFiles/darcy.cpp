@@ -215,60 +215,6 @@ namespace Data_CutMixedDarcy {
     return 0;
   }
 }
-namespace Data_CutMixedDarcyNOJUMP {
-  bool solHasJump = false;
-
-  R interfaceRad = 0.250001; // not exactly 1/4 to avoid bad cuts
-  R shift = 0.5;
-
-  R fun_radius2(const R2 P){
-    return (P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift);
-  }
-  R fun_levelSet(const R2 P, const int i) {
-    return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad;
-  }
-
-  R fun_dirichlet(const R2 P, int compInd) {
-    if (compInd == 0)
-    // return 2*sin(2*pi*P[0])*sin(4*pi*P[1]);
-    return 0;
-    else
-    return 0;
-  }
-  R fun_neumann(const R2 P, int compInd, int dom) {
-    if (compInd == 2) {
-      R r2 = fun_radius2(P);
-      R radius2 = interfaceRad*interfaceRad;
-      return r2/(2*radius2)+3./2.;
-    }
-    else
-    return 0;
-  }
-
-  R fun_force(const R2 P, int compInd) {
-    return 0;
-  }
-  R fun_div(const R2 P, int compInd, int dom) { // is also exact divergence
-    R radius2 = interfaceRad*interfaceRad;
-    return -2./radius2;
-  }
-  R fun_exact(const R2 P, int compInd, int dom) {
-    Diff<R,2> X(P.x,0), Y(P.y,1);
-    Diff<R,2> r2 = (X-shift)*(X-shift) + (Y-shift)*(Y-shift);
-    R radius2 = interfaceRad*interfaceRad;
-    Diff<R, 2> val = r2/(2*radius2) + 3./2;
-    if (compInd==2) {
-      return val.val;
-    }
-    else {
-      return -val.d[compInd];
-    }
-  }
-  R fun_interfacePr(const R2 P, int compInd) {
-    return fun_exact(P,2,0);
-  }
-}
-
 namespace Data_Puppy{
   R d_x = 2.;
   R d_y = 2.;
@@ -401,12 +347,12 @@ int main(int argc, char** argv ) {
 
     // [ASSEMBLY]
 
-    //:: a(u,v)_Omega
-    darcyCutMix.addBilinear(
-      innerProduct(mu*u, v)
-      -innerProduct(p, div(v))
-      +innerProduct(div(u), q)
-    );
+    // //:: a(u,v)_Omega
+    // darcyCutMix.addBilinear(
+    //   innerProduct(mu*u, v)
+    //   -innerProduct(p, div(v))
+    //   +innerProduct(div(u), q)
+    // );
     //
     // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
     // nx = 2*nx -1;
@@ -414,11 +360,11 @@ int main(int argc, char** argv ) {
     // continue;
 
 
-    // darcyCutMix.addBilinear(
-    //   innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
-    //   +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
-    //   ,interface
-    // );
+    darcyCutMix.addBilinear(
+      innerProduct((1-theta)*mu_G*average(u*n), average(v*n))
+      +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
+      ,interface
+    );
     matlab::Export(darcyCutMix.mat, "matOld.dat");
     // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
     // nx *= 2;
@@ -448,19 +394,19 @@ int main(int argc, char** argv ) {
       , boundary
     );
 
-    matlab::Export(darcyCutMix.rhs, "rhsOld.dat");
-    return 0;
+
 
 
     // ExpressionFunFEM<Mesh2> pphat(phat, 2, op_id,0,0);
-    FunTest ppphat(phat, 2, 1);
+    // FunTest ppphat(phat, 2, 1);
     // FunTest ppphat(CPh,pphat);
     darcyCutMix.addLinear(
-      -innerProduct((1-theta)*ppphat, jump(v*n))
+      -innerProduct(phat.expression(1), jump(v*n))
       // -innerProduct(phat.expression(), jump(v.t()*n))
       ,interface
     );
-
+    matlab::Export(darcyCutMix.rhs, "rhsOld.dat");
+    return 0;
     int N = Wh.NbDoF();
 
 
