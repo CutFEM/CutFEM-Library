@@ -226,12 +226,12 @@ void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::
       for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
         typename QFB::QuadraturePoint ip(qfb[ipq]);
         const Rd mip = cutFace.mapToPhysicalElement(it, (RdHatBord)ip);
-        const Rd cut_ip = Ki.mapToReferenceElement(mip);
+        // const Rd cut_ip = Ki.mapToReferenceElement(mip);
         double Cint = meas * ip.getWeight();
 
         // EVALUATE THE BASIS FUNCTIONS
-        FKv.BF(Fop,cut_ip, fv);
-        if(!same) FKu.BF(Fop, cut_ip, fu);
+        FKv.BF(Fop,FKv.T.mapToReferenceElement(mip), fv);
+        if(!same) FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
         //   VF[l].applyFunNL(fu,fv);
 
         Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domain,domain), mip, normal);

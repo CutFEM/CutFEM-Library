@@ -208,7 +208,9 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pai
     bool same = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
     int lastop = getLastop(VF[l].du, VF[l].dv);
     RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop);
-    RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
+    RNMK_ fu(this->databf_+FKv.NbDoF()*FKv.N*lastop ,FKu.NbDoF(),FKu.N,lastop);
+
+    // RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
     What_d Fop = Fwhatd(lastop);
 
     // COMPUTE COEFFICIENT
@@ -223,11 +225,12 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pai
       double Cint = meas * ip.getWeight();
 
       // EVALUATE THE BASIS FUNCTIONS
-      FKv.BF(Fop,ip_edge, fv);
-      if(!same) FKu.BF(Fop, ip_edge, fu);
 
-      // Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domain,domain), mip, normal);
+      FKv.BF(Fop,FKv.T.mapToReferenceElement(mip), fv);
+      if(!same) FKu.BF(Fop,FKu.T.mapToReferenceElement(mip), fu);
+      Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domain,domain), mip, normal);
       Cint *= coef * VF[l].c;
+
       // Cint = 1.;//coef;
       if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);

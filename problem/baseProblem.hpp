@@ -37,7 +37,7 @@ public:
 
     N_component_max_ = vh.N;
     df_loc_max_ = vh[0].NbDoF();
-    databf_ = new double[df_loc_max_*N_component_max_*op_DDall];
+    databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
   }
   void add(const FESpace& Qh) {
     this->mapIdx0[&Qh] = this->nDoF;
@@ -46,7 +46,7 @@ public:
     N_component_max_ = max(N_component_max_, Qh.N);
     df_loc_max_ = max(df_loc_max_, Qh[0].NbDoF());
     delete databf_;
-    databf_ = new double[df_loc_max_*N_component_max_*op_DDall];
+    databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
   }
 
 
