@@ -142,7 +142,7 @@ namespace Data_CutMixedDarcy {
     return (P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift);
   }
   R fun_levelSet(const R2 P, const int i) {
-    return 10 + sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad;
+    return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad;
   }
 
   R fun_dirichlet(const R2 P, int compInd) {
@@ -225,7 +225,7 @@ int main(int argc, char** argv ) {
     FESpace2 Qh(Kh, DataFE<Mesh2>::P0);
 
 
-    ActiveMesh<Mesh> Kh_i(Kh);//, interface);
+    ActiveMesh<Mesh> Kh_i(Kh, interface);
     Kh_i.info();
     // CutFEM stuff
     CutSpace Wh(Kh_i, Vh);
@@ -271,11 +271,11 @@ int main(int argc, char** argv ) {
       , Kh_i
     );
 
-    // darcy.addBilinear(
-    //   innerProduct(mu_G*average(u.t()*n), average(v.t()*n))
-    //   +innerProduct(xi0*mu_G*jump(u.t()*n), jump(v.t()*n)) // b(p,v)-b(q,u) bdry terms
-    //   ,interface
-    // );
+    darcy.addBilinear(
+      innerProduct(mu_G*average(u.t()*n), average(v.t()*n))
+      +innerProduct(xi0*mu_G*jump(u.t()*n), jump(v.t()*n)) // b(p,v)-b(q,u) bdry terms
+      ,interface
+    );
 
 
     matlab::Export(darcy.mat_, "matNew.dat");
@@ -304,16 +304,16 @@ int main(int argc, char** argv ) {
       // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
       , Kh_i, boundary
     );
-    matlab::Export(darcy.rhs_, "rhsNew.dat");
 
     // ExpressionFunFEM<Mesh2> pphat(phat, 2, op_id,0,0);
     // FunTest ppphat(phat, 2, 1);
     // FunTest ppphat(CPh,pphat);
-    // darcy.addLinear(
-    //   -innerProduct(phat.expression(1), jump(v*n))
-    //   // -innerProduct(phat.expression(), jump(v.t()*n))
-    //   ,interface
-    // );
+    darcy.addLinear(
+      -innerProduct(phat.expression(1), jump(v*n))
+      // -innerProduct(phat.expression(), jump(v.t()*n))
+      ,interface
+    );
+    matlab::Export(darcy.rhs_, "rhsNew.dat");
 
     int N = Wh.NbDoF();
 
