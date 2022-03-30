@@ -162,7 +162,7 @@ namespace Data_CutMixedDarcy {
     return (P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift);
   }
   R fun_levelSet(const R2 P, const int i) {
-    return 10+sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad ;
+    return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad ;
   }
 
   R fun_dirichlet(const R2 P, int compInd) {
