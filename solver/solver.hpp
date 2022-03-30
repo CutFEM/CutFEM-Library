@@ -24,7 +24,7 @@ namespace solver {
     #endif
 
   }
-  
+
     void umfpack(std::map<std::pair<int,int>,R> &, Rn &);
     void LAPACK(Rnm & a, Rn & b);
 //   void MUMPS(std::map<std::pair<int,int>,R> &, Rn &, const int) ;
@@ -58,10 +58,10 @@ double get_Time() const {return CPUtime();}
 #endif
 
 public :
-int verbose = 0;
-bool clearMatrix = true;
+int verbose_ = 0;
+bool clearMatrix_ = true;
 //   std::string reordering = "none";
-std::string solver_name = "umfpack";
+std::string solver_name_ = "umfpack";
 
   void solve(std::map<std::pair<int,int>,R> & A, Rn & b) ;
 

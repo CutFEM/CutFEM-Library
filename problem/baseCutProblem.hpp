@@ -48,39 +48,19 @@ public:
 };
 
 template<typename Mesh>
-class CutFEM : public BaseCutFEM<Mesh>{
+class CutFEM : public BaseCutFEM<Mesh>, public Solver{
   typedef GFESpace<Mesh> FESpace;
 
 public:
 
   CutFEM(const FESpace& vh        , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
   CutFEM(const list<FESpace*>& vh , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
-  // CutFEM(const QuadratureFormular1d& qT, int orderSpace=5) :
-  // BaseCutProblem<M>(qT, orderSpace) {}
-  // void solve(string solverName = "mumps") {
-  //
-  //   // matlab::Export(this->mat, "matP.dat");
-  //   // matlab::Export(this->rhs, "rhsP.dat");
-  //   R t0 = CPUtime();
-  //   R tt0 = MPIcf::Wtime();
-  //   this->solver_name = solverName;
-  //   if(this->NL.size() > 0 || this->pmat == &this->NL) {
-  //     // add DF to NL
-  //
-  //     R t2 = CPUtime();
-  //     this->addMapToMap();
-  //     std::cout << " Add Non Linear Problem in solver \t" << CPUtime() - t2 << std::endl;
-  //     Solver::solve(this->NL, this->rhs);
-  //     this->pmat = &this->DF;
-  //   }
-  //   else {
-  //     Solver::solve(this->mat, this->rhs);
-  //   }
-  //   R t1 = CPUtime();
-  //   // std::cout << " Time CPU Solver \t \t " << t1 - t0 << std::endl;
-  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
-  //
-  // }
+  void solve(string solverName = "mumps") {
+    double tt0 = MPIcf::Wtime();
+    this->solver_name_ = solverName;
+    Solver::solve(this->mat_, this->rhs_);
+    std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  }
   // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
   //   R tt0 = MPIcf::Wtime();
   //   Solver::solve(A, b);

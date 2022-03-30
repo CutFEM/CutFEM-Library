@@ -11,21 +11,14 @@ struct ParameterCutFEM;
 
 
 
-class CutFEM_ParameterList {
-public:
-  static std::map<std::string,ParameterCutFEM*> listParameter;
-  static bool find(std::string s)  {
-    return (listParameter.find(s) != listParameter.end());
-  }
-};
 
 // Parameter defined for the FEM/CutFEM problem
-class Parameter { public:
-  static ParameterCutFEM h;
-  static ParameterCutFEM invh;
-  static ParameterCutFEM meas;
-  static ParameterCutFEM invmeas;
-};
+// class Parameter { public:
+//   static ParameterCutFEM h;
+//   static ParameterCutFEM invh;
+//   static ParameterCutFEM meas;
+//   static ParameterCutFEM invmeas;
+// };
 
 // VIRTUAL CLASS FOR HANDLING OPERATION ON PARAMETER
 //------------------------------------------------------------------------------
@@ -75,57 +68,28 @@ typedef CutFEM_Rd<3> CutFEM_R3;
 class ParameterCutFEM : public Virtual_Parameter {
 
   typedef double (pfun)(int, double, double, double, double);
-  std::string name_;
   std::vector<double> val_;
-  double (*fun_expression_)(int domain, double hh, double meas, double measK, double meas_Cut) = nullptr;
-
 public:
-  ParameterCutFEM(): name_(), val_(0), fun_expression_(nullptr){}
-  ParameterCutFEM(const std::vector<double>& x) : name_(), val_(x), fun_expression_(nullptr) {}
-  ParameterCutFEM(std::string n,const std::vector<double>& x) : name_(n), val_(x), fun_expression_(nullptr) {
-    addToList();
-  }
-  ParameterCutFEM(pfun f) : name_(), val_(0), fun_expression_(f){}
-  ParameterCutFEM(std::string n, pfun f) : name_(n), fun_expression_(f), val_(0) {
-    addToList();
-  }
-
-  ParameterCutFEM(double v1) : name_(), val_(v1), fun_expression_(nullptr)  {
+  ParameterCutFEM():val_(0){}
+  ParameterCutFEM(const std::vector<double>& x) : val_(x){}
+  ParameterCutFEM(double v1) :val_(v1){
     val_.push_back(v1);
-  }
-  ParameterCutFEM(std::string n, double v1) : name_(n), val_(v1), fun_expression_(nullptr)  {
-    val_.push_back(v1);
-    addToList();
   }
   ParameterCutFEM(double v1, double v2) : ParameterCutFEM(v1)  {
     val_.push_back(v2);
   }
-  ParameterCutFEM(std::string n, double v1, double v2) : ParameterCutFEM(n,v1)  {
-    val_.push_back(v2);
-  }
-  ParameterCutFEM(const ParameterCutFEM& F):name_(F.name_), val_(F.val_), fun_expression_(F.fun_expression_) {}
+  ParameterCutFEM(const ParameterCutFEM& F) : val_(F.val_){}
 
-  void set(std::string n, const std::vector<double>& x) {
-    name_=n;
-    val_ = x;
-    fun_expression_ = nullptr;
-    addToList();
-  }
   void set(const std::vector<double>& x) {
-    name_= "";
     val_ = x;
-    fun_expression_ = nullptr;
   }
 
   double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
-    if(fun_expression_ != nullptr) return fun_expression_(domain ,h, meas, measK, meas_Cut);
-    else {assert(domain >=0 && domain< val_.size()); return val_[domain];}
-  };
-
+    assert(domain >=0 && domain< val_.size());
+    return val_[domain];
+  }
 
 private:
-  void addToList() ;
-  // bool checkAlreadyExist() const ;
   ParameterCutFEM& operator=(const ParameterCutFEM& F) ;
 };
 

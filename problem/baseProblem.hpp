@@ -28,11 +28,11 @@ public:
 
   BaseFEM(const ProblemOption& option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(option) {}
   BaseFEM(const list<FESpace*>& vh, const ProblemOption& option) : BaseFEM<Mesh>(option){
-    this->mapIdx0.clear();
+    this->mapIdx0_.clear();
     int ndf = 0;
     int NN = 0; int df_loc = 0;
     for(auto it = vh.begin();it!=vh.end();++it) {
-      this->mapIdx0[*it] = ndf;
+      this->mapIdx0_[*it] = ndf;
       ndf += (*it)->NbDoF();
       NN += (*it)->N;
       df_loc += (**it)[0].NbDoF();
@@ -48,6 +48,9 @@ public:
   void addToMatrix(const ItemVF<Rd::d>& VF, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
   void addToRHS(const ItemVF<Rd::d>& VF, const FElement& FKv, const RNMK_& fv, double Cint);
 
+  // add diagonal terms
+  void addDiagonal(const FESpace& Qh, double val);
+  void setDiagonal(const FESpace& Qh, double val);
 
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k);
   void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);

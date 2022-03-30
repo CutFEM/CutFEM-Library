@@ -74,3 +74,5 @@ DONE ** 53) take away cutTh de paraview class and just be able to add many files
 62) remove doublon dans datastuct files
 
 63) add domain_id in itemVF and fixe onDomain in the integration function and on interface integrals
+64) Update gnuplot file with new classes
+65) Fixe general norm file with new classes

@@ -8,7 +8,7 @@ MUMPS::MUMPS(const Solver& s, matmap & AA, Rn & bb)
     //verbose(s.verbose),
     //  reordering(s.reordering),
       mat(AA), rhs(bb)
-      , cleanMatrix(s.clearMatrix){
+      , cleanMatrix(s.clearMatrix_){
 
   //    if(MPIcf::size() > 1) assert(0);
     std::cout << " Using sequential MUMPS  " << std::endl;

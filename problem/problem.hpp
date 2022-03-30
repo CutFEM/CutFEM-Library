@@ -7,8 +7,8 @@
 //#include "../parallel/cfmpi.hpp"
 #include "../common/geometry.hpp"
 #include "../common/marker.hpp"
-#include "../common/timeInterface.hpp"
-#include "../common/fracture.hpp"
+#include "../common/interface_levelSet.hpp"
+// #include "../common/fracture.hpp"
 #include "../common/GTime.hpp"
 #include "../common/SparseMatMap.hpp"
 #include "../common/DA.hpp"
@@ -21,9 +21,9 @@
 #include "../FESpace/integrationFunFEM.hpp"
 // #include "../toolFEM/TimeIntegration.hpp"
 //#include "../num/OperationMV.hpp"
-#include "../FESpace/paraview.hpp"
+// #include "../FESpace/paraview.hpp"
 #include "../solver/solver.hpp"
-#include "../num/matlab.hpp"
+// #include "../num/matlab.hpp"
 #include "../util/util.hpp"
 #include "../util/cputime.h"
 #include "finiteElement.hpp"
@@ -195,7 +195,7 @@ protected:
   // this make possible to use as many space as we need
   // it is saved in the map
   // given the space it return the where the index start
-  std::map<const GFESpace<Mesh>*, int> mapIdx0;
+  std::map<const GFESpace<Mesh>*, int> mapIdx0_;
   int index_i0_ = 0, index_j0_ = 0;
 
 
@@ -221,8 +221,8 @@ public :
   }
   void init(int n) { nb_dof_=n; rhs_.init(nb_dof_);}
   void initIndex(const FElement& FKu, const FElement& FKv) {
-    this->index_i0_ = mapIdx0[&FKv.Vh];
-    this->index_j0_ = mapIdx0[&FKu.Vh];
+    this->index_i0_ = mapIdx0_[&FKv.Vh];
+    this->index_j0_ = mapIdx0_[&FKu.Vh];
   }
   Matrix& get_matrix() {return *pmat_;}
   Rn& get_rhs() {return rhs_;}
@@ -235,6 +235,8 @@ protected :
   R & operator()(int i, int j) { return (*pmat_)[std::make_pair(i+index_i0_,j+index_j0_)]; }
   R & operator()(int i) { return rhs_[i+index_i0_];}
   void addLocalContribution() {
+    this->index_i0_ = 0;
+    this->index_j0_ = 0;
     for (auto q=local_contribution_matrix_.begin(); q != this->local_contribution_matrix_.end(); ++q) {
       (*this)(q->first.first,q->first.second) += q->second;
     }

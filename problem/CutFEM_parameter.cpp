@@ -1,20 +1,17 @@
 #include "CutFEM_parameter.hpp"
-std::map<std::string,ParameterCutFEM*> CutFEM_ParameterList::listParameter = std::map<std::string,ParameterCutFEM*>();
+// std::map<std::string,ParameterCutFEM*> CutFEM_ParameterList::listParameter = std::map<std::string,ParameterCutFEM*>();
 
-static double fun_meas(int i, double hh, double meas, double measK, double meas_Cut) {return meas;}
-static double fun_invmeas(int i, double hh, double meas, double measK, double meas_Cut) {return 1./meas;}
-static double fun_h(int i, double hh, double meas, double measK, double meas_Cut) {return hh;}
-static double fun_invh(int i, double hh, double meas, double measK, double meas_Cut) {return 1./hh;}
+// static double fun_meas(int i, double hh, double meas, double measK, double meas_Cut) {return meas;}
+// static double fun_invmeas(int i, double hh, double meas, double measK, double meas_Cut) {return 1./meas;}
+// static double fun_h(int i, double hh, double meas, double measK, double meas_Cut) {return hh;}
+// static double fun_invh(int i, double hh, double meas, double measK, double meas_Cut) {return 1./hh;}
+//
+// ParameterCutFEM Parameter::h        = ParameterCutFEM("h", fun_h);
+// ParameterCutFEM Parameter::invh     = ParameterCutFEM("invh", fun_invh);
+// ParameterCutFEM Parameter::meas     = ParameterCutFEM("meas", fun_meas);
+// ParameterCutFEM Parameter::invmeas  = ParameterCutFEM("invmeas", fun_invmeas);
 
-ParameterCutFEM Parameter::h        = ParameterCutFEM("h", fun_h);
-ParameterCutFEM Parameter::invh     = ParameterCutFEM("invh", fun_invh);
-ParameterCutFEM Parameter::meas     = ParameterCutFEM("meas", fun_meas);
-ParameterCutFEM Parameter::invmeas  = ParameterCutFEM("invmeas", fun_invmeas);
 
-
-void ParameterCutFEM::addToList() {
-  CutFEM_ParameterList::listParameter[name_] = this;
-}
 
 
 Mul_Cst_Parameter operator*(const double a, const Virtual_Parameter& B) {

@@ -27,7 +27,7 @@ static double paraviewFormat( double x) {
  */
 
  template<class M>
- class ParaviewCut {
+ class Paraview {
  public :
    typedef M Mesh;
    typedef GFESpace<Mesh> FESpace;
@@ -499,8 +499,8 @@ static double paraviewFormat( double x) {
 
    } mesh_data;
 
-   ParaviewCut() { }
-   ParaviewCut(const ActiveMesh<Mesh>& cutTh, std::string name) {
+   Paraview() { }
+   Paraview(const ActiveMesh<Mesh>& cutTh, std::string name) {
      outFile_ = name;
      mesh_data.build(cutTh);
      this->writeFileMesh();
@@ -569,7 +569,7 @@ static double paraviewFormat( double x) {
  // Writting the nodes
  // ---------------------------------------------------------------------------------------
  template<class M>
- void ParaviewCut<M>::writeFileMesh() {
+ void Paraview<M>::writeFileMesh() {
 
    std::ofstream point(outFile_.c_str(), std::ofstream::out);
    point << "# vtk DataFile Version 1.0" << std::endl
@@ -596,7 +596,7 @@ static double paraviewFormat( double x) {
  // Writting the cells
  // ---------------------------------------------------------------------------------------
  template<class M>
- void ParaviewCut<M>::writeFileCell() {
+ void Paraview<M>::writeFileCell() {
 
    std::ofstream cell(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
    cell << "CELLS " << mesh_data.nbElement() << " " << mesh_data.sizeDataCell()<< std::endl;
@@ -618,7 +618,7 @@ static double paraviewFormat( double x) {
 
 
  template<class M>
- void ParaviewCut<M>::add(Fun_h& fh, std::string nameField, int begin_comp, int nb_comp){
+ void Paraview<M>::add(Fun_h& fh, std::string nameField, int begin_comp, int nb_comp){
 
    if(nb_comp ==1) {
      ExpressionFunFEM<M> ui(fh, begin_comp, op_id);
@@ -631,14 +631,14 @@ static double paraviewFormat( double x) {
 
 
  template<class M>
- void ParaviewCut<M>::add(const ExpressionVirtual& fh, std::string nameField){
+ void Paraview<M>::add(const ExpressionVirtual& fh, std::string nameField){
 
      writeFileScalarData(fh, nameField);
  }
 
 
  template<class M>
- void ParaviewCut<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string name){
+ void Paraview<M>::writeFileScalarData(const ExpressionVirtual& fh, std::string name){
 
    std::ofstream data(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
    if(nbDataFile == 0) data << "POINT_DATA " << mesh_data.nbNode() << std::endl;
@@ -662,7 +662,7 @@ static double paraviewFormat( double x) {
 
 
  template<class M>
- void ParaviewCut<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name){
+ void Paraview<M>::writeFileVectorData(Fun_h& fh,int c0, std::string name){
 
    std::ofstream data(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
 

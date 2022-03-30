@@ -14,11 +14,29 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, cons
 template<typename M>
 void BaseFEM<M>::addToRHS(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint) {
   for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
-      (*this)(FKv.loc2glb(i)) = Cint;//+=   Cint * fv(i,VFi.cv,VFi.dv);
+      (*this)(FKv.loc2glb(i)) = Cint * fv(i,VFi.cv,VFi.dv);
   }
 }
 
 //Fun_h are always evaluated on backMesh
+template<typename M>
+void BaseFEM<M>::addDiagonal(const FESpace& Qh, double val){
+  int idxBegin = this->mapIdx0_[&Qh];
+  int idxEnd   = Qh.nbDoF;
+  for(int i=idxBegin;i<idxEnd ;++i){
+    (*this->pmat_)[std::make_pair(i,i)] += val;
+  }
+}
+template<typename M>
+void BaseFEM<M>::setDiagonal(const FESpace& Qh, double val){
+  int idxBegin = this->mapIdx0_[&Qh];
+  int idxEnd   = Qh.nbDoF;
+  for(int i=idxBegin;i<idxEnd ;++i){
+    (*this->pmat_)[std::make_pair(i,i)] = val;
+  }
+}
+
+
 
 
 // INTEGRATION ON FULL ELEMENT
@@ -101,7 +119,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip);
       Cint *= coef * VF[l].c;
 
-      Cint = coef;
+      // Cint = coef;
       if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
@@ -181,7 +199,7 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
         // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
         Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip);
         Cint *= coef * VF[l].c;
-        Cint = coef;
+        // Cint = coef;
         if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
         else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
@@ -310,7 +328,7 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pai
 
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domain,domain), mip, normal);
       Cint *= coef * VF[l].c;
-      Cint = coef;
+      // Cint = coef;
       if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
@@ -516,8 +534,6 @@ void BaseFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Elemen
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, normal);
       Cint *= coef * VF[l].c;
 
-      Cint = coef;
-
       if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
@@ -600,7 +616,6 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
           Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, normal);
           Cint *= coef * VF[l].c;
 
-          // Cint = cutFace.measure();//coef;
 
           if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
           else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
@@ -715,8 +730,6 @@ void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const 
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domu, domv), mip, normal);
       Cint *= coef * VF[l].c;
 
-      // std::cout << Cint << std::endl;
-      // Cint = coef;
       if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 

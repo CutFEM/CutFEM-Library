@@ -5,6 +5,18 @@ template<> int SignElement<Hexa>::nb_node_positif() const{
   return 0.5*(8+sum_) ;
 }
 
+template<> RefPatch<Edge2>::InitializerCL::InitializerCL (){
+  if (init_count_++ > 0) return;
+
+  // byte ls[2];
+  // for (ls[0]= -1; ls[0] < 2; ++ls[0]) {
+  //   for (ls[1]= -1; ls[1] < 2; ++ls[1]) {
+  //     if ( ls[0] == 0 && ls[1] == 0) continue;
+  //     RefPatch<Edge2>::instance( ls);
+  //
+  //   }
+  // }
+}
 template<> RefPatch<Triangle2>::InitializerCL::InitializerCL (){
   if (init_count_++ > 0) return;
 
@@ -67,6 +79,12 @@ template<> RefPatch<Hexa>::InitializerCL::InitializerCL () {
 }
 
 // RefPatch
+template<> bool RefPatch<Edge2>::assign (const SignPattern<Edge2>& cut) {
+  for (size_= 0; size_ < num_elements( cut); ++size_) {
+    face_[size_] = FaceIdx( cut(size_));
+  }
+  return empty();
+}
 template<> bool RefPatch<Triangle2>::assign (const SignPattern<Triangle2>& cut) {
 
   for (size_= 0; size_ < num_elements( cut); ++size_) {
@@ -129,6 +147,19 @@ template<> bool RefPatch<Hexa>::assign (const SignPattern<Hexa>& cut) {
 
 
 // RefPartition
+template<> RefPartition<Edge2>::InitializerCL::InitializerCL (){
+  // std::cout << " initialize instances Triangle" << std::endl;
+  if (init_count_++ > 0) return;
+  //
+  // byte ls[2];
+  // for (ls[0]= -1; ls[0] < 2; ++ls[0]) {
+  //   for (ls[1]= -1; ls[1] < 2; ++ls[1]) {
+  //     if ( ls[0] == 0 && ls[1] == 0 ) continue;
+  //     RefPartition<Edge2>::instance( ls);
+  //
+  //   }
+  // }
+}
 template<> RefPartition<Triangle2>::InitializerCL::InitializerCL (){
   // std::cout << " initialize instances Triangle" << std::endl;
 
@@ -195,7 +226,49 @@ template<> RefPartition<Hexa>::InitializerCL::InitializerCL () {
   if (init_count_++ > 0) return;
 }
 
+template<> bool RefPartition<Edge2>::assign (const SignPattern<Edge2>& cut) {
+  assert(0);
+  end_= begin_= elements_ + start_array;
 
+  // if (cut.empty()) { // Most common case: no cut.
+  //   Ubyte list_v[] = {0,1};
+  //   // AddTriangle( 0, 1, 2, cut.sign( 0));
+  //   AddElement( list_v, cut.sign( 0));
+  //
+  // }
+  // else if (cut.no_zero_vertex()) { // next common case: cuts without vertices on the zero level
+  //   is_cut_ = true;
+  //   const Ubyte v = Triangle2::commonVertOfEdges[cut[0]][cut[1]];
+  //   Ubyte list_v[] = {v, cut(0), cut(1)};
+  //   AddElement( list_v, cut.sign( v));
+  //   // AddTriangle( v, cut(0), cut(1), cut.sign( v));
+  //   AddQuadrilateral( Triangle2::oppVertOfEdge( cut[0], v), cut(0),
+  //             Triangle2::oppVertOfEdge( cut[1], v), cut(1),
+	//       -cut.sign( v));
+  //
+  // }
+  // else if (cut.num_cut_simplexes() > cut.num_zero_vertexes()) { // next common case: there are cut edges, and also 1 or 2 vertices of the tetra with value 0 (the latter as we are in the else-part of cut.no_zero_vertex())
+  //     if (cut.num_zero_vertexes() == 1) { // triangular cut through a vertex: a tetra and a remaining pyramid with quadrilateral base
+  //         const Ubyte e= cut[1], f= cut[2];
+  //         const Ubyte v= VertByEdge( e, f);
+  //         AddTetra( v, cut(0), cut(1), cut(2), cut.sign( v));
+  //         const Ubyte opp_v_in_e= v == VertOfEdge( e, 0) ? VertOfEdge( e, 1) : VertOfEdge( e, 0);
+  //         const Ubyte opp_v_in_f= v == VertOfEdge( f, 0) ? VertOfEdge( f, 1) : VertOfEdge( f, 0);
+  //         // the pyramid
+  //         AddTetra( cut(0), cut(1), opp_v_in_f, opp_v_in_e, -cut.sign( v));
+  //         AddTetra( cut(0), cut(1), opp_v_in_f, cut(2), -cut.sign( v));
+  //     }
+  //     else if (cut.num_zero_vertexes() == 2) { // triangular cut through 2 vertexes: two tetras
+  //         const Ubyte e= OppEdge( EdgeByVert( cut[0], cut[1]));
+  //         const Ubyte v0= VertOfEdge( e, 0), v1= VertOfEdge( e, 1);
+  //         AddTetra( cut(0), cut(1), v0, cut(2), cut.sign( v0));
+  //         AddTetra( cut(0), cut(1), v1, cut(2), cut.sign( v1));
+  //     }
+  // }
+  // else // remaining cases: 1, 2 or 3 cuts, which are vertices of the tetra
+  //     AddTetra( 0, 1, 2, 3, cut.sign( some_non_zero_vertex( cut)));
+  return is_uncut();
+}
 template<> bool RefPartition<Triangle2>::assign (const SignPattern<Triangle2>& cut) {
   end_= begin_= elements_ + start_array;
 
@@ -595,6 +668,9 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
 
 template<> Ubyte RefPartition<Hexa>::first_uncut_edge (const SignPattern<Hexa>& cut) const {
   assert(0);
+}
+template<> void Partition<Edge2>::get_list_node(vector<R2>& node, int s) const {
+assert(0);
 }
 template<> void Partition<Triangle2>::get_list_node(vector<R2>& node, int s) const {
   node.resize(0);

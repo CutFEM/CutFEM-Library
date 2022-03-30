@@ -24,7 +24,7 @@ struct ItemVF {
   void(*pfunU)(RNMK_&,int,int) = f_id;
   void(*pfunV)(RNMK_&,int,int) = f_id;
 
-  CutFEM_ParameterList parameterList;
+  // CutFEM_ParameterList parameterList;
 
 
   ItemVF()

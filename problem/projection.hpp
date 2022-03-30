@@ -149,7 +149,8 @@ void projection(const FunFEM<M> & fh, FunFEM<M> & ph, const TimeSlab& In, const 
 
 	assert(interface.size() == projection.qTime.n);
 	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
-	const CutFEM_Parameter& h(Parameter::h);
+	double h = Fh.Th[0].get_h();
+	// const CutFEM_Parameter& h(Parameter::h);
 	Normal n;
 
 	projection.addBilinear(innerProduct(u,v), interface, In);
@@ -187,7 +188,9 @@ void projection(FunFEM<M> & ph, double (*f)(const typename M::Rd, int i)){
 	typedef typename FESpace::FElement FElement;
 
 	FEM<M> projection(Vh);
-	const CutFEM_Parameter& h(Parameter::h);
+	// const CutFEM_Parameter& h(Parameter::h);
+	double h = Vh.Th[0].get_h();
+
 	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
 	projection.addBilinear(innerProduct(u,v));
 
@@ -228,12 +231,14 @@ void projection(FunFEM<M> & ph, double (*f)(const typename M::Rd, int i, int dd)
 	typedef typename FESpace::FElement FElement;
 
 	CutFEM<M> projection(Vh);
-	const CutFEM_Parameter& h(Parameter::h);
+	// const CutFEM_Parameter& h(Parameter::h);
+	double h = Vh.Th[0].get_h();
+
 	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
 	projection.addBilinear(innerProduct(u,v));
 	projection.addFaceStabilization(
 		  innerProduct(jump(u), 1e-2*jump(v))
-		+ innerProduct((h^2)*jump(grad(u)), 1e-2*jump(grad(v)))
+		+ innerProduct((h*h)*jump(grad(u)), 1e-2*jump(grad(v)))
 	);
 
 	What_d Fop = Fwhatd(1);

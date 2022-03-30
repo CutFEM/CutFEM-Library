@@ -244,7 +244,7 @@ private:
 };
 
 
-class CutFEM_Parameter;
+class ParameterCutFEM;
 template<typename M>
 class ExpressionFunFEM;
 class ExpressionProduct;
@@ -442,7 +442,7 @@ ExpressionMultConst operator*(const ExpressionVirtual& f1, double cc);
 ExpressionMultConst operator*(double cc, const ExpressionVirtual& f1);
 ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Component_X& cc);
 ExpressionMultConst operator*(const ExpressionVirtual& f1, const Normal_Component_Y& cc);
-ExpressionMultConst operator*(const CutFEM_Parameter& v, const ExpressionVirtual& f1);
+ExpressionMultConst operator*(const ParameterCutFEM& v, const ExpressionVirtual& f1);
 
 
 class ExpressionAbs : public ExpressionVirtual {
