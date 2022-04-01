@@ -87,28 +87,25 @@ int main(int argc, char** argv ) {
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters =5;
+  int iters =6;
 
   for(int i=0;i<iters;++i) {
     Mesh2 Th(nx, ny, 0., 0., 1., 1.);
     Th.info();
     double h = 1./(nx-1);
-
+    Normal n;
 
     if(set_p){
-      KN<const GTypeOfFE<Mesh2>* > arrayFE(1);
-      arrayFE(0) = &DataFE<Mesh2>::RT0;
-      GTypeOfFESum<Mesh2> mixedFE(arrayFE);
-      FESpace2 Vh(Th, mixedFE);
+      FESpace2 Vh(Th, DataFE<Mesh2>::BDM1);
       FEM<Mesh2> darcy(Vh);
       FunTest u(Vh,2), v(Vh,2);
 
       // [ASSEMBLY]
       darcy.addBilinear(
-        //innerProduct(u, v)
-        +innerProduct(div(u), div(v))
+        innerProduct(u, v)
+        // +innerProduct(div(u), div(v))
       );
-      darcy.setDiagonal(Vh, 1.);
+      // darcy.setDiagonal(Vh, 1.);
       matlab::Export(darcy.mat, "matB"+to_string(i)+".dat");
       nx = 2*nx -1;
       ny = nx;
@@ -116,11 +113,8 @@ int main(int argc, char** argv ) {
 
     }
     else{
-      KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-      arrayFE(0) = &DataFE<Mesh2>::RT0;
-      arrayFE(1) = &DataFE<Mesh2>::P0;
-      FESpace2 Vh(Th, DataFE<Mesh2>::RT0);
-      FESpace2 Ph(Th, DataFE<Mesh2>::P0);
+      FESpace2 Vh(Th, DataFE<Mesh2>::RT1);
+      FESpace2 Ph(Th, DataFE<Mesh2>::P1dc);
       FEM<Mesh2> darcy(Vh); darcy.add(Ph);
       FunTest u(Vh,2), v(Vh,2),p(Ph,1), q(Ph,1);
       Vh.info();
@@ -128,13 +122,14 @@ int main(int argc, char** argv ) {
       // [ASSEMBLY]
       darcy.addBilinear(
         innerProduct(u, v)
+        + innerProduct(div(u), q) - innerProduct(p, div(v))
       );
-      darcy.addBilinear(
-        + innerProduct(1./h*div(u), q)
-      );
-      darcy.addBilinear(
-        - innerProduct(1./h*p, div(v))
-      );
+      // darcy.addBilinear(
+      //   innerProduct(p, v*n)
+      //   + innerProduct(1./h*u*n,v*n)
+      //   , boundary
+      // );
+      // darcy.addLagrangeMultiplier(innerProduct(1,p), 0);
       // darcy.setDiagonal(Vh, 1.);
 
       matlab::Export(darcy.mat, "matB"+to_string(i)+".dat");
@@ -155,7 +150,7 @@ int main(int argc, char** argv ) {
 namespace Data_CutMixedDarcy {
   bool solHasJump = true;
   R shift = 0.5;
-  R interfaceRad = 0.250001; // not exactly 1/4 to avoid interface cutting exaclty a vertex
+  R interfaceRad = 0.2537; // not exactly 1/4 to avoid interface cutting exaclty a vertex
   R mu_G = 2./3*interfaceRad; // xi0*mu_G = 1/8*2/3*1/4
 
   R fun_radius2(const R2 P){
@@ -270,8 +265,8 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 20; // 6
-  int ny = 20; // 6
+  int nx = 11; // 6
+  int ny = 11; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
@@ -288,12 +283,14 @@ int main(int argc, char** argv ) {
 
     Interface2 interface(Th, levelSet.v);
 
-    // KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    // arrayFE(0) = &DataFE<Mesh2>::RT0;
-    // arrayFE(1) = &DataFE<Mesh2>::P0;
-    // GTypeOfFESum<Mesh2> mixedFE(arrayFE);
-    FESpace2 Vh(Th, DataFE<Mesh2>::RT0);
-    FESpace2 Ph(Th, DataFE<Mesh2>::P0);
+    KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
+    arrayFE(0) = &DataFE<Mesh2>::RT1;
+    arrayFE(1) = &DataFE<Mesh2>::P1dc;
+    GTypeOfFESum<Mesh2> mixedFE(arrayFE);
+    FESpace2 Vh(Th, mixedFE);
+    FESpace2 Ph(Th, DataFE<Mesh2>::P0); // for the RHS
+    // FESpace2 Vh(Th, DataFE<Mesh2>::RT0);
+    // FESpace2 Ph(Th, DataFE<Mesh2>::P0);
 
     // CutFEM stuff
     CutFESpace2 Wh(Vh , interface, {1,-1});
@@ -301,7 +298,7 @@ int main(int argc, char** argv ) {
 
     // gnuplot::save(Wh,0,"Vh1.dat");
     // gnuplot::save(Wh,1,"Vh2.dat");
-    CutFEM<Mesh2> darcyCutMix(Wh); darcyCutMix.add(Qh);
+    CutFEM<Mesh2> darcyCutMix(Wh); //darcyCutMix.add(Qh);
     const R hei = 1./(nx-1);//Th[0].lenEdge(0);
 
     MacroElement macro(Wh, 1e-1);
@@ -336,7 +333,8 @@ int main(int argc, char** argv ) {
 
     Normal n;
     Tangent t;
-    FunTest p(Qh,1), q(Qh,1), u(Wh,2), v(Wh,2);
+    // FunTest p(Qh,1), q(Qh,1), u(Wh,2), v(Wh,2);
+    FunTest p(Wh,1,2), q(Wh,1,2), u(Wh,2), v(Wh,2);
 
     // u=1e-2 p=1e1 REALLY GOOD for jump problem!
     double uPenParam = 1e0;//1e-2; //cont 1e-1`
@@ -348,11 +346,11 @@ int main(int argc, char** argv ) {
     // [ASSEMBLY]
 
     // //:: a(u,v)_Omega
-    // darcyCutMix.addBilinear(
-    //   innerProduct(mu*u, v)
-    //   -innerProduct(p, div(v))
-    //   +innerProduct(div(u), q)
-    // );
+    darcyCutMix.addBilinear(
+      innerProduct(mu*u, v)
+      -innerProduct(p, div(v))
+      +innerProduct(div(u), q)
+    );
     //
     // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
     // nx = 2*nx -1;
@@ -365,7 +363,7 @@ int main(int argc, char** argv ) {
       +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
       ,interface
     );
-    matlab::Export(darcyCutMix.mat, "matOld.dat");
+    // matlab::Export(darcyCutMix.mat, "matOld.dat");
     // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
     // nx *= 2;
     // ny *= 2;
@@ -405,8 +403,8 @@ int main(int argc, char** argv ) {
       // -innerProduct(phat.expression(), jump(v.t()*n))
       ,interface
     );
-    matlab::Export(darcyCutMix.rhs, "rhsOld.dat");
-    return 0;
+    // matlab::Export(darcyCutMix.rhs, "rhsOld.dat");
+    // return 0;
     int N = Wh.NbDoF();
 
 
@@ -456,14 +454,14 @@ int main(int argc, char** argv ) {
   // +innerProduct(pPenParam*hei*jump(p), jump(q))
   // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
 
-   innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+   innerProduct(uPenParam*pow(hei,1)*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
   +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
   // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-  +innerProduct(pPenParam*hei*jump(p), jump(div(v)))
-  +innerProduct(pPenParam*hei*jump(div(u)), jump(q))
-  // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
-  // +innerProduct(pPenParam*pow(hei,3)*jump(grad(div(v))) , jump(grad(q)))
-  , macro
+  +innerProduct(pPenParam*pow(hei,1)*jump(p), jump(div(v)))
+  +innerProduct(pPenParam*pow(hei,1)*jump(div(u)), jump(q))
+  +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
+  +innerProduct(pPenParam*pow(hei,3)*jump(grad(div(v))) , jump(grad(q)))
+  // , macro
 );
 
   // Test 1 - on all triangle
@@ -505,8 +503,8 @@ int main(int argc, char** argv ) {
   // if(MPIcf::IamMaster()){
   //   std::cout << "dof = \t" << Wh.NbDoF()<< std::endl;
   // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
-  // nx *= 2;
-  // ny *= 2;
+  // nx = 2*nx-1;
+  // ny = 2*ny-1;
   // continue;
 
   // return 0;
@@ -521,7 +519,7 @@ int main(int argc, char** argv ) {
   // extension.make_S();
   // extension.solve_weak_extension("mumps");
 
-  // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
+  matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
   // { // EXPORT SAVE AND LOAD WITH MATLAB
   //   matlab::Export(darcyCutMix.mat, "Amat.dat");
   //   matlab::Export(darcyCutMix.rhs, "rhs.dat");
@@ -531,8 +529,8 @@ int main(int argc, char** argv ) {
   //   matlab::loadVector(darcyCutMix.rhs, darcyCutMix.rhs.size(),  "rhs.txt");
   //   std::cout << " Vector loaded "<< darcyCutMix.rhs.size() << std::endl;
   // }
-  darcyCutMix.solve("umfpack");
-  // darcyCutMix.solve();
+  // darcyCutMix.solve("umfpack");
+  darcyCutMix.solve();
 
 
 
@@ -622,8 +620,8 @@ int main(int argc, char** argv ) {
   // nx = 2*nx - 1;
   // ny = 2*ny - 1;
   // int nn = iters/5;
-  nx *= 2;
-  ny *= 2;
+  nx = 2*nx+1;
+  ny = 2*ny+1;
   // nx = (int)round( (1+0.2*i)*nx/2 )*2; // Makes a nonuniform refinement to an EVEN integer
   // ny = (int)round( (1+0.2*i)*ny/2 )*2;
   // std::cout << nx << std::endl;
@@ -1166,7 +1164,7 @@ namespace Data_CutMixedDarcyPUPPI_circle {
   R pie = 3.14159265359;
 
   R fun_levelSet(const R2 P, const int i) {
-    return interfaceRad - sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift));
+    return 10+interfaceRad - sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift));
   }
 
   // R fun_levelSet(const R2 P, const int i) {
@@ -1228,56 +1226,6 @@ namespace Data_CutMixedDarcyPUPPI_circle {
 
 using namespace Data_CutMixedDarcyPUPPI_circle;
 
-static void exactRHSintegration(const CutFESpace2& Vh, Rn& rhs, R (*f)(const R2)){
-  typedef typename Mesh2::BorderElement BorderElement;
-  typedef typename FESpace2::FElement FElement;
-  typedef typename Mesh2::Element Element;
-  typedef typename FElement::QFB QFB;
-  typedef typename QFB::QuadraturePoint QuadraturePoint;
-
-
-  KNMK<double> fv(Vh[0].NbDoF(),3,1); //  the value for basic fonction
-  What_d Fop = Fwhatd(1);
-  const QFB &qfb(*QF_Simplex<R1>(5));
-
-  for( int ifac = Vh.first_boundary_element(); ifac < Vh.last_boundary_element(); ifac+=Vh.next_boundary_element()) {
-
-    const BorderElement & BE(Vh.Th.be(ifac)); // The face
-    int ifaceK; // index of face of triangle corresp to edge (0,1,2)
-    const int kb = Vh.Th.BoundaryElement(ifac, ifaceK); // index of element (triangle), ifaceK gets modified inside
-    const int k = Vh.idxElementFromBackMesh(kb, 0);
-
-    const FElement& FK((Vh)[k]);
-    R2 normal = FK.T.N(ifaceK);
-    const R meas = BE.mesure();
-
-    int nb_face_onB = 0;
-    for(int i=0;i<Element::nea;++i){
-      int ib = i;
-      if(Vh.Th.ElementAdj(kb,ib) == -1) nb_face_onB += 1;
-    }
-    assert(nb_face_onB > 0);
-    double measOnB = nb_face_onB*meas;
-    const int kv = Vh.idxElementFromBackMesh(kb, 0);
-
-    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-
-      QuadraturePoint ip(qfb[ipq]); // integration point
-      const R2 mip = BE((R1)ip); // mip is in the global edge
-      const R Cint = meas * ip.getWeight();
-
-      FK.BF(Fop,FK.T.toKref(mip), fv);
-      double val_fh = f(mip);
-
-      for(int d=0;d<2;++d){
-        for(int i = FK.dfcbegin(d); i < FK.dfcend(d); ++i) {
-          rhs(FK.loc2glb(i)) +=  -Cint * val_fh * fv(i,d,op_id)*normal[d];
-        }
-      }
-    }
-  }
-}
-
 int main(int argc, char** argv ) {
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
@@ -1285,13 +1233,12 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 10; // 10, 17
-  int ny = 10; // 10, 17
+  int nx = 11; // 10, 17
+  int ny = 11; // 10, 17
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
 
-  int iters = 6;
-
+  int iters = 5;
   for(int i=0;i<iters;++i) {
     // if (i<5) {
     //   nx *= 2; ny*= 2;
@@ -1304,7 +1251,7 @@ int main(int argc, char** argv ) {
     Interface2 interface(Th, levelSet.v);
 
     KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT0;
+    arrayFE(0) = &DataFE<Mesh2>::BDM1;
     arrayFE(1) = &DataFE<Mesh2>::P0;
     GTypeOfFESum<Mesh2> mixedFE(arrayFE);
     FESpace2 Vh(Th, mixedFE);
@@ -1369,7 +1316,7 @@ int main(int argc, char** argv ) {
     double uPenParam = 1e0;//1e-2; //cont 1e-1`
     double pPenParam = 1e0;//1e1; // cont 1e2
     double jumpParam = 1e0; // [anything<1e0 doesn't give full u convergence]
-    double penParam = 1e-4; //1e-3  //1e-2/2.7; // 1e-2/4, 1e-2/2.8
+    double penParam = 1e0; //1e-3  //1e-2/2.7; // 1e-2/4, 1e-2/2.8
 
     // [ASSEMBLY]
 
@@ -1401,15 +1348,24 @@ int main(int argc, char** argv ) {
     darcyCutMix.addLagrangeMultiplier(
       innerProduct(1.,p), 0.
     );
+    // darcyCutMix.addBilinear(
+    //   +innerProduct(p, v*n)
+    //   +innerProduct(penParam*u*n, 1./hei*v*n)
+    //   // -innerProduct(u*n,q)
+    // ,interface);
+    // darcyCutMix.addLinear(
+    //   +innerProduct(u0*n, penParam*1./hei*v*n)
+    //   // -innerProduct(u0*n, q)
+    // ,interface);
     darcyCutMix.addBilinear(
       +innerProduct(p, v*n)
-      +innerProduct(penParam*u*n, invh*v*n)
-      -innerProduct(u*n,q)
-    ,interface);
+      +innerProduct(penParam*u*n, 1./hei*v*n)
+      // -innerProduct(u*n,q)
+    ,boundary);
     darcyCutMix.addLinear(
-      +innerProduct(u0*n, penParam*invh*v*n)
-      -innerProduct(u0*n, q)
-    ,interface);
+      +innerProduct(u0*n, penParam*1./hei*v*n)
+      // -innerProduct(u0*n, q)
+    ,boundary);
 
     // [Dirichlet (all components) + Neumann]
     // darcyCutMix.addBilinear(
@@ -1459,23 +1415,23 @@ int main(int argc, char** argv ) {
     //   // -innerProduct(u0*n, q)
     // ,interface);
 
-    FunTest grad2un = grad(grad(u)*n)*n;
-    darcyCutMix.addFaceStabilization( // [h^(2k+1) h^(2k-1)]
-    innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
-    +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
-    // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-    +innerProduct(pPenParam*hei*jump(p), jump(q))
-    // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
-
-    //  innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
-    // +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
-    // // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-    // +innerProduct(pPenParam*hei*jump(p), jump(div(v)))
-    // +innerProduct(pPenParam*hei*jump(div(u)), jump(q))
-    // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
-    // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(div(v))) , jump(grad(q)))
-    , macro
-  );
+  //   FunTest grad2un = grad(grad(u)*n)*n;
+  //   darcyCutMix.addFaceStabilization( // [h^(2k+1) h^(2k-1)]
+  //   // innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+  //   // +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
+  //   // // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
+  //   // +innerProduct(pPenParam*hei*jump(p), jump(q))
+  //   // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
+  //
+  //    innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+  //   +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
+  //   // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
+  //   +innerProduct(pPenParam*jump(p), jump(div(v)))
+  //   +innerProduct(pPenParam*jump(div(u)), jump(q))
+  //   // +innerProduct(pPenParam*pow(hei,2)*jump(grad(p)), jump(grad(div(v))))
+  //   // +innerProduct(pPenParam*pow(hei,2)*jump(grad(div(v))) , jump(grad(q)))
+  //   , macro
+  // );
 
     // int N = Wh.NbDoF();
 
@@ -1586,8 +1542,8 @@ int main(int argc, char** argv ) {
       convmaxdivPr.push_back( log(maxDivPrint[i]/maxDivPrint[i-1])/log(h[i]/h[i-1]));
     }
 
-    nx *= 2;    //nx -= 1;
-    ny *= 2;    //ny -= 1;
+    nx = 2*nx-1;    //nx -= 1;
+    ny = 2*ny-1;    //ny -= 1;
     // nx += 1;
     // ny += 1;
     // nx = (int)round( (1+0.2*i)*nx/2 )*2; // Makes a nonuniform refinement to an EVEN integer

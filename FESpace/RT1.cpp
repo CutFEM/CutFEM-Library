@@ -120,7 +120,7 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2>
     const Element &T = K.T;
     int k = 0;
     int arrEdgeOrient[3] = {T.EdgeOrientation(0), T.EdgeOrientation(1), T.EdgeOrientation(2)};
-
+    double s = 1.;///(sqrt(T.mesure()));
     for(int i = 0; i < 3; i++) {
       R2 E(-T.Edge(i).perp());
       R eOrientation = arrEdgeOrient[i];
@@ -134,10 +134,10 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2>
         if(eOrientation < 0) {
           Exchange(lambda1, lambda0);    // exch lambda0,lambda1
         }
-        v[k++] = lambda0 * E.x;
-        v[k++] = lambda0 * E.y;
-        v[k++] = lambda1 * E.x;
-        v[k++] = lambda1 * E.y;
+        v[k++] = lambda0 * E.x *s;
+        v[k++] = lambda0 * E.y *s;
+        v[k++] = lambda1 * E.x *s;
+        v[k++] = lambda1 * E.y *s;
       }
     }
 
@@ -149,10 +149,10 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2>
 
     for(int p = 0; p < QFK.n; ++p) {
       double w = QFK[p].a * CK;
-      v[k++] = w * B[0].x;
-      v[k++] = w * B[0].y;
-      v[k++] = w * B[1].x;
-      v[k++] = w * B[1].y;
+      v[k++] = w * B[0].x *s;
+      v[k++] = w * B[0].y *s;
+      v[k++] = w * B[1].x *s;
+      v[k++] = w * B[1].y *s;
     }
 
     assert(k == this->ipj_Pi_h.N());
@@ -211,6 +211,7 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat,
   bfMat = 0;
 
   R triMeas2 = 2 * K.mesure();
+  R scale = 1.;//sqrt(K.mesure());
 
   R2 phi[3] = {X - Q[0], X - Q[1], X - Q[2]};    // phi * area *2
   R2 X_dx(1,0); R2 X_dy(0,1);
@@ -288,8 +289,8 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat,
         fd += (cI[dof][k] * refBaryc[lI[dof][k]]) * phi[pI[dof][k]];
       }
 
-      bfMat(dof, 0, op_id) = fd.x;
-      bfMat(dof, 1, op_id) = fd.y;
+      bfMat(dof, 0, op_id) = fd.x * scale;
+      bfMat(dof, 1, op_id) = fd.y * scale;
     }
   }
 
@@ -307,8 +308,8 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat,
           fd += cI[dof][k] * (DL[lI[dof][k]].x * phi[pI[dof][k]] + refBaryc[lI[dof][k]] * e1);
         }
 
-        bfMat(dof, 0, op_dx) = fd.x;
-        bfMat(dof, 1, op_dx) = fd.y;
+        bfMat(dof, 0, op_dx) = fd.x * scale;
+        bfMat(dof, 1, op_dx) = fd.y * scale;
       }
     }
 
@@ -320,8 +321,8 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat,
           fd += cI[dof][k] * (DL[lI[dof][k]].y * phi[pI[dof][k]] + refBaryc[lI[dof][k]] * e2);
         }
 
-        bfMat(dof, 0, op_dy) = fd.x;
-        bfMat(dof, 1, op_dy) = fd.y;
+        bfMat(dof, 0, op_dy) = fd.x * scale;
+        bfMat(dof, 1, op_dy) = fd.y * scale;
       }
     }
 

@@ -33,10 +33,6 @@ public:
 } ;
 
 const int TypeOfFE_P1dcLagrange2d::nbNodeOnItem[4] = {1,0,0,0};
-
-// tre trick is to use the face because we want discontinuous element
-// the the node on the face will have 3 df, one for each ndfonVertex
-// like P3 on edge
 int TypeOfFE_P1dcLagrange2d::Data[] = {
   6, 6, 6,    // we use the face because we want discontinuous element
   0, 1, 2,    // the number of the df on  the node
@@ -57,14 +53,14 @@ void TypeOfFE_P1dcLagrange2d::FB(const What_d whatd, const Element & K,  const R
 
   assert(val.N() >= Element::nv);
   assert(val.M()==1 );
-
+  double s = 1.;///pow(K.mesure(),1./4);//1./sqrt(K.mesure());
   val=0;
   RN_ f0(val('.',0,op_id));
 
   if (whatd & Fop_D0) {
-    f0[0] = l[0];
-    f0[1] = l[1];
-    f0[2] = l[2];
+    f0[0] = s*l[0];
+    f0[1] = s*l[1];
+    f0[2] = s*l[2];
   }
 
   if (whatd & Fop_D1) {
@@ -72,16 +68,16 @@ void TypeOfFE_P1dcLagrange2d::FB(const What_d whatd, const Element & K,  const R
     K.Gradlambda(Dl);
     if (whatd & Fop_dx)  {
       RN_ f0x(val('.',0,op_dx));
-      f0x[0] = Dl[0].x;
-      f0x[1] = Dl[1].x;
-      f0x[2] = Dl[2].x;
+      f0x[0] = s*Dl[0].x;
+      f0x[1] = s*Dl[1].x;
+      f0x[2] = s*Dl[2].x;
     }
 
     if (whatd & Fop_dy) {
       RN_ f0y(val('.',0,op_dy));
-      f0y[0] = Dl[0].y;
-      f0y[1] = Dl[1].y;
-      f0y[2] = Dl[2].y;
+      f0y[0] = s*Dl[0].y;
+      f0y[1] = s*Dl[1].y;
+      f0y[2] = s*Dl[2].y;
     }
   }
 }

@@ -50,7 +50,7 @@ class TypeOfFE_BDM1_2d : 	public GTypeOfFE<Mesh2> {
                   KN_< double > &v) const {    // compute the coef of interpolation ...
     const Element &T = K.T;
     int k = 0;
-
+    double s = 1.;///(sqrt(T.mesure()));
     for (int i = 0; i < 3; i++) {
       R2 E(-T.Edge(i).perp( ));
       R eOrientation = T.EdgeOrientation(i);
@@ -61,10 +61,10 @@ class TypeOfFE_BDM1_2d : 	public GTypeOfFE<Mesh2> {
         R p1 = -3 * (l0 - l1);   // poly othogonaux to \lambda_0
         R cc0 = p0 * QFE[p].a;    //
         R cc1 = p1 * QFE[p].a;    //
-        v[k++] = cc0 * E.x;
-        v[k++] = cc0 * E.y;
-        v[k++] = cc1 * E.x;
-        v[k++] = cc1 * E.y;
+        v[k++] = cc0 * E.x * s;
+        v[k++] = cc0 * E.y * s;
+        v[k++] = cc1 * E.x * s;
+        v[k++] = cc1 * E.y * s;
       }
     }
 
@@ -99,15 +99,20 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
   assert(bfMat.M( ) == 2);
 
   bfMat = 0;
+  // R cK = 1./(2 * K.mesure());
   R cK = 2 * K.mesure();
+
+  // R s1 =
+  R s2 = 1.;//2*sqrt(K.mesure());
+
   int ortho0 = 0, ortho1 = 1;
   R s1ortho = 1;
   if (whatd & Fop_D0) {
     for (int df = 0, e = 0; e < 3; ++e) {
       int e1 = (e + 1) % 3, e2 = (e + 2) % 3;
       R eOrientation = K.EdgeOrientation(e);
-      R2 f1 = (X - Q[e]) * eOrientation / cK;
-      R2 f2 = -(Dl[e1] * refBaryc[e2] + Dl[e2] * refBaryc[e1]).perp( );
+      R2 f1 = (X - Q[e]) * eOrientation / cK * s2;
+      R2 f2 = -(Dl[e1] * refBaryc[e2] + Dl[e2] * refBaryc[e1]).perp( )*s2;
 
       // R2 f1 = 1./Dl[e].norm()*(Q[e1] - Q[e])*refBaryc[e1];
       // R2 f2 = 1./Dl[e].norm()*(Q[e2] - Q[e])*refBaryc[e2];
@@ -128,8 +133,8 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
       for (int df = 0, e = 0; e < 3; ++e) {
         int e1 = (e + 1) % 3, e2 = (e + 2) % 3;
         R eOrientation = K.EdgeOrientation(e);
-        R2 f1 = R2(eOrientation / cK, 0.);
-        R2 f2 = -(Dl[e1] * Dl[e2].x + Dl[e2] * Dl[e1].x).perp( );
+        R2 f1 = R2(eOrientation / cK * s2, 0.);
+        R2 f2 = -(Dl[e1] * Dl[e2].x + Dl[e2] * Dl[e1].x).perp( )*s2;
 
         bfMat(df, ortho0, op_dx) = f1.x;
         bfMat(df++, ortho1, op_dx) = s1ortho * f1.y;
@@ -143,8 +148,8 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
       for (int df = 0, e = 0; e < 3; ++e) {
         int e1 = (e + 1) % 3, e2 = (e + 2) % 3;
         R eOrientation = K.EdgeOrientation(e);
-        R2 f1 = R2(0., eOrientation / cK);
-        R2 f2 = -(Dl[e1] * Dl[e2].y + Dl[e2] * Dl[e1].y).perp( );
+        R2 f1 = R2(0., eOrientation / cK *s2);
+        R2 f2 = -(Dl[e1] * Dl[e2].y + Dl[e2] * Dl[e1].y).perp( )*s2;
 
         bfMat(df, ortho0, op_dy) = f1.x;
         bfMat(df++, ortho1, op_dy) = s1ortho * f1.y;

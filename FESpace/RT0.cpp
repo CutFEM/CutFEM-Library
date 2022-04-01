@@ -77,9 +77,11 @@ void TypeOfFE_RT0_2d::FB(const What_d whatd, const Element & K,
   R2 P(K(PHat));
   R2 a(K[0]), b(K[1]), c(K[2]);
   R scaling = 1./(2*K.mesure());
-  R const0 = scaling*K.EdgeOrientation(0);
-  R const1 = scaling*K.EdgeOrientation(1);
-  R const2 = scaling*K.EdgeOrientation(2);
+  R s = 1.;//sqrt(K.mesure());
+
+  R const0 = scaling*K.EdgeOrientation(0)*s;
+  R const1 = scaling*K.EdgeOrientation(1)*s;
+  R const2 = scaling*K.EdgeOrientation(2)*s;
 
   // whatd = 0,1,2
   if(whatd & Fop_D0) { // checks whether whatd = 0, ie function and no derivative ?
@@ -115,12 +117,13 @@ void TypeOfFE_RT0_2d::FB(const What_d whatd, const Element & K,
 void TypeOfFE_RT0_2d::get_Coef_Pi_h(const GbaseFElement<Mesh> & K, KN_<double> &v) const
 {
   const Element &T = K.T;
+  double s = 1.;///(sqrt(T.mesure()));
   for(int i=0,k=0; i<3; i++) {
     R2 E(T.Edge(i));
     R sgn = T.EdgeOrientation(i);
 
-    v[k++] =  sgn*E.y; // on first run, k=0 and then incremented
-    v[k++] = -sgn*E.x; // -.-, k=1 and then incremented to 2
+    v[k++] =  s*sgn*E.y; // on first run, k=0 and then incremented
+    v[k++] = -s*sgn*E.x; // -.-, k=1 and then incremented to 2
 
   }
 }
