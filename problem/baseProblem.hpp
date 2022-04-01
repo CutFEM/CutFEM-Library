@@ -4,8 +4,6 @@
 
 
 #include "problem.hpp"
-// #include "../FESpace/CutFESpace.hpp"
-// #include "GenericMapping.hpp"
 
 
 
@@ -73,8 +71,8 @@ public:
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k);
 
   // integral on innerFace
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CHyperFace& b);
-  void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CHyperFace& b);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CFacet& b);
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CFacet& b);
   void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
 
   // integral on boundary
@@ -120,6 +118,9 @@ public:
 
 
 #include "baseProblem_Function.hpp"
+#include "baseCutProblem.hpp"
+
+
 
 #ifdef OLD_PROBLEM
 template<typename M>
@@ -278,9 +279,9 @@ void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b  , list<int> label 
 void addStrongBC(const ExpressionVirtual& gh, list<int> label = {});
 void addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh, list<int> label={});
 // on innerEdge
-void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b);
-void addLinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b);
-void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro);
+void addBilinear(const ListItemVF<Rd::d>& VF, const CFacet& b);
+void addLinear(const ListItemVF<Rd::d>& VF, const CFacet& b);
+void addBilinear(const ListItemVF<Rd::d>& VF, const CFacet& b, const GMacro& macro);
 
 
 // lagrange multiplier
@@ -309,7 +310,7 @@ public:
   // on boundary
   void addLinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CBorder& b, list<int> label = {});
   // on inner edges => node eval in 2D
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CHyperFace& b);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CFacet& b);
   // lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma, double val, const Mapping& mapping = DataMapping<Mesh>::Id) ;
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, const Interface& gamma,  const TimeSlab& In, double tq, double val, const Mapping& mapping = DataMapping<Mesh>::Id) ;
@@ -336,7 +337,7 @@ public:
   void addStrongBC(const ExpressionVirtual& gh, const TimeSlab& In, list<int> label = {});
   void addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh, const TimeSlab& In, list<int> label={});
   // on inner edges
-  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In, const CHyperFace& b);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeSlab& In, const CFacet& b);
 
 protected:
   virtual void addElementMat(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab& In);
@@ -822,7 +823,7 @@ void BaseProblem<M>::addElementLagrange(const ListItemVF<Rd::d>& VF , const int 
      ADD EDGE STABILIZATION
 */
 template<typename M>
-void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF,  const CHyperFace& b) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF,  const CFacet& b) {
   typedef typename Mesh::Element Element;
   const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
 
@@ -835,7 +836,7 @@ void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF,  const CHyperFace&
 }
 
 template<typename M>
-void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF,  const CHyperFace& b, const GMacro& macro) {
+void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d>& VF,  const CFacet& b, const GMacro& macro) {
 
   for(auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
 
@@ -919,7 +920,7 @@ void BaseProblem<M>::addElementMatEdge(const ListItemVF<Rd::d>& VF, const int k,
 }
 
 template<typename M>
-void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b) {
+void BaseProblem<M>::addLinear(const ListItemVF<Rd::d>& VF, const CFacet& b) {
   typedef typename Mesh::Element Element;
   const FESpace& Sh =(VF[0].fespaceU)? *VF[0].fespaceU : *Vh;
 

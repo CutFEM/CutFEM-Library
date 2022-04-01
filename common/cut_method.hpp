@@ -422,11 +422,19 @@ public :
     }
     return instance;
   }
-  static inline const RefPartition& instance (const double ls[E::nv])
-  {
+  static inline const RefPartition& instance (const double ls[E::nv]) {
     byte ls_byte[E::nv];
     std::transform( ls + 0, ls + E::nv, ls_byte + 0, util::sign);
     return instance( ls_byte);
+  }
+  static inline const RefPartition& instance (const int s) {
+    int m0 = (E::nb_sign_pattern -1)/2;
+    RefPartition& instance = instance_array_[0];
+    if ( !instance.is_initialized()) {
+      byte ls[E::nv]; for(int i=0;i<E::nv;++i) ls[i] = -1;
+      instance.assign( SignPattern<E>( ls));
+    }
+    return instance;
   }
   ///@}
 
@@ -533,12 +541,16 @@ public :
   double ls[E::nv];
 
 
-  Partition(const Element& t) : patch(RefPartition<E>::instance_array_[0]), T(t) {}
+  // build a partition that consider the full element
+  Partition(const Element& t) : patch(RefPartition<E>::instance(0)), T(t) {
+    for(int i=0;i<E::nv;++i) ls[i] = -1;
+  }
 
   Partition(const Element& t, const double lls[E::nv])
     : patch(RefPartition<E>::instance(lls)), T(t) {
       for(int i=0;i<E::nv;++i) ls[i] = lls[i];
   }
+
   // Partition(const Element& t, const CutData& data)
   //   : patch(RefPartition<E>::instance(data.sign)), T(t), cutData(&data) {
   //     for(int i=0;i<E::nv;++i) ls[i] = static_cast<double>(data.sign[i]);

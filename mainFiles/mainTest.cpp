@@ -18,7 +18,7 @@
 #include "paraview.hpp"
 
 #include "../num/matlab.hpp"
-#define TEST_2D
+#define TEST_3D
 
 
 
@@ -332,8 +332,10 @@ public:
   TestParameter(const ParameterCutFEM& m) : mu(m){}
   double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
     return 2*mu.evaluate(domain,h,meas,measK,meas_Cut);
-  };
+  }
 };
+
+
 
 int main(int argc, char** argv )
 {

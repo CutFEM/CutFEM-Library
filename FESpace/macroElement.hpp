@@ -15,12 +15,6 @@ public:
   vector<int> idx_element;
   vector<std::pair<int,int>> inner_edge; // idx_Element, idx_edge
 
-  // MElement(int idx_root=-1, int idx_K=-1, int idx_edge=-1){
-  //   idx_root_element = idx_root;
-  //   idx_element.push_back(idx_root);
-  //   int kk =(idx_root_element < idx_K)? idx_root_element : idx_K;
-  //   this->add(idx_K, std::make_pair(kk, idx_edge));
-  // }
   MElement(int idx_root = -1){
     idx_root_element = idx_root;
     idx_element.push_back(idx_root);

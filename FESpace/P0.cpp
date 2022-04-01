@@ -149,9 +149,9 @@ public:
   static const int k = 0;
   static const int ndf = (k + 2) * (k + 1) / 2;
   static int Data[];
-  static double alpha_Pi_h[];
+  // static double alpha_Pi_h[];
 
-  TypeOfFE_P0ScLagrange2d(): GTypeOfFE<Mesh2>(1, 1, Data, 1, 1, alpha_Pi_h) {
+  TypeOfFE_P0ScLagrange2d(): GTypeOfFE<Mesh2>(1, 1, Data, 1, 1) {
 
     static const R2 Pt[1] = {R2(1./3, 1./3)};
 
@@ -161,9 +161,8 @@ public:
     }
   }
 
-  // void Pi_h_alpha(const baseFElement &K, KN_< double > &v) const {
-  //   for (int i = 0; i < 3; ++i) v[i] = 1;
-  // }
+
+  void get_Coef_Pi_h(const GbaseFElement<Mesh> & K, KN_<double> &v) const;
 
 
   void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
@@ -180,8 +179,11 @@ int TypeOfFE_P0ScLagrange2d::Data[] = {
   0,          // begin_dfcomp
   1           // end_dfcomp
 };
-double TypeOfFE_P0ScLagrange2d::alpha_Pi_h[] = {1.};
-
+// double TypeOfFE_P0ScLagrange2d::alpha_Pi_h[] = {1.};
+void TypeOfFE_P0ScLagrange2d::get_Coef_Pi_h(const GbaseFElement<Mesh> & K, KN_<double> &v) const {
+  const Element &T = K.T;
+  v[0] = T.measure();
+}
 
 void TypeOfFE_P0ScLagrange2d::FB(const What_d whatd, const Element & K,
 			       const R2 & P,RNMK_ & val) const

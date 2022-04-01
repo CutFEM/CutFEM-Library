@@ -235,6 +235,7 @@ void BaseProblem<M>::addElementMatBorder(const ListItemVF<Rd::d>& VF, const int 
 
       double cst_normal = VF[l].getCoef(normal);
       double Cst = Cint * coef * VF[l].c * cst_normal;
+      
 
       for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {
         for(int jt=In.dfcbegin(0); jt<In.dfcend(0); ++jt) {
@@ -325,7 +326,7 @@ void BaseProblem<M>::addElementRHSBorder(const ListItemVF<Rd::d>& VF, const int 
       FKv.BF(Fop,FK.T.toKref(mip), fv);
 
       double cst_normal = VF[l].getCoef(normal) ;
-      double val_fh = VF[l].fxu_backMesh(kb, domain, mip, In.map(tq));
+      double val_fh = VF[l].fxu_backMesh(kb, domain, mip, In.map(tq), normal);
       double Cst = Cint * coef * cst_normal * val_fh * VF[l].c ;
 
       for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {

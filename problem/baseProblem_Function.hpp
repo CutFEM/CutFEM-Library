@@ -122,7 +122,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
 
 // INTEGRATION ON INNER FACE
 template<typename Mesh>
-void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CHyperFace& b) {
+void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CFacet& b) {
   assert(!VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
@@ -141,7 +141,7 @@ void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, con
   }
 }
 template<typename Mesh>
-void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CHyperFace& b) {
+void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CFacet& b) {
   assert(VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
@@ -200,8 +200,8 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pai
     int kbv = Vhv.idxElementInBackMesh(kv);
     int kbu = Vhu.idxElementInBackMesh(ku);
 
-    const FElement& FKu(Vhv[ku]);
-    const FElement& FKv(Vhu[kv]);
+    const FElement& FKu(Vhu[ku]);
+    const FElement& FKv(Vhv[kv]);
     this->initIndex(FKu, FKv);
 
     // BF MEMORY MANAGEMENT -
@@ -223,13 +223,11 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pai
       double Cint = meas * ip.getWeight();
 
       // EVALUATE THE BASIS FUNCTIONS
-
       FKv.BF(Fop,FKv.T.mapToReferenceElement(mip), fv);
       if(!same) FKu.BF(Fop,FKu.T.mapToReferenceElement(mip), fu);
+
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domain,domain), mip, normal);
       Cint *= coef * VF[l].c;
-
-      // Cint = 1.;//coef;
       if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
       else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
 
@@ -285,7 +283,7 @@ void BaseFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Elemen
   // U and V HAS TO BE ON THE SAME MESH
   const FESpace& Vh(VF.get_spaceV(0));
   int kb = Vh.Th(K);
-  std::vector<int> idxK = Vh.idxAllElementFromBackMesh(kb);
+  std::vector<int> idxK = Vh.idxAllElementFromBackMesh(kb,-1);
   assert(idxK.size() == 1);
   // if(idxK.size() != 1) return;
   int k = VF[0].onWhatElementIsTestFunction (idxK);
@@ -304,8 +302,8 @@ void BaseFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Elemen
     bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
 
-    const FElement& FKu(Vhv[k]);
-    const FElement& FKv(Vhu[k]);
+    const FElement& FKu(Vhu[k]);
+    const FElement& FKv(Vhv[k]);
     int domain = FKv.get_domain();
     this->initIndex(FKu, FKv);
 

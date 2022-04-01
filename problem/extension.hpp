@@ -3,12 +3,12 @@
 
 
 #include "../FESpace/macroElement.hpp"
-#include "baseCutProblem.hpp"
+#include "baseProblem.hpp"
 #include<set>
 
 
 
-// 
+//
 // class Extension {
 // public:
 //   const int good = 0, extension = 1, exhaust = 2;

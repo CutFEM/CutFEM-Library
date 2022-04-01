@@ -11,8 +11,9 @@ struct ItemVF {
   double c;
   int cu,du,cv,dv;
   KN<int> ar_nu, ar_nv;
-  int domu, domv;
-  // int domain_id_;
+  int face_sideU_, face_sideV_;
+  int domainU_id_, domainV_id_;
+
   std::vector<const Virtual_Parameter*> coefu, coefv ;
   int dtu, dtv;
   const ExpressionVirtual* expru=nullptr;
@@ -28,23 +29,30 @@ struct ItemVF {
 
 
   ItemVF()
-  : c(0.), cu(-1),du(-1),cv(-1),dv(-1),domu(-1),domv(-1),dtu(-1),dtv(-1){}
+  : c(0.), cu(-1),du(-1),cv(-1),dv(-1),face_sideU_(-1),face_sideV_(-1),domainU_id_(-1), domainV_id_(-1), dtu(-1),dtv(-1){}
   ItemVF(double cc,int i,int j,int k,int l)
-  : c(cc), cu(i),du(j),cv(k),dv(l),domu(-1),domv(-1),dtu(-1),dtv(-1){}
+  : c(cc), cu(i),du(j),cv(k),dv(l),face_sideU_(-1),face_sideV_(-1),domainU_id_(-1), domainV_id_(-1),dtu(-1),dtv(-1){}
   ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm)
-  : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),domu(-1),domv(-1), dtu(-1),dtv(-1){}
-  ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm, int dou, int dov)
-  : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),domu(dou),domv(dov),dtu(-1),dtv(-1){}
-  ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm, int dou, int dov,
-    const vector<const Virtual_Parameter*>& weu, const vector<const Virtual_Parameter*>& wev, int tu, int tv)
-  : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),domu(dou),domv(dov),dtu(tu),dtv(tv){
-    for(int i=0;i<weu.size();++i) coefu.push_back(weu[i]);
-    for(int i=0;i<wev.size();++i) coefv.push_back(wev[i]);
-  }
+  : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),face_sideU_(-1),face_sideV_(-1),domainU_id_(-1), domainV_id_(-1), dtu(-1),dtv(-1){}
+  // ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm, int dou, int dov)
+  // : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),face_sideU_(dou),face_sideV_(dov),dtu(-1),dtv(-1){}
+  // ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>& mm, int dou, int dov,
+  //   const vector<const Virtual_Parameter*>& weu, const vector<const Virtual_Parameter*>& wev, int tu, int tv)
+  // : c(cc), cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),face_sideU_(dou),face_sideV_(dov),dtu(tu),dtv(tv){
+  //   for(int i=0;i<weu.size();++i) coefu.push_back(weu[i]);
+  //   for(int i=0;i<wev.size();++i) coefv.push_back(wev[i]);
+  // }
   ItemVF(const ItemVF & U)
-  :ItemVF(U.c,U.cu,U.du,U.cv,U.dv,U.ar_nu,U.ar_nv,U.domu,U.domv){
+  :ItemVF(U.c,U.cu,U.du,U.cv,U.dv,U.ar_nu,U.ar_nv){
+    face_sideU_ = U.face_sideU_;
+    face_sideV_ = U.face_sideV_;
+
+    domainU_id_ = U.domainU_id_;
+    domainV_id_ = U.domainV_id_;
+
     for(int i=0;i<U.coefu.size();++i) coefu.push_back(U.coefu[i]);
     for(int i=0;i<U.coefv.size();++i) coefv.push_back(U.coefv[i]);
+
     dtu = U.dtu;
     dtv = U.dtv;
     expru = U.expru;
@@ -56,9 +64,20 @@ struct ItemVF {
   }
 
   ItemVF(const ItemTestFunction<N>& U, const ItemTestFunction<N>& V)
-    :ItemVF(U.c*V.c,U.cu,U.du,V.cu,V.du,U.ar_nu,V.ar_nu,
-            U.face_side_,V.face_side_, U.coefu, V.coefu,  U.dtu, V.dtu)
+    :ItemVF(U.c*V.c,U.cu,U.du,V.cu,V.du,U.ar_nu,V.ar_nu)
   {
+
+    face_sideU_ = U.face_side_;
+    face_sideV_ = V.face_side_;
+
+    domainU_id_ = U.domain_id_;
+    domainV_id_ = V.domain_id_,
+
+    coefu = U.coefu;
+    coefv = V.coefu;
+    dtu = U.dtu;
+    dtv = V.dtu;
+
     expru = U.expru;
     exprv = V.expru;
 
@@ -73,14 +92,16 @@ struct ItemVF {
 // CANNOT WORK WITH DOMAIN DIFFERENT FROM 0 1
   // bool on(int d) const {
   //   assert(0);
-  //   return ((domu == domv) && (domu == -1 || domu == d));
+  //   return ((face_sideU_ == face_sideV_) && (face_sideU_ == -1 || face_sideU_ == d));
   // }
 
   bool same() const {
     return (fespaceU == fespaceV) && (pfunU == pfunV); }
+
   bool operator==(const ItemVF& F){
     if(cu == F.cu && cv == F.cv && du == F.du && dv == F.dv
-        && F.domu == domu && domv == F.domv && dtu == F.dtu && dtv == F.dtv
+        && F.face_sideU_ == face_sideU_ && face_sideV_ == F.face_sideV_ && dtu == F.dtu && dtv == F.dtv
+        && domainU_id_ == F.domainU_id_ && domainV_id_ == F.domainV_id_
         && fespaceU == F.fespaceU && fespaceV == F.fespaceV
         && expru == F.expru && exprv == F.exprv) {
 
@@ -149,7 +170,7 @@ public:
   //   R val = 1;
   //   for(int l=0;l<2;++l) {
   //     const vector<string>& listCoef = (l==0)?coefu : coefv;
-  //     int domCoef = (l==0)?domu : domv;
+  //     int domCoef = (l==0)?face_sideU_ : face_sideV_;
   //     if(domCoef == -1) domCoef = 0;
   //     assert(domCoef == 0 || domCoef == 1);
   //     for(int i=0;i<listCoef.size();++i) {
@@ -223,19 +244,21 @@ double computeCoefFromNormal(const R* normal) const {
   return computeNormalU(normal) * computeNormalV(normal);;
 }
 int onWhatElementIsTrialFunction (int ki, int kj) const {
-  assert(domu != -1); return (domu==0)? ki : kj;
+  assert(face_sideU_ != -1); return (face_sideU_==0)? ki : kj;
 }
 int onWhatElementIsTestFunction  (int ki, int kj) const {
-  assert(domv != -1); return (domv==0)? ki : kj;
+  assert(face_sideV_ != -1); return (face_sideV_==0)? ki : kj;
 }
 int onWhatElementIsTrialFunction (std::vector<int> k) const {
-  if(k.size()==1) {assert(domu == -1); return k[0];}
-  else {assert(domu != -1); return (domu==0)? k[0] : k[1];}
+  if(k.size()==1) {assert(face_sideU_ == -1); return k[0];}
+  else {assert(face_sideU_ != -1); return (face_sideU_==0)? k[0] : k[1];}
 }
 int onWhatElementIsTestFunction  (std::vector<int> k) const {
-  if(k.size()==1) {assert(domv == -1); return k[0];}
-  else {assert(domv != -1); return (domv==0)? k[0] : k[1];}
+  if(k.size()==1) {assert(face_sideV_ == -1); return k[0];}
+  else {assert(face_sideV_ != -1); return (face_sideV_==0)? k[0] : k[1];}
 }
+int get_domain_test_function() const {return domainV_id_;}
+int get_domain_trial_function() const {return domainU_id_;}
 
 private:
   double computeNormalU(const R* normal) const {
@@ -265,7 +288,7 @@ friend std::ostream& operator <<(std::ostream& f, const ItemVF & u )
   f << " * " << whichOperator( u.dtv) << whichOperatorV( u.dv,u.cv);
   for(int i=0;i<u.ar_nv.size();++i) f << " * " << n[u.ar_nv(i)];
   // for(int i=0;i<u.coefv.size();++i) f << " * " << u.coefv[i];
-  if(u.domu == u.domv && u.domu != -1) f << "\t in Omega_" << u.domu+1;
+  if(u.face_sideU_ == u.face_sideV_ && u.face_sideU_ != -1) f << "\t in Omega_" << u.face_sideU_+1;
 
   f << std::endl;
   return f;
@@ -391,12 +414,12 @@ ListItemVF<d> jump(const ListItemVF<d>& L) {
   ListItemVF<d> item(n);
   for(int i=0;i<n0;++i) {
     item(i) = L(i);
-    item(i).domu = 0; item(i).domv = 0;
+    item(i).face_sideU_ = 0; item(i).face_sideV_ = 0;
   }
   for(int i=n0,j=0;i<n;++i,++j) {
     item(i) = L(j);
     item(i).c *= -1;
-    item(i).domu = 1; item(i).domv = 1;
+    item(i).face_sideU_ = 1; item(i).face_sideV_ = 1;
   }
   return item;
 }
@@ -410,12 +433,12 @@ ListItemVF<d> average(const ListItemVF<d>& L, int v1, int v2) {
   for(int i=0;i<n0;++i) {
     item(i) = L(i);
     item(i).c *= v1;
-    item(i).domu = 0; item(i).domv = 0;
+    item(i).face_sideU_ = 0; item(i).face_sideV_ = 0;
   }
   for(int i=n0,j=0;i<n;++i,++j) {
     item(i) = L(j);
     item(i).c *= v2;
-    item(i).domu = 1; item(i).domv = 1;
+    item(i).face_sideU_ = 1; item(i).face_sideV_ = 1;
   }
   return item;
 }
@@ -468,7 +491,12 @@ ListItemVF<d> operator,(const R c, const TestFunction<d>& F) {
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c*c,v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_Parameter*>(), v.coefu,-1,v.dtu);
+        item(k) = ItemVF<d>( v.c*c,v.cu,0,v.cu,v.du,0,v.ar_nu);
+        item(k).face_sideU_ = v.face_side_;
+        item(k).face_sideV_ = v.face_side_;
+        item(k).coefv = v.coefu;
+        item(k).dtu = -1;
+        item(k).dtv = v.dtu;
         item(k).expru = v.expru;
         item(k).fespaceV = v.fespace;
         k++;
@@ -497,7 +525,12 @@ ListItemVF<d> operator,(const Rnm& c, const TestFunction<d>& F) {
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c*c(i,j),v.cu,0,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_Parameter*>(), v.coefu,-1,v.dtu);
+        item(k) = ItemVF<d>( v.c*c(i,j),v.cu,0,v.cu,v.du,0,v.ar_nu);
+        item(k).face_sideU_ = v.face_side_;
+        item(k).face_sideV_ = v.face_side_;
+        item(k).coefv = v.coefu;
+        item(k).dtu = -1;
+        item(k).dtv = v.dtu;
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
 
@@ -533,7 +566,13 @@ ListItemVF<d> operator,(const Projection& c, const TestFunction<d>& F) {
           item(k).fespaceV = v.fespace;
           k++;
         }
-        item(k) = ItemVF<d>( v.c*(-1),v.cu,0,v.cu,v.du,c(i,j),v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_Parameter*>(), v.coefu,-1,v.dtu);
+        item(k) = ItemVF<d>( v.c*(-1),v.cu,0,v.cu,v.du,c(i,j),v.ar_nu);
+        item(k).face_sideU_ = v.face_side_;
+        item(k).face_sideV_ = v.face_side_;
+        item(k).coefv = v.coefu;
+        item(k).dtu = -1;
+        item(k).dtv = v.dtu;
+
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
         k++;
@@ -561,7 +600,12 @@ ListItemVF<d> operator,(const ExpressionVirtual& fh, const TestFunction<d>& F) {
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_Parameter*>(), v.coefu,0,v.dtu);
+        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu);
+        item(k).face_sideU_ = v.face_side_;
+        item(k).face_sideV_ = v.face_side_;
+        item(k).coefv = v.coefu;
+        item(k).dtu = 0;
+        item(k).dtv = v.dtu;
         item(k).expru = &fh;
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
@@ -596,11 +640,15 @@ ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*>
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu,v.face_side_,v.face_side_,vector<const Virtual_Parameter*>(), v.coefu,0,v.dtu);
+        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu);
+        item(k).face_sideU_ = v.face_side_;
+        item(k).face_sideV_ = v.face_side_;
+        item(k).coefv = v.coefu;
+        item(k).dtu = 0;
+        item(k).dtv = v.dtu;
         item(k).expru = *it;
         item(k).exprv = v.expru;
         item(k).fespaceV = v.fespace;
-
         k++;
       }
     }

@@ -1,7 +1,4 @@
 
-
-
-
 // INTEGRATION ON FULL ELEMENT
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
@@ -111,7 +108,7 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
 
 // INTEGRATION ON INNER FACE
 template<typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CHyperFace& b) {
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CFacet& b) {
   assert(!VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
@@ -132,7 +129,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
 }
 
 template<typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CHyperFace& b) {
+void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CFacet& b) {
   assert(VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
@@ -206,8 +203,8 @@ void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::
       int kbv = Vhv.idxElementInBackMesh(kv);
       int kbu = Vhu.idxElementInBackMesh(ku);
 
-      const FElement& FKu(Vhv[ku]);
-      const FElement& FKv(Vhu[kv]);
+      const FElement& FKu(Vhu[ku]);
+      const FElement& FKv(Vhv[kv]);
       this->initIndex(FKu, FKv);
 
       // BF MEMORY MANAGEMENT -
@@ -255,7 +252,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
 
     int ifac;
     const int kb = cutTh.Th.BoundaryElement(idx_be, ifac);
-    std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb);
+    std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1);
 
     const Element & K(cutTh.Th[kb]);
     const BorderElement & BE(cutTh.be(idx_be));
@@ -275,7 +272,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
 
     int ifac;
     const int kb = cutTh.Th.BoundaryElement(idx_be, ifac);
-    std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb);
+    std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb,-1);
 
     const Element & K(cutTh.Th[kb]);
     const BorderElement & BE(cutTh.be(idx_be));
@@ -301,7 +298,7 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
   const FESpace& Vh(VF.get_spaceV(0));
   const CutMesh& Th(Vh.get_mesh());
   int kb = Vh.Th(K);
-  std::vector<int> idxK = Vh.idxAllElementFromBackMesh(kb);
+  std::vector<int> idxK = Vh.idxAllElementFromBackMesh(kb,-1);
   assert(idxK.size() == 2);
 
   // GET THE QUADRATURE RULE
@@ -330,8 +327,8 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
         const FESpace& Vhu(VF.get_spaceU(l));
         assert(Vhv.get_nb_element() == Vhu.get_nb_element());
         bool same = (VF.isRHS() || (&Vhu == &Vhv));
-        const FElement& FKu(Vhv[k]);
-        const FElement& FKv(Vhu[k]);
+        const FElement& FKu(Vhu[k]);
+        const FElement& FKv(Vhv[k]);
         int domain = FKv.get_domain();
         this->initIndex(FKu, FKv);
 
@@ -408,7 +405,6 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface<M>& g
   }
 }
 
-
 template<typename M>
 void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<M>& interface, int ifac) {
   typedef typename FElement::RdHatBord RdHatBord;
@@ -435,16 +431,16 @@ void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const 
     bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
     // NOT OPTIMAL IF DOMAIN IS KNOWN!!!!
-    std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb);
-    std::vector<int> idxU = (same)?idxV : Vhu.idxAllElementFromBackMesh(kb);
+    std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+    std::vector<int> idxU = (same)?idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
 
     int kv = VF[l].onWhatElementIsTestFunction (idxV);
     int ku = VF[l].onWhatElementIsTrialFunction(idxU);
     int kbv = Vhv.idxElementInBackMesh(kv);
     int kbu = Vhu.idxElementInBackMesh(ku);
 
-    const FElement& FKu(Vhv[ku]);
-    const FElement& FKv(Vhu[kv]);
+    const FElement& FKu(Vhu[ku]);
+    const FElement& FKv(Vhv[kv]);
     int domu = FKu.get_domain();
     int domv = FKv.get_domain();
     this->initIndex(FKu, FKv);
@@ -483,6 +479,49 @@ void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const 
 
   }
   // getchar();
+}
+
+
+// FACE STABILIZATION
+template<typename M>
+void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
+  assert(!VF.isRHS());
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    if(!Th.isCut(k)) continue;
+    for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
+
+      int jfac = ifac;
+      int kn = Th.ElementAdj(k, jfac);
+      // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+      if(kn == -1 || kn < k) continue;
+
+      std::pair<int,int> e1 = std::make_pair(k,ifac);
+      std::pair<int,int> e2 = std::make_pair(kn,jfac);
+      BaseFEM<M>::addFaceContribution(VF, e1, e2);
+
+    }
+    this->addLocalContribution();
+  }
+}
+
+template<typename M>
+void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const MacroElement<M>& macro) {
+
+  for(auto me=macro.macro_element.begin(); me!=macro.macro_element.end();++me) {
+    for(auto it=me->second.inner_edge.begin(); it!=me->second.inner_edge.end();++it){
+
+      int k = it->first;
+      int ifac = it->second;
+      int jfac = ifac;
+      int kn = Th.ElementAdj(k, jfac);
+
+      std::pair<int,int> e1 = std::make_pair(k,ifac);
+      std::pair<int,int> e2 = std::make_pair(kn,jfac);
+
+      BaseFEM<M>::addFaceContribution(VF, e1, e2);
+    }
+    this->addLocalContribution();
+  }
 }
 
 

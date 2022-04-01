@@ -42,8 +42,8 @@ struct ItemTestFunction {
 
 
   ItemTestFunction() : c(0.), cu(-1),du(-1),dtu(-1),domain_id_(-1),face_side_(-1){}
-  ItemTestFunction(double cc,int i,int j, int tu, int dd, vector<const Virtual_Parameter*> cou)
-  : c(cc), cu(i),du(j),dtu(tu), domain_id_(dd), face_side_(-1){ coefu =cou;}
+  ItemTestFunction(double cc,int i,int j, int tu, int dd)
+  : c(cc), cu(i),du(j),dtu(tu), coefu(0), domain_id_(dd), face_side_(-1){ };
   ItemTestFunction(const ItemTestFunction& F)
   : c(F.c), cu(F.cu),du(F.du),dtu(F.dtu),ar_nu(F.ar_nu), domain_id_(F.domain_id_), face_side_(F.face_side_),expru(F.expru), fespace(F.fespace) {
     for(int i=0;i<F.coefu.size();++i) coefu.push_back(F.coefu[i]);
@@ -141,12 +141,12 @@ public:
   ItemList() : U(1) {
     U(0) = nullptr;//new ItemTestFunction<N>();
   }
-  ItemList(double cc,int i,int j, int dd=-1) : U(1) {
+  ItemList(double cc,int i,int j, int dd) : U(1) {
     U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_Parameter*>());
   }
-  ItemList(double cc,int i,int j,int tu, int dd, const vector<const Virtual_Parameter*>& cuu) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,tu,dd,cuu);
-  }
+  // ItemList(double cc,int i,int j,int tu, int dd, const vector<const Virtual_Parameter*>& cuu) : U(1) {
+  //   U(0) = new ItemTestFunction<N>(cc,i,j,tu,dd,cuu);
+  // }
 
   ItemList(int l) : U(l) {
     for(int i=0;i<l;++i) U(i) = new ItemTestFunction<N>();
@@ -167,8 +167,8 @@ public:
   //   U(0) = new ItemTestFunction<N>(Vh, ff);
   // }
 
-  ItemList(const FESpace& Vh, double cc,int i,int j, int dd=-1) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_Parameter*>());
+  ItemList(const FESpace& Vh, double cc,int i,int j, int dd) : U(1) {
+    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd);//,vector<const Virtual_Parameter*>());
     U(0)->fespace = &Vh;
   }
 
@@ -226,23 +226,21 @@ private :
    A = nullptr;
  }
 
- TestFunction(const FESpace& Vh,int d, int comp0, int domm) {
-   A.init(d,1);
-   for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (Vh,1,comp0+i,0, domm);
- }
-
 
 public:
 
   TestFunction(const FESpace& Vh,int d) {
     A.init(d,1);
-    for(int i=0;i<d;++i)  A(i,0) = new ItemList<dim> (Vh,1,i,0);
+    for(int i=0;i<d;++i)  A(i,0) = new ItemList<dim> (Vh,1,i,0,-1);
   }
   TestFunction(const FESpace& Vh, int d, int comp0) {
     A.init(d,1);
-    for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (Vh, 1,comp0+i,0);
+    for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (Vh, 1,comp0+i,0,-1);
   }
-
+  TestFunction(const FESpace& Vh,int d, int comp0, int domm) {
+    A.init(d,1);
+    for(int i=0;i<d;++i) A(i,0) = new ItemList<dim> (Vh,1,comp0+i,0, domm);
+  }
 
   TestFunction(const TestFunction& U) {
     A.init(U.A.N(), U.A.M());

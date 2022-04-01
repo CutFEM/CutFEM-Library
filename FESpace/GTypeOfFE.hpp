@@ -209,6 +209,7 @@ struct DataFE
   static GTypeOfFE<mesh> & P3dc;
 
   static GTypeOfFE<mesh> & P0sc;
+  static GTypeOfFE<mesh> & P1dcsc;
 
   static GTypeOfFE<mesh> & P1dcTaylor;
 };

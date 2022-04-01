@@ -2,7 +2,7 @@
 #define BASE_CUTPROBLEM_HPP
 
 
-#include "baseProblem.hpp"
+// #include "baseProblem.hpp"
 
 
 template<typename Mesh>
@@ -30,8 +30,8 @@ public:
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k, const bool extend = false, const R epsE = 0);
 
   // integral on innerFace
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CHyperFace& b);
-  void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CHyperFace& b);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b);
+  void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b);
   void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
 
 
@@ -45,6 +45,12 @@ public:
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
   void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac);
+
+
+  // Face stabilization
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&);
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const MacroElement<Mesh>& );
+
 };
 
 template<typename Mesh>
@@ -136,9 +142,9 @@ public :
   void addBilinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addBilinear(VF, b, label); };
   void addLinear(const ListItemVF<Rd::d>& VF, const CBorder& b, list<int> label = {}){ return BaseProblem<M>::addLinear(VF, b, label); };
   // integral on inner Edge/Face
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addBilinear(VF,b); };
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CHyperFace& b, const GMacro& macro){ return BaseProblem<M>::addBilinear(VF, b,macro); };
-  void addLinear  (const ListItemVF<Rd::d>& VF, const CHyperFace& b){ return BaseProblem<M>::addLinear(VF, b); };
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CFacet& b){ return BaseProblem<M>::addBilinear(VF,b); };
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CFacet& b, const GMacro& macro){ return BaseProblem<M>::addBilinear(VF, b,macro); };
+  void addLinear  (const ListItemVF<Rd::d>& VF, const CFacet& b){ return BaseProblem<M>::addLinear(VF, b); };
   // face stabilization
   void addFaceStabilization(const ListItemVF<Rd::d>& VF);
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const MacroElement& bigMac);
@@ -179,7 +185,7 @@ public:
   // FEM on surface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, list<int> label = {},const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addBilinear(VF, gamma, label, mapping);};
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const GMacro& macro, list<int> label = {},const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addBilinear(VF, gamma, macro, label, mapping);};
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CHyperFace& b){return BaseProblem<M>::addBilinear(VF, gamma, b);};
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface& gamma, const CFacet& b){return BaseProblem<M>::addBilinear(VF, gamma, b);};
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface& gamma, list<int> label = {}, const Mapping& mapping = DataMapping<Mesh>::Id){return BaseProblem<M>::addLinear(VF, gamma, label, mapping);};
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface& gamma, const CBorder& b, list<int> label = {}) {return BaseProblem<M>::addLinear(VF, gamma, b, label);};
 

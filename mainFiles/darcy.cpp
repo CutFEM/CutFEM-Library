@@ -9,7 +9,7 @@
 #endif
 
 // #include "finiteElement.hpp"
-#include "baseCutProblem.hpp"
+#include "baseProblem.hpp"
 #include "../num/matlab.hpp"
 #include "paraview.hpp"
 // #include "projection.hpp"
@@ -174,19 +174,23 @@ namespace Data_CutMixedDarcy {
     else
     return -4./radius2;
   }
-  R fun_exact(const R2 P, int compInd, int dom) {
+  R fun_exact_u(const R2 P, int compInd, int dom) {
     Diff<R,2> X(P.x,0), Y(P.y,1);
     Diff<R,2> r2 = (X-shift)*(X-shift) + (Y-shift)*(Y-shift);
     R radius2 = interfaceRad*interfaceRad;
     R cst = (dom==0)*3./2;
     R mul = (dom==0)*2 + (dom==1)*1;
     Diff<R, 2> val = r2/(mul*radius2) + cst;
-    if (compInd==2) {
-      return val.val;
-    }
-    else {
-      return -val.d[compInd];
-    }
+    return -val.d[compInd];
+  }
+  R fun_exact_p(const R2 P, int compInd, int dom) {
+    Diff<R,2> X(P.x,0), Y(P.y,1);
+    Diff<R,2> r2 = (X-shift)*(X-shift) + (Y-shift)*(Y-shift);
+    R radius2 = interfaceRad*interfaceRad;
+    R cst = (dom==0)*3./2;
+    R mul = (dom==0)*2 + (dom==1)*1;
+    Diff<R, 2> val = r2/(mul*radius2) + cst;
+    return val.val;
   }
   R fun_interfacePr(const R2 P, int compInd) {
     return 19./12;
@@ -205,12 +209,12 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 20; // 6
-  int ny = 20; // 6
+  int nx = 10; // 6
+  int ny = 10; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters =1;
+  int iters =4;
 
   for(int i=0;i<iters;++i) {
     Mesh Kh(nx, ny, 0., 0., 1., 1.);
@@ -222,25 +226,21 @@ int main(int argc, char** argv ) {
     InterfaceLevelSet<Mesh> interface(Kh, levelSet);
 
     FESpace2 Vh(Kh, DataFE<Mesh2>::RT0);
-    FESpace2 Qh(Kh, DataFE<Mesh2>::P0);
+    FESpace2 Qh(Kh, DataFE<Mesh2>::P0sc);
 
 
     ActiveMesh<Mesh> Kh_i(Kh, interface);
     Kh_i.info();
-    // CutFEM stuff
     CutSpace Wh(Kh_i, Vh);
     CutSpace Ph(Kh_i, Qh);
 
-
     CutFEM<Mesh2> darcy(Wh); darcy.add(Ph);
-
-    const R h = 1./(nx-1);
-    const R invh = 1./h;
+    const R h_i = 1./(nx-1);
+    const R invh = 1./h_i;
 
     // MacroElement<Mesh> macro(Wh, 1e-1);
     // ratioCut1.push_back((double)macro.nb_element_0 / (double)interface.nbElement());
     // ratioCut2.push_back((double)macro.nb_element_1 / (double)interface.nbElement());
-
 
     R xi = 3./4;
     R xi0 = (xi-0.5)/2.;
@@ -263,14 +263,12 @@ int main(int argc, char** argv ) {
     double pPenParam = 1e0;//1e1; // cont 1e2
     double jumpParam = 1e0; // [anything<1e0 doesn't give full u convergence]
 
-    //:: a(u,v)_Omega
-    // darcy.addBilinear(
-    //   innerProduct(u, v)
-    //   -innerProduct(p, div(v))
-    //   +innerProduct(div(u), q)
-    //   , Kh_i
-    // );
-
+    darcy.addBilinear(
+      innerProduct(u, v)
+      -innerProduct(p, div(v))
+      +innerProduct(div(u), q)
+      , Kh_i
+    );
     darcy.addBilinear(
       innerProduct(mu_G*average(u*n), average(v*n))
       +innerProduct(xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
@@ -278,7 +276,7 @@ int main(int argc, char** argv ) {
     );
 
 
-    matlab::Export(darcy.mat_, "matNew.dat");
+    // matlab::Export(darcy.mat_, "matNew.dat");
     // nx = 2*nx-1;
     // ny = 2*ny-1;
     // continue;
@@ -287,33 +285,18 @@ int main(int argc, char** argv ) {
     darcy.addLinear(
       innerProduct(fq.expression(), q) , Kh_i
     );
-
-    // // darcyCutMix.addBilinearFormExtDomain(
-    // //   innerProduct(div(u), q)
-    // //   ,macro,1
-    // // );
-    // // darcyCutMix.addLinearFormExtDomain(
-    // //   innerProduct(fq.expression(), q)
-    // //   ,macro,1
-    // // );
-    //
-    //
     darcy.addLinear(
       -innerProduct(p0.expression(), v*n) // Only on Gamma_N (pressure)
       // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D (vel normal comp)
       // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
       , Kh_i, boundary
     );
-
-    // ExpressionFunFEM<Mesh2> pphat(phat, 2, op_id,0,0);
-    // FunTest ppphat(phat, 2, 1);
-    // FunTest ppphat(CPh,pphat);
     darcy.addLinear(
       -innerProduct(phat.expression(1), jump(v*n))
       // -innerProduct(phat.expression(), jump(v.t()*n))
       ,interface
     );
-    matlab::Export(darcy.rhs_, "rhsNew.dat");
+    // matlab::Export(darcy.rhs_, "rhsNew.dat");
 
     int N = Wh.NbDoF();
 
@@ -349,23 +332,23 @@ int main(int argc, char** argv ) {
 
 //   // Full/macro Stabilization
 //   FunTest grad2un = grad(grad(u)*n)*n;
-//   darcyCutMix.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
-//   // innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
-//   // +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
-//   // // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-//   // +innerProduct(pPenParam*hei*jump(p), jump(q))
-//   // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
-//
-//    innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
-//   +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
-//   +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-//   +innerProduct(pPenParam*hei*jump(p), jump(div(v)))
-//   +innerProduct(pPenParam*hei*jump(div(u)), jump(q))
-//   +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
-//   +innerProduct(pPenParam*pow(hei,3)*jump(grad(div(v))) , jump(grad(q)))
-//   , macro
-// );
+  darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
+  // innerProduct(uPenParam*hei*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+  // +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
+  // // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
+  // +innerProduct(pPenParam*hei*jump(p), jump(q))
+  // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
 
+   innerProduct(uPenParam*h_i*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+  +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
+  // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+  +innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
+  +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
+  // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
+  // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
+  , Kh_i
+  // , macro
+);
   // Test 1 - on all triangle
   // It destroy the pressure
   // darcyCutMix.addBilinear(
@@ -386,10 +369,10 @@ int main(int argc, char** argv ) {
   // );
 
 
-  // matlab::Export(darcy.mat_, "matA"+to_string(i)+".dat");
+  matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
   // matlab::Export(darcy.rhs_, "rhsA"+to_string(i)+".dat");
 
-  darcy.solve();
+  darcy.solve("umfpack");
 
   // darcyCutMix.solve();
 
@@ -404,29 +387,18 @@ int main(int argc, char** argv ) {
   ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
 
 
-  //
-  // // L2 norm vel
-  // R errU = L2normCut(femSolh,fun_exact,0,2);
-  //
-  // // R errP = L2normCut(femSolh,fun_exact,0,2, &macro);//L2normCut(femSolh,fun_exact,2,1);
-  // R errP = L2normCut(femSolh,fun_exact,2,1);
-  //
-  // // L2 norm div
 
-  // R errDiv = L2normCut(femSol_0dx+femSol_1dy,fun_div,Wh);
-  //
-  // // std::cout << errDiv << std::endl;
-  //
-  // // R errDivLoc = L2normCut(femSol_0dx+femSol_1dy,fun_div,Wh,&macro);//L2normCutLoc(femSol_0dx+femSol_1dy,fun_div,Wh,macro);
-  //
-  // // Max error div calculation
-  // R maxErrDiv = maxNormCut(femSol_0dx+femSol_1dy,fun_div,Wh);
-  //
+  // L2 norm vel
+  R errU      = L2normCut(uh,fun_exact_u,0,2);
+  R errP      = L2normCut(ph,fun_exact_p,0,1);
+  R errDiv    = L2normCut (femSol_0dx+femSol_1dy,fun_div,Kh_i);
+  R maxErrDiv = 0;//maxNormCut(femSol_0dx+femSol_1dy,fun_div,Kh_i);
+
   // [PLOTTING]
   {
-    Fun_h solh(Wh, fun_exact);
-    solh.v -= uh.v;
-    solh.v.map(fabs);
+    // Fun_h solh(Wh, fun_exact);
+    // solh.v -= uh.v;
+    // solh.v.map(fabs);
     Fun_h divSolh(Wh, fun_div);
     ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
 
@@ -434,72 +406,58 @@ int main(int argc, char** argv ) {
     writer.add(uh, "velocity" , 0, 2);
     writer.add(ph, "pressure" , 0, 1);
     writer.add(femSol_0dx+femSol_1dy, "divergence");
-    writer.add(solh, "velocityError" , 0, 2);
+    // writer.add(solh, "velocityError" , 0, 2);
     writer.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceError");
-
-
-
-      // Paraview2 writerS2(Wh, levelSet, "darcyCutMixedEx"+to_string(i)+".vtk");
-    // writerS2.add(solh, "velocity", 0, 2);
-    // writerS2.add(solh, "pressure", 2, 1);
-    // writerS2.add(divSolh, "divergence",0,1);
-    // writerS.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceErrorExt", macro);
   }
-  //
-  // pPrint.push_back(errP);
-  // uPrint.push_back(errU);
-  // // continue;
-  // divPrint.push_back(errDiv);
-  // // divPrintLoc.push_back(errDivLoc);
-  //
-  // maxDivPrint.push_back(maxErrDiv);
-  // h.push_back(1./nx);
-  //
-  // if(i==0) {convpPr.push_back(0);convuPr.push_back(0);convdivPr.push_back(0);convdivPrLoc.push_back(0);convmaxdivPr.push_back(0);}
-  // else {
-  //   convpPr.push_back( log(pPrint[i]/pPrint[i-1])/log(h[i]/h[i-1]));
-  //   convuPr.push_back( log(uPrint[i]/uPrint[i-1])/log(h[i]/h[i-1]));
-  //   convdivPr.push_back( log(divPrint[i]/divPrint[i-1])/log(h[i]/h[i-1]));
-  //   // convdivPrLoc.push_back( log(divPrintLoc[i]/divPrintLoc[i-1])/log(h[i]/h[i-1]));
-  //
-  //   convmaxdivPr.push_back( log(maxDivPrint[i]/maxDivPrint[i-1])/log(h[i]/h[i-1]));
-  // }
-  //
-  // nx *= 2;
-  // ny *= 2;
+
+  pPrint.push_back(errP);
+  uPrint.push_back(errU);
+  divPrint.push_back(errDiv);
+  maxDivPrint.push_back(maxErrDiv);
+  h.push_back(1./nx);
+
+  if(i==0) {convpPr.push_back(0);convuPr.push_back(0);convdivPr.push_back(0);convdivPrLoc.push_back(0);convmaxdivPr.push_back(0);}
+  else {
+    convpPr.push_back( log(pPrint[i]/pPrint[i-1])/log(h[i]/h[i-1]));
+    convuPr.push_back( log(uPrint[i]/uPrint[i-1])/log(h[i]/h[i-1]));
+    convdivPr.push_back( log(divPrint[i]/divPrint[i-1])/log(h[i]/h[i-1]));
+    convmaxdivPr.push_back( log(maxDivPrint[i]/maxDivPrint[i-1])/log(h[i]/h[i-1]));
+  }
+  nx = 2*nx;//-1;
+  ny = 2*ny;//-1;
 }
 
-// std::cout << "\n" << std::left
-// << std::setw(10) << std::setfill(' ') << "h"
-// << std::setw(15) << std::setfill(' ') << "err_p"
-// // << std::setw(15) << std::setfill(' ') << "conv p"
-// << std::setw(15) << std::setfill(' ') << "err u"
-// // << std::setw(15) << std::setfill(' ') << "conv u"
-// << std::setw(15) << std::setfill(' ') << "err divu"
-// // << std::setw(15) << std::setfill(' ') << "conv divu"
-// // << std::setw(15) << std::setfill(' ') << "err_new divu"
-// // << std::setw(15) << std::setfill(' ') << "convLoc divu"
-// << std::setw(15) << std::setfill(' ') << "err maxdivu"
-// // << std::setw(15) << std::setfill(' ') << "conv maxdivu"
-// << "\n" << std::endl;
-// for(int i=0;i<uPrint.size();++i) {
-//   std::cout << std::left
-//   << std::setprecision(5)
-//   << std::setw(10) << std::setfill(' ') << h[i]
-//   << std::setw(15) << std::setfill(' ') << pPrint[i]
-//   // << std::setw(15) << std::setfill(' ') << convpPr[i]
-//   << std::setw(15) << std::setfill(' ') << uPrint[i]
-//   // << std::setw(15) << std::setfill(' ') << convuPr[i]
-//   << std::setw(15) << std::setfill(' ') << divPrint[i]
-//   // << std::setw(15) << std::setfill(' ') << convdivPr[i]
-//   // << std::setw(15) << std::setfill(' ') << divPrintLoc[i]
-//   // << std::setw(15) << std::setfill(' ') << convdivPrLoc[i]
-//   << std::setw(15) << std::setfill(' ') << maxDivPrint[i]
-//   // << std::setw(15) << std::setfill(' ') << ratioCut1[i]
-//   // << std::setw(15) << std::setfill(' ') << ratioCut2[i]
-//   // << std::setw(15) << std::setfill(' ') << convmaxdivPr[i]
-//   << std::endl;
-// }
+std::cout << "\n" << std::left
+<< std::setw(10) << std::setfill(' ') << "h"
+<< std::setw(15) << std::setfill(' ') << "err_p"
+// << std::setw(15) << std::setfill(' ') << "conv p"
+<< std::setw(15) << std::setfill(' ') << "err u"
+// << std::setw(15) << std::setfill(' ') << "conv u"
+<< std::setw(15) << std::setfill(' ') << "err divu"
+// << std::setw(15) << std::setfill(' ') << "conv divu"
+// << std::setw(15) << std::setfill(' ') << "err_new divu"
+// << std::setw(15) << std::setfill(' ') << "convLoc divu"
+<< std::setw(15) << std::setfill(' ') << "err maxdivu"
+// << std::setw(15) << std::setfill(' ') << "conv maxdivu"
+<< "\n" << std::endl;
+for(int i=0;i<uPrint.size();++i) {
+  std::cout << std::left
+  << std::setprecision(5)
+  << std::setw(10) << std::setfill(' ') << h[i]
+  << std::setw(15) << std::setfill(' ') << pPrint[i]
+  // << std::setw(15) << std::setfill(' ') << convpPr[i]
+  << std::setw(15) << std::setfill(' ') << uPrint[i]
+  // << std::setw(15) << std::setfill(' ') << convuPr[i]
+  << std::setw(15) << std::setfill(' ') << divPrint[i]
+  // << std::setw(15) << std::setfill(' ') << convdivPr[i]
+  // << std::setw(15) << std::setfill(' ') << divPrintLoc[i]
+  // << std::setw(15) << std::setfill(' ') << convdivPrLoc[i]
+  << std::setw(15) << std::setfill(' ') << maxDivPrint[i]
+  // << std::setw(15) << std::setfill(' ') << ratioCut1[i]
+  // << std::setw(15) << std::setfill(' ') << ratioCut2[i]
+  // << std::setw(15) << std::setfill(' ') << convmaxdivPr[i]
+  << std::endl;
+}
 
 }
 

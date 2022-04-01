@@ -255,9 +255,11 @@ public:
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    assert(it != interface_id_[t].end());
+    // if not cut build a partition that consider full cut
+    if(it == interface_id_[t].end()) {
+      return Cut_Part<Element>(Partition<Element>((*this)[k]), -1);
+    }
     int kb = this->idxElementInBackMesh(k);
-
     if(it->second.size() == 1)
     return Cut_Part<Element>(it->second.at(0).first->get_partition(kb), it->second.at(0).second);
     else
@@ -284,8 +286,13 @@ public:
     return Cut_Part<Face>(this->build_local_partition(face, k, ifac), 0);
   }
 
-  vector<int> idxAllElementFromBackMesh(int k) const {
+  vector<int> idxAllElementFromBackMesh(int k, int d) const {
     std::vector<int> idx(0);
+    if(d!=-1) {
+      int ret = idxElementFromBackMesh(k,  d);
+      assert(ret != -1);idx.push_back(ret);
+      return idx;
+      }
     for(int i=0;i<get_nb_domain();++i) {
       int ret = idxElementFromBackMesh(k,  i);
       if(ret != -1) idx.push_back(ret);
