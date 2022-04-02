@@ -8,6 +8,10 @@
 #include "baseProblem.hpp"
 #include "projection.hpp"
 #include <typeinfo>
+#include "../num/matlab.hpp"
+#include "paraview.hpp"
+
+
 
 
 
@@ -44,10 +48,10 @@ namespace example2D{
     return 3.0*P.x*P.x*P.y - pow(P.y,3);
   }
 
-  // Exact solution on surface for time-step t
-  double fun_uSurfaceT(const R2 P,  int elementComp, double t) {
-    return 3.0*P.x*P.x*P.y - pow(P.y,3);
-  }
+  // // Exact solution on surface for time-step t
+  // double fun_uSurfaceT(const R2 P,  int elementComp, double t) {
+  //   return 3.0*P.x*P.x*P.y - pow(P.y,3);
+  // }
 
   // Level-set function
   double fun_levelSet(const R2 P, const int i) {
@@ -127,7 +131,7 @@ struct kappa_E2 : public Virtual_Parameter {
 // =====================================================
 
 
-void solve(int argc, char** argv) {
+void solve(int argc, char** argv, int nn, int i) {
   using namespace example2D;
   typedef Mesh2 Mesh;
   typedef FESpace2 Space;
@@ -135,12 +139,9 @@ void solve(int argc, char** argv) {
 
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
-    // INITIALIZE MPI
-    // =====================================================
-    MPIcf cfMPI(argc,argv);
 
     // 36
-    int nx = 30, ny = 30;
+    int nx = nn, ny = nn;
     double lx = 3., ly = 3.;
     double h = lx/(nx-1);
 
@@ -163,8 +164,8 @@ void solve(int argc, char** argv) {
     //    double lambdaA0 = A0*1e1/h;   // for the surface problem
 
     // Local bulk penalty parameters
-    //ParameterCutFEM A("A", A1, A2);
-    //ParameterCutFEM penalty1(Parameter::lambdaA);
+    // ParameterCutFEM A(A1, A2);
+    // ParameterCutFEM penalty1(Parameter::lambdaA);
 
     // Global bulk penalty parameter (if this is commented, the two lines above should be out-commented
     ParameterCutFEM penalty1(kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);
@@ -199,7 +200,8 @@ void solve(int argc, char** argv) {
     ActiveMesh<Mesh> Khi(Kh, interface);
     ActiveMesh<Mesh> Kh0(Kh);
     Kh0.create_surface_mesh(interface);
-
+    // Khi.info();
+    // Kh0.info();
 
     CutSpace Wh(Khi, Vh);
     CutSpace Sh(Kh0, Vh);
@@ -213,6 +215,7 @@ void solve(int argc, char** argv) {
     convdiff.add(Sh);
     Normal n;
     Tangent t;
+    Conormal conormal;
 
     // variable are [v1,v2,v0]
     int idx_s0 = Wh.NbDoF(); // where v0 start in the solution array
@@ -232,24 +235,26 @@ void solve(int argc, char** argv) {
     FunTest u1(Wh,1,0,0), v1(Wh,1,0,0); // Omega1
     FunTest u2(Wh,1,0,1), v2(Wh,1,0,1); // Omega2
 
-//     // Assembly of the linear system
-//
-//     // Integral on element for bulk variables (K_{h,1} and K_{h,2})
-//     convdiff.addBilinear(
-//             innerProduct(kappaTildeA*grad(u),grad(v))             // (3.12)
-//             + innerProduct(kappaTilde*(vel.expression(),grad(u)), v)*0.5 // (3.14)
-//             - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5  // (3.14)
-//     );
-//
-//     // integral on Edges for bulk variables (i.e. E_{h,1} and E_{h,2})
-//     // GLOBAL WEIGHTS
-//     convdiff.addBilinear(
-//             - innerProduct(kappaTildeA*average(grad(u)*n),jump(v))      // (3.12)
-//             - innerProduct(kappaTildeA*jump(u), average(grad(v)*n))         // (3.13)
-//             + innerProduct(average((vel*n)*u), kappaTilde*jump(v))*0.5         // (3.15)
-//             - innerProduct(jump((vel*n)*u),    kappaTilde*average(v))*0.5      // (3.15)
-//             , innerEdge
-//     );
+    // Assembly of the linear system
+    // Integral on element for bulk variables (K_{h,1} and K_{h,2})
+    convdiff.addBilinear(
+            innerProduct(kappaTildeA*grad(u),grad(v))             // (3.12)
+            + innerProduct(kappaTilde*(vel.expression(),grad(u)), v)*0.5 // (3.14)
+            - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5  // (3.14)
+            , Khi
+    );
+
+    // integral on Edges for bulk variables (i.e. E_{h,1} and E_{h,2})
+    // GLOBAL WEIGHTS
+    convdiff.addBilinear(
+            - innerProduct(kappaTildeA*average(grad(u)*n),jump(v))      // (3.12)
+            - innerProduct(kappaTildeA*jump(u), average(grad(v)*n))         // (3.13)
+            + innerProduct(average((vel*n)*u), kappaTilde*jump(v))*0.5         // (3.15)
+            - innerProduct(jump((vel*n)*u),    kappaTilde*average(v))*0.5      // (3.15)
+            , Khi
+            , innerFacet
+    );
+
 //
 //     // LOCAL WEIGHTS
 // //    convdiff.addBilinear(
@@ -261,122 +266,130 @@ void solve(int argc, char** argv) {
 // //    );
 //     //getchar();
 //     //std::cout << "AFTER" << std::endl;
-//
-//     // Penalty terms on E_{h,1} and E_{h,2}
-//     convdiff.addBilinear(
-//             innerProduct(penalty1*jump(u),jump(v))                  // (3.13)
-//             + innerProduct(penalty2*jump(u*fabs(vel*n)),jump(v))    // (3.16)
-//             , innerEdge
-//     );
-//
-//     // Integral on interface for surface variable (K_{h,0})
-//     convdiff.addBilinear(
-//             innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
-//             + innerProduct((vel.expression(),gradS(u0)),v0)*0.5     // (3.14)
-//             - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
-//             , interface
-//     );
-//
-//     //// -------- Point evaluation on E_{h,0} ------- //
-//     // VARIANT 2
-//     convdiff.addBilinear(
-//             - innerProduct(average(A0*gradS(u0)*t,0.5,-0.5),jump(v0)) // (3.12)/(3.81)
-//             - innerProduct(jump(u0), average(A0*gradS(v0)*t,0.5,-0.5))    // (3.13)/(3.82) added for symmetry
-//             //+ innerProduct(tau_a0*A0/h*jump(u0),jump(v0))                             // (3.13)/(3.82)
-//             + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
-//             + innerProduct(average((vel*t)*u0,0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
-//             - innerProduct(jump(u0),    average((vel*t)*v0,0.5,-0.5))*0.5    // (3.15)/(3.84)
-//             + innerProduct(penalty0*jump(u0),
-//                            jump(v0))                  // (3.16)
-//             , interface
-//            , innerEdge
-//     );
-//
-//
-//     // Mixed terms
-//     convdiff.addBilinear(
-//             + innerProduct(jump(kappa1*u1,kappa01*u0), jump(kappa1*v1, kappa01*v0))*(1.0/kappa01)
-//             + innerProduct(jump(kappa2*u2,kappa02*u0), jump(kappa2*v2, kappa02*v0))*(1.0/kappa02)
-//             , interface
-//     );
-//
-//
-//     //// Stabilization of the bulk
-//     //MacroElement macro(Wh, 0.125);
-//     convdiff.addFaceStabilization(
-//             innerProduct(1./h*tau_i0*jump(u)      , kappaTilde*jump(v))
-//             + innerProduct(h*tau_i1*jump(grad(u)), kappaTilde*jump(grad(v)))
-//       //            , macro
-//     );
-//
-//     //// Stabilization of the SURFACE
-//     //MacroElementSurface macroInterface(interface, 0.25);
-//     convdiff.addBilinear(
-//             innerProduct(tau00*1./h/h*jump(u0), jump(v0))
-//             + innerProduct(tau01*jump(grad(u0)), jump(grad(v0)))
-//             , innerEdge
-//       //      , macroInterface
-//     );
-//
-//     convdiff.addBilinear(
-//             innerProduct(tau02*h*h*grad(u0)*n, grad(v0)*n)
-//             , interface
-//     );
-//
-// //    gnuplot::save(macro,"../../outputFiles/statConvectionDiffusion/gnuplot/");
-// //    gnuplot::save(macroInterface,"../../outputFiles/statConvectionDiffusion/gnuplot/");
-//
-//     // ----- Add Dirichlet boundary conditions ------
-//     convdiff.addBilinear(
-//             - innerProduct(kappaTilde1*A1*grad(u1)*n, v1)
-//             - innerProduct(kappaTilde1*A1*u1, grad(v1)*n)
-//             + innerProduct(kappaTilde1*lambdaB*u1, v1)
-//             , boundary
-//     );
-//
-//     // RHS on outer boundary
-//     convdiff.addLinear(
-//             - innerProduct(g.expression(), (kappaTilde1*A1)*grad(v1)*n)
-//             + innerProduct(g.expression(), (kappaTilde1*lambdaB)*v1)
-//             - innerProduct(g.expression(), (vel*n)*kappaTilde1*v1)*0.5,
-//             boundary
-//    );
-//
-//     // Add linear part on faces
-//     convdiff.addLinear(
-//             innerProduct(fh0.expression(),v0),
-//             interface
-//     );
-//     // Add RHS on bulk
-//     convdiff.addLinear(
-//             innerProduct(fh.expression(),kappaTilde*v)
-//     );
-//     std::cout << "h = " << h << std::endl;
-//
-//     // Solve linear system
-//     convdiff.solve();
-//
-//     // Compute L2 error
-//     R errU  = L2normCut(uh, fun_uBulk   , 0,1);
-//     R errU0 = L2normSurf(us, fun_uSurfaceT, 0,0,1);
-//     //
-//     std::cout << " || u  - u_ex ||_2  = \t" << errU  << std::endl;
-//     std::cout << " || u0 - u0_ex||_2  = \t" << errU0 << std::endl;
-//
-//     // PRINT THE SOLUTION TO PARAVIEW
-//     // =====================================================
-//     // if(MPIcf::IamMaster()){
-//     //     Fun_h uex (Wh, fun_uBulk);
-//     //     Paraview2 writer(Wh, levelSet, "../../outputFiles/statConvectionDiffusion/convDiff_Bulk.vtk");
-//     //     writer.add(uh, "convDiff", 0, 1);
-//     //     writer.add(uex,"convDiff_ex", 0, 1);
-//     //
-//     //     Fun_h uexsurf(Sh, fun_uSurface);
-//     //     Paraview2 writerU0(Sh, "../../outputFiles/statConvectionDiffusion/convDiff_Surface.vtk");
-//     //     writerU0.add(us, "convDiff", 0, 1);
-//     //     writerU0.add(levelSet, "levelSet", 0, 1);
-//     //     writerU0.add(uexsurf, "convDiff_ex_surface", 0, 1);
-//     // }
+
+    // Penalty terms on E_{h,1} and E_{h,2}
+    convdiff.addBilinear(
+            innerProduct(penalty1*jump(u),jump(v))                  // (3.13)
+            + innerProduct(penalty2*jump(u*fabs(vel*n)),jump(v))    // (3.16)
+            , Khi
+            , innerFacet
+    );
+
+    // Integral on interface for surface variable (K_{h,0})
+    convdiff.addBilinear(
+            innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
+            + innerProduct((vel.expression(),gradS(u0)),v0)*0.5     // (3.14)
+            - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
+            , interface
+    );
+
+    //// -------- Point evaluation on E_{h,0} ------- //
+    // VARIANT 2
+    convdiff.addBilinear(
+      - innerProduct(average(A0*gradS(u0)*t,0.5,-0.5),jump(v0)) // (3.12)/(3.81)
+      - innerProduct(jump(u0), average(A0*gradS(v0)*t,0.5,-0.5))    // (3.13)/(3.82) added for symmetry
+      + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
+      + innerProduct(average((vel*conormal)*u0,0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
+      - innerProduct(jump(u0),    average((vel*conormal)*v0,0.5,-0.5))*0.5    // (3.15)/(3.84)
+      + innerProduct(penalty0*jump(u0), jump(v0))                  // (3.16)
+      , interface
+      , innerRidge
+    );
+
+
+    // Mixed terms
+    convdiff.addBilinear(
+            + innerProduct(jump(kappa1*u1,kappa01*u0), jump(kappa1*v1, kappa01*v0))*(1.0/kappa01)
+            + innerProduct(jump(kappa2*u2,kappa02*u0), jump(kappa2*v2, kappa02*v0))*(1.0/kappa02)
+            , interface
+    );
+
+
+    //// Stabilization of the bulk
+    //MacroElement macro(Wh, 0.125);
+    convdiff.addFaceStabilization(
+      innerProduct(1./h*tau_i0*jump(u)      , kappaTilde*jump(v))
+      + innerProduct(h*tau_i1*jump(grad(u)), kappaTilde*jump(grad(v)))
+      , Khi
+      //            , macro
+    );
+
+    //// Stabilization of the SURFACE
+    //MacroElementSurface macroInterface(interface, 0.25);
+    convdiff.addBilinear(
+      innerProduct(tau00*1./h/h*jump(u0), jump(v0))
+      + innerProduct(tau01*jump(grad(u0)), jump(grad(v0)))
+      , Kh0
+      , innerFacet
+      //      , macroInterface
+    );
+
+    convdiff.addBilinear(
+      innerProduct(tau02*h*h*grad(u0)*n, grad(v0)*n)
+      , interface
+    );
+
+//    gnuplot::save(macro,"../../outputFiles/statConvectionDiffusion/gnuplot/");
+//    gnuplot::save(macroInterface,"../../outputFiles/statConvectionDiffusion/gnuplot/");
+
+    // ----- Add Dirichlet boundary conditions ------
+    convdiff.addBilinear(
+      - innerProduct(kappaTilde1*A1*grad(u1)*n, v1)
+      - innerProduct(kappaTilde1*A1*u1, grad(v1)*n)
+      + innerProduct(kappaTilde1*lambdaB*u1, v1)
+      , Khi
+      , boundary
+    );
+
+    // RHS on outer boundary
+    convdiff.addLinear(
+      - innerProduct(g.expression(), (kappaTilde1*A1)*grad(v1)*n)
+      + innerProduct(g.expression(), (kappaTilde1*lambdaB)*v1)
+      - innerProduct(g.expression(), (vel*n)*kappaTilde1*v1)*0.5
+      , Khi
+      , boundary
+    );
+
+   // Add linear part on faces
+   convdiff.addLinear(
+     innerProduct(fh0.expression(),v0)
+     , interface
+   );
+   // Add RHS on bulk
+   convdiff.addLinear(
+     innerProduct(fh.expression(),kappaTilde*v)
+     , Khi
+   );
+
+   matlab::Export(convdiff.mat_, "matCONV.dat");
+
+
+   // Solve linear system
+   convdiff.solve();
+
+   // Compute L2 error
+   R errU  = L2normCut(uh, fun_uBulk   , 0,1);
+   R errU0 = L2normSurf(us, fun_uSurface, interface, 0,1);
+
+   // std::cout << convdiff.rhs_ << std::endl;
+
+   std::cout << " || u  - u_ex ||_2  = \t" << errU  << std::endl;
+   std::cout << " || u0 - u0_ex||_2  = \t" << errU0 << std::endl;
+
+    // PRINT THE SOLUTION TO PARAVIEW
+    // =====================================================
+    if(MPIcf::IamMaster()){
+        Fun_h uex (Wh, fun_uBulk);
+        Paraview<Mesh> writer(Khi, "convDiff_Bulk"+to_string(i)+".vtk");
+        writer.add(uh, "convDiff", 0, 1);
+        writer.add(uex,"convDiff_ex", 0, 1);
+
+        Fun_h uexsurf(Sh, fun_uSurface);
+        Paraview<Mesh> writerU0(Kh0, "convDiff_Surface"+to_string(i)+".vtk");
+        writerU0.add(us, "convDiff", 0, 1);
+        writerU0.add(levelSet, "levelSet", 0, 1);
+        writerU0.add(uexsurf, "convDiff_ex_surface", 0, 1);
+    }
 
 }
 
@@ -648,5 +661,14 @@ void solve(int argc, char** argv) {
 
 int main(int argc, char** argv ) {
 
-    solve(argc, argv);
+  // INITIALIZE MPI
+  // =====================================================
+  MPIcf cfMPI(argc,argv);
+  int nx = 11;
+  for(int i=0; i<1; ++i){
+
+    solve(argc, argv, nx, i);
+
+    nx = 2*nx-1;
+  }
 }

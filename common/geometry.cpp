@@ -15,6 +15,7 @@ double geometry::measure_hyper_simplex(R3 N[3]){
   return Norme2(0.5 * (u ^ v));
 }
 
+
 template<> double geometry::mesure_simplex<1>(R2 N[2]){
   return measure_hyper_simplex(N);
 }

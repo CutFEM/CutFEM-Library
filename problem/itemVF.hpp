@@ -11,6 +11,7 @@ struct ItemVF {
   double c;
   int cu,du,cv,dv;
   KN<int> ar_nu, ar_nv;
+  KN<int> conormalU_, conormalV_;
   int face_sideU_, face_sideV_;
   int domainU_id_, domainV_id_;
 
@@ -44,6 +45,9 @@ struct ItemVF {
   // }
   ItemVF(const ItemVF & U)
   :ItemVF(U.c,U.cu,U.du,U.cv,U.dv,U.ar_nu,U.ar_nv){
+    conormalU_ = U.conormalU_;
+    conormalV_ = U.conormalV_;
+
     face_sideU_ = U.face_sideU_;
     face_sideV_ = U.face_sideV_;
 
@@ -64,8 +68,9 @@ struct ItemVF {
   }
 
   ItemVF(const ItemTestFunction<N>& U, const ItemTestFunction<N>& V)
-    :ItemVF(U.c*V.c,U.cu,U.du,V.cu,V.du,U.ar_nu,V.ar_nu)
-  {
+    :ItemVF(U.c*V.c,U.cu,U.du,V.cu,V.du,U.ar_nu,V.ar_nu) {
+    conormalU_ = U.conormal;
+    conormalV_ = V.conormal;
 
     face_sideU_ = U.face_side_;
     face_sideV_ = V.face_side_;
@@ -88,15 +93,9 @@ struct ItemVF {
     pfunV = V.pfun;
   }
 
-// NEED TO BE CHANGED
-// CANNOT WORK WITH DOMAIN DIFFERENT FROM 0 1
-  // bool on(int d) const {
-  //   assert(0);
-  //   return ((face_sideU_ == face_sideV_) && (face_sideU_ == -1 || face_sideU_ == d));
-  // }
 
-  bool same() const {
-    return (fespaceU == fespaceV) && (pfunU == pfunV); }
+  // // bool same() const {
+  //   return (fespaceU == fespaceV) && (pfunU == pfunV); }
 
   bool operator==(const ItemVF& F){
     if(cu == F.cu && cv == F.cv && du == F.du && dv == F.dv
@@ -104,7 +103,6 @@ struct ItemVF {
         && domainU_id_ == F.domainU_id_ && domainV_id_ == F.domainV_id_
         && fespaceU == F.fespaceU && fespaceV == F.fespaceV
         && expru == F.expru && exprv == F.exprv) {
-
       if(ar_nu.size() == F.ar_nu.size() && ar_nv.size() == F.ar_nv.size()) {
         for(int i=0;i<ar_nu.size();++i) {
           if(ar_nu(i) != F.ar_nu(i)) return false;
@@ -112,8 +110,16 @@ struct ItemVF {
         for(int i=0;i<ar_nv.size();++i) {
           if(ar_nv(i) != F.ar_nv(i)) return false;
         }
-        return true;
       }
+      if(conormalU_.size() == F.conormalU_.size() && conormalV_.size() == F.conormalV_.size()) {
+        for(int i=0;i<conormalU_.size();++i) {
+          if(conormalU_(i) != F.conormalU_(i)) return false;
+        }
+        for(int i=0;i<conormalV_.size();++i) {
+          if(conormalV_(i) != F.conormalV_(i)) return false;
+        }
+      }
+      return true;
     }
     return false;
   }
@@ -150,125 +156,85 @@ struct ItemVF {
 
 
 public:
-
-  // R computeCoef(double h, double meas, double measK, int domain) const {
-  //   R val = 1;
-  //   for(int l=0;l<2;++l) {
-  //     const vector<string>& listCoef = (l==0)?coefu : coefv;
-  //     for(int i=0;i<listCoef.size();++i) {
-  //       string coef = listCoef[i];
-  //
-  //       if(parameterList.find(coef)) {
-  //         Virtual_Parameter& p(*parameterList.listParameter[coef]);
-  //         val *= p(domain, h, meas, measK);
-  //       }
-  //     }
-  //   }
-  //   return val;
-  // }
-  // R computeCoefInterface( double h, double meas, double measK) const {
-  //   R val = 1;
-  //   for(int l=0;l<2;++l) {
-  //     const vector<string>& listCoef = (l==0)?coefu : coefv;
-  //     int domCoef = (l==0)?face_sideU_ : face_sideV_;
-  //     if(domCoef == -1) domCoef = 0;
-  //     assert(domCoef == 0 || domCoef == 1);
-  //     for(int i=0;i<listCoef.size();++i) {
-  //       string coef = listCoef[i];
-  //
-  //       if(this->parameterList.find(coef)) {
-  //         Virtual_Parameter& p(*this->parameterList.listParameter[coef]);
-  //         val *= p(domCoef, h, meas, measK);
-  //       }
-  //     }
-  //   }
-  //   return val;
-  // }
-  // R computeCoef(int domain, const typename Mesh::Partition& cutK) const {
-  //   R val = 1;
-  //   double h = cutK.getEdgeLength();
-  //   double meas = cutK.mesure(domain);
-  //   double measK = cutK.T.mesure();
-  //   for(int l=0;l<2;++l) {
-  //     const vector<string>& listCoef = (l==0)?coefu : coefv;
-  //     int domCoef = domain;
-  //     for(int i=0;i<listCoef.size();++i) {
-  //       string coef = listCoef[i];
-  //       if(this->parameterList.find(coef)) {
-  //         Virtual_Parameter& p(*this->parameterList.listParameter[coef]);
-  //         val *= p(domCoef, h, meas, measK);
-  //       }
-  //     }
-  //   }
-  //   return val;
-  // }
   void applyFunNL(RNMK_& bfu, RNMK_& bfv) const {
     pfunU(bfu, cu, du);
     pfunV(bfv, cv, dv);
   }
 
-// FOR NEW VERSION
-// const FESpace& get_spaceU() const {assert(fespaceU); return fespaceU;}
-// const FESpace& get_spaceV() const {assert(fespaceV); return fespaceV;}
-
-double computeCoefElement(double h, double meas, double measK, double measCut, int domain) const {
-  R val = 1;
-  for(int l=0;l<2;++l) {
-    const vector<const Virtual_Parameter*>& listCoef = (l==0)?coefu : coefv;
-    for(int i=0;i<listCoef.size();++i) {
-      val *= listCoef[i]->evaluate(domain, h, meas, measK, measCut);
-    }
-  }
-  return val;
-}
-double computeCoefInterface(double h, double meas, double measK, double measCut, int domi, int domj) const {
-  R val = 1;
-  for(int l=0;l<2;++l) {
-    const vector<const Virtual_Parameter*>& listCoef = (l==0)?coefu : coefv;
-    int dom = (l==0)?domi:domj;
-    for(int i=0;i<listCoef.size();++i) {
-      val *= listCoef[i]->evaluate(dom, h, meas, measK, measCut);
-    }
-  }
-  return val;
-}
-double evaluateFunctionOnBackgroundMesh(int k, int dom, Rd mip, const R* normal = nullptr) const {
-  return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1)
-        *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
-}
-double evaluateFunctionOnBackgroundMesh(const std::pair<int,int>& k, const std::pair<int,int>& dom, Rd mip, const R* normal = nullptr) const {
-  return ((expru)? expru->GevalOnBackMesh(k.first , dom.first , mip, normal) : 1)
-        *((exprv)? exprv->GevalOnBackMesh(k.second, dom.second, mip, normal) : 1);
-}
-double computeCoefFromNormal(const R* normal) const {
-  return computeNormalU(normal) * computeNormalV(normal);;
-}
-int onWhatElementIsTrialFunction (int ki, int kj) const {
-  assert(face_sideU_ != -1); return (face_sideU_==0)? ki : kj;
-}
-int onWhatElementIsTestFunction  (int ki, int kj) const {
-  assert(face_sideV_ != -1); return (face_sideV_==0)? ki : kj;
-}
-int onWhatElementIsTrialFunction (std::vector<int> k) const {
-  if(k.size()==1) {assert(face_sideU_ == -1); return k[0];}
-  else {assert(face_sideU_ != -1); return (face_sideU_==0)? k[0] : k[1];}
-}
-int onWhatElementIsTestFunction  (std::vector<int> k) const {
-  if(k.size()==1) {assert(face_sideV_ == -1); return k[0];}
-  else {assert(face_sideV_ != -1); return (face_sideV_==0)? k[0] : k[1];}
-}
-int get_domain_test_function() const {return domainV_id_;}
-int get_domain_trial_function() const {return domainU_id_;}
-
-private:
-  double computeNormalU(const R* normal) const {
+  // FOR NEW VERSION
+  double computeCoefElement(double h, double meas, double measK, double measCut, int domain) const {
     R val = 1;
-    for(int i=0;i<ar_nu.size();++i) val *= normal[ar_nu(i)];
+    for(int l=0;l<2;++l) {
+      const vector<const Virtual_Parameter*>& listCoef = (l==0)?coefu : coefv;
+      for(int i=0;i<listCoef.size();++i) {
+        val *= listCoef[i]->evaluate(domain, h, meas, measK, measCut);
+      }
+    }
     return val;
   }
-  double computeNormalV(const R* normal) const {
+  double computeCoefInterface(double h, double meas, double measK, double measCut, int domi, int domj) const {
     R val = 1;
-    for(int i=0;i<ar_nv.size();++i) val *= normal[ar_nv(i)];
+    for(int l=0;l<2;++l) {
+      const vector<const Virtual_Parameter*>& listCoef = (l==0)?coefu : coefv;
+      int dom = (l==0)?domi:domj;
+      for(int i=0;i<listCoef.size();++i) {
+        val *= listCoef[i]->evaluate(dom, h, meas, measK, measCut);
+      }
+    }
+    return val;
+  }
+  double evaluateFunctionOnBackgroundMesh(int k, int dom, Rd mip, const R* normal = nullptr) const {
+    return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1)
+    *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
+  }
+  double evaluateFunctionOnBackgroundMesh(const std::pair<int,int>& k, const std::pair<int,int>& dom, Rd mip, const R* normal = nullptr) const {
+    return ((expru)? expru->GevalOnBackMesh(k.first , dom.first , mip, normal) : 1)
+    *((exprv)? exprv->GevalOnBackMesh(k.second, dom.second, mip, normal) : 1);
+  }
+  double evaluateFunctionOnBackgroundMesh(const std::pair<int,int>& k, const std::pair<int,int>& dom, Rd mip, const std::pair<Rd, Rd>normal) const {
+    return ((expru)? expru->GevalOnBackMesh(k.first , dom.first , mip, normal.first) : 1)
+    *((exprv)? exprv->GevalOnBackMesh(k.second, dom.second, mip, normal.second) : 1);
+  }
+  double computeCoefFromNormal(const Rd normal) const {
+    return computeCoeffFromArray(ar_nu, normal) * computeCoeffFromArray(ar_nv,normal);;
+  }
+  double computeCoefFromConormal(const Rd conormal) const {
+    return computeCoeffFromArray(conormalU_, conormal) * computeCoeffFromArray(conormalV_, conormal);
+  }
+  double computeCoefFromNormal(const Rd normal0,const Rd normal1) const {
+    return computeCoeffFromArray(ar_nu, normal0) * computeCoeffFromArray(ar_nv,normal1);;
+  }
+  double computeCoefFromConormal(const Rd conormalu, const Rd conormalv) const {
+    return computeCoeffFromArray(conormalU_, conormalu) * computeCoeffFromArray(conormalV_, conormalv);
+  }
+  int onWhatElementIsTrialFunction (std::vector<int> k) const {
+    if(k.size()==1) {return k[0];}
+    else {assert(face_sideU_ != -1); return (face_sideU_==0)? k[0] : k[1];}
+  }
+  int onWhatElementIsTestFunction  (std::vector<int> k) const {
+    if(k.size()==1) { return k[0];}
+    else {assert(face_sideV_ != -1); return (face_sideV_==0)? k[0] : k[1];}
+  }
+  template<typename T>
+  T onWhatElementIsTrialFunction (T ki, T kj) const {
+    assert(face_sideU_ != -1); return (face_sideU_==0)? ki : kj;
+  }
+  template<typename T>
+  T onWhatElementIsTestFunction  (T ki, T kj) const {
+    assert(face_sideV_ != -1); return (face_sideV_==0)? ki : kj;
+  }
+  int get_domain_test_function() const {return domainV_id_;}
+  int get_domain_trial_function() const {return domainU_id_;}
+
+
+  bool on(int d) const {
+    return ((domainU_id_ == domainV_id_) && (domainU_id_ == -1 || domainU_id_ == d));
+  }
+
+private:
+  double computeCoeffFromArray(const KN<int>& array_idx, const R* v) const {
+    R val = 1;
+    for(int i=0;i<array_idx.size();++i) val *= v[array_idx(i)];
     return val;
   }
 

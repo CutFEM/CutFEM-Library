@@ -157,21 +157,50 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 
 
 
+template<typename Mesh>
+double L2normSurf_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Mesh>::FElement::Rd, int i), const Interface<Mesh>& interface) {
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename FElement::QFB QFB;
+  typedef typename FElement::Rd Rd;
+  typedef typename QFB::QuadraturePoint QuadraturePoint;
 
+  const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
+  What_d Fop = Fwhatd(op_id);
 
+  double val = 0.;
 
+  for(int iface=interface.first_element(); iface<interface.last_element(); iface+=interface.next_element()) {
+
+    const int kb = interface.idxElementOfFace(iface);   // idx on backMesh
+    const R meas = interface.measure(iface);
+
+    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+
+      QuadraturePoint ip(qfb[ipq]); // integration point
+      const Rd mip = interface.mapToPhysicalFace(iface,(typename FElement::RdHatBord)ip);
+      const R Cint = meas * ip.getWeight();
+
+      double a = fh.evalOnBackMesh(kb, 0, mip) - fex(mip, fh.cu);
+      val += Cint * a * a;
+    }
+  }
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_SUM);
+
+  return val_receive;
+
+}
 // template<typename M>
-// double L2normSurf_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, double t),double tt,const GFESpace<M>& Vh) {
+// double L2normSurf_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, double t), const Interface<Mesh>& interface, double tt,const GFESpace<M>& Vh) {
 //   typedef Mesh2 Mesh;
 //   typedef GFESpace<Mesh> FESpace;
 //   typedef typename FESpace::FElement FElement;
 //   typedef typename FElement::QFB QFB;
 //   typedef typename FElement::Rd Rd;
-//   typedef typename Mesh::Partition Partition;
 //   typedef GenericInterface<Mesh> Interface;
 //   typedef typename QFB::QuadraturePoint QuadraturePoint;
 //
-//   const Interface& interface(Vh.getInterface(0));
 //   const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
 //   What_d Fop = Fwhatd(op_id);
 //
@@ -182,9 +211,6 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 //     const int kb = interface.idxElementOfFace(iface);   // idx on backMesh
 //     const typename Interface::Face& face = interface.getFace(iface);  // the face
 //     const R meas = interface.computeDx(face).norm();
-//
-//     int k = Vh.idxElementFromBackMesh(kb,0);
-//     const FElement& FK(Vh[k]);
 //
 //     for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
 //
@@ -203,20 +229,30 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 //   return val_receive;
 //
 // }
-//
 // template<typename M>
-// double L2normSurf( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, double t), double tt,int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d) {
+// double L2normSurf( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, double t), const Interface<Mesh>& interface, double tt,int c0, int num_comp) {
 //
-//     const GFESpace<M>& Vh(*fh.Vh);
-//
-//     double val = 0;
-//     for(int i=c0;i<num_comp+c0;++i) {
-//       ExpressionFunFEM<M> ui(fh, i, op_id);
-//       val += L2normSurf_2(ui,fex, tt,Vh);
-//     }
-//     return sqrt(val);
+//   double val = 0;
+//   for(int i=c0;i<num_comp+c0;++i) {
+//     ExpressionFunFEM<M> ui(fh, i, op_id);
+//     val += L2normSurf_2(ui,fex, interface, tt);
 //   }
-//
+//   return sqrt(val);
+// }
+template<typename Mesh>
+double L2normSurf( const FunFEM<Mesh>& fh,R (fex)(const typename GFESpace<Mesh>::FElement::Rd, int i), const Interface<Mesh>& interface, int c0, int num_comp) {
+
+  double val = 0;
+  for(int i=c0;i<num_comp+c0;++i) {
+    ExpressionFunFEM<Mesh> ui(fh, i, op_id);
+    val += L2normSurf_2(ui,fex, interface);
+  }
+  return sqrt(val);
+}
+
+
+
+
 
 
 template<typename M>

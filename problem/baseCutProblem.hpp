@@ -46,6 +46,10 @@ public:
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
   void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac);
 
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const CRidge& innerRidge,list<int> label = {});
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const CRidge& innerRidge,list<int> label = {});
+  void addInterfaceRidgeContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& interface, int ifac);
+
 
   // Face stabilization
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&);

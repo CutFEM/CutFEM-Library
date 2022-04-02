@@ -410,7 +410,8 @@ public:
 
 
   virtual void info() const {
-    std::cout << "FESpace \t" << this << std::endl;
+    // std::cout << "FESpace \t" << this << std::endl;
+    std::cout << "----------------------------------" << std::endl;
     std::cout << "nb node    \t" << NbNode() << std::endl;
     std::cout << "nb dof     \t" << NbDoF() << std::endl;
     std::cout << "nb element \t" << NbElement() << std::endl;

@@ -189,7 +189,7 @@ void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::
     double meas  = cutFace.measure(it);
 
     for(int l=0; l<VF.size();++l) {
-      // if(!VF[l].on(domain)) continue;
+      if(!VF[l].on(domain)) continue;
 
       // FINITE ELEMENT SPACES && ELEMENTS
       const FESpace& Vhv(VF.get_spaceV(l));
@@ -197,8 +197,6 @@ void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::
       assert(Vhv.get_nb_element() == Vhu.get_nb_element());
       const int kv = VF[l].onWhatElementIsTestFunction (ki,kj);
       const int ku = VF[l].onWhatElementIsTrialFunction(ki,kj);
-
-      // std::cout << VF[l].domv << std::endl;
 
       int kbv = Vhv.idxElementInBackMesh(kv);
       int kbu = Vhu.idxElementInBackMesh(ku);
@@ -371,8 +369,8 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
 
 
 
-
 // INTEGRATION ON INTERFACE
+// On Faces
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma,list<int> label) {
   assert(!VF.isRHS());
@@ -430,21 +428,16 @@ void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const 
     const FESpace& Vhu(VF.get_spaceU(l));
     bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
-    // NOT OPTIMAL IF DOMAIN IS KNOWN!!!!
     std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
     std::vector<int> idxU = (same)?idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
-
     int kv = VF[l].onWhatElementIsTestFunction (idxV);
     int ku = VF[l].onWhatElementIsTrialFunction(idxU);
-    int kbv = Vhv.idxElementInBackMesh(kv);
-    int kbu = Vhu.idxElementInBackMesh(ku);
 
     const FElement& FKu(Vhu[ku]);
     const FElement& FKv(Vhv[kv]);
     int domu = FKu.get_domain();
     int domv = FKv.get_domain();
     this->initIndex(FKu, FKv);
-
 
     // BF MEMORY MANAGEMENT -
     int lastop = getLastop(VF[l].du, VF[l].dv);
@@ -469,7 +462,7 @@ void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const 
       if(!same) FKu.BF(Fop, face_ip, fu);
 
 
-      Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domu, domv), mip, normal);
+      Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb,kb), std::make_pair(domu, domv), mip, normal);
       Cint *= coef * VF[l].c;
 
       if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
@@ -478,8 +471,41 @@ void BaseCutFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const 
     }
 
   }
-  // getchar();
 }
+
+// On Ridges
+template<typename M>
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma, const CRidge& innerRidge, list<int> label) {
+  assert(!VF.isRHS());
+  bool all_label = (label.size() == 0);
+
+  for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
+    const typename Interface<M>::Face& face = gamma[iface];  // the face
+    if(util::contain(label, face.lab) || all_label) {
+
+      addInterfaceRidgeContribution(VF, gamma, iface);
+
+    }
+  }
+
+  this->addLocalContribution();
+}
+
+template<typename M>
+void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma, const CRidge& innerRidge,list<int> label) {
+  assert(VF.isRHS());
+  bool all_label = (label.size() == 0);
+
+  for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
+    const typename Interface<M>::Face& face = gamma[iface];  // the face
+    if(util::contain(label, face.lab) || all_label) {
+
+      addInterfaceRidgeContribution(VF, gamma, iface);
+
+    }
+  }
+}
+
 
 
 // FACE STABILIZATION

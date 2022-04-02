@@ -10,27 +10,29 @@ struct Normal_Component_X : public Normal_Component {
   virtual int component() const  {return 0;}
 };
 struct Normal_Component_Y : public Normal_Component {
-  virtual int component() const {return 0;}
+  virtual int component() const {return 1;}
 };
 struct Normal_Component_Z : public Normal_Component {
-  virtual int component() const {return 0;}
+  virtual int component() const {return 2;}
 };
 
-
-struct Normal {
+struct BaseVector{};
+struct Normal   : public BaseVector {
   // static const int idx[3];
   Normal_Component_X x;
   Normal_Component_Y y;
   Normal_Component_Z z;
   // int operator[](int i) const {return idx[i];}
 };
-
-// compute tangent from normal
+struct Conormal : public BaseVector {
+  Normal_Component_X x;
+  Normal_Component_Y y;
+  Normal_Component_Z z;
+};
 struct Tangent {
   // static const int idx[3];
   // int operator[](int i) const {return idx[i];}
 };
-
 struct Projection {
   Normal normal;
   KN<int> operator()(int i, int j) const {
@@ -638,7 +640,19 @@ class ExpressionNormal2 : public ExpressionVirtual {
   ExpressionFunFEM<M> uxnx, uyny;
 
 public:
-  ExpressionNormal2(const FunFEM<M> & fh1)
+  ExpressionNormal2(const FunFEM<M> & fh1, const Normal n)
+  : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
+  {
+    assert(fh1.Vh->N !=1);
+    uxnx.addNormal(0); uyny.addNormal(1);
+  }
+  ExpressionNormal2(const FunFEM<M> & fh1, const Tangent t)
+  : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
+  {
+    assert(fh1.Vh->N !=1);
+    uxnx.addTangent(1); uyny.addTangent(0);
+  }
+  ExpressionNormal2(const FunFEM<M> & fh1, const Conormal n)
   : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
   {
     assert(fh1.Vh->N !=1);
@@ -672,47 +686,9 @@ public:
   ~ExpressionNormal2(){}
 };
 ExpressionNormal2 operator*(const FunFEM<Mesh2>& f1, const Normal& n);
+ExpressionNormal2 operator*(const FunFEM<Mesh2>& f1, const Tangent& n);
+ExpressionNormal2 operator*(const FunFEM<Mesh2>& f1, const Conormal& n);
 
-class ExpressionTangent2 : public ExpressionVirtual {
-  typedef Mesh2 M;
-  const FunFEM<M>& fun;
-  ExpressionFunFEM<M> uxnx, uyny;
-
-public:
-  ExpressionTangent2(const FunFEM<M> & fh1)
-  : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
-  {
-    assert(fh1.Vh->N !=1);
-    uxnx.addTangent(1); uyny.addTangent(0);
-  }
-
-  R operator()(long i) const {assert(0);};
-
-  R eval(const int k, const R* x, const R* normal)const  {
-    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
-    assert(0);
-    return 0;
-  }
-  R eval(const int k, const R* x, const R t, const R* normal)const  {
-    std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
-    assert(0);
-    return 0;
-  }
-
-  R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal)const  {
-    assert(normal);
-    return uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal);
-  }
-  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
-    assert(normal);
-    return uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal);
-  }
-  int idxElementFromBackMesh(int kb, int dd=0) const {
-    return fun.idxElementFromBackMesh(kb, dd);
-  }
-  ~ExpressionTangent2(){}
-};
-ExpressionTangent2 operator*(const FunFEM<Mesh2>& f1, const Tangent& n);
 
 class ExpressionNormal3 : public ExpressionVirtual {
   typedef Mesh3 M;

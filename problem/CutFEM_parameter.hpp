@@ -72,7 +72,7 @@ class ParameterCutFEM : public Virtual_Parameter {
 public:
   ParameterCutFEM():val_(0){}
   ParameterCutFEM(const std::vector<double>& x) : val_(x){}
-  ParameterCutFEM(double v1) :val_(v1){
+  ParameterCutFEM(double v1) {
     val_.push_back(v1);
   }
   ParameterCutFEM(double v1, double v2) : ParameterCutFEM(v1)  {

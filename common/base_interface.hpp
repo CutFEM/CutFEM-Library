@@ -72,7 +72,7 @@ public :
     return (face_of_element_.find(k) != face_of_element_.end());
   }
   const Element& get_element(int k) const{return (*backMesh)[k];}
-
+  const Mesh& get_mesh() const {assert(backMesh);return *backMesh;}
   const_face_iterator face_begin () const { return (faces_.begin()).base(); }
   const_face_iterator face_end   () const { return (faces_.end()).base(); }
 

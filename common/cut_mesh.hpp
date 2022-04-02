@@ -271,7 +271,7 @@ public:
     // In the class mesh the inner faces are not built
     int kb = this->idxElementInBackMesh(k);
     int iv[Face::nv];
-    for(int i=0;i<Face::nv;++i) iv[i] = Th(kb, Element::nvface[ifac][i]);
+    for(int i=0;i<Face::nv;++i) iv[i] = Th(kb, Element::nvhyperFace[ifac][i]);
     face.set(Th.vertices, iv, 0);
 
     // GET THE INTERFACE

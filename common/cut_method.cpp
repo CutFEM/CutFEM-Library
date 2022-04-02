@@ -227,46 +227,19 @@ template<> RefPartition<Hexa>::InitializerCL::InitializerCL () {
 }
 
 template<> bool RefPartition<Edge2>::assign (const SignPattern<Edge2>& cut) {
-  assert(0);
   end_= begin_= elements_ + start_array;
 
-  // if (cut.empty()) { // Most common case: no cut.
-  //   Ubyte list_v[] = {0,1};
-  //   // AddTriangle( 0, 1, 2, cut.sign( 0));
-  //   AddElement( list_v, cut.sign( 0));
-  //
-  // }
-  // else if (cut.no_zero_vertex()) { // next common case: cuts without vertices on the zero level
-  //   is_cut_ = true;
-  //   const Ubyte v = Triangle2::commonVertOfEdges[cut[0]][cut[1]];
-  //   Ubyte list_v[] = {v, cut(0), cut(1)};
-  //   AddElement( list_v, cut.sign( v));
-  //   // AddTriangle( v, cut(0), cut(1), cut.sign( v));
-  //   AddQuadrilateral( Triangle2::oppVertOfEdge( cut[0], v), cut(0),
-  //             Triangle2::oppVertOfEdge( cut[1], v), cut(1),
-	//       -cut.sign( v));
-  //
-  // }
-  // else if (cut.num_cut_simplexes() > cut.num_zero_vertexes()) { // next common case: there are cut edges, and also 1 or 2 vertices of the tetra with value 0 (the latter as we are in the else-part of cut.no_zero_vertex())
-  //     if (cut.num_zero_vertexes() == 1) { // triangular cut through a vertex: a tetra and a remaining pyramid with quadrilateral base
-  //         const Ubyte e= cut[1], f= cut[2];
-  //         const Ubyte v= VertByEdge( e, f);
-  //         AddTetra( v, cut(0), cut(1), cut(2), cut.sign( v));
-  //         const Ubyte opp_v_in_e= v == VertOfEdge( e, 0) ? VertOfEdge( e, 1) : VertOfEdge( e, 0);
-  //         const Ubyte opp_v_in_f= v == VertOfEdge( f, 0) ? VertOfEdge( f, 1) : VertOfEdge( f, 0);
-  //         // the pyramid
-  //         AddTetra( cut(0), cut(1), opp_v_in_f, opp_v_in_e, -cut.sign( v));
-  //         AddTetra( cut(0), cut(1), opp_v_in_f, cut(2), -cut.sign( v));
-  //     }
-  //     else if (cut.num_zero_vertexes() == 2) { // triangular cut through 2 vertexes: two tetras
-  //         const Ubyte e= OppEdge( EdgeByVert( cut[0], cut[1]));
-  //         const Ubyte v0= VertOfEdge( e, 0), v1= VertOfEdge( e, 1);
-  //         AddTetra( cut(0), cut(1), v0, cut(2), cut.sign( v0));
-  //         AddTetra( cut(0), cut(1), v1, cut(2), cut.sign( v1));
-  //     }
-  // }
-  // else // remaining cases: 1, 2 or 3 cuts, which are vertices of the tetra
-  //     AddTetra( 0, 1, 2, 3, cut.sign( some_non_zero_vertex( cut)));
+  if (cut.empty()) { // Most common case: no cut.
+    Ubyte list_v[] = {0,1};
+    AddElement( list_v, cut.sign( 0));
+  }
+  else if (cut.no_zero_vertex()) { // next common case: cuts without vertices on the zero level
+    is_cut_ = true;
+    Ubyte list_v[] = {0,cut(0)};
+    AddElement( list_v, cut.sign( 0));
+    Ubyte list_v1[] = {1,cut(0)};
+    AddElement( list_v1, cut.sign( 1));
+  }
   return is_uncut();
 }
 template<> bool RefPartition<Triangle2>::assign (const SignPattern<Triangle2>& cut) {

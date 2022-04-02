@@ -226,7 +226,7 @@ int main(int argc, char** argv ) {
     InterfaceLevelSet<Mesh> interface(Kh, levelSet);
 
     FESpace2 Vh(Kh, DataFE<Mesh2>::RT0);
-    FESpace2 Qh(Kh, DataFE<Mesh2>::P0sc);
+    FESpace2 Qh(Kh, DataFE<Mesh2>::P0);
 
 
     ActiveMesh<Mesh> Kh_i(Kh, interface);
