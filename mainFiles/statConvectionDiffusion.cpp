@@ -243,7 +243,8 @@ void solve(int argc, char** argv, int nn, int i) {
             - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5  // (3.14)
             , Khi
     );
-
+    matlab::Export(convdiff.mat_, "mat1_new.dat");
+    convdiff.cleanMatrix();
     // integral on Edges for bulk variables (i.e. E_{h,1} and E_{h,2})
     // GLOBAL WEIGHTS
     convdiff.addBilinear(
@@ -254,7 +255,8 @@ void solve(int argc, char** argv, int nn, int i) {
             , Khi
             , innerFacet
     );
-
+    matlab::Export(convdiff.mat_, "mat2_new.dat");
+    convdiff.cleanMatrix();
 //
 //     // LOCAL WEIGHTS
 // //    convdiff.addBilinear(
@@ -274,6 +276,8 @@ void solve(int argc, char** argv, int nn, int i) {
             , Khi
             , innerFacet
     );
+    matlab::Export(convdiff.mat_, "mat3_new.dat");
+    convdiff.cleanMatrix();
 
     // Integral on interface for surface variable (K_{h,0})
     convdiff.addBilinear(
@@ -282,7 +286,8 @@ void solve(int argc, char** argv, int nn, int i) {
             - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
             , interface
     );
-
+    matlab::Export(convdiff.mat_, "mat4_new.dat");
+    convdiff.cleanMatrix();
     //// -------- Point evaluation on E_{h,0} ------- //
     // VARIANT 2
     convdiff.addBilinear(
@@ -295,7 +300,8 @@ void solve(int argc, char** argv, int nn, int i) {
       , interface
       , innerRidge
     );
-
+    matlab::Export(convdiff.mat_, "mat5_new.dat");
+    convdiff.cleanMatrix();
 
     // Mixed terms
     convdiff.addBilinear(
@@ -303,7 +309,8 @@ void solve(int argc, char** argv, int nn, int i) {
             + innerProduct(jump(kappa2*u2,kappa02*u0), jump(kappa2*v2, kappa02*v0))*(1.0/kappa02)
             , interface
     );
-
+    matlab::Export(convdiff.mat_, "mat6_new.dat");
+    convdiff.cleanMatrix();
 
     //// Stabilization of the bulk
     //MacroElement macro(Wh, 0.125);
@@ -328,7 +335,8 @@ void solve(int argc, char** argv, int nn, int i) {
       innerProduct(tau02*h*h*grad(u0)*n, grad(v0)*n)
       , interface
     );
-
+    matlab::Export(convdiff.mat_, "mat7_new.dat");
+    convdiff.cleanMatrix();
 //    gnuplot::save(macro,"../../outputFiles/statConvectionDiffusion/gnuplot/");
 //    gnuplot::save(macroInterface,"../../outputFiles/statConvectionDiffusion/gnuplot/");
 
@@ -349,7 +357,8 @@ void solve(int argc, char** argv, int nn, int i) {
       , Khi
       , boundary
     );
-
+    matlab::Export(convdiff.mat_, "mat8_new.dat");
+    convdiff.cleanMatrix();
    // Add linear part on faces
    convdiff.addLinear(
      innerProduct(fh0.expression(),v0)
@@ -360,8 +369,9 @@ void solve(int argc, char** argv, int nn, int i) {
      innerProduct(fh.expression(),kappaTilde*v)
      , Khi
    );
-
-   matlab::Export(convdiff.mat_, "matCONV.dat");
+   matlab::Export(convdiff.rhs_, "rhs_new.dat");
+   convdiff.cleanMatrix();
+   // matlab::Export(convdiff.mat_, "matCONV.dat");
 
 
    // Solve linear system
