@@ -258,8 +258,9 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
     // CHECK IF IT IS A CUT EDGE
     if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac);
     else BaseFEM<M>::addBorderContribution(VF, K, BE,ifac);
+    this->addLocalContribution();
+
   }
-  this->addLocalContribution();
 
 }
 
@@ -383,9 +384,10 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>&
       addInterfaceContribution(VF, gamma, iface);
 
     }
+    this->addLocalContribution();
+    return;
   }
 
-  this->addLocalContribution();
 }
 
 template<typename M>
@@ -486,9 +488,10 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>&
       addInterfaceRidgeContribution(VF, gamma, iface);
 
     }
+    this->addLocalContribution();
+
   }
 
-  this->addLocalContribution();
 }
 
 template<typename M>
