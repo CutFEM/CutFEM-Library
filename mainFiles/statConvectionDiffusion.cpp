@@ -133,7 +133,7 @@ void solve(int argc, char** argv) {
     MPIcf cfMPI(argc,argv);
 
     // 36
-    int nx = 11, ny = 11;
+    int nx = 81, ny = 81;
     double lx = 3., ly = 3.;
     double h = lx/(nx-1);
     //double h = sqrt(2*lx/(nx-1)*lx/(nx-1));     // hypotenuse of triangle (all triangles are the same)
@@ -237,7 +237,7 @@ void solve(int argc, char** argv) {
     FunTest u2(Wh,1,0,1), v2(Wh,1,0,1); // Omega2
 
     // Assembly of the linear system
-
+    double t0 = MPIcf::Wtime();
     // Integral on element for bulk variables (K_{h,1} and K_{h,2})
     convdiff.addBilinear(
             innerProduct(kappaTildeA*grad(u),grad(v))             // (3.12)
@@ -270,7 +270,6 @@ void solve(int argc, char** argv) {
             + innerProduct(penalty2*jump(u*fabs(vel*n)),jump(v))    // (3.16)
             , innerEdge
     );
-    convdiff.cleanMatrix();
     // Integral on interface for surface variable (K_{h,0})
     convdiff.addBilinear(
             innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
@@ -278,8 +277,6 @@ void solve(int argc, char** argv) {
             - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
             , interface
     );
-    matlab::Export(convdiff.mat, "mat4_old.dat");
-    convdiff.cleanMatrix();
     //// -------- Point evaluation on E_{h,0} ------- //
     // VARIANT 2
     convdiff.addBilinear(
@@ -294,8 +291,6 @@ void solve(int argc, char** argv) {
             , interface
            , innerEdge
     );
-    matlab::Export(convdiff.mat, "mat5_old.dat");
-    convdiff.cleanMatrix();
 
     // Mixed terms
     convdiff.addBilinear(
@@ -352,10 +347,8 @@ void solve(int argc, char** argv) {
     convdiff.addLinear(
             innerProduct(fh.expression(),kappaTilde*v)
     );
-    matlab::Export(convdiff.rhs, "rhs_old.dat");
-    convdiff.cleanMatrix();
     std::cout << "h = " << h << std::endl;
-
+    std::cout << "TIME ASSEMBLY " << MPIcf::Wtime()-t0 << std::endl;
     // Solve linear system
     convdiff.solve();
 

@@ -308,12 +308,6 @@ public:
     ar_normal.resize(l+1);
     ar_normal(l) = i;
   }
-  void addTangent(int Ni) {
-    int l = ar_normal.size();
-    ar_normal.resize(l+1);
-    ar_normal(l) = Ni;
-    if(Ni == 1) cu*=-1;  //(-b,a) with (a,b) normal
-  }
 
 
   virtual void whoAmI() const {std::cout << " I am virtual class Expression" << std::endl;}
@@ -683,7 +677,7 @@ public:
   : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
   {
     assert(fh1.Vh->N !=1);
-    uxnx.addTangent(1); uyny.addTangent(0);
+    uxnx.addNormal(1); uyny.addNormal(0);
   }
 
   R operator()(long i) const {assert(0);};
@@ -701,11 +695,11 @@ public:
 
   R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal)const  {
     assert(normal);
-    return uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal);
+    return -uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal);
   }
   R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
     assert(normal);
-    return uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal);
+    return -uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal);
   }
   int idxElementFromBackMesh(int kb, int dd=0) const {
     return fun.idxElementFromBackMesh(kb, dd);
