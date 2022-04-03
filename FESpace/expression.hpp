@@ -639,6 +639,7 @@ class ExpressionNormal2 : public ExpressionVirtual {
   typedef Mesh2 M;
   const FunFEM<M>& fun;
   ExpressionFunFEM<M> uxnx, uyny;
+  double c0 = 1;
 
 public:
   ExpressionNormal2(const FunFEM<M> & fh1, const Normal n)
@@ -652,6 +653,7 @@ public:
   {
     assert(fh1.Vh->N !=1);
     uxnx.addTangent(1); uyny.addTangent(0);
+    c0 = -1;
   }
   ExpressionNormal2(const FunFEM<M> & fh1, const Conormal n)
   : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
@@ -675,11 +677,11 @@ public:
 
   R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal)const  {
     assert(normal);
-    return uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal);
+    return c0*uxnx.evalOnBackMesh(k,dom,x,normal) + uyny.evalOnBackMesh(k,dom,x,normal);
   }
   R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
     assert(normal);
-    return uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal);
+    return c0*uxnx.evalOnBackMesh(k,dom,x,t,normal) + uyny.evalOnBackMesh(k,dom,x,t,normal);
   }
   int idxElementFromBackMesh(int kb, int dd=0) const {
     return fun.idxElementFromBackMesh(kb, dd);

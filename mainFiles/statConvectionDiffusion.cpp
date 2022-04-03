@@ -235,6 +235,7 @@ void solve(int argc, char** argv, int nn, int i) {
     FunTest u1(Wh,1,0,0), v1(Wh,1,0,0); // Omega1
     FunTest u2(Wh,1,0,1), v2(Wh,1,0,1); // Omega2
 
+    double t0 = MPIcf::Wtime();
     // Assembly of the linear system
     // Integral on element for bulk variables (K_{h,1} and K_{h,2})
     convdiff.addBilinear(
@@ -243,8 +244,6 @@ void solve(int argc, char** argv, int nn, int i) {
             - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5  // (3.14)
             , Khi
     );
-    matlab::Export(convdiff.mat_, "mat1_new.dat");
-    convdiff.cleanMatrix();
     // integral on Edges for bulk variables (i.e. E_{h,1} and E_{h,2})
     // GLOBAL WEIGHTS
     convdiff.addBilinear(
@@ -255,8 +254,6 @@ void solve(int argc, char** argv, int nn, int i) {
             , Khi
             , innerFacet
     );
-    matlab::Export(convdiff.mat_, "mat2_new.dat");
-    convdiff.cleanMatrix();
 //
 //     // LOCAL WEIGHTS
 // //    convdiff.addBilinear(
@@ -276,8 +273,6 @@ void solve(int argc, char** argv, int nn, int i) {
             , Khi
             , innerFacet
     );
-    matlab::Export(convdiff.mat_, "mat3_new.dat");
-    convdiff.cleanMatrix();
 
     // Integral on interface for surface variable (K_{h,0})
     convdiff.addBilinear(
@@ -286,12 +281,11 @@ void solve(int argc, char** argv, int nn, int i) {
             - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
             , interface
     );
-    matlab::Export(convdiff.mat_, "mat4_new.dat");
-    convdiff.cleanMatrix();
     //// -------- Point evaluation on E_{h,0} ------- //
     // VARIANT 2
+    convdiff.cleanMatrix();
     convdiff.addBilinear(
-      + innerProduct(average((*(vel.expression(1).begin())*u0),0.5,-0.5), jump((*(vel.expression(1).begin())*v0)))*0.5       // (3.15)/(3.84)
+      + innerProduct(average((*(vel.expression(1).begin())*u0),0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
       // - innerProduct(average(A0*gradS(u0)*conormal,0.5,-0.5),jump(v0)) // (3.12)/(3.81)
       // - innerProduct(jump(u0), average(A0*gradS(v0)*conormal,0.5,-0.5))    // (3.13)/(3.82) added for symmetry
       // + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
@@ -302,7 +296,6 @@ void solve(int argc, char** argv, int nn, int i) {
       , innerRidge
     );
     matlab::Export(convdiff.mat_, "mat5_new.dat");
-    convdiff.cleanMatrix();
 
     // Mixed terms
     convdiff.addBilinear(
@@ -310,8 +303,6 @@ void solve(int argc, char** argv, int nn, int i) {
             + innerProduct(jump(kappa2*u2,kappa02*u0), jump(kappa2*v2, kappa02*v0))*(1.0/kappa02)
             , interface
     );
-    matlab::Export(convdiff.mat_, "mat6_new.dat");
-    convdiff.cleanMatrix();
 
     //// Stabilization of the bulk
     //MacroElement macro(Wh, 0.125);
@@ -336,8 +327,6 @@ void solve(int argc, char** argv, int nn, int i) {
       innerProduct(tau02*h*h*grad(u0)*n, grad(v0)*n)
       , interface
     );
-    matlab::Export(convdiff.mat_, "mat7_new.dat");
-    convdiff.cleanMatrix();
 //    gnuplot::save(macro,"../../outputFiles/statConvectionDiffusion/gnuplot/");
 //    gnuplot::save(macroInterface,"../../outputFiles/statConvectionDiffusion/gnuplot/");
 
@@ -358,8 +347,6 @@ void solve(int argc, char** argv, int nn, int i) {
       , Khi
       , boundary
     );
-    matlab::Export(convdiff.mat_, "mat8_new.dat");
-    convdiff.cleanMatrix();
    // Add linear part on faces
    convdiff.addLinear(
      innerProduct(fh0.expression(),v0)
@@ -370,10 +357,8 @@ void solve(int argc, char** argv, int nn, int i) {
      innerProduct(fh.expression(),kappaTilde*v)
      , Khi
    );
-   matlab::Export(convdiff.rhs_, "rhs_new.dat");
-   convdiff.cleanMatrix();
-   // matlab::Export(convdiff.mat_, "matCONV.dat");
 
+   std::cout << " TIME ASSEMBLY \t" << MPIcf::Wtime() - t0 << std::endl;
 
    // Solve linear system
    convdiff.solve();
@@ -389,18 +374,18 @@ void solve(int argc, char** argv, int nn, int i) {
 
     // PRINT THE SOLUTION TO PARAVIEW
     // =====================================================
-    if(MPIcf::IamMaster()){
-        Fun_h uex (Wh, fun_uBulk);
-        Paraview<Mesh> writer(Khi, "convDiff_Bulk"+to_string(i)+".vtk");
-        writer.add(uh, "convDiff", 0, 1);
-        writer.add(uex,"convDiff_ex", 0, 1);
-
-        Fun_h uexsurf(Sh, fun_uSurface);
-        Paraview<Mesh> writerU0(Kh0, "convDiff_Surface"+to_string(i)+".vtk");
-        writerU0.add(us, "convDiff", 0, 1);
-        writerU0.add(levelSet, "levelSet", 0, 1);
-        writerU0.add(uexsurf, "convDiff_ex_surface", 0, 1);
-    }
+    // if(MPIcf::IamMaster()){
+    //     Fun_h uex (Wh, fun_uBulk);
+    //     Paraview<Mesh> writer(Khi, "convDiff_Bulk"+to_string(i)+".vtk");
+    //     writer.add(uh, "convDiff", 0, 1);
+    //     writer.add(uex,"convDiff_ex", 0, 1);
+    //
+    //     Fun_h uexsurf(Sh, fun_uSurface);
+    //     Paraview<Mesh> writerU0(Kh0, "convDiff_Surface"+to_string(i)+".vtk");
+    //     writerU0.add(us, "convDiff", 0, 1);
+    //     writerU0.add(levelSet, "levelSet", 0, 1);
+    //     writerU0.add(uexsurf, "convDiff_ex_surface", 0, 1);
+    // }
 
 }
 
