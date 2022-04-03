@@ -385,7 +385,6 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>&
 
     }
     this->addLocalContribution();
-    return;
   }
 
 }
