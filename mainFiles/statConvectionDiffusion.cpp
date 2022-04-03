@@ -133,7 +133,7 @@ void solve(int argc, char** argv) {
     MPIcf cfMPI(argc,argv);
 
     // 36
-    int nx = 30, ny = 30;
+    int nx = 11, ny = 11;
     double lx = 3., ly = 3.;
     double h = lx/(nx-1);
     //double h = sqrt(2*lx/(nx-1)*lx/(nx-1));     // hypotenuse of triangle (all triangles are the same)
@@ -244,7 +244,6 @@ void solve(int argc, char** argv) {
             + innerProduct(kappaTilde*(vel.expression(),grad(u)), v)*0.5 // (3.14)
             - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5  // (3.14)
     );
-
     // integral on Edges for bulk variables (i.e. E_{h,1} and E_{h,2})
     // GLOBAL WEIGHTS
     convdiff.addBilinear(
@@ -254,7 +253,6 @@ void solve(int argc, char** argv) {
             - innerProduct(jump((vel*n)*u),    kappaTilde*average(v))*0.5      // (3.15)
             , innerEdge
     );
-
     // LOCAL WEIGHTS
 //    convdiff.addBilinear(
 //            - innerProduct(kappaTildeA*average(grad(u)*n, kappa_E1, kappa_E2),jump(v))      // (3.12)
@@ -272,7 +270,7 @@ void solve(int argc, char** argv) {
             + innerProduct(penalty2*jump(u*fabs(vel*n)),jump(v))    // (3.16)
             , innerEdge
     );
-
+    convdiff.cleanMatrix();
     // Integral on interface for surface variable (K_{h,0})
     convdiff.addBilinear(
             innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
@@ -280,7 +278,8 @@ void solve(int argc, char** argv) {
             - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
             , interface
     );
-
+    matlab::Export(convdiff.mat, "mat4_old.dat");
+    convdiff.cleanMatrix();
     //// -------- Point evaluation on E_{h,0} ------- //
     // VARIANT 2
     convdiff.addBilinear(
@@ -295,7 +294,8 @@ void solve(int argc, char** argv) {
             , interface
            , innerEdge
     );
-
+    matlab::Export(convdiff.mat, "mat5_old.dat");
+    convdiff.cleanMatrix();
 
     // Mixed terms
     convdiff.addBilinear(
@@ -303,7 +303,6 @@ void solve(int argc, char** argv) {
             + innerProduct(jump(kappa2*u2,kappa02*u0), jump(kappa2*v2, kappa02*v0))*(1.0/kappa02)
             , interface
     );
-
 
     //// Stabilization of the bulk
     //MacroElement macro(Wh, 0.125);
@@ -326,7 +325,6 @@ void solve(int argc, char** argv) {
             innerProduct(tau02*h*h*grad(u0)*n, grad(v0)*n)
             , interface
     );
-
 //    gnuplot::save(macro,"../../outputFiles/statConvectionDiffusion/gnuplot/");
 //    gnuplot::save(macroInterface,"../../outputFiles/statConvectionDiffusion/gnuplot/");
 
@@ -345,7 +343,6 @@ void solve(int argc, char** argv) {
             - innerProduct(g.expression(), (vel*n)*kappaTilde1*v1)*0.5,
             boundary
    );
-
     // Add linear part on faces
     convdiff.addLinear(
             innerProduct(fh0.expression(),v0),
@@ -355,6 +352,8 @@ void solve(int argc, char** argv) {
     convdiff.addLinear(
             innerProduct(fh.expression(),kappaTilde*v)
     );
+    matlab::Export(convdiff.rhs, "rhs_old.dat");
+    convdiff.cleanMatrix();
     std::cout << "h = " << h << std::endl;
 
     // Solve linear system
@@ -652,5 +651,5 @@ void solve3D(int argc, char** argv) {
 
 int main(int argc, char** argv ) {
 
-    solve3D(argc, argv);
+    solve(argc, argv);
 }
