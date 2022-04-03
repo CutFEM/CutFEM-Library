@@ -235,6 +235,7 @@ public:
   }
 
   std::list<ExpressionFunFEM<M>> expression(int n = -1)const;
+  std::list<ExpressionFunFEM<M>> expression(int n, int i0)const;
 
   ~FunFEM(){
     if(databf) delete [] databf;

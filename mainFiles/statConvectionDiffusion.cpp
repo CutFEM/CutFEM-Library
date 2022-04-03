@@ -291,12 +291,13 @@ void solve(int argc, char** argv, int nn, int i) {
     //// -------- Point evaluation on E_{h,0} ------- //
     // VARIANT 2
     convdiff.addBilinear(
-      - innerProduct(average(A0*gradS(u0)*t,0.5,-0.5),jump(v0)) // (3.12)/(3.81)
-      - innerProduct(jump(u0), average(A0*gradS(v0)*t,0.5,-0.5))    // (3.13)/(3.82) added for symmetry
-      + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
-      + innerProduct(average((vel*conormal)*u0,0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
-      - innerProduct(jump(u0),    average((vel*conormal)*v0,0.5,-0.5))*0.5    // (3.15)/(3.84)
-      + innerProduct(penalty0*jump(u0), jump(v0))                  // (3.16)
+      + innerProduct(average((*(vel.expression(1).begin())*u0),0.5,-0.5), jump((*(vel.expression(1).begin())*v0)))*0.5       // (3.15)/(3.84)
+      // - innerProduct(average(A0*gradS(u0)*conormal,0.5,-0.5),jump(v0)) // (3.12)/(3.81)
+      // - innerProduct(jump(u0), average(A0*gradS(v0)*conormal,0.5,-0.5))    // (3.13)/(3.82) added for symmetry
+      // + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
+      // + innerProduct(average((vel*conormal)*u0,0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
+      // - innerProduct(jump(u0),    average((vel*conormal)*v0,0.5,-0.5))*0.5    // (3.15)/(3.84)
+      // + innerProduct(penalty0*jump(u0), jump(v0))                  // (3.16)
       , interface
       , innerRidge
     );

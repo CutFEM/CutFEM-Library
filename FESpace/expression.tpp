@@ -171,6 +171,19 @@ std::list<ExpressionFunFEM<M>> FunFEM<M>::expression(int n)const{
   return l;
 }
 
+template<typename M>
+std::list<ExpressionFunFEM<M>> FunFEM<M>::expression(int n, int i0)const{
+  // if(n == -1) n = Vh->N;
+  assert(n<= Vh->N);
+  std::list<ExpressionFunFEM<Mesh>> l;
+  for(int i=0;i<n;++i){
+    // const ExpressionFunFEM<Mesh> e(*this, i, op_id);
+    l.push_back(ExpressionFunFEM<Mesh>(*this, i+i0, op_id));
+  }
+  return l;
+}
+
+
 // template<typename M>
 // std::list<ExpressionFunFEM<M>> LaxFriedrichs_flux(const std::list<ExpressionFunFEM<M>>& U, int cu)
 // {
