@@ -98,6 +98,7 @@ struct ItemVF {
   //   return (fespaceU == fespaceV) && (pfunU == pfunV); }
 
   bool operator==(const ItemVF& F){
+
     if(cu == F.cu && cv == F.cv && du == F.du && dv == F.dv
         && F.face_sideU_ == face_sideU_ && face_sideV_ == F.face_sideV_ && dtu == F.dtu && dtv == F.dtv
         && domainU_id_ == F.domainU_id_ && domainV_id_ == F.domainV_id_
@@ -111,6 +112,7 @@ struct ItemVF {
           if(ar_nv(i) != F.ar_nv(i)) return false;
         }
       }
+      else return false;
       if(conormalU_.size() == F.conormalU_.size() && conormalV_.size() == F.conormalV_.size()) {
         for(int i=0;i<conormalU_.size();++i) {
           if(conormalU_(i) != F.conormalU_(i)) return false;
@@ -119,9 +121,10 @@ struct ItemVF {
           if(conormalV_(i) != F.conormalV_(i)) return false;
         }
       }
-      return true;
+      else return false;
     }
-    return false;
+    else return false;
+    return true;
   }
 
 
@@ -247,7 +250,7 @@ public:
 friend std::ostream& operator <<(std::ostream& f, const ItemVF & u )
 {
   string n[3] = {"nx", "ny", "nz"};
-  f << " FESpaces => " << u.fespaceU << " and " << u.fespaceV << "\t";
+  // f << " FESpaces => " << u.fespaceU << " and " << u.fespaceV << "\t";
   f << u.c << "\t" << whichOperator( u.dtu) << whichOperator( u.du,u.cu);
   for(int i=0;i<u.ar_nu.size();++i) f << " * " << n[u.ar_nu(i)];
   // for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
