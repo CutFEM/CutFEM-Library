@@ -151,29 +151,25 @@ void solve(int argc, char** argv, int nn, int i) {
     ParameterCutFEM kappaTildeA(kappaTilde1*A1, kappaTilde2*A2);
 
     // FULLSTAB PARAMETERS
-    double tau_a0 = 1e0, tau_b0 = 0;
+    double tau_a0 = 5e1, tau_b0 = 0;
     double tau_a1 = 1e1, tau_b1 = 0;
     double tau_a2 = 1e1, tau_b2 = 0;
-    double lambdaB = A1/h;
-    double lambdaA0 = A0*50/h;
 
-    // WANT
-    //    double lambdaB = A1*1e1/h;    // coefficient on the outer boundary
-    //    double lambdaA0 = A0*1e1/h;   // for the surface problem
+    // Bulk penalties
+    ParameterCutFEM lambdaA(kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);      // diffusion terms
+    ParameterCutFEM lambdaB(kappaTilde1*tau_b1, kappaTilde2*tau_b2);                // convection terms
 
-    // Local bulk penalty parameters
-    // ParameterCutFEM A(A1, A2);
-    // ParameterCutFEM penalty1(Parameter::lambdaA);
+    // Surface penalties
+    double lambdaA0 = A0*tau_a0/h;                  // diffusion terms
+    double lambdaB0 = A0*tau_b0*sqrt(2);        // convection terms
 
-    // Global bulk penalty parameter (if this is commented, the two lines above should be out-commented
-    ParameterCutFEM penalty1(kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);
-    ParameterCutFEM penalty2(kappaTilde1*tau_b1, kappaTilde2*tau_b2);
-    double penalty0 = tau_b0*sqrt(2), penalty0div = tau_b0/sqrt(2);
-    double lambda1 = 1.0;
+    // Penalty parameter for outer boundary
+    double lambda = A1/h;    // coefficient on the outer boundary
 
-    // Stabilization parameters
-    double tau11 = 0.1*A1, tau10 = A1, tau20 = A2, tau21 = 0.1*A2;
-    double tau00 = A0, tau01 = A0, tau02 = 0.1*A0;
+    // STABILIZATION PARAMETERS
+    // =====================================================
+    double tau11 = 0.1*A1, tau10 = A1, tau20 = A2, tau21 = 0.1*A2;      // bulk
+    double tau00 = 10, tau01 = 0.1, tau02 = 0.1;                      // surface
     ParameterCutFEM tau_i0(tau10, tau20);
     ParameterCutFEM tau_i1(tau11, tau21);
 
@@ -252,22 +248,11 @@ void solve(int argc, char** argv, int nn, int i) {
             , Khi
             , innerFacet
     );
-//
-//     // LOCAL WEIGHTS
-// //    convdiff.addBilinear(
-// //            - innerProduct(kappaTildeA*average(grad(u)*n, kappa_E1, kappa_E2),jump(v))      // (3.12)
-// //            - innerProduct(kappaTildeA*jump(u), average(grad(v)*n, kappa_E1, kappa_E2))         // (3.13)
-// //            + innerProduct(average((vel*n)*u, kappa_E1, kappa_E2), kappaTilde*jump(v))*0.5         // (3.15)
-// //            - innerProduct(jump((vel*n)*u),    kappaTilde*average(v, kappa_E1, kappa_E2))*0.5      // (3.15)
-// //            , innerEdge
-// //    );
-//     //getchar();
-//     //std::cout << "AFTER" << std::endl;
 
     // Penalty terms on E_{h,1} and E_{h,2}
     convdiff.addBilinear(
-            innerProduct(penalty1*jump(u),jump(v))                  // (3.13)
-            + innerProduct(penalty2*jump(u*fabs(vel*n)),jump(v))    // (3.16)
+            innerProduct(lambdaA*jump(u),jump(v))                  // (3.13)
+            + innerProduct(lambdaB*jump(u),jump(v))    // (3.16)
             , Khi
             , innerFacet
     );
@@ -287,7 +272,7 @@ void solve(int argc, char** argv, int nn, int i) {
       + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
       + innerProduct(average((vel*conormal)*u0,0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
       - innerProduct(jump(u0),    average((vel*conormal)*v0,0.5,-0.5))*0.5    // (3.15)/(3.84)
-      + innerProduct(penalty0*jump(u0), jump(v0))                  // (3.16)
+      + innerProduct(lambdaB0*jump(u0), jump(v0))                  // (3.16)
       , interface
       , innerRidge
     );
@@ -312,7 +297,7 @@ void solve(int argc, char** argv, int nn, int i) {
     //MacroElementSurface macroInterface(interface, 0.25);
     convdiff.addBilinear(
       innerProduct(tau00*1./h/h*jump(u0), jump(v0))
-      + innerProduct(tau01*jump(grad(u0)), jump(grad(v0)))
+      + innerProduct(tau01*jump(grad(u0))*n, jump(grad(v0))*n)
       , Kh0
       , innerFacet
       //      , macroInterface
@@ -329,7 +314,7 @@ void solve(int argc, char** argv, int nn, int i) {
     convdiff.addBilinear(
       - innerProduct(kappaTilde1*A1*grad(u1)*n, v1)
       - innerProduct(kappaTilde1*A1*u1, grad(v1)*n)
-      + innerProduct(kappaTilde1*lambdaB*u1, v1)
+      + innerProduct(kappaTilde1*lambda*u1, v1)
       , Khi
       , boundary
     );
@@ -337,7 +322,7 @@ void solve(int argc, char** argv, int nn, int i) {
     // RHS on outer boundary
     convdiff.addLinear(
       - innerProduct(g.expression(), (kappaTilde1*A1)*grad(v1)*n)
-      + innerProduct(g.expression(), (kappaTilde1*lambdaB)*v1)
+      + innerProduct(g.expression(), kappaTilde1*lambda*v1)
       - innerProduct(g.expression(), (vel*n)*kappaTilde1*v1)*0.5
       , Khi
       , boundary
