@@ -311,12 +311,7 @@ public:
     ar_normal.resize(l+1);
     ar_normal(l) = i;
   }
-  void addTangent(int Ni) {
-    int l = ar_normal.size();
-    ar_normal.resize(l+1);
-    ar_normal(l) = Ni;
-    if(Ni == 1) cu*=-1;  //(-b,a) with (a,b) normal
-  }
+
 
 
   virtual void whoAmI() const {std::cout << " I am virtual class Expression" << std::endl;}
@@ -652,7 +647,7 @@ public:
   : fun(fh1) , uxnx(fh1,0,op_id,0,0), uyny(fh1,1,op_id,0,0)
   {
     assert(fh1.Vh->N !=1);
-    uxnx.addTangent(1); uyny.addTangent(0);
+    uxnx.addNormal(1); uyny.addNormal(0);
     c0 = -1;
   }
   ExpressionNormal2(const FunFEM<M> & fh1, const Conormal n)

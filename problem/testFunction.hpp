@@ -554,7 +554,7 @@ template<int N> friend TestFunction<N> dt(const TestFunction<N> & T);
 
 template<int N> friend TestFunction<N> operator - (const TestFunction<N>& F1, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator + (const TestFunction<N>& F1, const TestFunction<N>& F2);
-template<int N> friend TestFunction<N> operator , (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F2);
+template<int N> friend TestFunction<N> operator * (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F2);
 // template<int N> friend TestFunction<N> operator * (const CutFEM_R2& cc, const TestFunction<N>& T);
 
 };
@@ -628,7 +628,7 @@ TestFunction<N> operator - (const TestFunction<N>& F1, const TestFunction<N>& F2
 }
 
 template <int N>
-TestFunction<N> operator, (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {
+TestFunction<N> operator* (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {
   assert(F.A.M() == 1);
   assert(F.A.N() == N);
   TestFunction<N> multU(1);
@@ -659,8 +659,8 @@ TestFunction<N> operator, (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh
 }
 
 template <int N>
-TestFunction<N> operator, (const FunFEM<typename typeMesh<N>::Mesh>& fh, const TestFunction<N>& F) {
-  return (fh.expression(), F);
+TestFunction<N> operator* (const FunFEM<typename typeMesh<N>::Mesh>& fh, const TestFunction<N>& F) {
+  return (fh.expression()* F);
 }
 
 

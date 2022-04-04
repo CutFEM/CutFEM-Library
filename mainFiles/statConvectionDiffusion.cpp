@@ -129,8 +129,6 @@ struct kappa_E2 : public Virtual_Parameter {
 
 // 2 DIMENSIONAL PROBLEM
 // =====================================================
-
-
 void solve(int argc, char** argv, int nn, int i) {
   using namespace example2D;
   typedef Mesh2 Mesh;
@@ -156,8 +154,8 @@ void solve(int argc, char** argv, int nn, int i) {
     double tau_a0 = 1e0, tau_b0 = 0;
     double tau_a1 = 1e1, tau_b1 = 0;
     double tau_a2 = 1e1, tau_b2 = 0;
-    double lambdaB = A1*1e1/h;
-    double lambdaA0 = A0*5e3/h;
+    double lambdaB = A1/h;
+    double lambdaA0 = A0*50/h;
 
     // WANT
     //    double lambdaB = A1*1e1/h;    // coefficient on the outer boundary
@@ -240,8 +238,8 @@ void solve(int argc, char** argv, int nn, int i) {
     // Integral on element for bulk variables (K_{h,1} and K_{h,2})
     convdiff.addBilinear(
             innerProduct(kappaTildeA*grad(u),grad(v))             // (3.12)
-            + innerProduct(kappaTilde*(vel.expression(),grad(u)), v)*0.5 // (3.14)
-            - innerProduct(kappaTilde*u,(vel.expression(),grad(v)))*0.5  // (3.14)
+            + innerProduct(kappaTilde*(vel.expression()*grad(u)), v)*0.5 // (3.14)
+            - innerProduct(kappaTilde*u,(vel.expression()*grad(v)))*0.5  // (3.14)
             , Khi
     );
     // integral on Edges for bulk variables (i.e. E_{h,1} and E_{h,2})
@@ -277,25 +275,22 @@ void solve(int argc, char** argv, int nn, int i) {
     // Integral on interface for surface variable (K_{h,0})
     convdiff.addBilinear(
             innerProduct(A0*gradS(u0),gradS(v0))             // (3.12)
-            + innerProduct((vel.expression(),gradS(u0)),v0)*0.5     // (3.14)
-            - innerProduct(u0,(vel.expression(),gradS(v0)))*0.5     // (3.14)
+            + innerProduct((vel.expression()*gradS(u0)),v0)*0.5     // (3.14)
+            - innerProduct(u0,(vel.expression()*gradS(v0)))*0.5     // (3.14)
             , interface
     );
     //// -------- Point evaluation on E_{h,0} ------- //
     // VARIANT 2
-    convdiff.cleanMatrix();
     convdiff.addBilinear(
-      + innerProduct(average((*(vel.expression(1).begin())*u0),0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
-      // - innerProduct(average(A0*gradS(u0)*conormal,0.5,-0.5),jump(v0)) // (3.12)/(3.81)
-      // - innerProduct(jump(u0), average(A0*gradS(v0)*conormal,0.5,-0.5))    // (3.13)/(3.82) added for symmetry
-      // + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
-      // + innerProduct(average((vel*conormal)*u0,0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
-      // - innerProduct(jump(u0),    average((vel*conormal)*v0,0.5,-0.5))*0.5    // (3.15)/(3.84)
-      // + innerProduct(penalty0*jump(u0), jump(v0))                  // (3.16)
+      - innerProduct(average(A0*gradS(u0)*conormal,0.5,-0.5),jump(v0)) // (3.12)/(3.81)
+      - innerProduct(jump(u0), average(A0*gradS(v0)*conormal,0.5,-0.5))    // (3.13)/(3.82) added for symmetry
+      + innerProduct(lambdaA0*jump(u0),jump(v0))                             // (3.13)/(3.82)
+      + innerProduct(average((vel*conormal)*u0,0.5,-0.5), jump(v0))*0.5       // (3.15)/(3.84)
+      - innerProduct(jump(u0),    average((vel*conormal)*v0,0.5,-0.5))*0.5    // (3.15)/(3.84)
+      + innerProduct(penalty0*jump(u0), jump(v0))                  // (3.16)
       , interface
       , innerRidge
     );
-    matlab::Export(convdiff.mat_, "mat5_new.dat");
 
     // Mixed terms
     convdiff.addBilinear(
@@ -389,7 +384,7 @@ void solve(int argc, char** argv, int nn, int i) {
 
 }
 
-//
+
 // void solve3D(int argc, char** argv) {
 //   using namespace example3D;
 //   typedef Mesh3 Mesh;
@@ -661,7 +656,7 @@ int main(int argc, char** argv ) {
   // =====================================================
   MPIcf cfMPI(argc,argv);
   int nx = 11;
-  for(int i=0; i<1; ++i){
+  for(int i=0; i<4; ++i){
 
     solve(argc, argv, nx, i);
 
