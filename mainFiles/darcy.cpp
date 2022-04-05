@@ -900,6 +900,7 @@ for(int i=0;i<uPrint.size();++i) {
 #endif
 
 #ifdef DARCY_EXAMPLE_PUPPI
+namespace Data_CutMixedDarcyPUPPI_quarter_circle {
 R d_x = 2.;
 R d_y = 2.;
 R shift = 0;
@@ -954,93 +955,135 @@ R fun_interfacePr(const R2 P, int compInd) {
   else
   return 0;
 }
+}
+namespace Data_CutMixedDarcyPUPPI_circle {
+  bool solHasJump = true;
+  R d_x = 1.;
+  R d_y = 1.;
+  R shift = 0.5;
+  R interfaceRad = 0.4501; // not exactly 1/4 to avoid interface cutting exaclty a vertex
+  R mu_G = 2./3*interfaceRad; // xi0*mu_G = 1/8*2/3*1/4
+  R pie = 3.14159265359;
+
+  R fun_levelSet(const R2 P, const int i) {
+    return 10+interfaceRad - sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift));
+  }
+
+  // R fun_levelSet(const R2 P, const int i) {
+  //   return 1.5001-P.y;
+  // }
+
+  R fun_natural(const R2 P, int compInd) {
+    return -sin(2*pie*P.x)*cos(2*pie*P.y);
+  }
+  R fun_enforced(const R2 P, int compInd) { // [these need to be enforced!]
+    if (compInd == 0)
+      return 2*pie*cos(2*pie*P.x)*cos(2*pie*P.y);
+    else if (compInd == 1)
+      return -2*pie*sin(2*pie*P.x)*sin(2*pie*P.y);
+    else return 0;
+  }
+  R fun_force(const R2 P, int compInd) {
+    return 0;
+  }
+  R fun_div(const R2 P, int compInd, int dom) {// is also exact divergence
+    return -8*pie*pie*sin(2*pie*P.x)*cos(2*pie*P.y);
+  }
+  R fun_exact(const R2 P, int compInd, int dom) {
+    if (compInd==2) {
+      return -sin(2*pie*P.x)*cos(2*pie*P.y);
+    } else if (compInd==0) {
+      return 2*pie*cos(2*pie*P.x)*cos(2*pie*P.y);
+    } else {
+      return -2*pie*sin(2*pie*P.x)*sin(2*pie*P.y);
+    }
+  }
+
+  // R fun_natural(const R2 P, int compInd) {
+  //   return -sin(P.x)*sinh(P.y) - (cos(1) - 1)*(cosh(1) - 1);
+  // }
+  // R fun_enforced(const R2 P, int compInd) { // [these need to be enforced!]
+  //   if (compInd == 0)
+  //     return cos(P.x)*sinh(P.y);
+  //   else if (compInd == 1)
+  //     return sin(P.x)*cosh(P.y);
+  //   else return 0;
+  // }
+  // R fun_force(const R2 P, int compInd) {
+  //   return 0;
+  // }
+  // R fun_div(const R2 P, int compInd, int dom) {// is also exact divergence
+  //   return 0;
+  // }
+  // R fun_exact(const R2 P, int compInd, int dom) {
+  //   if (compInd==2) {
+  //     return -sin(P.x)*sinh(P.y) - (cos(1) - 1)*(cosh(1) - 1);
+  //   } else if (compInd==0) {
+  //     return cos(P.x)*sinh(P.y);
+  //   } else {
+  //     return sin(P.x)*cosh(P.y);
+  //   }
+  // }
+}
+using namespace Data_CutMixedDarcyPUPPI_circle;
 
 int main(int argc, char** argv ) {
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
+  typedef Mesh2 Mesh;
+  typedef ActiveMeshT2 CutMesh;
+  typedef FESpace2   Space;
+  typedef CutFESpaceT2 CutSpace;
 
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx =10; // 6
-  int ny =10; // 6
+  int nx =11; // 6
+  int ny =11; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
 
-  int iters = 6;
+  int iters = 4;
 
   for(int i=0;i<iters;++i) {
-    Mesh2 Th(nx, ny, 0., 0., d_x, d_y);
-    // Mesh2 Th("../mesh/RTmesh20.msh");
-    FESpace2 Lh(Th, DataFE<Mesh2>::P1);
+    Mesh Kh(nx, ny, 0., 0., d_x, d_y);
+
+    Space Lh(Kh, DataFE<Mesh2>::P1);
     Fun_h levelSet(Lh, fun_levelSet);
-    Interface2 interface(Th, levelSet.v);
+    InterfaceLevelSet<Mesh> interface(Kh, levelSet);
 
-    KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT0;
-    arrayFE(1) = &DataFE<Mesh2>::P0;
-    GTypeOfFESum<Mesh2> mixedFE(arrayFE);
-    FESpace2 Vh(Th, mixedFE);
-    FESpace2 P0h(Th, DataFE<Mesh2>::P0); // for the RHS
-    FESpace2 Ph(Th, DataFE<Mesh2>::P2); // for the RHS
-
-    // // [Artifical interface]
-    // FESpace2 Wh(Th, interface, mixedFE);
-    // FESpace2 CPh(Th, DataFE<Mesh2>::P2);
-    // CutFEM<Mesh2> darcyCutMix(Wh);
+    Space Vh(Kh, DataFE<Mesh>::BDM1);
+    Space Ph(Kh, DataFE<Mesh>::P0); // for the RHS
+    Space P2h(Kh, DataFE<Mesh>::P2); // for the RHS
 
     // [CutFEM]
     CutFESpace2 Wh(Vh , interface, {1});
-    CutFESpace2 CPh(Ph, interface, {1});
-    //
-    // MacroElement macro(Wh, 1e-2);
-    // macro.tag_extension_edges();
-    // // // macro.tag_exhaust_edges();
-    //
-    // // gnuplot::save(Th);
-    // // gnuplot::save(interface);
-    // // gnuplot::save(macro);
-    // // gnuplot::save(Wh,0,"Vh1.dat");
-    // // gnuplot::save(Wh,1,"Vh2.dat");
-    //
-    CutFEM<Mesh2> darcyCutMix(Wh);
-    const R hei = Th[0].lenEdge(0);
-    // const R invh = 1./hei;
+    CutFESpace2 Qh(Ph, interface, {1});
 
+    MacroElement macro(Wh, 0.25);
 
-    // MacroElement macro(Wh, 0.1);
-    // Extension extension(darcyCutMix);
-    // // extension.tag_extension_edges(macro);
-    // // extension.tag_extension_edges(macro, innerEdge);
-    // // extension.tag_extension_edges(macro, innerEdge, boundary);
-    // extension.tag_exhaust_edges(macro);
-
-
+    CutFEM<Mesh2> darcy(Wh); darcy.add(Qh);
+    const R hei = 1./(nx+1);
+    const R invh = 1./hei;
 
     R xi = 3./4; // > 1/2
     R xi0 = (xi-0.5)/2.;
-    CutFEM_Parameter mu("mu",1.,1.);
-    // const CutFEM_Parameter& h(Parameter::h);
-    const CutFEM_Parameter& lambdaG(Parameter::lambdaG);
-    const CutFEM_Parameter& lambdaB(Parameter::lambdaB);
-    const CutFEM_Parameter& invh(Parameter::invmeas);
+    CutFEM_Parameter mu(1.,1.);
+    // // const CutFEM_Parameter& h(Parameter::h);
+    // const CutFEM_Parameter& lambdaG(Parameter::lambdaG);
+    // const CutFEM_Parameter& lambdaB(Parameter::lambdaB);
+    // const CutFEM_Parameter& invh(Parameter::invmeas);
 
     // We define fh on the cutSpace
     Fun_h fv(Wh, fun_force);
-    Fun_h fq(CPh, fun_div);
-
-
-    Fun_h p0(CPh, fun_natural);
-    // Fun_h u0W(CPh, fun_dirichlet_west);
+    Fun_h fq(Qh, fun_div);
+    Fun_h p0(Ph, fun_natural);
     Fun_h u0(Wh, fun_enforced);
-    // Fun_h p0(CPh, fun_neumann);
-    // Fun_h u0(CPh, fun_dirichlet);
-
-    Fun_h phat(P0h, fun_interfacePr);
+    Fun_h phat(P2h, fun_interfacePr);
 
     Normal n;
     Tangent t;
-    FunTest p(Wh,1,2), q(Wh,1,2), u(Wh,2), v(Wh,2);
+    FunTest p(Qh,1), q(Qh,1), u(Wh,2), v(Wh,2);
 
     // u=1e-2 p=1e1 REALLY GOOD for jump problem!
     double uPenParam = 1e0;//1e-2; //cont 1e-1`
@@ -1065,22 +1108,6 @@ int main(int argc, char** argv ) {
       innerProduct(fq.expression(), q)
     );
 
-    // darcyCutMix.addBilinearFormExtDomain(
-    //   innerProduct(div(u), q)
-    //   ,macro,1
-    // );
-    // darcyCutMix.addLinearFormExtDomain(
-    //   innerProduct(fq.expression(), q)
-    //   ,macro,1
-    // );
-
-
-    darcyCutMix.addBilinear(
-      innerProduct(boundaryParam*u, invh*(v))
-      // - innerProduct(u*n,q)
-      + innerProduct(p, v*n)
-      ,boundary
-      ,{1,4});
 
 
     darcyCutMix.addBilinear(
@@ -1099,19 +1126,17 @@ int main(int argc, char** argv ) {
     darcyCutMix.addLinear(
       -innerProduct(p0.expression(), v*n)
       ,boundary
-      ,{2,3}
     );
-    darcyCutMix.addLinear(
-      +innerProduct(u0.expression(2), invh*(v)*boundaryParam) //*lambdaB Only on Gamma_N (vel normal comp)
-      // -innerProduct(u0*n, q)
-      ,boundary
-      ,{1, 4}
-    );
-    darcyCutMix.addLinear(
-      +innerProduct(u0.expression(2), invh*(v)*boundaryParam) //*lambdaB Only on Gamma_N (vel normal comp)
-      // -innerProduct(u0*n, q)
-      ,interface
-    );
+    // darcyCutMix.addLinear(
+    //   +innerProduct(u0.expression(2), invh*(v)*boundaryParam) //*lambdaB Only on Gamma_N (vel normal comp)
+    //   // -innerProduct(u0*n, q)
+    //   ,boundary
+    // );
+    // darcyCutMix.addLinear(
+    //   +innerProduct(u0.expression(2), invh*(v)*boundaryParam) //*lambdaB Only on Gamma_N (vel normal comp)
+    //   // -innerProduct(u0*n, q)
+    //   ,interface
+    // );
 
     // Full/macro Stabilization
     // darcyCutMix.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
