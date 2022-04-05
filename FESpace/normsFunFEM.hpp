@@ -155,8 +155,6 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 // -----------------------------------------------------------------------------
 
 
-
-
 template<typename Mesh>
 double L2normSurf_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Mesh>::FElement::Rd, int i), const Interface<Mesh>& interface) {
   typedef GFESpace<Mesh> FESpace;
@@ -253,6 +251,10 @@ double L2normSurf( const FunFEM<Mesh>& fh,R (fex)(const typename GFESpace<Mesh>:
 
 
 
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+
 
 
 template<typename M>
@@ -327,10 +329,6 @@ double L2norm_2(const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
 }
 
 
-
-
-
-
 template<typename M>
 double L2norm( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i),int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d) {
 
@@ -372,6 +370,10 @@ double L2norm( const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
 
   return sqrt(val);
 }
+
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
 
 
