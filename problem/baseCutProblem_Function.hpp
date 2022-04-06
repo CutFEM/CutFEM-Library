@@ -521,7 +521,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutM
       int jfac = ifac;
       int kn = Th.ElementAdj(k, jfac);
       // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
-      if(kn == -1 || kn < k) continue;
+      if(kn < k) continue;
 
       std::pair<int,int> e1 = std::make_pair(k,ifac);
       std::pair<int,int> e2 = std::make_pair(kn,jfac);
