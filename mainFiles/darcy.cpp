@@ -150,7 +150,7 @@ int main(int argc, char** argv ) {
 namespace Data_CutMixedDarcy {
   bool solHasJump = true;
   R shift = 0.5;
-  R interfaceRad = 0.2537; // not exactly 1/4 to avoid interface cutting exaclty a vertex
+  R interfaceRad = 0.2501; // not exactly 1/4 to avoid interface cutting exaclty a vertex
   R mu_G = 2./3*interfaceRad; // xi0*mu_G = 1/8*2/3*1/4
 
   R fun_radius2(const R2 P){
@@ -284,8 +284,8 @@ int main(int argc, char** argv ) {
     Interface2 interface(Th, levelSet.v);
 
     KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT1;
-    arrayFE(1) = &DataFE<Mesh2>::P1dc;
+    arrayFE(0) = &DataFE<Mesh2>::RT0;
+    arrayFE(1) = &DataFE<Mesh2>::P0;
     GTypeOfFESum<Mesh2> mixedFE(arrayFE);
     FESpace2 Vh(Th, mixedFE);
     FESpace2 Ph(Th, DataFE<Mesh2>::P0); // for the RHS
@@ -351,6 +351,8 @@ int main(int argc, char** argv ) {
       -innerProduct(p, div(v))
       +innerProduct(div(u), q)
     );
+
+
     //
     // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
     // nx = 2*nx -1;
@@ -363,6 +365,7 @@ int main(int argc, char** argv ) {
       +innerProduct((1-theta)*xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
       ,interface
     );
+
     // matlab::Export(darcyCutMix.mat, "matOld.dat");
     // matlab::Export(darcyCutMix.mat, "matB"+to_string(i)+".dat");
     // nx *= 2;
@@ -454,12 +457,12 @@ int main(int argc, char** argv ) {
   // +innerProduct(pPenParam*hei*jump(p), jump(q))
   // // +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(q)))
 
-   innerProduct(uPenParam*pow(hei,1)*jump(u*t), jump(v*t)) // [Method 1: Remove jump in vel]
+   innerProduct(uPenParam*pow(hei,1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
   +innerProduct(uPenParam*pow(hei,3)*jump(grad(u)*n), jump(grad(v)*n))
   // +innerProduct(uPenParam*pow(hei,5)*jump(grad2un), jump(grad2un))
-  +innerProduct(pPenParam*pow(hei,1)*jump(p), jump(div(v)))
+  -innerProduct(pPenParam*pow(hei,1)*jump(p), jump(div(v)))
   +innerProduct(pPenParam*pow(hei,1)*jump(div(u)), jump(q))
-  +innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
+  -innerProduct(pPenParam*pow(hei,3)*jump(grad(p)), jump(grad(div(v))))
   +innerProduct(pPenParam*pow(hei,3)*jump(grad(div(v))) , jump(grad(q)))
   // , macro
 );

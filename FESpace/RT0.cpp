@@ -77,7 +77,7 @@ void TypeOfFE_RT0_2d::FB(const What_d whatd, const Element & K,
   R2 P(K(PHat));
   R2 a(K[0]), b(K[1]), c(K[2]);
   R scaling = 1./(2*K.mesure());
-  R s = 1.;//sqrt(K.mesure());
+  R s = sqrt(K.mesure());
 
   R const0 = scaling*K.EdgeOrientation(0)*s;
   R const1 = scaling*K.EdgeOrientation(1)*s;
@@ -117,7 +117,7 @@ void TypeOfFE_RT0_2d::FB(const What_d whatd, const Element & K,
 void TypeOfFE_RT0_2d::get_Coef_Pi_h(const GbaseFElement<Mesh> & K, KN_<double> &v) const
 {
   const Element &T = K.T;
-  double s = 1.;///(sqrt(T.mesure()));
+  double s = 1./(sqrt(T.mesure()));
   for(int i=0,k=0; i<3; i++) {
     R2 E(T.Edge(i));
     R sgn = T.EdgeOrientation(i);
