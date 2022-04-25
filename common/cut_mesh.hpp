@@ -115,6 +115,8 @@ public:
     }
     idx_element_domain.push_back(0);
     idx_element_domain.push_back(Th.nt);
+    in_active_mesh_.resize(10);
+    for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
   }
   // Give the background mesh and a sign Function defined on the mesh nodes
   // Will create 2 subdomains
@@ -134,7 +136,6 @@ public:
     idx_from_background_mesh_.resize(2);
     nb_quadrature_time_ = interface.size();
     interface_id_.resize(nb_quadrature_time_);
-    in_active_mesh_.resize(10);
     for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
     this->init(interface);
   }
@@ -142,8 +143,8 @@ public:
   void truncate(const Interface<Mesh>& interface, int sign_domain);
   void truncate(const TimeInterface<Mesh>& interface, int sign_domain);
   void add(const Interface<Mesh>& interface);
-  void create_surface_mesh(const Interface<Mesh>& interface);
-  void create_surface_mesh(const TimeInterface<Mesh>& interface);
+  void createSurfaceMesh(const Interface<Mesh>& interface);
+  void createSurfaceMesh(const TimeInterface<Mesh>& interface);
 private:
   void init(const Interface<Mesh>& interface);
   void init(const TimeInterface<Mesh>& interface);
@@ -194,7 +195,6 @@ public:
     }
     assert(0);
   }
-
 
 
   bool isCut(int k, int t=0) const {
@@ -255,7 +255,7 @@ public:
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    // if not cut build a partition that consider full cut
+    // if not cut build a partition that consider full element
     if(it == interface_id_[t].end()) {
       return Cut_Part<Element>(Partition<Element>((*this)[k]), -1);
     }
@@ -402,6 +402,8 @@ void ActiveMesh<Mesh>::init(const Interface<Mesh>& interface){
 
   idx_element_domain.push_back(nt0);
   idx_element_domain.push_back(nt0+nt1);
+  in_active_mesh_.resize(10);
+  for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
 
 }
 
@@ -597,7 +599,7 @@ void ActiveMesh<Mesh>::truncate(const Interface<Mesh>& interface,int sign_domain
 
 
 template<typename Mesh>
-void ActiveMesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::createSurfaceMesh(const Interface<Mesh>& interface){
 
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
@@ -663,7 +665,7 @@ void ActiveMesh<Mesh>::create_surface_mesh(const Interface<Mesh>& interface){
 }
 
 template<typename Mesh>
-void ActiveMesh<Mesh>::create_surface_mesh(const TimeInterface<Mesh>& interface){
+void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInterface<Mesh>& interface){
 
   int n_tid = interface.size();
   nb_quadrature_time_ = n_tid;

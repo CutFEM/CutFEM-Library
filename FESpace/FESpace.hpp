@@ -24,13 +24,11 @@ using namespace std;
 #include "../common/Mesh3dn.hpp"
 #include "../common/Mesh2dn.hpp"
 #include "../common/Mesh1dn.hpp"
-#include "../common/Interface3dn.hpp"
-#include "../common/timeInterface.hpp"
+// #include "../common/Interface3dn.hpp"
+// #include "../common/timeInterface.hpp"
 
 #include "../common/base_interface.hpp"
 #include "../common/cut_mesh.hpp"
-
-
 #include "QuadratureFormular.hpp"
 
 #include "cutFEMConfig.h"
@@ -82,7 +80,12 @@ public:
   }
 
   R getMeasure() const {return T.mesure();} // mesure felstavat (french spel ;-) ) 
+  R get_measure() const {return T.mesure();} // mesure felstavat (french spel ;-) ) 
+
   Rd map(Rd ip) const {return T(ip);}
+  Rd mapToPhysicalElement(Rd ip) const {return T(ip);}
+
+
   int degre() const {return tfe->degre();}
   int index() const {return number;};
 
@@ -247,7 +250,7 @@ public:
   KN<const GTypeOfFE<Mesh> *>  TFE;
   const int N;                     // dim espace d'arrive
   const int Nproduit; // 1 if non constant Max number df par node. else Max number df par node..
-  GFESpace const * backSpace = this;
+  // GFESpace const * backSpace = this;
   const PeriodicBC* periodicBC = nullptr;
   // KN<const GInterface*> gamma;
   // KN<const GInterface*>* gamma2;
@@ -307,16 +310,15 @@ public:
 
 
     GFESpace(const ActiveMesh<Mesh> & TTh, const GFESpace& vh, const PeriodicBC* PPeriod = nullptr) :
-      DataFENodeDF(vh.BuildDFNumbering(TTh)),
-      Th(TTh.Th),
-      TFE(1,0,vh.TFE(0)),
-      N(TFE[0]->N),
-      Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
-      periodicBC(PPeriod)
-       {
-       }
-
-       DataFENodeDF BuildDFNumbering(const ActiveMesh<Mesh> & TTh) const;
+    DataFENodeDF(vh.BuildDFNumbering(TTh)),
+    Th(TTh.Th),
+    TFE(1,0,vh.TFE(0)),
+    N(TFE[0]->N),
+    Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
+    periodicBC(PPeriod)
+    {
+    }
+    DataFENodeDF BuildDFNumbering(const ActiveMesh<Mesh> & TTh) const;
 
 
   const int * PtrFirstNodeOfElement(int k) const {
@@ -346,9 +348,12 @@ public:
     return NodesOfElement ?  *(PtrFirstNodeOfElement(k) + i)  : Th(k,i)  ;}
 
   // for mesh build from interface but works for all mesh
-  virtual int idxElementFromBackMesh (int k)      const {return Th.idxElementFromBackMesh(k) ;}
-  virtual int idxElementInBackMesh(int k)         const {return Th.idxElementInBackMesh(k);}
-  virtual int idxElementFromBackMesh(int k,int i) const {return idxElementFromBackMesh(k); }
+  // virtual int idxElementFromBackMesh (int k)      const {return Th.idxElementFromBackMesh(k) ;}
+  // virtual int idxElementInBackMesh(int k)         const {return Th.idxElementInBackMesh(k);}
+  // virtual int idxElementFromBackMesh(int k,int i) const {return idxElementFromBackMesh(k); }
+  virtual int idxElementFromBackMesh (int k)      const {return k ;}
+  virtual int idxElementInBackMesh(int k)         const {return k;}
+  virtual int idxElementFromBackMesh(int k,int i) const {return k; }
   // virtual bool faceInDomain(const Face& face, int dom) const {return true;}
   // const Face& get_face(int k) const {return Th.hyper_face(k);}
   virtual int whichDomain(int k) const { return -1;}
@@ -361,12 +366,9 @@ public:
   // virtual bool isCut() const { return (this->gamma.size()>0);}
   virtual bool isCutSpace() const {return false;}
   virtual vector<int> idxAllElementFromBackMesh (int k, int d) const { assert(d==-1);vector<int> v = {idxElementFromBackMesh(k)}; return v ;}
-
-
-  virtual const GFESpace& getBackSpace() const { return *backSpace;}
-  // const GInterface& getInterface(int i) const {assert(this->gamma.size() > 0);assert(i<this->gamma.size()); return *this->gamma(i);}
-
+  virtual const GFESpace<Mesh>& get_back_space() const {return *this;}
   virtual const ActiveMesh<Mesh>& get_mesh() const { assert(0); return ActiveMesh<Mesh>(Th);}
+
 
 
   int NbNode() const { return this->nbNode;}
@@ -519,14 +521,16 @@ public:
   typedef typename Mesh::BorderElement  BorderElement;
 
   const ActiveMesh<Mesh> & cutTh;
+  const GFESpace<Mesh>& backSpace;
 
-  CutFESpace(const ActiveMesh<Mesh> & TTh, const GFESpace<Mesh>& vh, const PeriodicBC* PPeriod = nullptr) : GFESpace<Mesh>(TTh, vh, PPeriod), cutTh(TTh) {this->backSpace = &vh;}
+  CutFESpace(const ActiveMesh<Mesh> & TTh, const GFESpace<Mesh>& vh, const PeriodicBC* PPeriod = nullptr) : GFESpace<Mesh>(TTh, vh, PPeriod), cutTh(TTh), backSpace(vh) {}
 
   FElement operator[](int k) const {
     int kb = cutTh.idxElementInBackMesh(k);
     return FElement(this,k, kb);
   }
   const ActiveMesh<Mesh>& get_mesh() const { return cutTh;}
+  const GFESpace<Mesh>& get_back_space() const {return backSpace;}
   int get_domain(int k) const { return cutTh.get_domain_element(k);}
   bool isCut(int k) const { return cutTh.isCut(k);}
   int idxElementInBackMesh(int k) const { return cutTh.idxElementInBackMesh(k);}

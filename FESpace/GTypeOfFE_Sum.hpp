@@ -2,8 +2,9 @@
 #define _GTYPE_OF_FE_SUM_HPP
 
 #include "GTypeOfFE.hpp"
-#include "Mesh2dn.hpp"
-#include "Mesh3dn.hpp"
+#include "../common/Mesh3dn.hpp"
+#include "../common/Mesh2dn.hpp"
+#include "../common/Mesh1dn.hpp"
 
 
 template<class Mesh>

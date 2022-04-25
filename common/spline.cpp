@@ -73,9 +73,9 @@ void Spline::init(const vector<double> &x, const vector<double> & y) {
   for(int i = 0; i < n; ++i)
   h.push_back(x[i+1]-x[i]);
 
-  vector<double> alpha;
-  for(int i = 0; i < n; ++i)
-  alpha.push_back( 3*(a[i+1]-a[i])/h[i] - 3*(a[i]-a[i-1])/h[i-1]  );
+  vector<double> alpha(n);
+  for(int i = 1; i < n; ++i)
+  alpha[i] = (3*(a[i+1]-a[i])/h[i] - 3*(a[i]-a[i-1])/h[i-1]  );
 
   vector<double> c(n+1);
   vector<double> l(n+1);
@@ -128,6 +128,23 @@ double Spline::evaluate(const double x) const {
   mySplineSet[j].d * dx* dx * dx;
   return y;
 }
+double Spline::evaluate(int j, const double x) const {
+  assert(0<=j && j < X.size()-1);
+  if(j == X.size()-2 ) {
+    if( x < mySplineSet[j].x ) {
+      std::cout << " Spline evaluation on specified interval failed => return classic evaluation" << std::endl;
+      return evaluate(x);
+    }
+  }
+  else if( x < mySplineSet[j].x ||  mySplineSet[j+1].x < x) {
+    std::cout << " Spline evaluation on specified interval failed => return classic evaluation" << std::endl;
+    return evaluate(x);
+  }
+  double dx = x - mySplineSet[j].x;
+  double y = mySplineSet[j].a + mySplineSet[j].b * dx + mySplineSet[j].c * dx* dx +
+  mySplineSet[j].d * dx * dx * dx;
+  return y;
+}
 
 double Spline::diff(const double x) const {
   int j;
@@ -143,7 +160,6 @@ double Spline::diff(const double x) const {
   3*mySplineSet[j].d * dx* dx;
   return y;
 }
-
 double Spline::ddiff(const double x) const {
   int j;
   for ( j = 0; static_cast<unsigned>(j) < X.size()-1; j++ ){
@@ -157,7 +173,6 @@ double Spline::ddiff(const double x) const {
   double y = 2* mySplineSet[j].c + 6*mySplineSet[j].d * dx;
   return y;
 }
-
 int Spline::gnuplot(int N , string filename){
   ofstream plot, plot1;
   plot1.open("splineT.dat", std::ofstream::out);
@@ -203,6 +218,12 @@ Spline2D::Spline2D( const vector<double> & t, const vector<R2> & P ){
 R2 Spline2D::evaluate(double t) const {
   return R2(splineX(t), splineY(t));
 }
+
+R2 Spline2D::evaluate(int i, double t) const {
+  return R2(splineX.evaluate(i, t), splineY.evaluate(i, t));
+}
+
+
 int Spline2D::gnuplot(int N , string filename){
   ofstream plot, plot1;
   plot1.open("spline2T.dat", std::ofstream::out);

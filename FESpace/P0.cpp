@@ -268,3 +268,69 @@ void TypeOfFE_P0Lagrange3d::FB(const What_d whatd, const Element & K,
 static TypeOfFE_P0Lagrange3d  P0_3d;
 GTypeOfFE<Mesh3> & P0Lagrange3d(P0_3d);
 template<> GTypeOfFE<Mesh3> & DataFE<Mesh3>::P0=P0_3d;
+
+
+// P0 3D HEXA
+class TypeOfFE_P0LagrangeQ3d : public GTypeOfFE<MeshHexa> {
+
+  typedef   MeshHexa Mesh;
+  typedef  typename Mesh::Element  E;
+  static const int nbNodeOnItem[4];
+public:
+
+  static const int k = 0;
+  static const int ndf = 1;//(k + 2) * (k + 1) / 2;
+  static int Data[];
+  static double alpha_Pi_h[];
+
+  TypeOfFE_P0LagrangeQ3d(): GTypeOfFE<MeshHexa>(1, 1, Data, 1, 1, alpha_Pi_h) {
+
+    static const R3 Pt[1] = {R3(1./2, 1./2, 1./2)};
+
+    for(int i=0;i<ndf;++i) {
+      Pt_Pi_h[i] = Pt[i];
+      ipj_Pi_h[i] = IPJ(i,i,0);
+    }
+  }
+
+  // void Pi_h_alpha(const baseFElement &K, KN_< double > &v) const {
+  //   for (int i = 0; i < 3; ++i) v[i] = 1;
+  // }
+
+
+  void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
+} ;
+
+const int TypeOfFE_P0LagrangeQ3d::nbNodeOnItem[4] = {0,0,0,1};
+int TypeOfFE_P0LagrangeQ3d::Data[] = {
+  14,   // the support number  of the node of the df
+  0,    // the number of the df on  the node
+  0,    // the node of the df
+  0,    // which are de df on sub FE
+  0, 0, 0, 1, // nb node on what
+  0,          // for each compontant $j=0,N-1$ it give the sub FE associated
+  0,          // begin_dfcomp
+  1           // end_dfcomp
+};
+double TypeOfFE_P0LagrangeQ3d::alpha_Pi_h[] = {1.};
+
+
+void TypeOfFE_P0LagrangeQ3d::FB(const What_d whatd, const Element & K,
+			       const R3 & P,RNMK_ & val) const
+{
+  assert(val.N() >= 1);
+  assert(val.M()==1 );
+
+  val=0;
+  RN_ f0(val('.',0,op_id));
+
+  if (whatd & Fop_D0) {
+    f0[0] = 1.;
+  }
+
+}
+
+
+static TypeOfFE_P0LagrangeQ3d  P0Q_3d;
+GTypeOfFE<MeshHexa> & P0LagrangeQ3d(P0Q_3d);
+template<> GTypeOfFE<MeshHexa> & DataFE<MeshHexa>::P0=P0Q_3d;

@@ -382,10 +382,18 @@ public:
     return r;
   }
 
-  // R2 H(int i) const { ASSERTION(i>=0 && i <3);
-  //   R2 E=Edge(i);return E.perp()/(2.*this->mesure());
-  // } // heigth
-
+  void Gradlambda(R3 * GradL) const
+  {
+    assert(0);
+    // R3 V1(at(0),at(1));
+    // R3 V2(at(0),at(2));
+    // R3 V3(at(0),at(3));
+    // R det1=1./(6.*mesure());
+    // GradL[1]= (V2^V3)*det1;
+    // GradL[2]= (V3^V1)*det1;
+    // GradL[3]= (V1^V2)*det1;
+    // GradL[0]=-GradL[1]-GradL[2]-GradL[3];
+  }
 
   R3 toKref(const R3& P) const {
     const R3 &A =*vertices[0];

@@ -2,7 +2,7 @@
 
 
 template<>
-void BaseCutFEM<Mesh2>::addInterfaceRidgeContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh2>& interface, int ifac) {
+void BaseCutFEM<Mesh2>::addInterfaceRidgeContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh2>& interface, int ifac, const TimeSlab* In, int itq, double cst_time) {
 
   // GET IDX ELEMENT CONTAINING FACE ON backMes
   const Mesh2& Kh(interface.get_mesh());
@@ -72,7 +72,7 @@ void BaseCutFEM<Mesh2>::addInterfaceRidgeContribution(const ListItemVF<Rd::d>& V
       What_d Fop = Fwhatd(lastop);
 
       // COMPUTE COEFFICIENT && NORMAL
-      double coef = 1;//VF[l].computeCoefInterface(h,meas,measK,measK,domu, domv) ;
+      double coef = cst_time;//VF[l].computeCoefInterface(h,meas,measK,measK,domu, domv) ;
       coef *= VF[l].computeCoefFromNormal(normalu, normalv);
       coef *= VF[l].computeCoefFromConormal(conormalu, conormalv);
 
@@ -80,13 +80,26 @@ void BaseCutFEM<Mesh2>::addInterfaceRidgeContribution(const ListItemVF<Rd::d>& V
       FKv.BF(Fop,FKv.T.mapToReferenceElement(mip), fv);
       if(!same) FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
 
-      coef *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domu, domv), mip, std::make_pair(conormalu, conormalv));
+      coef *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domu, domv), mip, 0., std::make_pair(conormalu, conormalv));
       coef *= VF[l].c;
 
-      if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, coef);
-      else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, coef);
-
+      if( In ){
+        if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, coef);
+        else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, coef);
+      }
+      else {
+        if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, coef);
+        else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, coef);
+      }
     }
 
   }
 }
+
+
+
+
+template class CutFEM<Mesh2> ;
+template class FEM<Mesh2> ;
+template class CutFEM<MeshQuad2> ;
+template class FEM<MeshQuad2> ;

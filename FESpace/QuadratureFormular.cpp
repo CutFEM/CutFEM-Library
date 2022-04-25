@@ -8,6 +8,34 @@ using namespace std;
 #include "QuadratureFormular.hpp"
 
 
+
+
+
+
+static const R gauss_n2_1=  (1-sqrt(1./3.))/2;
+static const R gauss_n2_2=  1 - gauss_n2_1;
+
+const R gauss_n3_0=  0.5 ;
+const R gauss_n3_1=  (1-sqrt(3./5.)) /2  ;
+const R gauss_n3_2 =  1 - gauss_n3_1 ;
+
+const R pgauss_n3_0=  8./18.;
+const R pgauss_n3_1=  5./18.;
+const R pgauss_n3_2=  5./18.;
+
+const R pgauss1_n4_a= (18.+sqrt(30.))/36.;
+const R pgauss1_n4_b= (18.-sqrt(30.))/36.;
+const R gauss1_n4_a=  sqrt( 525. - 70.* sqrt(30.))/35.;
+const R gauss1_n4_b=  sqrt( 525. + 70.* sqrt(30.))/35.;
+
+const R pgauss1_n5_0 = 128./225.;
+const R pgauss1_n5_a= (322+13.*sqrt(70.))/900.;
+const R pgauss1_n5_b= (322-13.*sqrt(70.))/900.;
+const R gauss1_n5_a=  sqrt(245.-14.*sqrt(70.))/21.;
+const R gauss1_n5_b=  sqrt(245.+14.*sqrt(70.))/21.;
+
+
+
 // Computation of nodes and weights for a Gauss-Legendre quadrature formula on [0 1]
 typedef GQuadraturePoint<R1> QP1;
 QP1 *  GaussLegendre(int nn)  {
@@ -43,52 +71,20 @@ QP1 *  GaussLegendre(int nn)  {
   return p;
 }
 
-
-static const R gauss_n2_1=  (1-sqrt(1./3.))/2;
-static const R gauss_n2_2=  1 - gauss_n2_1;
-
-const R gauss_n3_0=  0.5 ;
-const R gauss_n3_1=  (1-sqrt(3./5.)) /2  ;
-const R gauss_n3_2 =  1 - gauss_n3_1 ;
-
-const R pgauss_n3_0=  8./18.;
-const R pgauss_n3_1=  5./18.;
-const R pgauss_n3_2=  5./18.;
-
-const R pgauss1_n4_a= (18.+sqrt(30.))/36.;
-const R pgauss1_n4_b= (18.-sqrt(30.))/36.;
-const R gauss1_n4_a=  sqrt( 525. - 70.* sqrt(30.))/35.;
-const R gauss1_n4_b=  sqrt( 525. + 70.* sqrt(30.))/35.;
-
-const R pgauss1_n5_0 = 128./225.;
-const R pgauss1_n5_a= (322+13.*sqrt(70.))/900.;
-const R pgauss1_n5_b= (322-13.*sqrt(70.))/900.;
-const R gauss1_n5_a=  sqrt(245.-14.*sqrt(70.))/21.;
-const R gauss1_n5_b=  sqrt(245.+14.*sqrt(70.))/21.;
-
 const QuadratureFormular1d QF_GaussLegendre1(1,QuadratureFormular1d::QP(1,0.5));
-
 const QuadratureFormular1d QF_GaussLegendre2(3,
                   QuadratureFormular1d::QP(0.5,gauss_n2_1),
                   QuadratureFormular1d::QP(0.5,gauss_n2_2));
-
 const QuadratureFormular1d QF_GaussLegendre3(5,
                   QuadratureFormular1d::QP(pgauss_n3_0,gauss_n3_0),
                   QuadratureFormular1d::QP(pgauss_n3_1,gauss_n3_1),
                   QuadratureFormular1d::QP(pgauss_n3_2,gauss_n3_2));
-
-const QuadratureFormular1d QF_LumpP1_1D(1,
-                  QuadratureFormular1d::QP(0.5,0.),
-                  QuadratureFormular1d::QP(0.5,1.));
-
-
 const QuadratureFormular1d QF_GaussLegendre4(7,
 					     QuadratureFormular1d::QP(pgauss1_n4_a/2.,(1.+gauss1_n4_a)/2.),
 					     QuadratureFormular1d::QP(pgauss1_n4_a/2.,(1.-gauss1_n4_a)/2.),
 					     QuadratureFormular1d::QP(pgauss1_n4_b/2.,(1.+gauss1_n4_b)/2.),
 					     QuadratureFormular1d::QP(pgauss1_n4_b/2.,(1.-gauss1_n4_b)/2.)
 					     );
-
 const QuadratureFormular1d QF_GaussLegendre5(-1+2*5,5,GaussLegendre(5),true);
 const QuadratureFormular1d QF_GaussLegendre6(-1+2*6,6,GaussLegendre(6),true);
 const QuadratureFormular1d QF_GaussLegendre7(-1+2*7,7,GaussLegendre(7),true);
@@ -97,6 +93,139 @@ const QuadratureFormular1d QF_GaussLegendre9(-1+2*9,9,GaussLegendre(9),true);
 const QuadratureFormular1d QF_GaussLegendre10(-1+2*10,10,GaussLegendre(10),true);
 
 
+// explict instantiation
+template<>
+const GQuadratureFormular<R1> * QF_Simplex<R1>(int exact){
+  switch(exact) {
+  case 1 : return &QF_GaussLegendre1;
+  case 2 : return &QF_GaussLegendre2;
+  case 3 : return &QF_GaussLegendre2;
+  case 4 : return &QF_GaussLegendre3;
+  case 5 : return &QF_GaussLegendre3;
+  case 6 : return &QF_GaussLegendre4;
+  case 7 : return &QF_GaussLegendre4;
+  case 8 : return &QF_GaussLegendre5;
+  case 9 : return &QF_GaussLegendre5;
+  case 10 : return &QF_GaussLegendre6;
+  case 11 : return &QF_GaussLegendre6;
+  case 12 : return &QF_GaussLegendre7;
+  case 13 : return &QF_GaussLegendre7;
+  case 14 : return &QF_GaussLegendre8;
+  case 15 : return &QF_GaussLegendre8;
+  case 16 : return &QF_GaussLegendre9;
+  case 17 : return &QF_GaussLegendre9;
+  default:     return &QF_GaussLegendre9;
+  }
+};
+
+
+
+typedef GQuadraturePoint<R2> QP2;
+QP2 *  GaussLegendre2D(int exact) {
+
+  const GQuadratureFormular<R1>&quad1D =  *QF_Simplex<R1>(exact);
+  int n1 = quad1D.n;
+  int n2 = n1*n1;
+  QP2 *p=new QP2[n2];
+
+  int ii = 0;
+  for(int i=0;i<n1;++i) {
+    for(int j=0;j<n1;++j) {
+      p[ii].x = quad1D[i];
+      p[ii].y = quad1D[j];
+      p[ii].a = quad1D[i].a * quad1D[j].a;
+      ++ii;
+    }
+  }
+  return p;
+}
+
+const QuadratureFormular2d QF_GaussLegendreQuad1(1,1,GaussLegendre2D(1),true);
+const QuadratureFormular2d QF_GaussLegendreQuad2(3,4,GaussLegendre2D(3),true);
+const QuadratureFormular2d QF_GaussLegendreQuad3(5,9,GaussLegendre2D(5),true);
+const QuadratureFormular2d QF_GaussLegendreQuad4(7,16,GaussLegendre2D(7),true);
+const QuadratureFormular2d QF_GaussLegendreQuad5(9,25,GaussLegendre2D(9),true);
+
+
+// explict instantiation
+const GQuadratureFormular<R2> * QF_Quad(int exact){
+  switch(exact) {
+  case 1 : return &QF_GaussLegendreQuad1;
+  case 2 : return &QF_GaussLegendreQuad2;
+  case 3 : return &QF_GaussLegendreQuad2;
+  case 4 : return &QF_GaussLegendreQuad3;
+  case 5 : return &QF_GaussLegendreQuad3;
+  case 6 : return &QF_GaussLegendreQuad4;
+  case 7 : return &QF_GaussLegendreQuad4;
+  case 8 : return &QF_GaussLegendreQuad5;
+  case 9 : return &QF_GaussLegendreQuad5;
+  // case 10 : return &QF_GaussLegendre6;
+  // case 11 : return &QF_GaussLegendre6;
+  // case 12 : return &QF_GaussLegendre7;
+  // case 13 : return &QF_GaussLegendre7;
+  // case 14 : return &QF_GaussLegendre8;
+  // case 15 : return &QF_GaussLegendre8;
+  // case 16 : return &QF_GaussLegendre9;
+  // case 17 : return &QF_GaussLegendre9;
+  default:     return &QF_GaussLegendreQuad3;
+  }
+};
+
+
+
+typedef GQuadraturePoint<R3> QP3;
+QP3 * GaussLegendre3D(int exact) {
+
+  const GQuadratureFormular<R1>&quad1D =  *QF_Simplex<R1>(exact);
+  int n1 = quad1D.n;
+  int n3 = n1*n1*n1;
+  QP3 *p=new QP3[n3];
+
+  int ii = 0;
+  for(int i=0;i<n1;++i) {
+    for(int j=0;j<n1;++j) {
+      for(int k=0;k<n1;++k) {
+        p[ii].x = quad1D[i];
+        p[ii].y = quad1D[j];
+        p[ii].z = quad1D[k];
+        p[ii].a = quad1D[i].a * quad1D[j].a * quad1D[k].a;
+        ++ii;
+      }
+    }
+  }
+  return p;
+}
+
+const QuadratureFormular3d QF_GaussLegendreHexa1(1,1,GaussLegendre3D(1),true);
+const QuadratureFormular3d QF_GaussLegendreHexa2(3,8,GaussLegendre3D(3),true);
+const QuadratureFormular3d QF_GaussLegendreHexa3(5,27,GaussLegendre3D(5),true);
+const QuadratureFormular3d QF_GaussLegendreHexa4(7,64,GaussLegendre3D(7),true);
+const QuadratureFormular3d QF_GaussLegendreHexa5(9,125,GaussLegendre3D(9),true);
+
+
+// explict instantiation
+const GQuadratureFormular<R3> * QF_Hexa(int exact){
+  switch(exact) {
+  case 1 : return &QF_GaussLegendreHexa1;
+  case 2 : return &QF_GaussLegendreHexa2;
+  case 3 : return &QF_GaussLegendreHexa2;
+  case 4 : return &QF_GaussLegendreHexa3;
+  case 5 : return &QF_GaussLegendreHexa3;
+  case 6 : return &QF_GaussLegendreHexa4;
+  case 7 : return &QF_GaussLegendreHexa4;
+  case 8 : return &QF_GaussLegendreHexa5;
+  case 9 : return &QF_GaussLegendreHexa5;
+  // case 10 : return &QF_GaussLegendre6;
+  // case 11 : return &QF_GaussLegendre6;
+  // case 12 : return &QF_GaussLegendre7;
+  // case 13 : return &QF_GaussLegendre7;
+  // case 14 : return &QF_GaussLegendre8;
+  // case 15 : return &QF_GaussLegendre8;
+  // case 16 : return &QF_GaussLegendre9;
+  // case 17 : return &QF_GaussLegendre9;
+  default:     return &QF_GaussLegendreHexa3;
+  }
+};
 
 
 //---------------------------------------------------------------------------------
@@ -118,6 +247,11 @@ const R pLob_n7_0 = 0.05;
 const R pLob_n7_1 = 0.272222222222222;
 const R pLob_n7_2 = 0.355555555555556;
 
+
+//---------------------------------------------------------------------------------
+const QuadratureFormular1d QF_LumpP1_1D(1,
+                  QuadratureFormular1d::QP(0.5,0.),
+                  QuadratureFormular1d::QP(0.5,1.));
 //---------------------------------------------------------------------------------
 static GQuadraturePoint<R1> P_QF_Euler[1] = {
   QuadratureFormular1d::QP(1,R1(0.))};
@@ -182,7 +316,6 @@ int exactLobatto_nPt(int n){
 };
 
 
-
 // explict instantiation
 const QuadratureFormular1d  * Lobatto(int exact){
   switch(exact) {
@@ -242,30 +375,7 @@ const QuadratureFormular1d  * Lobatto(int exact){
 
 
 
-// explict instantiation
-template<>
-const GQuadratureFormular<R1> * QF_Simplex<R1>(int exact){
-  switch(exact) {
-  case 1 : return &QF_GaussLegendre1;
-  case 2 : return &QF_GaussLegendre2;
-  case 3 : return &QF_GaussLegendre2;
-  case 4 : return &QF_GaussLegendre3;
-  case 5 : return &QF_GaussLegendre3;
-  case 6 : return &QF_GaussLegendre4;
-  case 7 : return &QF_GaussLegendre4;
-  case 8 : return &QF_GaussLegendre5;
-  case 9 : return &QF_GaussLegendre5;
-  case 10 : return &QF_GaussLegendre6;
-  case 11 : return &QF_GaussLegendre6;
-  case 12 : return &QF_GaussLegendre7;
-  case 13 : return &QF_GaussLegendre7;
-  case 14 : return &QF_GaussLegendre8;
-  case 15 : return &QF_GaussLegendre8;
-  case 16 : return &QF_GaussLegendre9;
-  case 17 : return &QF_GaussLegendre9;
-  default:     return &QF_GaussLegendre9;
-  }
-};
+
 
 
 

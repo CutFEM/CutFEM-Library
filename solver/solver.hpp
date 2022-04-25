@@ -8,7 +8,17 @@
 #else
 #include "../util/cputime.h"
 #endif
-// #include "../parallel/partitioner.hpp"
+// #include "../problem/problem.hpp"
+
+
+struct ProblemOption {
+  int order_space_element_quadrature_ = 5;
+  int order_space_bord_quadrature_ = 5;
+  int order_time_quadrature_ = 1;
+  std::string solver_name_ = "mumps";
+  bool clear_matrix_ = true;
+  int verbose_ = 0;
+};
 
 namespace solver {
 
@@ -25,7 +35,7 @@ namespace solver {
 
   }
 
-    void umfpack(std::map<std::pair<int,int>,R> &, Rn &);
+    void umfpack(std::map<std::pair<int,int>,R> &, Rn &, bool);
     void LAPACK(Rnm & a, Rn & b);
 //   void MUMPS(std::map<std::pair<int,int>,R> &, Rn &, const int) ;
 //   void MUMPS(std::map<std::pair<int,int>,R> &, Rn &, const int, const MatrixOrdering*) ;
@@ -61,9 +71,18 @@ public :
 int verbose_ = 0;
 bool clearMatrix_ = true;
 //   std::string reordering = "none";
-std::string solver_name_ = "umfpack";
+std::string solver_name_ = "mumps";
 
-  void solve(std::map<std::pair<int,int>,R> & A, Rn & b) ;
+Solver(const ProblemOption& option) {
+  clearMatrix_ = option.clear_matrix_;
+  solver_name_ = option.solver_name_;
+  verbose_ = option.verbose_;
+
+}
+
+
+
+void solve(std::map<std::pair<int,int>,R> & A, Rn & b) ;
 
 
 };

@@ -41,7 +41,7 @@ DONE ** 34) ADD normal in function evaluation in on edges and boundary integrals
 DONE ** 39) Have a common root class for the macro class
 DONE ** 40) take away addEdgeIntegral and replace with addBilinear
 DONE ** 41) add norm function working like integrals.
-42) Interface should build a partition directly, not sending just the cutData.
+DONE ** 42) Interface should build a partition directly, not sending just the cutData.
 43) make gnuplot.cpp
 44) check grad lambda in quad to see if its like for tet
 45) in interface_levelSet we should only have one ls<double> and note byte

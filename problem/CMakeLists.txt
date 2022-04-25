@@ -6,7 +6,7 @@ set(PROBLEM_SOURCES
   itemVF.cpp
   problem.cpp
   baseProblem.cpp
-  GenericMapping.cpp
+  #GenericMapping.cpp
   extension.cpp
   #  levelSet.cpp
   #  reinitialization.cpp

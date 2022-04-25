@@ -115,12 +115,12 @@ namespace example3D{
   }
 }
 
-struct kappa_E1 : public Virtual_Parameter {
+struct kappa_E1 : public VirtualParameter {
   double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
     return meas_Cut/measK;
   }
 };
-struct kappa_E2 : public Virtual_Parameter {
+struct kappa_E2 : public VirtualParameter {
   double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
     return 1-meas_Cut/measK;
   }
@@ -134,7 +134,6 @@ void solve(int argc, char** argv, int nn, int i) {
   typedef Mesh2 Mesh;
   typedef FESpace2 Space;
   typedef CutFESpace<Mesh> CutSpace;
-
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
 
@@ -147,8 +146,8 @@ void solve(int argc, char** argv, int nn, int i) {
     double A0 = 1.0, A1 = 1.0, A2 = 0.5;
     double kappa1 = 2.0, kappa2 = 0.5, kappa01 = 1, kappa02 = 2;
     double kappaTilde1 = kappa1/kappa01, kappaTilde2 = kappa2/kappa02;
-    ParameterCutFEM kappaTilde(kappaTilde1    , kappaTilde2);
-    ParameterCutFEM kappaTildeA(kappaTilde1*A1, kappaTilde2*A2);
+    CutFEMParameter kappaTilde(kappaTilde1    , kappaTilde2);
+    CutFEMParameter kappaTildeA(kappaTilde1*A1, kappaTilde2*A2);
 
     // FULLSTAB PARAMETERS
     double tau_a0 = 5e1, tau_b0 = 0;
@@ -156,8 +155,8 @@ void solve(int argc, char** argv, int nn, int i) {
     double tau_a2 = 1e1, tau_b2 = 0;
 
     // Bulk penalties
-    ParameterCutFEM lambdaA(kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);      // diffusion terms
-    ParameterCutFEM lambdaB(kappaTilde1*tau_b1, kappaTilde2*tau_b2);                // convection terms
+    CutFEMParameter lambdaA(kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);      // diffusion terms
+    CutFEMParameter lambdaB(kappaTilde1*tau_b1, kappaTilde2*tau_b2);                // convection terms
 
     // Surface penalties
     double lambdaA0 = A0*tau_a0/h;                  // diffusion terms
@@ -170,8 +169,8 @@ void solve(int argc, char** argv, int nn, int i) {
     // =====================================================
     double tau11 = 0.1*A1, tau10 = A1, tau20 = A2, tau21 = 0.1*A2;      // bulk
     double tau00 = 10, tau01 = 0.1, tau02 = 0.1;                      // surface
-    ParameterCutFEM tau_i0(tau10, tau20);
-    ParameterCutFEM tau_i1(tau11, tau21);
+    CutFEMParameter tau_i0(tau10, tau20);
+    CutFEMParameter tau_i1(tau11, tau21);
 
     // CONSTRUCTION OF THE MESH
     // =====================================================
@@ -193,7 +192,7 @@ void solve(int argc, char** argv, int nn, int i) {
     // CONSTRUCTION OF THE ACTIVE MESH
     ActiveMesh<Mesh> Khi(Kh, interface);
     ActiveMesh<Mesh> Kh0(Kh);
-    Kh0.create_surface_mesh(interface);
+    Kh0.createSurfaceMesh(interface);
     // Khi.info();
     // Kh0.info();
 
@@ -391,12 +390,12 @@ void solve(int argc, char** argv, int nn, int i) {
 //     double A0 = 1.0, A1 = 1.0, A2 = 0.5;
 //     double kappa1 = 2.0, kappa2 = 0.5, kappa01 = 1, kappa02 = 2;
 //     double kappaTilde1 = kappa1/kappa01, kappaTilde2 = kappa2/kappa02;
-//     ParameterCutFEM kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
-//     ParameterCutFEM kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
+//     CutFEMParameter kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
+//     CutFEMParameter kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
 //
 //     // Local weights for average function across bulk faces
-//     ParameterCutFEM kappa_E1("kappa_E1", fun_kappa_E1);
-//     ParameterCutFEM kappa_E2("kappa_E2", fun_kappa_E2);
+//     CutFEMParameter kappa_E1("kappa_E1", fun_kappa_E1);
+//     CutFEMParameter kappa_E2("kappa_E2", fun_kappa_E2);
 //
 //     // Penalty parameters, arbitrarily chosen at this time.
 //
@@ -415,14 +414,14 @@ void solve(int argc, char** argv, int nn, int i) {
 // //    double lambdaA0 = A0*1e1/h;   // for the surface problem
 //
 //     // Local bulk penalty parameters
-//     //ParameterCutFEM A("A", A1, A2);
-//     //ParameterCutFEM penalty1(Parameter::lambdaA);
+//     //CutFEMParameter A("A", A1, A2);
+//     //CutFEMParameter penalty1(Parameter::lambdaA);
 //
 //     // Global bulk penalty parameter (if this is commented, the two lines above should be out-commented
-//     ParameterCutFEM penalty1("penalty1", kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);
+//     CutFEMParameter penalty1("penalty1", kappaTilde1*A1*tau_a1/h, kappaTilde2*A2*tau_a2/h);
 //
 //     // Other global penalty parameter (do not change)
-//     ParameterCutFEM penalty2("penalty2", kappaTilde1*tau_b1, kappaTilde2*tau_b2);
+//     CutFEMParameter penalty2("penalty2", kappaTilde1*tau_b1, kappaTilde2*tau_b2);
 //     double penalty0 = tau_b0*sqrt(2), penalty0div = tau_b0/sqrt(2);
 //     double lambda1 = 1.0;
 //
@@ -430,8 +429,8 @@ void solve(int argc, char** argv, int nn, int i) {
 //     double tau11 = 0.1*A1, tau10 = A1, tau20 = A2, tau21 = 0.1*A2;
 //     double tau00 = A0, tau01 = A0, tau02 = 0.1*A0;
 //     //double tau00 = 500000*A0, tau01 = 1e-2*A0, tau02 = 0.01*A0;
-//     ParameterCutFEM tau_i0("taui0", tau10, tau20);
-//     ParameterCutFEM tau_i1("taui1", tau11, tau21);
+//     CutFEMParameter tau_i0("taui0", tau10, tau20);
+//     CutFEMParameter tau_i1("taui1", tau11, tau21);
 //
 //     // CONSTRUCTION OF THE MESH
 //     // =====================================================

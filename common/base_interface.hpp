@@ -1,7 +1,27 @@
 #ifndef BASE_INTERFACE_HPP_
 #define BASE_INTERFACE_HPP_
 
-#include "GenericInterface.hpp"
+
+#include <iostream>
+#include <cassert>
+#include <bitset>
+#include "HashTable.hpp"
+#include "RNM.hpp"
+#include "Label.hpp"
+#include "../util/util.hpp"
+#include "Mesh2dn.hpp"
+#include "Mesh3dn.hpp"
+#include "cut_method.hpp"
+
+
+
+
+#include "cutFEMConfig.h"
+#ifdef USE_MPI
+#include "../parallel/cfmpi.hpp"
+#endif
+// #include "GenericInterface.hpp"
+#include "../FESpace/QuadratureFormular.hpp"
 
 class FunFEMVirtual {
 public :
@@ -16,8 +36,39 @@ FunFEMVirtual (KN_<double>&u) : v(u) {}
 
 virtual double eval(const int k, const R* x, int cu=0, int op=0) const  = 0;
 virtual double eval(const int k, const R* x, const R t, int cu, int op, int opt) const = 0;
+virtual double evalOnBackMesh(const int k, int dom, const R* x, int cu=0, int op=0) const  = 0;
+virtual double evalOnBackMesh(const int k, int dom, const R* x, const R t, int cu, int op, int opt) const = 0;
 virtual int idxElementFromBackMesh(int, int=0) const = 0;
 };
+
+
+
+template<int N>
+struct FaceInterface {
+
+};
+template<>
+struct FaceInterface<2> : public  SortArray<Uint, 2>, public Label {
+  typedef SortArray<Uint, 2> FaceIdx;
+
+  FaceInterface(const Uint& a0,const Uint &a1, int l=0)
+  : FaceIdx(a0,a1), Label(l) {}
+  FaceInterface(Uint *a, int l =0)   : FaceIdx(a), Label(l) {}
+  FaceInterface() : FaceIdx(), Label(0) {}
+
+
+};
+template<>
+struct FaceInterface<3> : public  SortArray<Uint, 3>, public Label {
+  typedef SortArray<Uint, 3> FaceIdx;
+
+  FaceInterface(const Uint& a0,const Uint &a1,const Uint &a2, int l=0)
+  : FaceIdx(a0,a1,a2), Label(l) {}
+  FaceInterface(Uint *a, int l =0)   : FaceIdx(a), Label(l) {}
+  FaceInterface() : FaceIdx(), Label(0) {}
+
+};
+
 
 template<typename M>
 class Interface  {
@@ -116,32 +167,38 @@ class TimeInterface {
 public:
 	// typedef FunFEM<Mesh> Fun_h;
 private:
-	KN<Interface<Mesh>*> interface;
-	int n;
+	KN<Interface<Mesh>*> interface_;
+	int n_;
+  const QuadratureFormular1d& time_quadrature_;
 
 public:
 
-  TimeInterface(int nt) : interface(nt), n(nt) {
-    for(int i=0;i<n;++i){ interface[i] = nullptr;}
+  // TimeInterface(int nt) : interface(nt), n(nt) {
+  //   for(int i=0;i<n;++i){ interface[i] = nullptr;}
+  // }
+
+  TimeInterface(const QuadratureFormular1d& qTime) : interface_(qTime.n), n_(qTime.n), time_quadrature_(qTime) {
+    for(int i=0;i<n_;++i){ interface_[i] = nullptr;}
   }
 
   void init(int i, const Mesh & Th, const FunFEMVirtual& ls);
   void init(const Mesh & Th, const KN<FunFEMVirtual>& ls);
 
   Interface<Mesh>* operator[](int i) const{
-    assert(0 <= i && i < n);
-    return interface[i];
+    assert(0 <= i && i < n_);
+    return interface_[i];
   }
   Interface<Mesh>* operator()(int i) const{
-    assert(0 <= i && i < n);
-    return interface[i];
+    assert(0 <= i && i < n_);
+    return interface_[i];
   }
 
-  int size() const { return n;}
+  int size() const { return n_;}
+  const QuadratureFormular1d& get_quadrature_time() const {return time_quadrature_;}
 
   ~TimeInterface(){
-    for(int i=0;i<n;++i){
-      if(interface[i]) delete interface[i];
+    for(int i=0;i<n_;++i){
+      if(interface_[i]) delete interface_[i];
     }
   }
 

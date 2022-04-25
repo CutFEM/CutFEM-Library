@@ -7,6 +7,9 @@
 #include <cassert>
 
 #include "R2.hpp"
+#include "parametrization.hpp"
+
+
 using namespace std;
 
 class Spline2D;
@@ -22,21 +25,20 @@ private:
   vector<double> Y;
 
   /// The coefficients of the spline curve between two points
-    struct SplineSet
-    {
-      double a;   // constant
-      double b;   // 1st order coefficient
-      double c;   // 2nd order coefficient
-      double d;   // 3rd order coefficient
-      double x;   // starting x value
-      void print() const {
-        std::cout << " x_0 = " << x << std::endl;
-        std::cout << "p(x) = " << a << " + "
-                               << b << "x + "
-                               << c << "x^2 + "
-                               << d << "x^3 " << std::endl;
-      }
-    };
+  struct SplineSet {
+    double a;   // constant
+    double b;   // 1st order coefficient
+    double c;   // 2nd order coefficient
+    double d;   // 3rd order coefficient
+    double x;   // starting x value
+    void print() const {
+      std::cout << " x_0 = " << x << std::endl;
+      std::cout << "p(x) = " << a << " + "
+      << b << "x + "
+      << c << "x^2 + "
+      << d << "x^3 " << std::endl;
+    }
+  };
 
   // The coefficients of the spline curves between all points
   SplineSet * mySplineSet;
@@ -49,6 +51,8 @@ public:
     return the y value
   */
   double evaluate(const double) const;
+  double evaluate(int i, const double) const;
+
   double operator()(const double a) const {return evaluate(a);}
   /* Compute the y value of the spline derivative for a particular x
     input x
@@ -71,7 +75,7 @@ private:
 
 };
 
-class Spline2D {
+class Spline2D : public CurveParametrization {
 
 
   Spline splineX;
@@ -89,6 +93,7 @@ public:
 
 public:
   R2 evaluate(double t) const ;
+  R2 evaluate(int i, double t) const ;
   int gnuplot(int , string );
 
   // ~Spline2D(){delete []splineX; delete splineY;}

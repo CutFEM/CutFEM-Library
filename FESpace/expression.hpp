@@ -18,7 +18,6 @@ struct Normal_Component_Z : public Normal_Component {
 
 struct BaseVector{};
 struct Normal   : public BaseVector {
-  // static const int idx[3];
   Normal_Component_X x;
   Normal_Component_Y y;
   Normal_Component_Z z;
@@ -43,16 +42,6 @@ struct Projection {
 
 class ExpressionVirtual;
 template<typename M> class ExpressionFunFEM;
-
-
-// class FunFEMVirtual {
-// public :
-// FunFEMVirtual () {}
-//
-// virtual double eval(const int k, const R* x, int cu, int op) const  = 0;
-// virtual double eval(const int k, const R* x, const R t, int cu, int op, int opt) const = 0;
-// virtual int idxElementFromBackMesh(int, int=0) const = 0;
-// };
 
 
 template<typename M>
@@ -224,8 +213,8 @@ public:
   double eval(const int k, const R* x, const R t, int cu=0, int op=0, int opt=0) const ;
   void eval ( R* u, const int k) const ;
 
-  double evalOnBackMesh(const int kb, const R* x,            int cu, int op,          int dom) const ;
-  double evalOnBackMesh(const int kb, const R* x, const R t, int cu, int op, int opt, int dom) const ;
+  double evalOnBackMesh(const int kb, int dom, const R* x,            int cu, int op         ) const ;
+  double evalOnBackMesh(const int kb, int dom, const R* x, const R t, int cu, int op, int opt ) const ;
 
   int size() const { return Vh->NbDoF()*((In)?In->NbDoF():1);}
   int size(int k) const { return (*Vh)[k].NbDoF();}
@@ -348,10 +337,10 @@ public:
   }
 
   R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal) const {
-    return fun.evalOnBackMesh(k,x,cu,op, dom) * computeNormal(normal);
+    return fun.evalOnBackMesh(k, dom,x,cu,op) * computeNormal(normal);
   }
   R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal) const {
-    return fun.evalOnBackMesh(k,x,t,cu,op, opt,dom) * computeNormal(normal);
+    return fun.evalOnBackMesh(k,dom,x,t,cu,op, opt) * computeNormal(normal);
   }
 public:
   const GFESpace<M>& getSpace() const {return *fun.Vh;}

@@ -49,320 +49,66 @@ add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 list(APPEND EXTRA_LIBS -lstdc++fs)
 
-#
-set(EX_NAME surfaceDiffusion)
-add_executable(${EX_NAME}  mainFiles/surfaceDiffusion.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME stokesRT)
-add_executable(${EX_NAME}  mainFiles/stokesRT.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-set(EX_NAME limiter)
-add_executable(${EX_NAME}  mainFiles/test_limiter.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME filter)
-add_executable(${EX_NAME}  mainFiles/test_filter.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
 
-set(EX_NAME test_levelSet)
-add_executable(${EX_NAME}  mainFiles/test_levelSet.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME burger2)
-add_executable(${EX_NAME}  mainFiles/burger2.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME euler)
-add_executable(${EX_NAME}  mainFiles/euler.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
 
-set(EX_NAME poissonFEM)
-add_executable(${EX_NAME}  mainFiles/poissonFEM.cpp )
+#
+set(EX_NAME peiFu)
+add_executable(${EX_NAME}  mainFiles/peiFu.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+
+set(EX_NAME darcy)
+add_executable(${EX_NAME}  mainFiles/darcy.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                       "${PROJECT_BINARY_DIR}"
+                       ${EXTRA_INCLUDES})
 
 #
 set(EX_NAME convDiff)
 add_executable(${EX_NAME}  mainFiles/statConvectionDiffusion.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-set(EX_NAME poissonCutFEM)
-add_executable(${EX_NAME}  mainFiles/poissonCutFEM.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 
-set(EX_NAME showMesh)
-add_executable(${EX_NAME}  mainFiles/showMesh.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
 
 set(EX_NAME testMarker)
 add_executable(${EX_NAME}  mainFiles/testMarker.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-set(EX_NAME dropChanel)
-add_executable(${EX_NAME}  mainFiles/dropChanel.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 
-set(EX_NAME reinitialization2)
-add_executable(${EX_NAME}  mainFiles/reinitialization2.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME reinitialization3)
-add_executable(${EX_NAME}  mainFiles/reinitialization3.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME peiFu)
-add_executable(${EX_NAME}  mainFiles/peiFu.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-set(EX_NAME RBeuler2)
-add_executable(${EX_NAME}  mainFiles/RBeuler2D.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME RBeuler3)
-add_executable(${EX_NAME}  mainFiles/RBeuler3D.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME RBSeuler3)
-add_executable(${EX_NAME}  mainFiles/RBSeuler3D.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
 
-set(EX_NAME RBsimpsonP1)
-add_executable(${EX_NAME}  mainFiles/RBsimpsonP1.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
 
-set(EX_NAME RBsurfactantSimpson)
-add_executable(${EX_NAME}  mainFiles/mainRBsurfactantSimpsonP1.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME RBSConservative2)
-add_executable(${EX_NAME}  mainFiles/RBSConservative2.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-#
-set(EX_NAME pairBubble2)
-add_executable(${EX_NAME}  mainFiles/pairBubble.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-set(EX_NAME shearBubble)
-add_executable(${EX_NAME}  mainFiles/shearBubbleSurfactantConservative.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
 #
 set(EX_NAME bulkSurface)
 add_executable(${EX_NAME}  mainFiles/bulkSurface.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 #
-set(EX_NAME bulkSurfactantNavierStokes)
-add_executable(${EX_NAME}  mainFiles/bulkSurfactantNavierStokes.cpp )
+set(EX_NAME bulkSurface3)
+add_executable(${EX_NAME}  mainFiles/bulkSurface3.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-
-set(EX_NAME testBDM1)
-add_executable(${EX_NAME}  mainFiles/mainBDM1.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                              "${PROJECT_BINARY_DIR}"
-                              ${EXTRA_INCLUDES})
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 
 set(EX_NAME mainTest)
 add_executable(${EX_NAME}  mainFiles/mainTest.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
-                              "${PROJECT_BINARY_DIR}"
-                              ${EXTRA_INCLUDES})
+                            "${PROJECT_BINARY_DIR}"
+                            ${EXTRA_INCLUDES})
 
-set(EX_NAME surfactant2D)
+set(EX_NAME surfactant2)
 add_executable(${EX_NAME}  mainFiles/surfactant.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-
-set(EX_NAME curvature3)
-add_executable(${EX_NAME}  mainFiles/curvature3.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-
-set(EX_NAME surfactant3D)
-add_executable(${EX_NAME}  mainFiles/surfactant3D.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                           ${EXTRA_INCLUDES})
-
-set(EX_NAME poisson)
-add_executable(${EX_NAME}  mainFiles/poisson.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                         ${EXTRA_INCLUDES})
-#
-set(EX_NAME poisson3)
-add_executable(${EX_NAME}  mainFiles/poisson3.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                         ${EXTRA_INCLUDES})
-
-set(EX_NAME darcy)
-add_executable(${EX_NAME}  mainFiles/darcy.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                         "${PROJECT_BINARY_DIR}"
-                         ${EXTRA_INCLUDES})
-
-#set(EX_NAME surfactant)
-#add_executable(${EX_NAME}  mainFiles/surfactant.cpp )
-#target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-#target_include_directories(${EX_NAME} PUBLIC
-#                        "${PROJECT_BINARY_DIR}"
-#                        ${EXTRA_INCLUDES})
-
-
-#set(EX_NAME CutFEM_Paper2)
-#add_executable(${EX_NAME}  mainFiles/mainTimeCutFEM.cpp )
-#target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-#target_include_directories(${EX_NAME} PUBLIC
-#                          "${PROJECT_BINARY_DIR}"
-#                          ${EXTRA_INCLUDES})
-
-set(EX_NAME iceSheet)
-add_executable(${EX_NAME}  mainFiles/iceSheetMain.cpp)
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-
-
-
-set(EX_NAME stokes2)
-add_executable(${EX_NAME}  mainFiles/stokes.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-#
-set(EX_NAME stokes3)
-add_executable(${EX_NAME}  mainFiles/stokes3.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-
-set(EX_NAME curvature2)
-add_executable(${EX_NAME}  mainFiles/curvature2.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                          "${PROJECT_BINARY_DIR}"
-                          ${EXTRA_INCLUDES})
-
-#set(EX_NAME FEM_Stokes)
-#add_executable(${EX_NAME}  mainFiles/mainStokes.cpp )
-#target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-#target_include_directories(${EX_NAME} PUBLIC
-#                         "${PROJECT_BINARY_DIR}"
-#                          ${EXTRA_INCLUDES})
-
-set(EX_NAME cutStokes2)
-add_executable(${EX_NAME}  mainFiles/cutStokes2.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                            "${PROJECT_BINARY_DIR}"
-                            ${EXTRA_INCLUDES})
-
-#
-set(EX_NAME cutStokes3)
-add_executable(${EX_NAME}  mainFiles/cutStokes3.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                            "${PROJECT_BINARY_DIR}"
-                            ${EXTRA_INCLUDES})
-
-#set(EX_NAME FEM_Erik)
-#add_executable(${EX_NAME}  mainFiles/erikMain.cpp )
-#target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-#target_include_directories(${EX_NAME} PUBLIC
-#                          "${PROJECT_BINARY_DIR}"
-#                          ${EXTRA_INCLUDES})
-
-#set(EX_NAME FEM_Time)
-#add_executable(${EX_NAME}  mainFiles/mainTimeFEM.cpp )
-#target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-#target_include_directories(${EX_NAME} PUBLIC
-#                          "${PROJECT_BINARY_DIR}"
-#                          ${EXTRA_INCLUDES})
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})

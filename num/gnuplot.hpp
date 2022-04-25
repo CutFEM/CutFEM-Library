@@ -38,25 +38,6 @@ namespace gnuplot {
     }
     plot.close();
   }
-
-  // void save(const CutFESpace2 & Vh, int domain, std::string filename = "CutTh.dat") {
-  //
-  //   std::ofstream plot;
-  //   plot.open(filename.c_str(), std::ofstream::out);
-  //   const int nve = Vh.Th[0].nv;
-  //   for(int k=0; k<Vh.NbElement(domain);++k) {
-  //     int kk = Vh.subDomain(domain)->getTriLocToGlob(k);
-  //     for(int i=0;i<nve;++i) {
-  //       plot << Vh.Th[kk][i] << std::endl;
-  //     }
-  //     plot << Vh.Th[kk][0] << std::endl;
-  //     plot << std::endl;
-  //     plot << std::endl;
-  //   }
-  //   plot.close();
-  // }
-  //
-
   void save(const Mesh3 & Th, std::string filename = "Th.dat") {
 
     std::ofstream plot;
@@ -76,63 +57,63 @@ namespace gnuplot {
     plot.close();
   }
 
-  void save(const Mesh2 & Th, const Fracture& fracture, std::string filename = "Th_fractured.dat") {
 
-    std::ofstream plot;
-    plot.open(filename.c_str(), std::ofstream::out);
-    const int nve = Th[0].nv;
 
-    Local_Partition local_partition;
-    for(int k=0; k<Th.nt;++k) {
-
-      // if(fracture.is_cut_element(k)) {
-        fracture.build_local_partition(k, local_partition);
-        // std::cout << " element " << k << " cut in " << local_partition.nb_element() << std::endl;
-        for(int i=0; i<local_partition.nb_element();++i){
-          Element2 K = local_partition.get_element(i);
-          for(int j=0;j<nve;++j) {
-            plot << K[j] << std::endl;
-          }
-          plot << K[0] << std::endl;
-          plot << std::endl;
-          plot << std::endl;
-        }
-        // for(int i=0;i<nve;++i) {
-        //   plot << Th[k][i] << std::endl;
-        // }
-        // plot << Th[k][0] << std::endl;
-        // plot << std::endl;
-        // plot << std::endl;
-        // getchar();
-      // }
-
-    }
-    plot.close();
-  }
-
-  void save(const Fracture& Gh, std::string filename = "fracture.dat") {
-
-    std::ofstream plot;
-    plot.open(filename.c_str(), std::ofstream::out);
-    const int nve = 2;
-    for(int k=0; k<Gh.nb_element();++k) {
-      for(int i=0;i<nve;++i) {
-        plot << Gh(k,i) << std::endl;
-      }
-      plot << std::endl;
-      plot << std::endl;
-    }
-    plot.close();
-
-    // plot.open("normal.dat", std::ofstream::out);
-    // for(int k=0; k<Gh.nbElement();++k) {
-    //   plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
-    // }
-    plot.close();
-
-  }
-
-  // void save(const Interface2 & Gh, std::string filename = "Gh.dat") {
+  // void save(const Mesh2 & Th, const Fracture& fracture, std::string filename = "Th_fractured.dat") {
+  //
+  //   std::ofstream plot;
+  //   plot.open(filename.c_str(), std::ofstream::out);
+  //   const int nve = Th[0].nv;
+  //
+  //   Local_Partition local_partition;
+  //   for(int k=0; k<Th.nt;++k) {
+  //
+  //     // if(fracture.is_cut_element(k)) {
+  //       fracture.build_local_partition(k, local_partition);
+  //       // std::cout << " element " << k << " cut in " << local_partition.nb_element() << std::endl;
+  //       for(int i=0; i<local_partition.nb_element();++i){
+  //         Element2 K = local_partition.get_element(i);
+  //         for(int j=0;j<nve;++j) {
+  //           plot << K[j] << std::endl;
+  //         }
+  //         plot << K[0] << std::endl;
+  //         plot << std::endl;
+  //         plot << std::endl;
+  //       }
+  //       // for(int i=0;i<nve;++i) {
+  //       //   plot << Th[k][i] << std::endl;
+  //       // }
+  //       // plot << Th[k][0] << std::endl;
+  //       // plot << std::endl;
+  //       // plot << std::endl;
+  //       // getchar();
+  //     // }
+  //
+  //   }
+  //   plot.close();
+  // }
+  // void save(const Fracture& Gh, std::string filename = "fracture.dat") {
+  //
+  //   std::ofstream plot;
+  //   plot.open(filename.c_str(), std::ofstream::out);
+  //   const int nve = 2;
+  //   for(int k=0; k<Gh.nb_element();++k) {
+  //     for(int i=0;i<nve;++i) {
+  //       plot << Gh(k,i) << std::endl;
+  //     }
+  //     plot << std::endl;
+  //     plot << std::endl;
+  //   }
+  //   plot.close();
+  //
+  //   // plot.open("normal.dat", std::ofstream::out);
+  //   // for(int k=0; k<Gh.nbElement();++k) {
+  //   //   plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
+  //   // }
+  //   plot.close();
+  //
+  // }
+  // void save(const Interface<Mesh2> & Gh, std::string filename = "Gh.dat") {
   //
   //   std::ofstream plot;
   //   plot.open(filename.c_str(), std::ofstream::out);
@@ -155,6 +136,8 @@ namespace gnuplot {
   //   plot.close();
   //
   // }
+
+
   //
   // void save(const Interface3 & Gh, std::string filename = "Gh.dat") {
   //
@@ -174,44 +157,43 @@ namespace gnuplot {
 
 
 
-  void saveMarker(const Marker & marker, std::string filename = "marker.dat") {
+  void save(const Marker& marker, std::string filename = "marker.dat") {
 
     std::ofstream plot;
     plot.open(filename.c_str(), std::ofstream::out);
-    for(int k=0; k<marker.markers.size();++k) {
-      plot << marker.markers[k] << std::endl;
-    }
-    // plot << marker.markers[0] << std::endl;
-    plot.close();
-
-    plot.open("node.dat", std::ofstream::out);
-    const int nve = 2;
-    for(int k=0; k<marker.nbElement();++k) {
-      for(int i=0;i<nve;++i) {
-    	plot << marker(k,i) << std::endl;
-      }
-      plot << std::endl;
-      plot << std::endl;
+    for(int k=0; k<marker.size();++k) {
+      plot << marker.get_marker(k) << std::endl;
     }
     plot.close();
 
-  }
-
-  void saveNormal(const Marker & marker, std::string filename = "normal.dat") {
-    std::ofstream plot;
-    plot.open(filename.c_str(), std::ofstream::out);
-    // for(int k=0; k<marker.edges_node.size();++k) {
-    //   plot << marker.edges_node[k] << std::endl;
+    // plot.open("node.dat", std::ofstream::out);
+    // const int nve = 2;
+    // for(int k=0; k<marker.nbElement();++k) {
+    //   for(int i=0;i<nve;++i) {
+    // 	plot << marker(k,i) << std::endl;
+    //   }
+    //   plot << std::endl;
+    //   plot << std::endl;
     // }
-    // plot << marker.edges_node[0] << std::endl;
-    for(int k=0; k<marker.faces_.size();++k) {
-      const typename Marker::Face& face = marker[k];  // the face
-      R2 normal(marker.normal(k));
-      plot << (marker(k,0)+marker(k,1))*0.5 << "\t" << 0.1*normal << std::endl;
-    }
-    plot.close();
+    // plot.close();
 
   }
+
+  // void saveNormal(const Marker & marker, std::string filename = "normal.dat") {
+  //   std::ofstream plot;
+  //   plot.open(filename.c_str(), std::ofstream::out);
+  //   // for(int k=0; k<marker.edges_node.size();++k) {
+  //   //   plot << marker.edges_node[k] << std::endl;
+  //   // }
+  //   // plot << marker.edges_node[0] << std::endl;
+  //   for(int k=0; k<marker.faces_.size();++k) {
+  //     const typename Marker::Face& face = marker[k];  // the face
+  //     R2 normal(marker.normal(k));
+  //     plot << (marker(k,0)+marker(k,1))*0.5 << "\t" << 0.1*normal << std::endl;
+  //   }
+  //   plot.close();
+  //
+  // }
 
   // void exportInterface(const Interface2 & Gh, const Mapping2& mapping,
   // 		       std::string filename = "Gh.dat") {
@@ -242,7 +224,7 @@ namespace gnuplot {
 
 
 
-  // 
+  //
   // void save(const MacroElement & macro, const Extension& extension) {
   //
   //   std::ofstream plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10, plot11, plot12;

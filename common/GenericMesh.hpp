@@ -19,7 +19,6 @@ using namespace ::std;
 #include "dataStruct1D.hpp"
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
-// #include "cut_method.hpp"
 #include "cutFEMConfig.h"
 #ifdef USE_MPI
 #include "../parallel/cfmpi.hpp"
@@ -252,8 +251,7 @@ public:
 
 
 template<typename T,typename B,typename V>
-class GenericMesh
-{
+class GenericMesh {
 public:
   typedef GenericMesh GMesh;
   typedef T Element;
@@ -264,10 +262,6 @@ public:
   typedef typename Element::RdHat RdHat;// for parametrization
   typedef typename Element::Face Face;
 
-  typedef const T* const_element_iterator;
-  typedef       T*       element_iterator;
-  typedef const V* const_vertex_iterator;
-  typedef       V*       vertex_iterator;
 
   static const int nea=T::nea; //  numbering of adj (4 in Tet,  3 in Tria, 2 in seg)
   static const int nva=T::nva; //  numbering of vertex in Adj hyperface
@@ -275,8 +269,8 @@ public:
   int nt,nv,nbe,ne_;
   R mes,mesb;
   Rd Pmin,Pmax; // // the bound  of the domain  see BuildBound
-  int levelRefinement = 0;
-  GMesh const * rootMesh = nullptr;
+  // int levelRefinement = 0;
+  // GMesh const * rootMesh = nullptr;
 // protected
   V *vertices;
   T *elements;
@@ -292,15 +286,16 @@ public:
   // std::map<pairIndex, int> cut_face_;  // (ki,kj) -> edge_idx,
 
   // For mesh build from interface
-  Uint *ElementIndexInBackMesh;   // from loc to BackMesh
-  Uint *VertexIndexInBackMesh;
-  Uint *ElementIndexInLocMesh;    // from backMesh to loc
+  // Uint *ElementIndexInBackMesh;   // from loc to BackMesh
+  // Uint *VertexIndexInBackMesh;
+  // Uint *ElementIndexInLocMesh;    // from backMesh to loc
 
   // For mesh build from coarse mesh
-  Uint *ElementIndexInCoarseMesh;
+  // Uint *ElementIndexInCoarseMesh;
 
 public:
   int nbElmts() const {return nt;}
+  int get_nb_element() const {return nt;}
   int nbBrdElmts() const {return nbe;}
   int nbVertices() const {return nv;}
   int nbElements() const {return nt;}
@@ -322,16 +317,16 @@ public:
 
   GenericMesh()
     : nt(0), nv(0), nbe(0), mes(0.), mesb(0.) ,
-      levelRefinement(0),
+      // levelRefinement(0),
       vertices(0),elements(0),borderelements(0), //bnormalv(0),
       // inner_faces_(0),
       TheAdjacencesLink(0),
       BoundaryElementHeadLink(0),
-      ElementConteningVertex(0),
-      ElementIndexInBackMesh(0),
-      VertexIndexInBackMesh(0),
-      ElementIndexInLocMesh(0),
-      ElementIndexInCoarseMesh(0)
+      ElementConteningVertex(0)
+      // ElementIndexInBackMesh(0),
+      // VertexIndexInBackMesh(0),
+      // ElementIndexInLocMesh(0),
+      // ElementIndexInCoarseMesh(0)
   {}
 
   virtual void info() {
@@ -401,18 +396,18 @@ public:
   int CheckBE(int i) const { ASSERTION(i>=0 && i < nbe); return i;}
   int CheckIF(int i) const { ASSERTION(i>=0 && i < ne_); return i;}
 
-  //for cutMesh
-  int idxElementInBackMesh(int k) const {ASSERTION(k>=0 && k < nt);
-    return (ElementIndexInBackMesh)?ElementIndexInBackMesh[k] : k;}
-  int idxElementFromBackMesh(int k) const {
-    return (ElementIndexInLocMesh)?ElementIndexInLocMesh[k] : k;}
+  // //for cutMesh
+  // int idxElementInBackMesh(int k) const {ASSERTION(k>=0 && k < nt);
+  //   return (ElementIndexInBackMesh)?ElementIndexInBackMesh[k] : k;}
+  // int idxElementFromBackMesh(int k) const {
+  //   return (ElementIndexInLocMesh)?ElementIndexInLocMesh[k] : k;}
 
 
   void BuildAdj();
   void Buildbnormalv();
   void BuildBound();
   void BuildjElementConteningVertex();
-  void BuildInnerFace();
+  // void BuildInnerFace();
 
   virtual DataFENodeDF BuildDFNumbering(int dfon[NbTypeItemElement],
 					int nndon[NbTypeItemElement],
@@ -516,10 +511,10 @@ public:
     if(nt>0) delete [] elements;
     delete [] vertices;
     //    delete [] bnormalv;
-    if(ElementIndexInBackMesh) delete [] ElementIndexInBackMesh;
-    if(VertexIndexInBackMesh)  delete [] VertexIndexInBackMesh;
-    if(ElementIndexInLocMesh)  delete [] ElementIndexInLocMesh;
-    if(ElementIndexInCoarseMesh) delete [] ElementIndexInCoarseMesh;
+    // if(ElementIndexInBackMesh) delete [] ElementIndexInBackMesh;
+    // if(VertexIndexInBackMesh)  delete [] VertexIndexInBackMesh;
+    // if(ElementIndexInLocMesh)  delete [] ElementIndexInLocMesh;
+    // if(ElementIndexInCoarseMesh) delete [] ElementIndexInCoarseMesh;
   }
 
 private:
@@ -554,7 +549,6 @@ public :
     delete h;
   }
 };
-
 
 
 template<typename GMesh>
@@ -622,11 +616,6 @@ public :
 
 
 };
-
-
-
-
-
 class BuildDofNumberingOfMeshHelper {
 protected:
   typedef SortArray<unsigned int,2> Key;
@@ -717,9 +706,6 @@ public :
   }
 
 };
-
-
-
 template<typename GMesh>
 class BuildDofNumberingOfMeshPk : public BuildDofNumberingOfMeshHelper {
 public :
@@ -897,95 +883,6 @@ void fillTheArray() {
 }
 
 };
-
-
-
-
-
-//Represents the reference element which is cut by a linear level set function ls.
-template<typename T>
-class GSignPatternTrait
-{
-  typedef T Element;
-  static const int nve = Element::nv;
-
-  protected:
-  Ubyte num_root_vert_;  ///< number of vertices, where the level set function is zero.
-  Ubyte num_root_;       ///< number of roots of the level set function; num_root_vert <= num_root
-  byte sign_[Element::nv];  //Sign of the level set function of the vertices; \f$\in\{-1,0,1\}\f$
-  Ubyte cut_simplex_[Element::nvc]; ///< local number with respect to the reference tetra of the object on the cut: [0,num_root_vert): vertex numbers in (0..2); [num_root_vert, num_root): edge numbers in (0..3). Both parts are sorted in increasing order.
-  Ubyte cut_simplex_rep_[Element::nvc]; ///< local number of the object on the cut: (0..5)
-
-  void compute_cuts ();
-
-  public:
-  GSignPatternTrait () : num_root_vert_( 3), num_root_( 2) {} ///< Uninitialized default state
-  GSignPatternTrait (const byte   ls[nve]) { assign( ls); } ///< Assign the sign pattern on the vertices; throws if ls is identically 0.
-  GSignPatternTrait (const double ls[nve]) { assign( ls); } ///< Assign a sign pattern on the vertices; throws if ls is identically 0.
-  void assign (const byte   ls[nve]); ///< Assign a sign pattern on the vertices; throws if ls is identically 0.
-  void assign (const double ls[nve]); ///< Assign a sign pattern on the vertices; throws if ls is identically 0.
-
-  byte sign (int i) const { return sign_[i]; } ///< -1,0,1; sign of vertex i.
-
-  bool empty () const { return num_root_ == 0; } ///< True, iff there is no intersection.
-
-  bool no_zero_vertex () const { return num_root_vert_ == 0; } ///< True, iff there is no vertex, in which ls vanishes.
-
-  Ubyte num_cut_simplexes () const { return num_root_; } ///< Number of edges and vertices with a root of ls.
-  Ubyte num_zero_vertexes () const { return num_root_vert_; } ///< Number of vertices of the tetra that are roots of ls.
-
-  /// Return local number of edges/verts with a root of ls. For edges, [] returns a edge number in 0..5, and () returns an extended vertex number in 4..9.
-  ///@{
-  Ubyte operator[] (int i) const { return cut_simplex_[i]; }
-  Ubyte operator() (int i) const { return cut_simplex_rep_[i]; }
-  ///@}
-
-
-};
-
-template<typename T>
-void GSignPatternTrait<T>::assign (const byte ls[Element::nv])
-{
-  num_root_vert_= num_root_= 0;
-
-  byte sum= 0;
-  for (Ubyte i= 0; i < Element::nv; ++i) sum += (sign_[i] = ls[i]);
-  if (sum == Element::nv || sum == -Element::nv) return;
-  compute_cuts ();
-}
-
-template<typename T>
-void GSignPatternTrait<T>::assign (const double ls[Element::nv])
-{
-  num_root_vert_= num_root_= 0;
-
-  byte sum= 0;
-  for (Ubyte i= 0; i < Element::nv; ++i)
-    sum += (sign_[i] = sign( ls[i]));
-  if (sum == Element::nv || sum == -Element::nv) // optimize the case of uncut tetras
-    return;
-
-  compute_cuts ();
-}
-
-template<typename T>
-void GSignPatternTrait<T>::compute_cuts ()
-{
-  for (Ubyte i= 0; i < Element::nv; ++i){
-    if (sign( i) == 0) {
-      cut_simplex_[num_root_vert_++]= i;
-    }
-    num_root_= num_root_vert_;
-  }
-  for (Ubyte i= 0; i < Element::ne; ++i){
-    if (sign( Element::nvedge[i][0])*sign( Element::nvedge[i][1]) == -1) {
-      cut_simplex_[num_root_++]= i;
-    }
-    std::memcpy( cut_simplex_rep_, cut_simplex_, Element::nvc*sizeof(byte));
-  }
-  for (int i= num_root_vert_; i < num_root_; ++i) cut_simplex_rep_[i]+= Element::nv;
-
-}
 
 
 

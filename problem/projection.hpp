@@ -59,48 +59,46 @@ void projection(FunFEM<M> & fh, FunFEM<M> & ph, const TimeSlab& In){
   apply L2 projection to a vector for cutProblem
 - uh is the projected vector
  */
-template<typename M>
-void projection(const FunFEM<M> & fh, FunFEM<M> & ph, const GenericInterface<M>& inter){
-	typedef typename M::Rd Rd;
-	typedef TestFunction<Rd::d> FunTest;
-	typedef GFESpace<M> FESpace;
-	typedef GenericInterface<M> Interface;
-
-	const FESpace& Fh(*fh.Vh);
-	const FESpace& Vh(*ph.Vh);
-
-	assert(&Fh.Th == &Vh.Th);
-
-	FEM<M> projection(Vh);
-	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
-	projection.addBilinear(innerProduct(u,v), inter);
-	projection.addLinear(innerProduct(fh.expression(),v), inter);
-
-// in case of time mesh, the interface does not go through all the elements at one time
-	projection.addDiagonal(1e-14);
-	// projection.addLagrangeMultiplier(innerProduct(1.,v), inter, 0);
-
-// matlab::Export(projection.mat, "matProj.dat");
-// matlab::Export(projection.rhs, "rhsProj.dat");
+// template<typename M>
+// void projection(const FunFEM<M> & fh, FunFEM<M> & ph, const Interface<M>& inter){
+// 	typedef typename M::Rd Rd;
+// 	typedef TestFunction<Rd::d> FunTest;
+// 	typedef GFESpace<M> FESpace;
 //
-// getchar();
-
-	projection.solve();
-	KN_<double> uh(projection.rhs(SubArray(ph.size(), 0)));
-	ph.v = uh;
-}
-
+// 	const FESpace& Fh(*fh.Vh);
+// 	const FESpace& Vh(*ph.Vh);
+//
+// 	assert(&Fh.Th == &Vh.Th);
+//
+// 	CutFEM<M> projection(Vh);
+// 	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
+// 	projection.addBilinear(innerProduct(u,v), inter);
+// 	projection.addLinear(innerProduct(fh.expression(),v), inter);
+//
+// // in case of time mesh, the interface does not go through all the elements at one time
+// 	projection.addDiagonal(1e-14);
+// 	// projection.addLagrangeMultiplier(innerProduct(1.,v), inter, 0);
+//
+// // matlab::Export(projection.mat, "matProj.dat");
+// // matlab::Export(projection.rhs, "rhsProj.dat");
+// //
+// // getchar();
+//
+// 	projection.solve();
+// 	KN_<double> uh(projection.rhs(SubArray(ph.size(), 0)));
+// 	ph.v = uh;
+// }
+//
 
 /*
   apply L2 projection to a vector in case of cutFEM
 - uh is the projected vector
  */
 template<typename M>
-void projection(const FunFEM<M> & fh, FunFEM<M> & ph, const GenericInterface<M>& inter, double valLagrange){
+void projection(const FunFEM<M> & fh, FunFEM<M> & ph, const Interface<M>& inter, double valLagrange){
 	typedef typename M::Rd Rd;
 	typedef TestFunction<Rd::d> FunTest;
 	typedef GFESpace<M> FESpace;
-	typedef GenericInterface<M> Interface;
 
 	const FESpace& Fh(*fh.Vh);
 	const FESpace& Vh(*ph.Vh);
@@ -136,7 +134,7 @@ void projection(const FunFEM<M> & fh, FunFEM<M> & ph, const TimeSlab& In, const 
 	typedef typename M::Rd Rd;
 	typedef TestFunction<Rd::d> FunTest;
 	typedef GFESpace<M> FESpace;
-	typedef GenericInterface<M> Interface;
+	// typedef GenericInterface<M> Interface;
 
 	const FESpace& Fh(*fh.Vh);
 	const FESpace& Vh(*ph.Vh);
@@ -157,8 +155,9 @@ void projection(const FunFEM<M> & fh, FunFEM<M> & ph, const TimeSlab& In, const 
 	projection.addLinear(innerProduct(fh.expression(),v), interface, In);
 
 	projection.addEdgeIntegral(
-		innerProduct(h*jump(grad(u).t()*n), 1e-2*h*jump(grad(v).t()*n)),
-		In
+		innerProduct(h*jump(grad(u).t()*n), 1e-2*h*jump(grad(v).t()*n))
+
+		, In
 	);
  // in case of time mesh, the interface does not go through all the elements at one time
  // projection.addDiagonal(1e-14);

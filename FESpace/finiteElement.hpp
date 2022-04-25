@@ -38,12 +38,13 @@ public:
   : GTypeOfFESum<Mesh3>(FEarray(4,FE_)){}
 };
 
-class Lagrange3 :  public GTypeOfFESum<Mesh3>{
-  typedef KN<const GTypeOfFE<Mesh3>*> FEarray;
-  static const GTypeOfFE<Mesh3>* FE_[3][3];
+template<typename Mesh>
+class Lagrange3 :  public GTypeOfFESum<Mesh>{
+  typedef KN<const GTypeOfFE<Mesh>*> FEarray;
+  static const GTypeOfFE<Mesh>* FE_[3][3];
 public:
   Lagrange3(int k=1)
-  : GTypeOfFESum<Mesh3>(FEarray(3,FE_[k])){}
+  : GTypeOfFESum<Mesh>(FEarray(3,FE_[k])){}
 };
 
 

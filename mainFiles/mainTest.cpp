@@ -14,11 +14,11 @@
 // #include "../num/gnuplot.hpp"
 #include "interface_levelSet.hpp"
 #include "cut_mesh.hpp"
-#include "baseCutProblem.hpp"
+#include "baseProblem.hpp"
 #include "paraview.hpp"
 
 #include "../num/matlab.hpp"
-#define TEST_3D
+#define TEST_2D
 
 
 
@@ -105,56 +105,13 @@ int main(int argc, char** argv ){
 
   MPIcf cfMPI(argc,argv);
 
-  Mesh Th(10, 10, 0., 0., 1., 1.);
+  Mesh Th(18, 18, 0., 0., 1., 1.);
   Th.info();
-  Space Vh(Th, DataFE<Mesh2>::P1);
-  FEM<Mesh2> problem(Vh);
-
-  FunTest u(Vh,1), v(Vh,1);
-  //----------------------------------------------
-  // problem.addBilinear((u,v) + (grad(u), grad(v)) , Th);
-  // problem.addLinear((1,v), Th);
-  // matlab::Export(problem.mat_, "matK_new.dat");
-  // matlab::Export(problem.rhs_, "rhsK_new.dat");
-  // problem.cleanMatrix();
-  // problem.rhs_ = 0.;
-  //
-  // //----------------------------------------------
-  // problem.addBilinear((u,v) + (grad(u), grad(v)) , Th, boundary);
-  // problem.addLinear((1,v), Th, boundary);
-  // matlab::Export(problem.mat_, "matdw_new.dat");
-  // matlab::Export(problem.rhs_, "rhsdw_new.dat");
-  // problem.cleanMatrix();
-  // problem.rhs_ = 0.;
-
-  //----------------------------------------------
-  problem.addBilinear((jump(grad(u)),jump(grad(v))), Th, innerEdge);
-  problem.addLinear((1,jump(grad(v))), Th, innerEdge);
-  matlab::Export(problem.mat_, "matdK_new.dat");
-  matlab::Export(problem.rhs_, "rhsdK_new.dat");
-  problem.cleanMatrix();
-  problem.rhs_ = 0.;
+  // Space Vh(Th, DataFE<Mesh2>::P1);
+  // FEM<Mesh2> problem(Vh);
+  // FunTest u(Vh,1), v(Vh,1);
 
 
-  return 0;
-
-
-  // const double cpubegin = CPUtime();
-  //
-  // MPIcf cfMPI(argc,argv);
-  //
-  //
-  // int nx = 20;
-  // int ny = 20;
-  // int nz = 3;
-  // // MeshHexa Th(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
-  // // Mesh Th(nx, ny, -0.5, -0.5, 1., 1.);  // Flower shape
-  // // Mesh Th(nx, ny, 0., 0., 2., 2.);
-  // Mesh Th(nx, ny, 0., 0., 1., 1.);
-  // Th.info();
-
-  // FESpaceQ3 Lh(Th, DataFE<Mesh>::P1);
-  // Fun_h levelSet(Lh, fun_levelSet3);
   Space Lh(Th, DataFE<Mesh>::P1);
   Fun_h levelSet1(Lh, fun_levelSet2_1);
   // Fun_h levelSet2(Lh, fun_levelSet2_2);
@@ -181,8 +138,8 @@ int main(int argc, char** argv ){
   // interface.init(Th, &levelSet1);
 
 
-  ActiveMesh<Mesh> cutTh(Th,interface1);
-  // cutTh.truncate(interface1, -1);
+  ActiveMesh<Mesh> Khi(Th);
+  Khi.truncate(interface1, -1);
   // cutTh.create_surface_mesh(interface1);
   // cutTh.add(interface1);
   // cutTh.add(interface2);
@@ -196,7 +153,7 @@ int main(int argc, char** argv ){
 
   // CutSpace Vh(cutTh, Lh);
   // Fun_h ftest(Vh, fun_test);
-  MacroElement<Mesh> macro(cutTh, 2e-1);
+  MacroElement<Mesh> macro(Khi, 0.15);
   // MacroElementSurfaceCL<Mesh> macro_surface(interface1, 1e-1);
 
 
@@ -227,9 +184,13 @@ int main(int argc, char** argv ){
   // FK.BF(Fop_Dall, x, bf);
   // std::cout << bf<< std::endl;
 
-  // ParaviewCut<Mesh> writer1(cutTh, "macro_active_mesh.vtk");
-  // writer1.write_active_mesh();
-  // writer1.add(levelSet1, "levelSet1", 0, 1);
+  Paraview<Mesh> writer(Th, "backMesh.vtk");
+  writer.add(levelSet1, "levelSet1", 0, 1);
+  writer.writeActiveMesh(Khi, "active_mesh.vtk");
+  writer.writeMacroElement(macro, 0, "macro_element.vtk");
+  writer.writeFaceStab(Khi, 0, "fullstab_face.vtk");
+  writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
+  writer.writeMacroOutterEdge(macro, 0, "macro_outter_edge.vtk");
   // ParaviewCut<Mesh> writer1(cutTh, "macro_backMesh.vtk");
   // writer1.write_active_mesh();
   // writer1.add(levelSet1, "levelSet1", 0, 1);
@@ -267,7 +228,6 @@ int main(int argc, char** argv ){
 
   // getchar();
 
-  std::cout << " need to check case 3 and 4 " << std::endl;
 
 
   return 0;
@@ -321,15 +281,11 @@ double fun_kappa_E2(int i, double hh, double meas, double measK, double meas_Cut
     return 1-meas_Cut/measK;
 }
 
-double fun_parameter_test(int domain, double h, double meas, double measK, double meas_cut) {
-  double mu = CutFEM_ParameterList::listParameter["mu"]->evaluate(domain,h,meas,measK,meas_cut);
-  return 2*mu;
-}
 
-class  TestParameter : public Virtual_Parameter {
+class  TestParameter : public VirtualParameter {
 public:
-  const ParameterCutFEM& mu;
-  TestParameter(const ParameterCutFEM& m) : mu(m){}
+  const CutFEMParameter& mu;
+  TestParameter(const CutFEMParameter& m) : mu(m){}
   double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
     return 2*mu.evaluate(domain,h,meas,measK,meas_Cut);
   }
@@ -365,20 +321,19 @@ int main(int argc, char** argv )
 
 
   std::vector<double> data_mu = {1,2,3,4};
-  ParameterCutFEM mu(data_mu);
-  ParameterCutFEM rho(fun_parameter_test);
+  CutFEMParameter mu(data_mu);
 
   std::vector<R3> data_beta = {R3(1,1,1), R3(2,2,2), R3(3,3,3)};
   CutFEM_R3 beta(data_beta);
 
   TestParameter mu2(mu);
 
-  // ParameterCutFEM kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
-  // ParameterCutFEM kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
+  // CutFEMParameter kappaTilde("kappaTilde", kappaTilde1, kappaTilde2);
+  // CutFEMParameter kappaTildeA("kappaTildeA", kappaTilde1*A1, kappaTilde2*A2);
   //
   // // Local weights for average function across bulk faces
-  // ParameterCutFEM kappa_E1("kappa_E1", fun_kappa_E1);
-  // ParameterCutFEM kappa_E2("kappa_E2", fun_kappa_E2);
+  // CutFEMParameter kappa_E1("kappa_E1", fun_kappa_E1);
+  // CutFEMParameter kappa_E2("kappa_E2", fun_kappa_E2);
 
   // FULLSTAB PARAMETERS
   double tau_a0 = 1e0, tau_b0 = 0;
@@ -406,7 +361,7 @@ int main(int argc, char** argv )
   Khi.add(interface2);
   Khi.info();
   ActiveMesh Kh0(Th);
-  Kh0.create_surface_mesh(interface1);
+  Kh0.createSurfaceMesh(interface1);
 
   // FINITE ELEMENT SPACE
   // ---------------------------------------------------------------------------
@@ -419,13 +374,13 @@ int main(int argc, char** argv )
 
   // INTERPOLATION OF THE VELOCITY FIELD
   // ---------------------------------------------------------------------------
-  Lagrange3 FEvelocity(1);
+  Lagrange3<Mesh> FEvelocity(1);
   Space velVh(Th, FEvelocity);
   Fun_h vel(velVh, fun_velocity);
 
   // BUILDING THE SYSTEM
   // ---------------------------------------------------------------------------
-  CutFEM<Mesh> problem({&Wh, &Sh});
+  CutFEM<Mesh> problem(Wh); problem.add(Sh);
   FunTest u(Wh,1), v(Wh,1);         // Bulk
   // FunTest u(Wh,1,0,2), v(Wh,1,0,2);         // Bulk
   FunTest u0(Sh,1), v0(Sh,1);       // Surface
@@ -497,7 +452,7 @@ int main(int argc, char** argv )
   Fun_h ftest(Wh, fun_test);
   // ftest.print();
 
-  ParaviewCut<Mesh> writer(Khi,"hexa_Test.vtk");
+  Paraview<Mesh> writer(Khi,"hexa_Test.vtk");
   // writer.add(levelSet2, "levelSet", 0, 1);
   writer.add(uh, "sol", 0, 1);
   // writer.add(us, "sol_surf", 0, 1);

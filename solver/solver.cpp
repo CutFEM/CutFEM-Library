@@ -19,18 +19,7 @@
 #endif
 // #include "../num/matlab.hpp"
 
-/*
- *  Macro for MUMPS solver
- */
-// #define JOB_INIT -1
-// #define JOB_ANALYSIS 1
-// #define JOB_FACTORIZATION 2
-// #define JOB_SOLVE 3
-// #define JOB_ALL 6
-// #define JOB_END -2
-// #define USE_COMM_WORLD -987654
-// #define ICNTL(I) icntl[(I)-1]
-// #define INFO(I) info[(I)-1]
+
 
 
 
@@ -42,16 +31,16 @@ void Solver::solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
     MUMPS(*this, A, b);
     #else
     #ifdef USE_UMFPACK
-    solver::umfpack(A,b);
+    solver::umfpack(A,b,clearMatrix_);
     #else
     assert(0);
     #endif
     #endif
   }
   else if(solver_name_ == "umfpack"){
-    std::cout << " solve using umfpack" << std::endl;
+    if(verbose_>1)std::cout << " solve using umfpack" << std::endl;
     #ifdef USE_UMFPACK
-    solver::umfpack(A,b);
+    solver::umfpack(A,b,clearMatrix_);
     #else
     assert(0);
     #endif
@@ -71,11 +60,11 @@ void Solver::solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
 
 namespace solver {
   #ifdef USE_UMFPACK
-   void umfpack(std::map<std::pair<int,int>,R> & Amap, Rn & b) {
+   void umfpack(std::map<std::pair<int,int>,R> & Amap, Rn & b, bool clearMatrix) {
      const int n = b.size();
      KN<double> x(n);
      SparseMatrixRC<double> A(n, n, Amap);
-     Amap.clear();
+     if(clearMatrix) Amap.clear();
      void *Symbolic, *Numeric ;
      (void) umfpack_di_symbolic (n, n, A.p, A.j, A.a, &Symbolic, 0, 0) ;
      (void) umfpack_di_numeric (A.p, A.j, A.a, Symbolic, &Numeric, 0, 0) ;

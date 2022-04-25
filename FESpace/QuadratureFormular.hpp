@@ -62,6 +62,7 @@ public:
 
   const QP & operator [](int i) const  {return p[i];}
   const QP  & operator ()(int i) const {return p[i];}
+  const QP  & at(int i) const {return p[i];}
   ~GQuadratureFormular() {if(clean) delete [] p;}
 private:
   GQuadratureFormular(const GQuadratureFormular &)
@@ -130,8 +131,13 @@ extern const GQuadratureFormular<R3> QuadratureFormular_Tet_7;
 
 template<class Rd>
 const GQuadratureFormular<Rd> * QF_Simplex(int exact);
+const GQuadratureFormular<R2> * QF_Quad(int exact);
+const GQuadratureFormular<R3> * QF_Hexa(int exact);
+
 
 GQuadraturePoint<R1>  *  GaussLegendre(int nn);
+GQuadraturePoint<R2>  *  GaussLegendre2D(int nn);
+GQuadraturePoint<R3>  *  GaussLegendre3D(int nn);
 
 const GQuadratureFormular<R1>  *  Lobatto(int nn);
 int exactLobatto_nPt(int n);

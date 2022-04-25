@@ -146,13 +146,13 @@ void FunFEM<M>::eval(R* u, const int k) const {
 }
 
 template<typename M>
-double FunFEM<M>::evalOnBackMesh(const int kb, const R* x, int cu, int op, int dom) const{
+double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R* x, int cu, int op) const{
   int k = Vh->idxElementFromBackMesh(kb,dom);
   return eval(k, x, cu, op);
 }
 
 template<typename M>
-double FunFEM<M>::evalOnBackMesh(const int kb, const R* x, const R t, int cu, int op, int opt, int dom) const{
+double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R* x, const R t, int cu, int op, int opt) const{
 
   int k = Vh->idxElementFromBackMesh(kb,dom);
 
@@ -182,20 +182,3 @@ std::list<ExpressionFunFEM<M>> FunFEM<M>::expression(int n, int i0)const{
   }
   return l;
 }
-
-
-// template<typename M>
-// std::list<ExpressionFunFEM<M>> LaxFriedrichs_flux(const std::list<ExpressionFunFEM<M>>& U, int cu)
-// {
-//   std::list<ExpressionFunFEM<M>> tt;
-//   auto it=U.begin();
-//   std::list<ExpressionFunFEM<M>> l;
-//   const ExpressionFunFEM<M>& rho(*it);
-//   l.push_back(rho*rho);
-//   l.push_back(rho*rho);
-//   return l;
-//   // auto it=U.begin();
-//   // if(cu == 0) {
-//   //   return {*(it+1) , *(it+2)};
-//   // }
-// }

@@ -485,12 +485,17 @@ int TypeOfFE_P1QLagrange3d::Data[] = {
 double TypeOfFE_P1QLagrange3d::alpha_Pi_h[] = {1. ,1. ,1., 1., 1., 1., 1., 1.};
 
 void TypeOfFE_P1QLagrange3d::FB(const What_d whatd, const Element & K,
-			       const R3 & P,RNMK_ & val) const
-{
+			       const R3 & P,RNMK_ & val) const {
   R lx[] = {1.-P.x,P.x};
   R ly[] = {1.-P.y,P.y};
   R lz[] = {1.-P.z,P.z};
 
+  double hx = K[1].x - K[0].x;
+  double hy = K[3].y - K[0].y;
+  double hz = K[4].z - K[0].z;
+
+  std::cout << hx << "\t" << hy << "\t" << hz << std::endl;
+  getchar();
   // Linear_Transformation<Element> map(K);
 
   assert(val.N() >= Element::nv);

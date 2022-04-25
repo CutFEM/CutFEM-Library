@@ -23,10 +23,12 @@ protected:
   int N_component_max_ = 0;
   int df_loc_max_ = 0;
   double* databf_ = nullptr;
+  double* databf_time_ = nullptr;
 
 public:
 
   BaseFEM(const ProblemOption& option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(option) {}
+  BaseFEM(const QuadratureFormular1d&qt, const ProblemOption& option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(qt, option) {}
   BaseFEM(const FESpace& vh, const ProblemOption& option) : BaseFEM<Mesh>(option)  {
     this->mapIdx0_.clear();
     this->mapIdx0_[&vh] = 0;
@@ -37,6 +39,21 @@ public:
     df_loc_max_ = vh[0].NbDoF();
     databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
   }
+
+  void initSpace(const FESpace& Vh, const TimeSlab& In) {
+    this->mapIdx0_.clear();
+    this->mapIdx0_[&Vh] = 0;
+    this->init(Vh.NbDoF() * In.NbDoF(), In.NbDoF());
+
+    N_component_max_ = Vh.N;
+    df_loc_max_ = Vh[0].NbDoF();
+
+    if(this->databf_) delete this->databf_;
+    this->databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
+    if(this->databf_time_) delete this->databf_time_;
+    this->databf_time_ = new double[In.NbDoF()*op_DDall];
+
+  }
   void add(const FESpace& Qh) {
     this->mapIdx0_[&Qh] = this->get_nb_dof();
     int ndf = this->get_nb_dof() + Qh.NbDoF();
@@ -46,20 +63,25 @@ public:
     delete databf_;
     databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
   }
-
-
-  // void add(const FESpace& Qh, const TimeSlab& IIn) {
-  //   this->mapIdx0[&Qh] = this->nDoF;
-  //   this->nDoF += Qh.NbDoF() * IIn.NbDoF();
-  //   this->rhs.resize(this->nDoF); this->rhs = 0.0;
-  //   this->mapIdx0_K[&Qh] = this->nt;
-  //   this->nt += Qh.NbElement();
-  // }
+  void add(const FESpace& Vh, const TimeSlab& In) {
+    assert(this->nb_dof_time_ == In.NbDoF());
+    this->mapIdx0_[&Vh] = this->get_nb_dof();
+    int ndf = this->get_nb_dof() + (Vh.NbDoF() * In.NbDoF());
+    this->init(ndf);
+    N_component_max_ = max(N_component_max_, Vh.N);
+    df_loc_max_ = max(df_loc_max_, Vh[0].NbDoF());
+    delete databf_;
+    databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
+  }
 
 
   // add local to Matrix or rhs
   void addToMatrix(const ItemVF<Rd::d>& VF, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
+  void addToMatrix(const ItemVF<Rd::d>& VF, const TimeSlab& In, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
+  void addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint);
+
   void addToRHS(const ItemVF<Rd::d>& VF, const FElement& FKv, const RNMK_& fv, double Cint);
+  void addToRHS(const ItemVF<Rd::d>& VF, const TimeSlab& In, const FElement& FKv, const RNMK_& fv, double Cint);
 
   // add diagonal terms
   void addDiagonal(const FESpace& Qh, double val);
@@ -68,17 +90,32 @@ public:
   // Integral on K
   void addBilinear(  const ListItemVF<Rd::d>& VF, const Mesh&) ;
   void addLinear(  const ListItemVF<Rd::d>& VF, const Mesh&) ;
-  void addElementContribution(const ListItemVF<Rd::d>& VF, const int k);
+  void addElementContribution(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time);
 
   // integral on innerFace
   void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CFacet& b);
   void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CFacet& b);
-  void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
+  void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2, const TimeSlab* In, int itq, double cst_time);
 
   // integral on boundary
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b);
-  void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b);
-  void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b,list<int> label = {});
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b,list<int> label = {});
+  void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
+
+  // integral on interface
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {});
+
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {});
+  void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time);
+
+  // integral for Lagrange multiplier
+  void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k);
 
 };
 
@@ -89,29 +126,26 @@ class FEM : public BaseFEM<Mesh>, public Solver{
   // typedef GenericMapping<Mesh> Mapping;
 
 public:
-  FEM(const FESpace& vh,       const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option) {}
-  FEM(const list<FESpace*>& vh,const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option) {}
+  FEM(const QuadratureFormular1d&qt, const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(qt, option), Solver(option){}
+  FEM(const FESpace& vh,       const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option), Solver(option) {}
 
-  // FEM(const FESpace& vh, int orderSpace) : BaseProblem<M>(vh, orderSpace) {}
-  // FEM(const FESpace& vh, const FESpace1& Ih, int orderSpace=5, int orderTime=3) : BaseProblem<M>(vh, Ih,orderSpace, orderTime) {}
-  //
-  //
-  //
-  // void solve() {
-  //   // matlab::Export(this->mat, "matRT.dat");
-  //   // matlab::Export(this->rhs, "rhs.dat");
-  //   R t0 = CPUtime();
-  //   Solver::solve(this->mat, this->rhs);
-  //   R t1 = CPUtime();
-  //   // std::cout << " Time Solver \t \t " << t1 - t0 << std::endl;
-  // }
-  //
-  // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
-  //   R tt0 = MPIcf::Wtime();
-  //   Solver::solve(A, b);
-  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
-  //
-  // }
+  void solve() {
+    double tt0 = MPIcf::Wtime();
+    Solver::solve(this->mat_, this->rhs_);
+    if(this->verbose_>0) std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  }
+  void solve(string solverName) {
+    double tt0 = MPIcf::Wtime();
+    this->solver_name_ = solverName;
+    Solver::solve(this->mat_, this->rhs_);
+    if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  }
+  void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
+    R tt0 = MPIcf::Wtime();
+    Solver::solve(A, b);
+    if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+
+  }
 
 };
 

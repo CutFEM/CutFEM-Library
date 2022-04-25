@@ -33,7 +33,7 @@ struct ItemTestFunction {
   double c;
   int cu,du,dtu;
   KN<int> ar_nu, conormal;
-  std::vector<const Virtual_Parameter*> coefu;
+  std::vector<const VirtualParameter*> coefu;
   int domain_id_, face_side_;
   const ExpressionVirtual * expru = nullptr;
   GFESpace<Mesh> const * fespace = nullptr;
@@ -92,10 +92,10 @@ struct ItemTestFunction {
     conormal.resize(l+1);
     conormal(l) = i;
   }
-  void addParameter(const Virtual_Parameter& x) {
+  void addParameter(const VirtualParameter& x) {
     coefu.push_back(&x);
   }
-  void addParameter(const Virtual_Parameter* x) {
+  void addParameter(const VirtualParameter* x) {
     coefu.push_back(x);
   }
 
@@ -147,9 +147,9 @@ public:
     U(0) = nullptr;//new ItemTestFunction<N>();
   }
   ItemList(double cc,int i,int j, int dd) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const Virtual_Parameter*>());
+    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd,vector<const VirtualParameter*>());
   }
-  // ItemList(double cc,int i,int j,int tu, int dd, const vector<const Virtual_Parameter*>& cuu) : U(1) {
+  // ItemList(double cc,int i,int j,int tu, int dd, const vector<const VirtualParameter*>& cuu) : U(1) {
   //   U(0) = new ItemTestFunction<N>(cc,i,j,tu,dd,cuu);
   // }
 
@@ -173,7 +173,7 @@ public:
   // }
 
   ItemList(const FESpace& Vh, double cc,int i,int j, int dd) : U(1) {
-    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd);//,vector<const Virtual_Parameter*>());
+    U(0) = new ItemTestFunction<N>(cc,i,j,0,dd);//,vector<const VirtualParameter*>());
     U(0)->fespace = &Vh;
   }
 
@@ -540,7 +540,7 @@ template<int N> friend TestFunction<N> jump(const TestFunction<N> & U, const Tes
 
 
 template<int N> friend TestFunction<N> average(const TestFunction<N> & T, double v1, double v2);
-template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const Virtual_Parameter& para, const Virtual_Parameter& para2);
+template<int N> friend TestFunction<N> average(const TestFunction<N> & T, const VirtualParameter& para, const VirtualParameter& para2);
 
 template<int N> friend TestFunction<N> dx(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> dy(const TestFunction<N> & T);
@@ -555,8 +555,7 @@ template<int N> friend TestFunction<N> dt(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> operator - (const TestFunction<N>& F1, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator + (const TestFunction<N>& F1, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator * (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F2);
-// template<int N> friend TestFunction<N> operator * (const CutFEM_R2& cc, const TestFunction<N>& T);
-
+template<int N> friend TestFunction<N>  operator * (const CutFEM_Rd<N>& cc, const TestFunction<N>& T);
 };
 
 
@@ -658,10 +657,10 @@ TestFunction<N> operator* (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh
   return multU;
 }
 
-template <int N>
-TestFunction<N> operator* (const FunFEM<typename typeMesh<N>::Mesh>& fh, const TestFunction<N>& F) {
-  return (fh.expression()* F);
-}
+// template <int N>
+// TestFunction<N> operator* (const FunFEM<typename typeMesh<N>::Mesh>& fh, const TestFunction<N>& F) {
+//   return (fh.expression()* F);
+// }
 
 
 template <int N>
@@ -726,7 +725,7 @@ TestFunction<N> operator * (const TestFunction<N>& F, const Normal_Component& c)
 }
 
 template <int N>
-TestFunction<N> operator * (const TestFunction<N>& F, const Virtual_Parameter& cc ) {
+TestFunction<N> operator * (const TestFunction<N>& F, const VirtualParameter& cc ) {
   TestFunction<N> multU(F);
   for(int i=0;i<F.A.N();++i) {
     for(int j=0;j<F.A.M();++j) {
@@ -740,7 +739,7 @@ TestFunction<N> operator * (const TestFunction<N>& F, const Virtual_Parameter& c
 }
 
 template <int N>
-TestFunction<N> operator * (const Virtual_Parameter& cc, const TestFunction<N>& F) {
+TestFunction<N> operator * (const VirtualParameter& cc, const TestFunction<N>& F) {
   TestFunction<N> multU(F);
   for(int i=0;i<F.A.N();++i) {
     for(int j=0;j<F.A.M();++j) {
@@ -1382,7 +1381,7 @@ TestFunction<d> average(const TestFunction<d> & T, double v1=0.5, double v2=0.5)
 }
 
 template <int d>
-TestFunction<d> average(const TestFunction<d> & T, const Virtual_Parameter& para1, const Virtual_Parameter& para2){
+TestFunction<d> average(const TestFunction<d> & T, const VirtualParameter& para1, const VirtualParameter& para2){
   assert(T.A.M() == 1);
   int N = T.A.N();
   TestFunction<d> jumpU(T.A.N(), T.A.M()); //jumpU.init(T.A.N(), T.A.M());

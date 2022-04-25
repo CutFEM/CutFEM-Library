@@ -129,33 +129,33 @@ template<> struct TypeCutData<2> {typedef CutData2 CutData;};
 template<> struct TypeCutData<3> {typedef CutData3 CutData;};
 
 
-template<int N>
-struct FaceInterface {
-
-};
-
-template<>
-struct FaceInterface<2> : public  SortArray<Uint, 2>, public Label {
-  typedef SortArray<Uint, 2> FaceIdx;
-
-  FaceInterface(const Uint& a0,const Uint &a1, int l=0)
-  : FaceIdx(a0,a1), Label(l) {}
-  FaceInterface(Uint *a, int l =0)   : FaceIdx(a), Label(l) {}
-  FaceInterface() : FaceIdx(), Label(0) {}
-
-
-};
-
-template<>
-struct FaceInterface<3> : public  SortArray<Uint, 3>, public Label {
-  typedef SortArray<Uint, 3> FaceIdx;
-
-  FaceInterface(const Uint& a0,const Uint &a1,const Uint &a2, int l=0)
-  : FaceIdx(a0,a1,a2), Label(l) {}
-  FaceInterface(Uint *a, int l =0)   : FaceIdx(a), Label(l) {}
-  FaceInterface() : FaceIdx(), Label(0) {}
-
-};
+// template<int N>
+// struct FaceInterface {
+//
+// };
+//
+// template<>
+// struct FaceInterface<2> : public  SortArray<Uint, 2>, public Label {
+//   typedef SortArray<Uint, 2> FaceIdx;
+//
+//   FaceInterface(const Uint& a0,const Uint &a1, int l=0)
+//   : FaceIdx(a0,a1), Label(l) {}
+//   FaceInterface(Uint *a, int l =0)   : FaceIdx(a), Label(l) {}
+//   FaceInterface() : FaceIdx(), Label(0) {}
+//
+//
+// };
+//
+// template<>
+// struct FaceInterface<3> : public  SortArray<Uint, 3>, public Label {
+//   typedef SortArray<Uint, 3> FaceIdx;
+//
+//   FaceInterface(const Uint& a0,const Uint &a1,const Uint &a2, int l=0)
+//   : FaceIdx(a0,a1,a2), Label(l) {}
+//   FaceInterface(Uint *a, int l =0)   : FaceIdx(a), Label(l) {}
+//   FaceInterface() : FaceIdx(), Label(0) {}
+//
+// };
 
 
 

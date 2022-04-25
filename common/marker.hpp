@@ -2,7 +2,8 @@
 #define _MARKER_HPP
 
 #include <cstring>
-#include "R3.hpp"
+#include "R2.hpp"
+#include "Mesh2dn.hpp"
 #include <vector>
 
 //
@@ -29,55 +30,47 @@
 
 
 
-
-
-
-#include "Interface2dn.hpp"
+// #include "Interface2dn.hpp"
 
 
 
 
-class Marker;
+// class Marker;
 class FunFEMVirtual ;
+//
+// struct FaceMarker : public  SortArray<Uint, 2>, public Label {
+//   typedef SortArray<Uint, 2> FaceIdx;
+//   const Marker* marker = nullptr;
+//   int k;
+//
+//   FaceMarker(const Marker& mark, int kk,
+// 	      const Uint& a0,const Uint &a1, int l=0) : FaceIdx(a0,a1), Label(l),
+// 							marker(&mark), k(kk){}
+//   FaceMarker(const Marker& mark, int kk, int l=0) : FaceMarker(mark,kk,0,0,l) {}
+//   FaceMarker(int kk, int l=0) : Label(l), k(kk){}
+//
+//   // R2 operator()(int i) const;
+//   // double mesure() const;
+//   // R2 normal() const;
+//   // R2 mapToFace( R1 ip) const;
+//
+// };
 
-struct FaceMarker : public  SortArray<Uint, 2>, public Label {
-  typedef SortArray<Uint, 2> FaceIdx;
-  const Marker* marker = nullptr;
-  int k;
 
-  FaceMarker(const Marker& mark, int kk,
-	      const Uint& a0,const Uint &a1, int l=0) : FaceIdx(a0,a1), Label(l),
-							marker(&mark), k(kk){}
-  FaceMarker(const Marker& mark, int kk, int l=0) : FaceMarker(mark,kk,0,0,l) {}
-  FaceMarker(int kk, int l=0) : Label(l), k(kk){}
-
-  // R2 operator()(int i) const;
-  // double mesure() const;
-  // R2 normal() const;
-  // R2 mapToFace( R1 ip) const;
-
-};
-
-
-class Marker  : public Interface2 {
+class Marker {
 public:
-  typedef typename Mesh2::Element Element;
-  // typedef FaceMarker Face;
-  typedef FaceIdx Face;
+  // typedef typename Mesh2::Element Element;
 
-  typedef CutData2 CutData;
+  const Mesh2& Th_;
+  bool periodic_ = false;
 
-  const Mesh2& Th;
-  bool periodic = false;
+  std::vector<double>  T_ ;             // initial points
+  std::vector<double>  X_ ;             // initial points
+  std::vector<double>  Y_ ;             // initial points
 
-  std::vector<double>  T ;             // initial points
-  std::vector<double>  X ;             // initial points
-  std::vector<double>  Y ;             // initial points
+  std::vector<int> element_of_marker_;
 
-  std::vector<R2>  markers ;             // initial points
-  std::vector<int> elementOfMarker;
-
-  vector<int> nMarker_begin, nMarker_end;  // same but for node on edges
+  vector<int> nMarker_begin_, nMarker_end_;
 
 public :
 
@@ -85,8 +78,30 @@ public :
   Marker(const Mesh2& Thh, R2(*fparam)(double t), double x_begin, double x_end, int npoint);
   Marker(const Mesh2& Thh, std::string);
 
-  void add(std::string path);
-  void make_interface(bool leftB = false, bool rightB = false);
+
+  int size() const { return T_.size();}
+  R2 operator[] (int i) const {
+    assert(i<T_.size());
+    return R2(X_[i], Y_[i]);
+  }
+  R2 get_marker (int i) const {
+    assert(i<T_.size());
+    return R2(X_[i], Y_[i]);
+  }
+  double get_parameter(int i) const {
+    assert(i<T_.size());
+    return T_[i];
+  }
+  void add(double t, R2 val);
+  void set(int i, R2 val) {
+    X_[i] = val.x;
+    Y_[i] = val.y;
+  }
+  void move(const FunFEMVirtual&, double);
+
+
+  // void add(std::string path);
+  // void make_interface(bool leftB = false, bool rightB = false);
 //   Marker(const Mesh2& Thh);
 //   // void add(std::string, int ll = 0);
 //   // void setDomainSign(const KN<double>& lls);
@@ -95,7 +110,6 @@ public :
 //   const FaceMarker& getFace(int i) const {return faces[i];}
 //   const FaceMarker& operator[](int i) const {return faces[i];}
 //
-  void move(const FunFEMVirtual&, double);
 //
 //   // void getNode(int, R2 loc_node[2]) const ;
 //   // void getEdges(int, int ed[2]) const;
@@ -125,32 +139,25 @@ public :
   // R2 mapToFace(const Face& f, const typename Element::RdHatBord x ) const{
   //   return R2(0.,0.);//return f.mapToFace( x);
   // };
-  R2 make_normal (int i, int j);
+  // R2 make_normal (int i, int j);
 
  private:
 //   // void add_interface(int ll);
-  void find_vertices();
-  void build_sign_array();
-  void visit_element_sign(int k, vector<byte>& elementSeen);
-  R2 get_intersect_edge(R2 firstNode, R2 nextNode, int previousK, int k, int& knext );
-
-  void find_marker_limit(int k, int& i);
-  int find_next_element(R2 A, R2 B, int previousK, int k);
-  R2 find_intersection(R2 A, R2 B, int k, int kn, int& ie);
-  int find_edge(int k, int kn);
+  // void find_vertices();
+  // void build_sign_array();
+  // void visit_element_sign(int k, vector<byte>& elementSeen);
+  // R2 get_intersect_edge(R2 firstNode, R2 nextNode, int previousK, int k, int& knext );
+  //
+  // void find_marker_limit(int k, int& i);
+  // int find_next_element(R2 A, R2 B, int previousK, int k);
+  // R2 find_intersection(R2 A, R2 B, int k, int kn, int& ie);
+  // int find_edge(int k, int kn);
   // bool check_intersect(R2 u, R2 v, R2 w, R& t);
 //   // void addNeighbor(int , int);
 //
 
 
 };
-
-
-
-
-
-
-
 
 
 

@@ -1,8 +1,8 @@
 #ifndef _MACRO_ELEMENT_HPP
 #define _MACRO_ELEMENT_HPP
 
-#include "base_interface.hpp"
-#include "cut_mesh.hpp"
+#include "../common/base_interface.hpp"
+#include "../common/cut_mesh.hpp"
 // #include "CutFESpace.hpp"
 #include<set>
 

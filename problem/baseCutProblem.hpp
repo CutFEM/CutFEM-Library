@@ -19,41 +19,79 @@ class BaseCutFEM : public BaseFEM<Mesh> {
 
 
 public:
-  BaseCutFEM(const ProblemOption& option) : BaseFEM<Mesh>(option) {}
+  BaseCutFEM(const QuadratureFormular1d& qt, const ProblemOption& option) : BaseFEM<Mesh>(qt, option) {}
   // BaseCutFEM(const list<FESpace*>& vh,const ProblemOption& option) : BaseFEM<Mesh>(vh, option) {}
   BaseCutFEM(const FESpace& vh,const ProblemOption& option) : BaseFEM<Mesh>(vh, option) {}
 
 
   // Integral on K
   void addBilinear(  const ListItemVF<Rd::d>& VF, const CutMesh&) ;
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, int itq);
   void addLinear(  const ListItemVF<Rd::d>& VF, const CutMesh&) ;
-  void addElementContribution(const ListItemVF<Rd::d>& VF, const int k, const bool extend = false, const R epsE = 0);
+  void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In);
+  void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, int itq);
+  void addElementContribution(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time);
 
   // integral on innerFace
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b, const TimeSlab& In);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b, const TimeSlab& In, int itq);
   void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b);
-  void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2);
+  void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b, const TimeSlab& In);
+  void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b, const TimeSlab& In, int itq);
+  void addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2, const TimeSlab* In, int itq, double cst_time);
 
 
   // integral on boundary
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b);
-  void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b);
-  void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b,list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In,list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In, int itq,list<int> label = {});
+
+  void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b,list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In,list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In, int itq,list<int> label = {});
+  void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
 
 
   // integral on interface
-  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
-  void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
-  void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac);
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {}) {return BaseFEM<Mesh>::addBilinear(VF, gamma, label);}
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {}) {return BaseFEM<Mesh>::addBilinear(VF, gamma, In, itq,label);}
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, list<int> label = {}){return BaseFEM<Mesh>::addBilinear(VF, gamma, In, label);}
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {}) {return BaseFEM<Mesh>::addBilinear(VF, gamma, In, itq, label);}
 
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {}) {return BaseFEM<Mesh>::addLinear(VF, gamma, label);}
+  void addLinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {}) {return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq,label);}
+  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, list<int> label = {}) {return BaseFEM<Mesh>::addLinear(VF, gamma, In,label);}
+  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {}) {return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);}
+  // void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time);
+
+  // integral on inner Ridge / intersction with interface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const CRidge& innerRidge,list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, int itq,list<int> label = {});
+
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const CRidge& innerRidge,list<int> label = {});
-  void addInterfaceRidgeContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& interface, int ifac);
+  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, int itq,list<int> label = {});
+  void addInterfaceRidgeContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& interface, int ifac, const TimeSlab* In, int itq, double cst_time);
 
 
   // Face stabilization
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&);
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&,const TimeSlab& In);
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&,const TimeSlab& In, int itq);
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const MacroElement<Mesh>& );
+
+  // Lagrange multiplier
+  void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&);
+  void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k);
+
+
+  // For time problem
+  void saveSolution(const Rn&);
+  void initialSolution(Rn&);
+
 
 };
 
@@ -63,20 +101,24 @@ class CutFEM : public BaseCutFEM<Mesh>, public Solver{
 
 public:
 
-  CutFEM(const FESpace& vh        , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
-  CutFEM(const list<FESpace*>& vh , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option) {}
-  void solve(string solverName = "mumps") {
+  CutFEM(const QuadratureFormular1d& qt, const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(qt, option), Solver(option) {}
+  CutFEM(const FESpace& vh        , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option), Solver(option) {}
+  void solve() {
+    double tt0 = MPIcf::Wtime();
+    Solver::solve(this->mat_, this->rhs_);
+    if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  }
+  void solve(string solverName) {
     double tt0 = MPIcf::Wtime();
     this->solver_name_ = solverName;
     Solver::solve(this->mat_, this->rhs_);
-    std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+    if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
-  // void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
-  //   R tt0 = MPIcf::Wtime();
-  //   Solver::solve(A, b);
-  //   std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
-  //
-  // }
+  void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
+    R tt0 = MPIcf::Wtime();
+    Solver::solve(A, b);
+    if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  }
 
 };
 

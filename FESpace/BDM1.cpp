@@ -50,7 +50,7 @@ class TypeOfFE_BDM1_2d : 	public GTypeOfFE<Mesh2> {
                   KN_< double > &v) const {    // compute the coef of interpolation ...
     const Element &T = K.T;
     int k = 0;
-
+    double s = 1./sqrt(T.measure());
     for (int i = 0; i < 3; i++) {
       R2 E(-T.Edge(i).perp( ));
       R eOrientation = T.EdgeOrientation(i);
@@ -61,10 +61,10 @@ class TypeOfFE_BDM1_2d : 	public GTypeOfFE<Mesh2> {
         R p1 = -3 * (l0 - l1);   // poly othogonaux to \lambda_0
         R cc0 = p0 * QFE[p].a;    //
         R cc1 = p1 * QFE[p].a;    //
-        v[k++] = cc0 * E.x;
-        v[k++] = cc0 * E.y;
-        v[k++] = cc1 * E.x;
-        v[k++] = cc1 * E.y;
+        v[k++] = cc0 * E.x * s;
+        v[k++] = cc0 * E.y * s;
+        v[k++] = cc1 * E.x * s;
+        v[k++] = cc1 * E.y * s;
       }
     }
 
@@ -100,6 +100,7 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
 
   bfMat = 0;
   R cK = 2 * K.mesure();
+  double s = sqrt(K.mesure());
   int ortho0 = 0, ortho1 = 1;
   R s1ortho = 1;
   if (whatd & Fop_D0) {
@@ -112,11 +113,11 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
       // R2 f1 = 1./Dl[e].norm()*(Q[e1] - Q[e])*refBaryc[e1];
       // R2 f2 = 1./Dl[e].norm()*(Q[e2] - Q[e])*refBaryc[e2];
 
-      bfMat(df, ortho0, op_id) = f1.x;
-      bfMat(df++, ortho1, op_id) = s1ortho * f1.y;
+      bfMat(df, ortho0, op_id) = f1.x * s;
+      bfMat(df++, ortho1, op_id) = s1ortho * f1.y * s;
 
-      bfMat(df, ortho0, op_id) = f2.x;
-      bfMat(df++, ortho1, op_id) = s1ortho * f2.y;
+      bfMat(df, ortho0, op_id) = f2.x * s;
+      bfMat(df++, ortho1, op_id) = s1ortho * f2.y * s;
     }
   }
 
@@ -131,11 +132,11 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
         R2 f1 = R2(eOrientation / cK, 0.);
         R2 f2 = -(Dl[e1] * Dl[e2].x + Dl[e2] * Dl[e1].x).perp( );
 
-        bfMat(df, ortho0, op_dx) = f1.x;
-        bfMat(df++, ortho1, op_dx) = s1ortho * f1.y;
+        bfMat(df, ortho0, op_dx) = f1.x * s;
+        bfMat(df++, ortho1, op_dx) = s1ortho * f1.y * s;
 
-        bfMat(df, ortho0, op_dx) = f2.x;
-        bfMat(df++, ortho1, op_dx) = s1ortho * f2.y;
+        bfMat(df, ortho0, op_dx) = f2.x * s;
+        bfMat(df++, ortho1, op_dx) = s1ortho * f2.y * s;
       }
     }
 
@@ -146,11 +147,11 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element & K,
         R2 f1 = R2(0., eOrientation / cK);
         R2 f2 = -(Dl[e1] * Dl[e2].y + Dl[e2] * Dl[e1].y).perp( );
 
-        bfMat(df, ortho0, op_dy) = f1.x;
-        bfMat(df++, ortho1, op_dy) = s1ortho * f1.y;
+        bfMat(df, ortho0, op_dy) = f1.x * s;
+        bfMat(df++, ortho1, op_dy) = s1ortho * f1.y * s;
 
-        bfMat(df, ortho0, op_dy) = f2.x;
-        bfMat(df++, ortho1, op_dy) = s1ortho * f2.y;
+        bfMat(df, ortho0, op_dy) = f2.x * s;
+        bfMat(df++, ortho1, op_dy) = s1ortho * f2.y * s;
       }
     }
   }
