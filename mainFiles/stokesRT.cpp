@@ -8,7 +8,7 @@
 #  include "cfmpi.hpp"
 #endif
 
-// #include "finiteElement.hpp"
+#include "finiteElement.hpp"
 #include "baseProblem.hpp"
 #include "paraview.hpp"
 
@@ -52,9 +52,11 @@ namespace Erik_Data_StokesDiv {
   R fun_rhs(const R2 P, int i) {
     R x = P.x;
     R y = P.y;
-    if(i==0) return -4*(6*x*x - 6*x + 1)*y*(2*y*y - 3*y + 1) - 12*(x-1)*(x-1)*x*x*(2*y - 1);
-    else if(i==1) return 4*x*(2*x*x - 3 *x + 1)*(6*y*y - 6*y + 1) + 12*(2*x - 1)*(y - 1)*(y-1)*y*y;
-    else return 0;
+     if(i==0) return -2*y;
+     else return 2*x;
+    // if(i==0) return -4*(6*x*x - 6*x + 1)*y*(2*y*y - 3*y + 1) - 12*(x-1)*(x-1)*x*x*(2*y - 1);
+    // else if(i==1) return 4*x*(2*x*x - 3 *x + 1)*(6*y*y - 6*y + 1) + 12*(2*x - 1)*(y - 1)*(y-1)*y*y;
+    // else return 0;
   }
   // R fun_exact(const R2 P, int i) {
   //   R x = P.x;
@@ -66,8 +68,10 @@ namespace Erik_Data_StokesDiv {
   R fun_exact_u(const R2 P, int i) {
     R x = P.x;
     R y = P.y;
-    if(i==0) return 2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
-    else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
+    // if(i==0) return      2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
+    // else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
+    if(i==0)      return  x*x*y;
+    else if(i==1) return -x*y*y;
   }
   R fun_exact_p(const R2 P, int i) {
     R x = P.x;
@@ -117,15 +121,19 @@ int main(int argc, char** argv )
     Mesh Th(nx, ny, 0., 0., 1., 1.);
 
 
-    Space Vh(Th, DataFE<Mesh2>::P2BR); // REMOVE THESE TWO LATER
-    Space Qh(Th, DataFE<Mesh2>::P0); // FOR MIXEDSPACE
+    Lagrange2 FEvelocity(2);
+    Space Uh(Th, FEvelocity);
+    // Space Qh(Th, DataFE<Mesh>::P1);
+
+    Space Vh(Th, DataFE<Mesh2>::RT2); // REMOVE THESE TWO LATER
+    Space Qh(Th, DataFE<Mesh2>::P2dc); // FOR MIXEDSPACE
 
     const R hi = Th[0].lenEdge(0);
     const R penaltyParam = 1e1/hi;
-    const R sigma = 10; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
+    const R sigma = 1; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
 
-    Fun_h fh(Vh, fun_rhs); // interpolates fun_rhs to fh of type Fun_h
-    Fun_h gh(Vh, fun_exact_u);
+    Fun_h fh(Uh, fun_rhs); // interpolates fun_rhs to fh of type Fun_h
+    Fun_h gh(Uh, fun_exact_u);
     // Fun_h gh(Qh, fun_div); // THIS IS IF div u != 0
 
     FEM<Mesh2> stokes(Vh); stokes.add(Qh);
@@ -149,24 +157,50 @@ int main(int argc, char** argv )
       , Th
     );
 
+    stokes.addBilinear(
+      - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
+      + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
+      + innerProduct(1./hi*(sigma*jump(u*t)), jump(v*t))
+      , Th
+      , innerFacet
+    );
+
     // stokes.addBilinear(
-    //   - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
-    //   + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
-    //   + innerProduct(1./hi*(sigma*jump(u*t)), jump(v*t))
+    //   - innerProduct(grad(u*t)*n, v*t)
+    //   + innerProduct(u*t, grad(v*t)*n)
+    //   + innerProduct(1./hi*sigma*(u*t), v*t)
+    //   + innerProduct(p, v*n)
+    //   - innerProduct(u*n, q)
     //   , Th
-    //   , innerFacet
+    //   , boundary
+    // );
+    // stokes.addLinear(
+    //     innerProduct(gh*t, penaltyParam*v*t)
+    //   - innerProduct(gh*t, grad(v*t)*n)
+    //   - innerProduct(gh.expression(2), q*n)
+    //   , Th
+    //   , boundary
     // );
 
     stokes.addBilinear(
-      // - innerProduct(grad(u*t)*n, v*t)
-      // + innerProduct(u*t, grad(v*t)*n)
-      // + innerProduct(invlEdge*sigma*(u*t), v*t)
+      - innerProduct(grad(u)*n, v)
+      - innerProduct(u, grad(v)*n)
       + innerProduct(p, v*n)
       - innerProduct(u*n, q)
       + innerProduct(penaltyParam*u, v)
       , Th
       , boundary
     );
+    stokes.addLinear(
+        innerProduct(gh.expression(2), penaltyParam*v)
+      - innerProduct(gh.expression(2), grad(v)*n)
+      - innerProduct(gh.expression(2), q*n)
+      , Th
+      , boundary
+    );
+
+
+
     // stokesDiv.addBilinearFormBorder(
     //   innerProduct(penaltyParam*u.t()*n,v.t()*n)
     // );
@@ -181,13 +215,7 @@ int main(int argc, char** argv )
     // );
 
 
-    stokes.addLinear(
-        innerProduct(gh.expression(2), 1./hi*v)
-      - innerProduct(gh.expression(2), grad(v)*n)
-      - innerProduct(gh.expression(2), p*n)
-      , Th
-      , boundary
-    );
+
 
     // l(v)_Omega
     stokes.addLinear(
@@ -216,20 +244,24 @@ int main(int argc, char** argv )
     ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
 
 
-    {
-      // Fun_h solh(Wh, fun_exact);
-      // solh.v -= uh.v;
-      // solh.v.map(fabs);
-      // Fun_h divSolh(Wh, fun_div);
-      // ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
-
-      Paraview<Mesh> writer(Th, "stokes_"+to_string(i)+".vtk");
-      writer.add(uh, "velocity" , 0, 2);
-      writer.add(ph, "pressure" , 0, 1);
-      writer.add(femSol_0dx+femSol_1dy, "divergence");
-      // writer.add(solh, "velocityError" , 0, 2);
-      // writer.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceError");
-    }
+    // {
+    //   Fun_h soluErr(Vh, fun_exact_u);
+    //   Fun_h soluh(Vh, fun_exact_u);
+    //   soluErr.v -= uh.v;
+    //   soluErr.v.map(fabs);
+    //   // Fun_h divSolh(Wh, fun_div);
+    //   // ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
+    //
+    //   Paraview<Mesh> writer(Th, "stokes_"+to_string(i)+".vtk");
+    //   writer.add(uh, "velocity" , 0, 2);
+    //   writer.add(ph, "pressure" , 0, 1);
+    //   writer.add(femSol_0dx+femSol_1dy, "divergence");
+    //   writer.add(soluh, "velocityExact" , 0, 2);
+    //   writer.add(soluErr, "velocityError" , 0, 2);
+    //   // writer.add(solh, "velocityError" , 0, 2);
+    //
+    //   // writer.add(fabs(femDiv, "divergenceError");
+    // }
 
     // Rn solExVec(mixedSpace.NbDoF());
     // interpolate(mixedSpace, solExVec, fun_exact);

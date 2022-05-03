@@ -262,12 +262,12 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 11; // 6
-  int ny = 11; // 6
+  int nx = 20; // 6
+  int ny = 20; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters =3;
+  int iters =1;
 
   for(int i=0;i<iters;++i) {
     Mesh Kh(nx, ny, 0., 0., 1., 1.);
@@ -278,8 +278,8 @@ int main(int argc, char** argv ) {
     Fun_h levelSet(Lh, fun_levelSet);
     InterfaceLevelSet<Mesh> interface(Kh, levelSet);
 
-    Space Vh(Kh, DataFE<Mesh2>::RT1);
-    Space Qh(Kh, DataFE<Mesh2>::P1dc);
+    Space Vh(Kh, DataFE<Mesh2>::RT0);
+    Space Qh(Kh, DataFE<Mesh2>::P0);
 
 
     ActiveMesh<Mesh> Kh_i(Kh, interface);
@@ -348,6 +348,11 @@ int main(int argc, char** argv ) {
       // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
       , Kh_i, boundary
     );
+   //  darcy.addBilinear(
+   //  +innerProduct(p, v*n)
+   //  +innerProduct(u*n, 1*invh*v*n) // invh
+   //  -innerProduct(u*n,q)
+   // ,Kh_i, boundary);
 
     // std::cout << darcy.rhs_ << std::endl;
     // return 0;
@@ -366,25 +371,25 @@ int main(int argc, char** argv ) {
 
 //     matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
 // return 0;
-  // FunTest grad2un = grad(grad(u)*n)*n;
-  darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
-   innerProduct(uPenParam*pow(h_i,0)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
-  +innerProduct(uPenParam*pow(h_i,2)*jump(grad(u)*n), jump(grad(v)*n))
-  // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-  +innerProduct(pPenParam*pow(h_i,0)*jump(p), jump(q))
-  +innerProduct(pPenParam*pow(h_i,2)*jump(grad(p)), jump(grad(q)))
-
-  //  innerProduct(uPenParam*h_i*jump(u*n), jump(v*n)) // [Method 1: Remove jump in vel]
-  // +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
-  // // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-  // -innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
-  // +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
-  // -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
-  // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
-
-  , Kh_i
-  // , macro
-);
+//   // FunTest grad2un = grad(grad(u)*n)*n;
+//   darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
+//    innerProduct(uPenParam*pow(h_i,0)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
+//   +innerProduct(uPenParam*pow(h_i,2)*jump(grad(u)*n), jump(grad(v)*n))
+//   // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+//   +innerProduct(pPenParam*pow(h_i,0)*jump(p), jump(q))
+//   +innerProduct(pPenParam*pow(h_i,2)*jump(grad(p)), jump(grad(q)))
+//
+//   //  innerProduct(uPenParam*h_i*jump(u*n), jump(v*n)) // [Method 1: Remove jump in vel]
+//   // +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
+//   // // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+//   // -innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
+//   // +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
+//   // -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
+//   // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
+//
+//   , Kh_i
+//   // , macro
+// );
 
 // matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
 // nx = 2*nx-1;
@@ -448,7 +453,7 @@ int main(int argc, char** argv ) {
   // );
 
 
-  matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
+  // matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
   // matlab::Export(darcy.rhs_, "rhsA"+to_string(i)+".dat");
 
   darcy.solve("umfpack");
@@ -477,10 +482,12 @@ int main(int argc, char** argv ) {
     // Fun_h solh(Wh, fun_exact);
     // solh.v -= uh.v;
     // solh.v.map(fabs);
-    Fun_h divSolh(Wh, fun_div);
+    Fun_h divSolh(Ph, fun_div);
     ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
 
-    Paraview<Mesh> writer(Kh_i, "darcyNew_"+to_string(i)+".vtk");
+    // Paraview<Mesh> writer(Kh_i, "darcyNew_"+to_string(i)+".vtk");
+    Paraview<Mesh> writer(Kh_i, "darcyBadBound.vtk");
+
     writer.add(uh, "velocity" , 0, 2);
     writer.add(ph, "pressure" , 0, 1);
     writer.add(femSol_0dx+femSol_1dy, "divergence");
@@ -681,12 +688,12 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx =3; // 6
-  int ny =3; // 6
+  int nx =10; // 6
+  int ny =10; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
 
-  int iters = 1;
+  int iters = 4;
 
   for(int i=0;i<iters;++i) {
     Mesh Kh(nx, ny, 0., 0., d_x, d_y);
@@ -695,7 +702,7 @@ int main(int argc, char** argv ) {
     Fun_h levelSet(Lh, fun_levelSet);
     InterfaceLevelSet<Mesh> interface(Kh, levelSet);
 
-    Space Vh(Kh, DataFE<Mesh>::P2BR);
+    Space Vh(Kh, DataFE<Mesh>::RT0);
     Space Qh(Kh, DataFE<Mesh>::P0); // for the RHS
     Space Q2h(Kh, DataFE<Mesh>::P2); // for the RHS
 
