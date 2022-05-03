@@ -201,8 +201,12 @@ struct DataFE
   static GTypeOfFE<mesh> & P3Poly;
 
   static GTypeOfFE<mesh> & RT0;
+  static GTypeOfFE<mesh> & RT0m;
   static GTypeOfFE<mesh> & RT1;
+  static GTypeOfFE<mesh> & RT2;
   static GTypeOfFE<mesh> & BDM1;
+  static GTypeOfFE<mesh> & P2BR;
+
 
   static GTypeOfFE<mesh> & P1dc;
   static GTypeOfFE<mesh> & P2dc;

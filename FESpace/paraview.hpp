@@ -397,6 +397,38 @@ static double paraviewFormat( double x) {
       shrinkToFit(kk+1);
     }
 
+    void buildMeshNoStab(const MacroElement<M>& macro,int dom) {
+      const ActiveMesh<Mesh>& cutTh(macro.Th_);
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      int size0 = cutTh.NbElement();
+      clearAndResize(size0);
+
+      std::vector<Rd> list_node;
+      int kk = 0;
+      for(int k=0; k<cutTh.NbElement(); ++k) {
+        int domain = cutTh.get_domain_element(k);
+        int kb = cutTh.idxElementInBackMesh(k);
+
+        if(domain != dom) continue;
+        if(macro.isSmall(k) || macro.isRootFat(k)) continue;
+        check_and_resize_array(kk);
+
+        idx_in_Vh[kk] = std::make_pair(kb,domain);
+        num_cell[kk] = make_pair(nvCell_, numCell_);
+        for(int i=0;i<nvCell_;++i) {
+          mesh_node[kk].push_back(cutTh[k][i]);
+        }
+        nv_+= nvCell_;
+        ntNotcut_++;
+        kk++;
+
+
+      }
+
+    }
+
     void build_macro_element( const MacroElementSurface<M> & macro) {
 
       const Mesh& Th(*macro.interface.backMesh);
@@ -583,6 +615,12 @@ static double paraviewFormat( double x) {
    void writeMacroOutterEdge(const MacroElementSurface<M>& macro, std::string name) {
      outFile_ = name;
      mesh_data.buildMacroOutterEdge(macro);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeNonStabMesh(const MacroElement<M>& macro,int domain, std::string name) {
+     outFile_ = name;
+     mesh_data.buildMeshNoStab(macro, domain);
      this->writeFileMesh();
      this->writeFileCell();
    }

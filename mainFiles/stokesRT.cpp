@@ -8,10 +8,11 @@
 #  include "cfmpi.hpp"
 #endif
 
-#include "finiteElement.hpp"
-#include "baseCutProblem.hpp"
+// #include "finiteElement.hpp"
+#include "baseProblem.hpp"
+#include "paraview.hpp"
 
-#include "../num/gnuplot.hpp"
+// #include "../num/gnuplot.hpp"
 
 
 #define PROBLEM_STOKES_DIV
@@ -55,12 +56,23 @@ namespace Erik_Data_StokesDiv {
     else if(i==1) return 4*x*(2*x*x - 3 *x + 1)*(6*y*y - 6*y + 1) + 12*(2*x - 1)*(y - 1)*(y-1)*y*y;
     else return 0;
   }
-  R fun_exact(const R2 P, int i) {
+  // R fun_exact(const R2 P, int i) {
+  //   R x = P.x;
+  //   R y = P.y;
+  //   if(i==0) return 2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
+  //   else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
+  //   else return 0;
+  // }
+  R fun_exact_u(const R2 P, int i) {
     R x = P.x;
     R y = P.y;
     if(i==0) return 2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
     else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
-    else return 0;
+  }
+  R fun_exact_p(const R2 P, int i) {
+    R x = P.x;
+    R y = P.y;
+    return 0;
   }
   // R fun_rhs(const R2 P, int i) {
   //   R mu=1;
@@ -85,6 +97,10 @@ int main(int argc, char** argv )
 {
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
+  typedef Mesh2 Mesh;
+  typedef ActiveMeshT2 CutMesh;
+  typedef FESpace2   Space;
+  typedef CutFESpaceT2 CutSpace;
 
   const double cpubegin = CPUtime();
   MPIcf cfMPI(argc,argv);
@@ -93,72 +109,70 @@ int main(int argc, char** argv )
   int ny = 10;
   // int d = 2;
 
-  vector<double> ul2,pl2,h, convu, convp;
+  vector<double> ul2, pl2, divmax, divl2, h, convu, convp;
 
   for(int i=0;i<4;++i) { // i<3
 
     std::cout << "\n ------------------------------------- " << std::endl;
-    Mesh2 Th(nx, ny, 0., 0., 1., 1.);
-    // Mesh2 Th("../mesh/RTmesh100.msh");
+    Mesh Th(nx, ny, 0., 0., 1., 1.);
 
 
-    KN<const GTypeOfFE<Mesh2>* > arrayFE(2);
-    arrayFE(0) = &DataFE<Mesh2>::RT1;
-    arrayFE(1) = &DataFE<Mesh2>::P1dc;
-    GTypeOfFESum<Mesh2> mixedFE(arrayFE);
-    FESpace2 mixedSpace(Th, mixedFE); // (Vh,Qh)
-    mixedSpace.info();
+    Space Vh(Th, DataFE<Mesh2>::P2BR); // REMOVE THESE TWO LATER
+    Space Qh(Th, DataFE<Mesh2>::P0); // FOR MIXEDSPACE
 
-    FESpace2 Vh(Th, DataFE<Mesh2>::RT1); // REMOVE THESE TWO LATER
-    FESpace2 Qh(Th, DataFE<Mesh2>::P0); // FOR MIXEDSPACE
-
-    const R meshSize = Th[0].lenEdge(0);
-    const R penaltyParam = 1e1/meshSize;
+    const R hi = Th[0].lenEdge(0);
+    const R penaltyParam = 1e1/hi;
     const R sigma = 10; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
 
     Fun_h fh(Vh, fun_rhs); // interpolates fun_rhs to fh of type Fun_h
-    Fun_h gh(Vh, fun_exact);
+    Fun_h gh(Vh, fun_exact_u);
     // Fun_h gh(Qh, fun_div); // THIS IS IF div u != 0
 
-    FEM<Mesh2> stokesDiv(mixedSpace);
+    FEM<Mesh2> stokes(Vh); stokes.add(Qh);
 
     Normal n;
     Tangent t;
     /* Syntax:
     FunTest (fem space, #components, place in space)
     */
-    FunTest u(mixedSpace,2,0), p(mixedSpace,1,2), v(mixedSpace,2,0), q(mixedSpace,1,2);
+    FunTest u(Vh,2,0), p(Qh,1,0), v(Vh,2,0), q(Qh,1,0);
 
     R mu = 1;
-    const CutFEM_Parameter& invh(Parameter::invh);
-    const CutFEM_Parameter& invlEdge(Parameter::invmeas);
+    // const MeshParameter& h(Parameter::h);
+    // const MeshParameter& invlEdge(Parameter::invmeas);
 
     // a_h(u,v)
-    stokesDiv.addBilinear(
+    stokes.addBilinear(
       contractProduct(mu*grad(u),grad(v))
       - innerProduct(p,div(v))
       + innerProduct(div(u),q)
-    );
-    stokesDiv.addBilinear(
-      - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
-      + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
-      + innerProduct(invlEdge*(sigma*jump(u*t)), jump(v*t))
-      , innerEdge
+      , Th
     );
 
-    stokesDiv.addBilinear(
-      - innerProduct(grad(u*t)*n, v*t)
-      + innerProduct(u*t, grad(v*t)*n)
-      + innerProduct(invlEdge*sigma*(u*t), v*t)
+    // stokes.addBilinear(
+    //   - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
+    //   + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
+    //   + innerProduct(1./hi*(sigma*jump(u*t)), jump(v*t))
+    //   , Th
+    //   , innerFacet
+    // );
+
+    stokes.addBilinear(
+      // - innerProduct(grad(u*t)*n, v*t)
+      // + innerProduct(u*t, grad(v*t)*n)
+      // + innerProduct(invlEdge*sigma*(u*t), v*t)
       + innerProduct(p, v*n)
       - innerProduct(u*n, q)
+      + innerProduct(penaltyParam*u, v)
+      , Th
       , boundary
     );
     // stokesDiv.addBilinearFormBorder(
     //   innerProduct(penaltyParam*u.t()*n,v.t()*n)
     // );
-    // stokesDiv.addBilinearFormBorder(
-    //   innerProduct(penaltyParam*u, v)
+    // stokesDiv.addBilinear(
+    //   + innerProduct(penaltyParam*u, v)
+    //
     // );
     // b(v,p), b(u,q)
     // stokesDiv.addBilinear(
@@ -167,48 +181,74 @@ int main(int argc, char** argv )
     // );
 
 
-    // stokesDiv.addLinear(
-    //     innerProduct(gh.expression(2), invh*v)
-    //   - innerProduct(gh.expression(2), grad(v)*n)
-    //   - innerProduct(gh.expression(2), p*n)
-    //   , boundary
-    // );
+    stokes.addLinear(
+        innerProduct(gh.expression(2), 1./hi*v)
+      - innerProduct(gh.expression(2), grad(v)*n)
+      - innerProduct(gh.expression(2), p*n)
+      , Th
+      , boundary
+    );
 
     // l(v)_Omega
-    stokesDiv.addLinear(
+    stokes.addLinear(
       innerProduct(fh.expression(2),v)
+      , Th
     );
 
     // Sets uniqueness of the pressure
-    stokesDiv.addLagrangeMultiplier(
-      innerProduct(1.,p), 0.
+    stokes.addLagrangeMultiplier(
+      innerProduct(1.,p), 0., Th
     );
 
     // stokesDiv.imposeStrongBC(
     //   +0
     // );
 
-    stokesDiv.solve();
+    stokes.solve();
 
-    Fun_h sol(mixedSpace, stokesDiv.rhs);
-
-    Paraview2 writerS(mixedSpace, "stokesDivN"+to_string(i)+".vtk");
-    writerS.add(sol, "uh", 0, 2);
-    writerS.add(sol, "ph", 2, 1);
-
-    Rn solExVec(mixedSpace.NbDoF());
-    interpolate(mixedSpace, solExVec, fun_exact);
-    R errU = L2norm(sol,fun_exact,0,2);
-    R errP = L2norm(sol,fun_exact,2,1);
+    // EXTRACT SOLUTION
+    int idx0_s = Vh.get_nb_dof();
+    Rn_ data_uh = stokes.rhs_(SubArray(Vh.get_nb_dof(),0));
+    Rn_ data_ph = stokes.rhs_(SubArray(Qh.get_nb_dof(),idx0_s));
+    Fun_h uh(Vh, data_uh);
+    Fun_h ph(Qh, data_ph);
+    ExpressionFunFEM<Mesh> femSol_0dx(uh, 0, op_dx);
+    ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
 
 
-    // solExVec -= stokesDiv.rhs;
-    for(int i=0;i<solExVec.size();++i){
-      solExVec(i) = fabs(solExVec(i)-stokesDiv.rhs(i));
+    {
+      // Fun_h solh(Wh, fun_exact);
+      // solh.v -= uh.v;
+      // solh.v.map(fabs);
+      // Fun_h divSolh(Wh, fun_div);
+      // ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
+
+      Paraview<Mesh> writer(Th, "stokes_"+to_string(i)+".vtk");
+      writer.add(uh, "velocity" , 0, 2);
+      writer.add(ph, "pressure" , 0, 1);
+      writer.add(femSol_0dx+femSol_1dy, "divergence");
+      // writer.add(solh, "velocityError" , 0, 2);
+      // writer.add(fabs((femSol_0dx+femSol_1dy)-femDiv), "divergenceError");
     }
 
-    Fun_h solEx(mixedSpace, solExVec);
-    writerS.add(solEx,"uh_err", 0, 2);
+    // Rn solExVec(mixedSpace.NbDoF());
+    // interpolate(mixedSpace, solExVec, fun_exact);
+    // R errU = L2norm(sol,fun_exact,0,2);
+    // R errP = L2norm(sol,fun_exact,2,1);
+
+    R errU      = L2norm(uh,fun_exact_u,0,2);
+    R errP      = L2norm(ph,fun_exact_p,0,1);
+    R errDiv    = L2norm (femSol_0dx+femSol_1dy,Th);
+    R maxErrDiv = maxNorm(femSol_0dx+femSol_1dy,Th);
+
+
+    // // solExVec -= stokesDiv.rhs;
+    // for(int i=0;i<solExVec.size();++i){
+    //   solExVec(i) = fabs(solExVec(i)-stokesDiv.rhs(i));
+    // }
+    //
+    // Fun_h solEx(mixedSpace, solExVec);
+    // writerS.add(solEx,"uh_err", 0, 2);
 
     // writerS.add(solEx,"uh_ex", 0, 2);
     // writerS.add(solEx,"ph_ex", 2, 1);
@@ -217,6 +257,8 @@ int main(int argc, char** argv )
 
     ul2.push_back(errU);
     pl2.push_back(errP);
+    divl2.push_back(errDiv);
+    divmax.push_back(maxErrDiv);
     h.push_back(1./nx);
     if(i==0) {convu.push_back(0); convp.push_back(0);}
     else {
@@ -227,10 +269,33 @@ int main(int argc, char** argv )
     nx *= 2;
     ny *= 2;
   }
-  std::cout << "\n\n h \t err u \t\t convU \t\t err p \t\t convP" << std::endl;
-  for(int i=0;i<ul2.size();++i) {
-    std::cout << h[i] << "\t" << ul2[i] << "\t" << convu[i] << "\t\t"
-  	      << pl2[i] << "\t" << convp[i] << std::endl;
+  std::cout << "\n" << std::left
+  << std::setw(10) << std::setfill(' ') << "h"
+  << std::setw(15) << std::setfill(' ') << "err_p u"
+  // << std::setw(15) << std::setfill(' ') << "conv p"
+  << std::setw(15) << std::setfill(' ') << "err u"
+  // << std::setw(15) << std::setfill(' ') << "conv u"
+  << std::setw(15) << std::setfill(' ') << "err divu"
+  // << std::setw(15) << std::setfill(' ') << "conv divu"
+  // << std::setw(15) << std::setfill(' ') << "err_new divu"
+  // << std::setw(15) << std::setfill(' ') << "convLoc divu"
+  << std::setw(15) << std::setfill(' ') << "err maxdivu"
+  // << std::setw(15) << std::setfill(' ') << "conv maxdivu"
+  << "\n" << std::endl;
+  for(int i=0;i<h.size();++i) {
+    std::cout << std::left
+    << std::setw(10) << std::setfill(' ') << h[i]
+    << std::setw(15) << std::setfill(' ') << pl2[i]
+    // << std::setw(15) << std::setfill(' ') << convpPr[i]
+    << std::setw(15) << std::setfill(' ') << ul2[i]
+    // << std::setw(15) << std::setfill(' ') << convuPr[i]
+    << std::setw(15) << std::setfill(' ') << divl2[i]
+    // << std::setw(15) << std::setfill(' ') << convdivPr[i]
+    // << std::setw(15) << std::setfill(' ') << divPrintLoc[i]
+    // << std::setw(15) << std::setfill(' ') << convdivPrLoc[i]
+    << std::setw(15) << std::setfill(' ') << divmax[i]
+    // << std::setw(15) << std::setfill(' ') << convmaxdivPr[i]
+    << std::endl;
   }
 
 }

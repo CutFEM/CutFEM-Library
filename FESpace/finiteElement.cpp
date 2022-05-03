@@ -20,9 +20,9 @@ const GTypeOfFE<Mesh3>* Lagrange3<Mesh3>::FE_[3][3] = {{&DataFE<Mesh3>::P0,&Data
                                                 {&DataFE<Mesh3>::P2,&DataFE<Mesh3>::P2,&DataFE<Mesh3>::P2}
                                                 // ,{&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3}
                                               };
-template<>
-const GTypeOfFE<MeshHexa>* Lagrange3<MeshHexa>::FE_[3][3] = {{&DataFE<MeshHexa>::P0,&DataFE<MeshHexa>::P0,&DataFE<MeshHexa>::P0},
-{&DataFE<MeshHexa>::P1,&DataFE<MeshHexa>::P1,&DataFE<MeshHexa>::P1}//,
-// {&DataFE<MeshHexa>::P2,&DataFE<MeshHexa>::P2,&DataFE<MeshHexa>::P2}
-// ,{&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3}
-                                                                                            };
+// template<>
+// const GTypeOfFE<MeshHexa>* Lagrange3<MeshHexa>::FE_[3][3] = {{&DataFE<MeshHexa>::P0,&DataFE<MeshHexa>::P0,&DataFE<MeshHexa>::P0},
+// {&DataFE<MeshHexa>::P1,&DataFE<MeshHexa>::P1,&DataFE<MeshHexa>::P1}//,
+// // {&DataFE<MeshHexa>::P2,&DataFE<MeshHexa>::P2,&DataFE<MeshHexa>::P2}
+// // ,{&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3}
+//                                                                                             };

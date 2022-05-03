@@ -11,6 +11,7 @@ set(FESPACE_SOURCES
   RT0.cpp
   RT1.cpp
   BDM1.cpp
+  P2BR.cpp
   transformation.cpp
   finiteElement.cpp
   GTypeOfFE.cpp

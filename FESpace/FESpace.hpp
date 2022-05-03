@@ -188,6 +188,7 @@ inline int  GFElement<Mesh>::operator()(int i,int df) const {
 
 template<class Mesh>
   inline int  GFElement<Mesh>::operator()(int df) const {
+
   return operator()(NodeOfDF(df),DFOfNode(df));
 }
 
@@ -452,7 +453,7 @@ KN<int> NodeOnWhat(maxNodePerElement);
 // they are build in the Space so we can just use this for
 // the cut space
 int* nodeOfElement  = new int[maxNodePerElement*TTh.get_nb_element()];
-int* firstDfOfNode;
+int* firstDfOfNode = nullptr;
 // nodeOfElement = new int(maxNodePerElement*TTh.get_nb_element());
 // get number of nodes and dof
 {
@@ -479,21 +480,25 @@ int* firstDfOfNode;
     }
   }
 }
+
 if(!this->constDfPerNode) {
   int kk=0, nn=0;
   int* p = nodeOfElement;
+  firstDfOfNode = new int[nv+1];
   int* pp= firstDfOfNode;
-  pp = new int[nv+1];
 
   const FElement& FK((*this)[0]);
   const int * ndfon = FK.tfe->ndfOn();
+
   for(int k=0; k<nt; ++k) {
-    for(int i=0; i<nbNode; i++) {
+    for(int i=0; i<FK.NbNode(); i++) {
       int onWhat = NodeOnWhat[i];
       int nb = ndfon[onWhat];
+
       pp[p[nn++]] = nb;
     }
   }
+
   for(int n=0; n<nv; ++n) {
     int ndfn=pp[n];
     pp[n] = kk;

@@ -50,7 +50,13 @@ list(APPEND EXTRA_LIBS problem)
 list(APPEND EXTRA_LIBS -lstdc++fs)
 
 
-
+#
+set(EX_NAME stokesMixed)
+add_executable(${EX_NAME}  mainFiles/stokesRT.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 #
 set(EX_NAME peiFu)
 add_executable(${EX_NAME}  mainFiles/peiFu.cpp )

@@ -36,7 +36,9 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKv, cons
 template<typename M>
 void BaseFEM<M>::addToRHS(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint) {
   for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
+
       (*this)(FKv.loc2glb(i)) += Cint * fv(i,VFi.cv,VFi.dv);
+
   }
 }
 
@@ -78,7 +80,7 @@ void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th) {
   assert(!VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    BaseFEM<Mesh>::addElementContribution(VF, k);
+    BaseFEM<Mesh>::addElementContribution(VF, k, nullptr, 0, 1.);
 
     this->addLocalContribution();
   }
@@ -88,7 +90,7 @@ void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th) {
   assert(VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    BaseFEM<Mesh>::addElementContribution(VF, k);
+    BaseFEM<Mesh>::addElementContribution(VF, k, nullptr, 0, 1.);
   }
 }
 template<typename M>
@@ -628,7 +630,22 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Int
 }
 
 
+// LAGRANGE MULTIPLIER
+template<typename Mesh>
+void BaseFEM<Mesh>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const Mesh& Th) {
+  assert(VF.isRHS());
+  int ndf = this->rhs_.size();
+  this->rhs_.resize(ndf+1);
+  this->rhs_(ndf) = val;
+
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    BaseFEM<Mesh>::addLagrangeContribution(VF, k);
+    this->addLocalContributionLagrange(ndf);
+  }
+}
 // ADD LAGRANGE contribution
+
 template<typename M>
 void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k) {
 

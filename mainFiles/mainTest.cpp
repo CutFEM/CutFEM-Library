@@ -139,8 +139,8 @@ int main(int argc, char** argv ){
 
 
   ActiveMesh<Mesh> Khi(Th);
-  Khi.truncate(interface1, -1);
-  // cutTh.create_surface_mesh(interface1);
+  Khi.truncate(interface1, 1);
+  // Khi.createSurfaceMesh(interface1);
   // cutTh.add(interface1);
   // cutTh.add(interface2);
   // cutTh.truncate(interface3, -1);
@@ -154,7 +154,7 @@ int main(int argc, char** argv ){
   // CutSpace Vh(cutTh, Lh);
   // Fun_h ftest(Vh, fun_test);
   MacroElement<Mesh> macro(Khi, 0.15);
-  // MacroElementSurfaceCL<Mesh> macro_surface(interface1, 1e-1);
+  // MacroElementSurface<Mesh> macro_surface(interface1, 1e-1);
 
 
   // const MeshHexa::Element& T(Th[0]);
@@ -191,24 +191,13 @@ int main(int argc, char** argv ){
   writer.writeFaceStab(Khi, 0, "fullstab_face.vtk");
   writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
   writer.writeMacroOutterEdge(macro, 0, "macro_outter_edge.vtk");
-  // ParaviewCut<Mesh> writer1(cutTh, "macro_backMesh.vtk");
-  // writer1.write_active_mesh();
-  // writer1.add(levelSet1, "levelSet1", 0, 1);
+  writer.writeNonStabMesh(macro, 0, "non_stab_element.vtk");
 
-  // ParaviewCut<Mesh> writer (cutTh, "macro_surface_element.vtk");
-  // writer.write_macro_element(macro_surface);
-  // ParaviewCut<Mesh> writer3 (cutTh, "macro_surface_outter_edge.vtk");
-  // writer3.writeMacroOutterEdge(macro_surface);
-  // ParaviewCut<Mesh> writer4 (cutTh, "macro_surface_inner_edge.vtk");
-  // writer4.writeMacroInnerEdge(macro_surface);
+  // writer.writeActiveMesh(Khi, "active_mesh.vtk");
+  // writer.writeMacroElement(macro_surface, "macro_element.vtk");
+  // writer.writeMacroOutterEdge(macro_surface, "macro_outter_edge.vtk");
+  // writer.writeMacroInnerEdge(macro_surface, "macro_inner_edge.vtk");
 
-  // Paraview<Mesh> writer;// (cutTh, "macro_element.vtk");
-  // writer.writeMacroElement(macro, 0, "macro_element.vtk");
-  // // ParaviewCut<Mesh> writer2 (cutTh, "macro_inner_edge.vtk");
-  // writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
-  // // ParaviewCut<Mesh> writer3 (cutTh, "macro_outter_edge.vtk");
-  // writer.writeMacroOutterEdge(macro, 0, "macro_outter_edge.vtk");
-  //
 
 
   // writer.add(levelSet1, "levelSet1", 0, 1);

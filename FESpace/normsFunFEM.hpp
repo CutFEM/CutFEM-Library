@@ -87,8 +87,10 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
         QuadraturePoint ip(qf[ipq]); // integration point
         Rd mip = cutK.mapToPhysicalElement(it, ip);
         const R Cint = meas * ip.getWeight();
+        // std::cout << " before "  << std::endl;
 
-        double a = fh.eval(kk, mip) - fex(mip, fh.cu, domain);
+        double a = fh.eval(kk, mip)- fex(mip, fh.cu, domain);
+        // std::cout << " after "  << std::endl;
 
         val += Cint * a * a;
       }
@@ -275,35 +277,31 @@ double L2normSurf( const FunFEM<Mesh>& fh,R (fex)(const typename GFESpace<Mesh>:
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-
-
 template<typename M>
-double L2norm_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i), const GFESpace<M>& Vh) {
+double L2norm_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i), const M& Th) {
   typedef M Mesh;
   typedef GFESpace<Mesh> FESpace;
+  typedef typename Mesh::Element Element;
   typedef typename FESpace::FElement FElement;
   typedef typename FElement::QF QF;
   typedef typename FElement::Rd Rd;
-  typedef typename Mesh::Partition Partition;
   typedef typename QF::QuadraturePoint QuadraturePoint;
-  // typedef typename TypeCutData<Rd::d>::CutData CutData;
 
   const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
   What_d Fop = Fwhatd(op_id);
   double val = 0.;
 
-  for(int k=Vh.first_element(); k<Vh.last_element(); k+= Vh.next_element()) {
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    const FElement& FK(Vh[k]);
+    const Element& K(Th[k]);
 
-    const R meas = FK.getMeasure();
+    const R meas = K.mesure();
     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
 
       QuadraturePoint ip(qf[ipq]); // integration point
-      Rd mip = FK.map(ip);
+      Rd mip = K.mapToPhysicalElement(ip);
       const R Cint = meas * ip.getWeight();
       double a = fh.eval(k, mip) - fex(mip, fh.cu);
-
       val += Cint * a * a;
     }
   }
@@ -314,29 +312,28 @@ double L2norm_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::
 }
 
 template<typename M>
-double L2norm_2(const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
+double L2norm_2(const ExpressionVirtual& fh, const M& Th) {
   typedef Mesh2 Mesh;
   typedef GFESpace<Mesh> FESpace;
+  typedef typename Mesh::Element Element;
   typedef typename FESpace::FElement FElement;
   typedef typename FElement::QF QF;
   typedef typename FElement::Rd Rd;
-  // typedef typename Mesh::Partition Partition;
   typedef typename QF::QuadraturePoint QuadraturePoint;
-  // typedef typename TypeCutData<Rd::d>::CutData CutData;
 
   const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
   What_d Fop = Fwhatd(op_id);
   double val = 0.;
 
-  for(int k=Vh.first_element(); k<Vh.last_element(); k+= Vh.next_element()) {
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    const FElement& FK(Vh[k]);
+    const Element& K(Th[k]);
 
-    const R meas = FK.getMeasure();
+    const R meas = K.mesure();
     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
 
       QuadraturePoint ip(qf[ipq]); // integration point
-      Rd mip = FK.map(ip);
+      Rd mip = K.mapToPhysicalElement(ip);
       const R Cint = meas * ip.getWeight();
       double a = fh.eval(k, mip);
       val += Cint * a * a;
@@ -349,43 +346,45 @@ double L2norm_2(const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
 }
 
 template<typename M>
-double L2norm( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i),int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d) {
+double L2norm( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i),int c0, int num_comp) {
 
   const GFESpace<M>& Vh(*fh.Vh);
+  const M& Th(Vh.Th);
 
   double val = 0;
   for(int i=c0;i<num_comp+c0;++i) {
     ExpressionFunFEM<M> ui(fh, i, op_id);
-    val += L2norm_2(ui,fex, Vh);
+    val += L2norm_2(ui,fex, Th);
   }
   return sqrt(val);
 }
 
 template<typename M>
-double L2norm( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M>::FElement::Rd, int i), const GFESpace<M>& Vh) {
+double L2norm( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M>::FElement::Rd, int i), const M& Th) {
 
-    double val = L2norm_2(fh,fex, Vh);
+    double val = L2norm_2(fh,fex, Th);
 
   return sqrt(val);
 }
 
 template<typename M>
-double L2norm( const FunFEM<M>& fh,int c0=0, int num_comp = GFESpace<M>::FElement::Rd::d) {
+double L2norm( const FunFEM<M>& fh,int c0, int num_comp) {
 
   const GFESpace<M>& Vh(*fh.Vh);
+  const M& Th(Vh.Th);
 
   double val = 0;
   for(int i=c0;i<num_comp+c0;++i) {
     ExpressionFunFEM<M> ui(fh, i, op_id);
-    val += L2norm_2(ui, Vh);
+    val += L2norm_2(ui, Th);
   }
   return sqrt(val);
 }
 
 template<typename M>
-double L2norm( const ExpressionVirtual& fh, const GFESpace<M>& Vh) {
+double L2norm( const ExpressionVirtual& fh, const M& Th) {
 
-    double val = L2norm_2(fh, Vh);
+    double val = L2norm_2(fh, Th);
 
   return sqrt(val);
 }
@@ -482,6 +481,40 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>
   return val;
 }
 
+
+template<typename Mesh>
+double maxNorm(const ExpressionVirtual& fh, const Mesh& Th) {
+
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename ActiveMesh<Mesh>::Element Element;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::Rd Rd;
+  typedef typename QF::QuadraturePoint QuadraturePoint;
+
+    const QF& qf(*QF_Simplex<typename FElement::RdHat>(0));
+    What_d Fop = Fwhatd(op_id);
+
+    double val = 0.;
+
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+      const Element& K(Th[k]);
+
+      for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+        QuadraturePoint ip(qf[ipq]); // integration point
+        Rd mip = K.mapToPhysicalElement(ip);
+
+        val = max(val, fabs(fh.eval(k, mip)));
+      }
+
+    }
+    double val_receive = 0;
+    MPIcf::AllReduce(val, val_receive, MPI_MAX);
+
+    return val_receive;
+
+}
 
 
 

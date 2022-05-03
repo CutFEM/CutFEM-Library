@@ -40,7 +40,6 @@ void Marker::add(double t, R2 val) {
   Y_.push_back(val.y);
 }
 
-
 void Marker::move(const FunFEMVirtual& uh, double dt) {
   int k = 0;
   for(auto k=0; k<this->size(); ++k) {

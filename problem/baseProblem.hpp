@@ -115,6 +115,7 @@ public:
   void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time);
 
   // integral for Lagrange multiplier
+  void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const Mesh& Th);
   void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k);
 
 };

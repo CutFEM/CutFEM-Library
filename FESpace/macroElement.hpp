@@ -89,41 +89,6 @@ class GMacro {
 
 };
 
-// class MacroElementSurface : public GMacro {
-//   typedef typename Interface2::FaceIdx Face;
-// public:
-//   const Interface2& interface;
-//
-//   MacroElementSurface(const Interface2& , const double) ;
-//   void find_small_element() ;
-//   void find_root_element()  ;
-//   int check_direction(const int, const int, int&);
-// };
-//
-// class MacroElement : public GMacro {
-//
-// public:
-//
-//   const FESpace2& Vh;
-//
-//   R tol;
-//   int nb_element_0, nb_element_1;
-//
-//   MacroElement(const FESpace2& vh, const double C);
-//
-//   MacroElement(const CutFESpaceT2& vh, const double C);
-//
-//
-// private:
-//   void find_small_element();
-//   void findSmallElement();
-//   void find_root_element();
-//   void findRootElement();
-//
-//
-//   friend class Extension;
-// };
-//
 
 
 template<typename Mesh>
