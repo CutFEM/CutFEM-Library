@@ -429,6 +429,36 @@ static double paraviewFormat( double x) {
 
     }
 
+    void buildMeshNoStab(const ActiveMesh<Mesh> & cutTh) {
+      ntCut_ = 0;
+      ntNotcut_ = 0;
+      nv_ = 0;
+      int size0 = cutTh.NbElement();
+      clearAndResize(size0);
+
+      std::vector<Rd> list_node;
+      int kk = 0;
+      for(int k=0; k<cutTh.NbElement(); ++k) {
+        int domain = cutTh.get_domain_element(k);
+        int kb = cutTh.idxElementInBackMesh(k);
+
+        // if(domain != dom) continue;
+        if(cutTh.isStabilizeElement(k)) continue;
+        check_and_resize_array(kk);
+
+        idx_in_Vh[kk] = std::make_pair(kb,domain);
+        num_cell[kk] = make_pair(nvCell_, numCell_);
+        for(int i=0;i<nvCell_;++i) {
+          mesh_node[kk].push_back(cutTh[k][i]);
+        }
+        nv_+= nvCell_;
+        ntNotcut_++;
+        kk++;
+      }
+
+    }
+
+
     void build_macro_element( const MacroElementSurface<M> & macro) {
 
       const Mesh& Th(*macro.interface.backMesh);
@@ -473,31 +503,32 @@ static double paraviewFormat( double x) {
       int kk = 0;
       int nv_loc = M::Element::nva;
       for(auto it = macro.macro_element.begin(); it != macro.macro_element.end();++it) {
-        check_and_resize_array(kk);
 
         const MElement& MK(it->second);
         for(int k=0;k<MK.size();++k){
           int ki = MK.get_index_element(k);
           int kb = macro.interface.idxElementOfFace(ki);
-          for(int ie=0;ie<M::Element::nea;++ie){
-            int je = ie;
-            int kn = Th.ElementAdj(kb, je);
-
-            int kin;
-            if(macro.interface.isCut(kn)){
-              kin = macro.interface.idxFaceOfElement(kn);
-            }else {kin = -1;}
-            if(MK.containElement(kin)) continue;
-
-            idx_in_Vh[kk] = std::make_pair(kb,0);
-            num_cell[kk] = make_pair(nv_loc, 3);
-            for(int i=0;i<nv_loc;++i){
-              mesh_node[kk].push_back(Th[kb][Element::nvedge[ie][i]]);
-            }
-            nv_+= nv_loc;
-            ntNotcut_++;
-            kk++;
-          }
+          // for(int ie=0;ie<M::Element::nea;++ie){
+          //   int je = ie;
+          //   int kn = Th.ElementAdj(kb, je);
+          //
+          //   int kin;
+          //   if(macro.interface.isCut(kn)){
+          //     kin = macro.interface.idxFaceOfElement(kn);
+          //   }else {kin = -1;}
+          //   if(MK.containElement(kin)) continue;
+          //
+          //   check_and_resize_array(kk);
+          //
+          //   // idx_in_Vh[kk] = std::make_pair(kb,0);
+          //   // num_cell[kk] = make_pair(nv_loc, 3);
+          //   // for(int i=0;i<nv_loc;++i){
+          //   //   mesh_node[kk].push_back(Th[kb][Element::nvedge[ie][i]]);
+          //   // }
+          //   // nv_+= nv_loc;
+          //   // ntNotcut_++;
+          //   // kk++;
+          // }
 
         }
       }
@@ -615,6 +646,12 @@ static double paraviewFormat( double x) {
    void writeMacroOutterEdge(const MacroElementSurface<M>& macro, std::string name) {
      outFile_ = name;
      mesh_data.buildMacroOutterEdge(macro);
+     this->writeFileMesh();
+     this->writeFileCell();
+   }
+   void writeNonStabMesh(const ActiveMesh<Mesh>& cutTh, std::string name) {
+     outFile_ = name;
+     mesh_data.buildMeshNoStab(cutTh);
      this->writeFileMesh();
      this->writeFileCell();
    }

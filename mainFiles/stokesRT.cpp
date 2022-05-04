@@ -125,11 +125,11 @@ int main(int argc, char** argv )
     Space Uh(Th, FEvelocity);
     // Space Qh(Th, DataFE<Mesh>::P1);
 
-    Space Vh(Th, DataFE<Mesh2>::RT2); // REMOVE THESE TWO LATER
-    Space Qh(Th, DataFE<Mesh2>::P2dc); // FOR MIXEDSPACE
+    Space Vh(Th, DataFE<Mesh2>::RT1); // REMOVE THESE TWO LATER
+    Space Qh(Th, DataFE<Mesh2>::P1dc); // FOR MIXEDSPACE
 
     const R hi = Th[0].lenEdge(0);
-    const R penaltyParam = 1e1/hi;
+    const R penaltyParam = 1e0/hi;
     const R sigma = 1; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
 
     Fun_h fh(Uh, fun_rhs); // interpolates fun_rhs to fh of type Fun_h
@@ -166,35 +166,32 @@ int main(int argc, char** argv )
     );
 
     // stokes.addBilinear(
-    //   - innerProduct(grad(u*t)*n, v*t)
-    //   + innerProduct(u*t, grad(v*t)*n)
-    //   + innerProduct(1./hi*sigma*(u*t), v*t)
+    //   - innerProduct(grad(u*t)*n, v*t) // natural
+    //   - innerProduct(u, grad(v)*n)
     //   + innerProduct(p, v*n)
     //   - innerProduct(u*n, q)
+    //   + innerProduct(penaltyParam*u*t, v*t)
     //   , Th
     //   , boundary
     // );
-    // stokes.addLinear(
-    //     innerProduct(gh*t, penaltyParam*v*t)
-    //   - innerProduct(gh*t, grad(v*t)*n)
-    //   - innerProduct(gh.expression(2), q*n)
-    //   , Th
-    //   , boundary
-    // );
-
     stokes.addBilinear(
-      - innerProduct(grad(u)*n, v)
+      // + innerProduct(penaltyParam*u*t, v*t)
+      // - innerProduct(u*t, grad(v*t)*n)
+      - innerProduct(grad(u)*n, v)  //natural
       - innerProduct(u, grad(v)*n)
-      + innerProduct(p, v*n)
-      - innerProduct(u*n, q)
+      + innerProduct(p, v*n)  // natural
+      - innerProduct(u*n, q)  // essential
       + innerProduct(penaltyParam*u, v)
       , Th
       , boundary
     );
     stokes.addLinear(
-        innerProduct(gh.expression(2), penaltyParam*v)
+      // + innerProduct(gh*t, penaltyParam*v*t)
+      // - innerProduct(gh*t, grad(v*t)*n)
+      + innerProduct(gh.expression(2), penaltyParam*v)
       - innerProduct(gh.expression(2), grad(v)*n)
       - innerProduct(gh.expression(2), q*n)
+
       , Th
       , boundary
     );

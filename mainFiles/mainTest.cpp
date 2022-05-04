@@ -105,7 +105,9 @@ int main(int argc, char** argv ){
 
   MPIcf cfMPI(argc,argv);
 
-  Mesh Th(18, 18, 0., 0., 1., 1.);
+  Mesh Th(14, 14, 0., 0., 1., 1.);
+  // Mesh Th(50, 50, 0., 0., 1., 1.);
+
   Th.info();
   // Space Vh(Th, DataFE<Mesh2>::P1);
   // FEM<Mesh2> problem(Vh);
@@ -140,6 +142,8 @@ int main(int argc, char** argv ){
 
   ActiveMesh<Mesh> Khi(Th);
   Khi.truncate(interface1, 1);
+  ActiveMesh<Mesh> Khi_op(Th);
+  Khi_op.truncate(interface1, -1);
   // Khi.createSurfaceMesh(interface1);
   // cutTh.add(interface1);
   // cutTh.add(interface2);
@@ -153,7 +157,7 @@ int main(int argc, char** argv ){
 
   // CutSpace Vh(cutTh, Lh);
   // Fun_h ftest(Vh, fun_test);
-  MacroElement<Mesh> macro(Khi, 0.15);
+  MacroElement<Mesh> macro(Khi, 1);
   // MacroElementSurface<Mesh> macro_surface(interface1, 1e-1);
 
 
@@ -184,14 +188,22 @@ int main(int argc, char** argv ){
   // FK.BF(Fop_Dall, x, bf);
   // std::cout << bf<< std::endl;
 
-  Paraview<Mesh> writer(Th, "backMesh.vtk");
-  writer.add(levelSet1, "levelSet1", 0, 1);
-  writer.writeActiveMesh(Khi, "active_mesh.vtk");
-  writer.writeMacroElement(macro, 0, "macro_element.vtk");
-  writer.writeFaceStab(Khi, 0, "fullstab_face.vtk");
-  writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
+  // Paraview<Mesh> writer(Th, "backMesh.vtk");
+  // writer.add(levelSet1, "levelSet1", 0, 1);
+  Paraview<Mesh> writer;
+  // Paraview<Mesh> writer(Th, "backMesh.vtk");
+
+  // writer.writeActiveMesh(Khi, "active_mesh.vtk");
+  // writer.writeMacroElement(macro, 0, "macro_element.vtk");
+  // writer.writeFaceStab(Khi, 0, "fullstab_face.vtk");
+  // writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
   writer.writeMacroOutterEdge(macro, 0, "macro_outter_edge.vtk");
-  writer.writeNonStabMesh(macro, 0, "non_stab_element.vtk");
+  // writer.writeNonStabMesh(macro, 0, "non_stab_element.vtk");
+
+  // // Paraview<Mesh> writer;
+  // writer.writeNonStabMesh(Khi_op, "Omega1_nonstab.vtk");
+  // writer.writeNonStabMesh(Khi, "Omega2_nonstab.vtk");
+
 
   // writer.writeActiveMesh(Khi, "active_mesh.vtk");
   // writer.writeMacroElement(macro_surface, "macro_element.vtk");

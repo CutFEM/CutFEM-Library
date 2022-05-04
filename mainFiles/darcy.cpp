@@ -262,8 +262,8 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 20; // 6
-  int ny = 20; // 6
+  int nx = 51; // 6
+  int ny = 51; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
@@ -292,7 +292,7 @@ int main(int argc, char** argv ) {
     CutFEM<Mesh2> darcy(Wh); darcy.add(Ph);
     const R h_i = 1./(nx-1);
     const R invh = 1./h_i;
-    // MacroElement<Mesh> macro(Kh_i, 0.1);
+    MacroElement<Mesh> macro(Kh_i, 0.1);
     // ratioCut1.push_back((double)macro.nb_element_0 / (double)interface.nbElement());
     // ratioCut2.push_back((double)macro.nb_element_1 / (double)interface.nbElement());
     R xi = 3./4;
@@ -371,25 +371,24 @@ int main(int argc, char** argv ) {
 
 //     matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
 // return 0;
-//   // FunTest grad2un = grad(grad(u)*n)*n;
-//   darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
-//    innerProduct(uPenParam*pow(h_i,0)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
-//   +innerProduct(uPenParam*pow(h_i,2)*jump(grad(u)*n), jump(grad(v)*n))
-//   // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-//   +innerProduct(pPenParam*pow(h_i,0)*jump(p), jump(q))
-//   +innerProduct(pPenParam*pow(h_i,2)*jump(grad(p)), jump(grad(q)))
-//
-//   //  innerProduct(uPenParam*h_i*jump(u*n), jump(v*n)) // [Method 1: Remove jump in vel]
-//   // +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
-//   // // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-//   // -innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
-//   // +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
-//   // -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
-//   // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
-//
-//   , Kh_i
-//   // , macro
-// );
+  // FunTest grad2un = grad(grad(u)*n)*n;
+  darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
+  //  innerProduct(uPenParam*pow(h_i,0)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
+  // +innerProduct(uPenParam*pow(h_i,2)*jump(grad(u)*n), jump(grad(v)*n))
+  // // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+  // +innerProduct(pPenParam*pow(h_i,0)*jump(p), jump(q))
+  // +innerProduct(pPenParam*pow(h_i,2)*jump(grad(p)), jump(grad(q)))
+
+   innerProduct(uPenParam*h_i*jump(u*n), jump(v*n)) // [Method 1: Remove jump in vel]
+  +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
+  // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+  -innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
+  +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
+  -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
+  +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
+  , Kh_i
+  , macro
+);
 
 // matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
 // nx = 2*nx-1;
@@ -486,7 +485,7 @@ int main(int argc, char** argv ) {
     ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
 
     // Paraview<Mesh> writer(Kh_i, "darcyNew_"+to_string(i)+".vtk");
-    Paraview<Mesh> writer(Kh_i, "darcyBadBound.vtk");
+    Paraview<Mesh> writer(Kh_i, "darcyRT0scotti.vtk");
 
     writer.add(uh, "velocity" , 0, 2);
     writer.add(ph, "pressure" , 0, 1);
