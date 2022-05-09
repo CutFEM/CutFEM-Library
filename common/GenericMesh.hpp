@@ -299,6 +299,8 @@ public:
   int nbBrdElmts() const {return nbe;}
   int nbVertices() const {return nv;}
   int nbElements() const {return nt;}
+  int NbElement() const {return nt;}
+
   // int nbInnerFaces() const {return ne_;}
   int nbBorderElements() const {return nbe;}
 

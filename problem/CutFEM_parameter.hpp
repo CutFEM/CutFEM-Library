@@ -62,6 +62,7 @@ public:
     assert(domain >=0 && domain< val_.size());
     return val_[domain];
   }
+  double operator() (int i) const {return val_[i];}
 
 private:
   CutFEMParameter& operator=(const CutFEMParameter& F) ;

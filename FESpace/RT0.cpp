@@ -1,5 +1,5 @@
 #include "FESpace.hpp"
-
+#include "transformation.hpp"
 // P0 2D
 class TypeOfFE_RT0_2d : public GTypeOfFE<Mesh2>
 {
@@ -14,6 +14,7 @@ class TypeOfFE_RT0_2d : public GTypeOfFE<Mesh2>
     // Initialised below class definition
     static int Data[];
     // static double alpha_Pi_h[];
+
 
     // dont understand this constructor aside from it being for 2d
     TypeOfFE_RT0_2d(): GTypeOfFE<Mesh2>(
@@ -141,6 +142,7 @@ class TypeOfFE_RT0m_2d : public GTypeOfFE<Mesh2>
     // Initialised below class definition
     static int Data[];
     // static double alpha_Pi_h[];
+    PiolaContravariant<E> piola;
 
     // dont understand this constructor aside from it being for 2d
     TypeOfFE_RT0m_2d(): GTypeOfFE<Mesh2>(
@@ -204,34 +206,32 @@ void TypeOfFE_RT0m_2d::FB(const What_d whatd, const Element & K,
   R const1 = scaling*K.EdgeOrientation(1)*s;
   R const2 = scaling*K.EdgeOrientation(2)*s;
 
+
   // whatd = 0,1,2
   if(whatd & Fop_D0) { // checks whether whatd = 0, ie function and no derivative ?
-    // RN_ baseFuns0(bfMat('.',0,op_id)); // Pointer to (all rows, 1st col) of bfMat
-    // RN_ baseFuns1(bfMat('.',1,op_id)); // Pointer to (all rows, 2nd col) of bfMat
+    bfMat(0,0,op_id) = -PHat.x; // first component, first basis fun
+    bfMat(0,1,op_id) = -PHat.y ; // second comp, first basis fun
 
-    bfMat(0,0,op_id) = -P.x; // first component, first basis fun
-    bfMat(0,1,op_id) = -P.y ; // second comp, first basis fun
+    bfMat(1,0,op_id) = (PHat.x - 1); // first comp, second basis fun
+    bfMat(1,1,op_id) = PHat.y; // [???] there is a MINUS sign on these for freefem!!
 
-    bfMat(1,0,op_id) = (P.x - 1); // first comp, second basis fun
-    bfMat(1,1,op_id) = P.y; // [???] there is a MINUS sign on these for freefem!!
-
-    bfMat(2,0,op_id) = -P.x;
-    bfMat(2,1,op_id) = 1-P.y;
+    bfMat(2,0,op_id) = -PHat.x;
+    bfMat(2,1,op_id) = 1-PHat.y;
   }
+  // piola.transform_phi(K, bfMat);
+
 
   if(whatd & Fop_dx) { // here first comp gets differentiated away to 0
-    bfMat(0,0,op_dx) = const0; // first basis fun, first component
-    bfMat(1,0,op_dx) = const1;
-    bfMat(2,0,op_dx) = const2;
+    bfMat(0,0,op_dx) = -1; // first basis fun, first component
+    bfMat(1,0,op_dx) = 1;
+    bfMat(2,0,op_dx) = -1;
   }
 
   if(whatd & Fop_dy) { // here second comp gets differentiated away to 0
-    bfMat(0,1,op_dy) = const0; // first basis fun, second component
-    bfMat(1,1,op_dy) = const1;
-    bfMat(2,1,op_dy) = const2;
+    bfMat(0,1,op_dy) = -1; // first basis fun, second component
+    bfMat(1,1,op_dy) = 1;
+    bfMat(2,1,op_dy) = -1;
   }
-
-  // some weird assertion, probably not necessary
 }
 
 // Initialises v as a vector containing at index k the coeff alpha_k

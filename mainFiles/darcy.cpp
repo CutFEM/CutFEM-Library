@@ -92,6 +92,14 @@ int main(int argc, char** argv ) {
   KNMK<double> f (FK.NbDoF(),2,Fop_D1);
   KNMK<double> fm(FKm.NbDoF(),2,Fop_D1);
 
+  R2 X(0.33, 0.33);
+
+  FK.BF(X, f);
+  FKm.BF(X, fm);
+
+  std::cout << f << std::endl;
+  std::cout << fm << std::endl;
+
 
 }
 
@@ -262,8 +270,8 @@ int main(int argc, char** argv ) {
   MPIcf cfMPI(argc,argv);
   const double cpubegin = CPUtime();
 
-  int nx = 51; // 6
-  int ny = 51; // 6
+  int nx = 20; // 6
+  int ny = 20; // 6
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
@@ -292,7 +300,7 @@ int main(int argc, char** argv ) {
     CutFEM<Mesh2> darcy(Wh); darcy.add(Ph);
     const R h_i = 1./(nx-1);
     const R invh = 1./h_i;
-    MacroElement<Mesh> macro(Kh_i, 0.1);
+    MacroElement<Mesh> macro(Kh_i, 0.25);
     // ratioCut1.push_back((double)macro.nb_element_0 / (double)interface.nbElement());
     // ratioCut2.push_back((double)macro.nb_element_1 / (double)interface.nbElement());
     R xi = 3./4;
@@ -317,6 +325,7 @@ int main(int argc, char** argv ) {
     double pPenParam = 1e0;//1e1; // cont 1e2
     double jumpParam = 1e0; // [anything<1e0 doesn't give full u convergence]
 
+    double t0 = MPIcf::Wtime();
     darcy.addBilinear(
       innerProduct(u, v)
       -innerProduct(p, div(v))
@@ -329,6 +338,8 @@ int main(int argc, char** argv ) {
       +innerProduct(xi0*mu_G*jump(u*n), jump(v*n)) // b(p,v)-b(q,u) bdry terms
       ,interface
     );
+
+    // return 0;
 
 
     // matlab::Export(darcy.mat_, "matNew.dat");
@@ -370,27 +381,36 @@ int main(int argc, char** argv ) {
 
 
 //     matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
-// return 0;
-  // FunTest grad2un = grad(grad(u)*n)*n;
+//     return 0;
+double tt0 = MPIcf::Wtime();
+  FunTest grad2un = grad(grad(u)*n)*n;
   darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
-  //  innerProduct(uPenParam*pow(h_i,0)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
-  // +innerProduct(uPenParam*pow(h_i,2)*jump(grad(u)*n), jump(grad(v)*n))
-  // // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-  // +innerProduct(pPenParam*pow(h_i,0)*jump(p), jump(q))
-  // +innerProduct(pPenParam*pow(h_i,2)*jump(grad(p)), jump(grad(q)))
+  //  innerProduct(uPenParam*pow(h_i,1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
+  // +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
+  // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+  // +innerProduct(pPenParam*pow(h_i,1)*jump(p), jump(q))
+  // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(q)))
 
-   innerProduct(uPenParam*h_i*jump(u*n), jump(v*n)) // [Method 1: Remove jump in vel]
+   innerProduct(uPenParam*h_i*jump(u), jump(v)) // [Method 1: Remove jump in vel]
   +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
   // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
   -innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
   +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
-  -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
-  +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
+  // -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
+  // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
   , Kh_i
-  , macro
+  // , macro
 );
 
-// matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
+
+double t1 = MPIcf::Wtime();
+std::cout << t1-tt0 << std::endl;
+std::cout << t1-t0 << std::endl;
+//
+//
+// return 0;
+matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
+// return 0;
 // nx = 2*nx-1;
 // ny = 2*ny-1;
 // continue;
@@ -484,7 +504,7 @@ int main(int argc, char** argv ) {
     Fun_h divSolh(Ph, fun_div);
     ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
 
-    // Paraview<Mesh> writer(Kh_i, "darcyNew_"+to_string(i)+".vtk");
+    // Paraview<Mesh> writer(Kh_i, "darcyRT2_"+to_string(i)+".vtk");
     Paraview<Mesh> writer(Kh_i, "darcyRT0scotti.vtk");
 
     writer.add(uh, "velocity" , 0, 2);

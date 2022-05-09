@@ -50,3 +50,11 @@
 //   A[3] = T[4];
 //   init();
 // }
+
+
+// template<> Linear_Transformation<Quad2>::Linear_Transformation(const Quad2& T) : Transformation(2) {
+//   A[0] = T[0];
+//   A[1] = T[1];
+//   A[2] = T[3];
+//   init();
+// }

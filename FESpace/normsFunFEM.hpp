@@ -31,7 +31,22 @@ double L2normCut( const ExpressionVirtual& fh, R (fex)(const typename GFESpace<M
     double val = L2normCut_2(fh,fex, Th, macro);
   return sqrt(val);
 }
+template<typename M>
+double L2normCut( const ExpressionVirtual& fh, const ActiveMesh<M>& Th, const MacroElement<M>* macro=nullptr) {
+  int nb_dom = Th.get_nb_domain();
+  double val = 0.;
+  for(int i=0;i<nb_dom;++i) {
+    val += L2normCut_2(fh, i, Th, macro);
+  }
+  return sqrt(val);
+}
 
+
+template<typename M>
+double L2normCut(const ExpressionVirtual& fh, const ActiveMesh<M>& Th, int dom, const MacroElement<M>* macro=nullptr) {
+  double val = L2normCut_2(fh, dom, Th, macro);
+  return sqrt(val);
+}
 template<typename M>
 double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const ActiveMesh<M>& Th, const MacroElement<M>* macro) {
   int nb_dom = Th.get_nb_domain();
@@ -51,6 +66,56 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
   return val;
 }
 
+template<typename Mesh>
+double L2normCut_2(const ExpressionVirtual& fh,int domain, const ActiveMesh<Mesh>& Th, const MacroElement<Mesh>* macro) {
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename ActiveMesh<Mesh>::Element Element;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::Rd Rd;
+  typedef typename QF::QuadraturePoint QuadraturePoint;
+
+  const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
+
+  double val = 0.;
+
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(domain != Th.get_domain_element(k)) continue;
+
+    const Cut_Part<Element> cutK(Th.get_cut_part(k));
+    int kb = Th.idxElementInBackMesh(k);
+
+    int kk = k;
+    // if(macro){
+    //   if(!macro->isRootFat(k)) {
+    //     kk = macro->getIndexRootElement(k);
+    //   }
+    // }
+
+    for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+
+      const R meas = cutK.measure(it);
+
+      for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+        QuadraturePoint ip(qf[ipq]); // integration point
+        Rd mip = cutK.mapToPhysicalElement(it, ip);
+        const R Cint = meas * ip.getWeight();
+        // std::cout << " before "  << std::endl;
+
+        double a = fh.eval(kk, mip);
+        // std::cout << " after "  << std::endl;
+
+        val += Cint * a * a;
+      }
+    }
+  }
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_SUM);
+  return val_receive;
+
+}
 template<typename Mesh>
 double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Mesh>::FElement::Rd, int i, int dom),int domain, const ActiveMesh<Mesh>& Th, const MacroElement<Mesh>* macro) {
   typedef GFESpace<Mesh> FESpace;
@@ -470,6 +535,45 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Me
 
     return val_receive;
 }
+template<typename Mesh>
+double maxNormCut(const ExpressionVirtual& fh,int domain,const ActiveMesh<Mesh>& Th) {
+
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename ActiveMesh<Mesh>::Element Element;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::Rd Rd;
+  typedef typename QF::QuadraturePoint QuadraturePoint;
+
+    const QF& qf(*QF_Simplex<typename FElement::RdHat>(0));
+    What_d Fop = Fwhatd(op_id);
+
+    double val = 0.;
+
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+      if(domain != Th.get_domain_element(k)) continue;
+
+      const Cut_Part<Element> cutK(Th.get_cut_part(k));
+      int kb = Th.idxElementInBackMesh(k);
+
+      for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+
+        for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+          QuadraturePoint ip(qf[ipq]); // integration point
+          Rd mip = cutK.mapToPhysicalElement(it, ip);
+
+          val = max(val, fabs(fh.eval(k, mip)));
+
+        }
+      }
+    }
+    double val_receive = 0;
+    MPIcf::AllReduce(val, val_receive, MPI_MAX);
+
+    return val_receive;
+}
 
 template<typename M>
 double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::FElement::Rd, int i, int dom), const ActiveMesh<M>& Th) {
@@ -477,6 +581,15 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>
   double val = 0.;
   for(int i=0;i<nb_dom;++i) {
     val += max(val, maxNormCut(fh,fex, i, Th));
+  }
+  return val;
+}
+template<typename M>
+double maxNormCut(const ExpressionVirtual& fh, const ActiveMesh<M>& Th) {
+  int nb_dom = Th.get_nb_domain();
+  double val = 0.;
+  for(int i=0;i<nb_dom;++i) {
+    val += max(val, maxNormCut(fh,i, Th));
   }
   return val;
 }

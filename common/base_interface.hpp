@@ -180,6 +180,10 @@ public:
   TimeInterface(const QuadratureFormular1d& qTime) : interface_(qTime.n), n_(qTime.n), time_quadrature_(qTime) {
     for(int i=0;i<n_;++i){ interface_[i] = nullptr;}
   }
+  TimeInterface(int nt) :  interface_(nt), n_(nt ), time_quadrature_(*Lobatto(exactLobatto_nPt(nt))) {
+    for(int i=0;i<n_;++i){ interface_[i] = nullptr;}
+  }
+
 
   void init(int i, const Mesh & Th, const FunFEMVirtual& ls);
   void init(const Mesh & Th, const KN<FunFEMVirtual>& ls);

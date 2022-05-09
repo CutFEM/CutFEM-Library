@@ -298,10 +298,6 @@ static GQuadraturePoint<R1> P_QF_Lobatto15[9] = {
 const QuadratureFormular1d QF_Lobatto15(15,9,P_QF_Lobatto15);
 
 
-
-
-
-
 // explict instantiation
 int exactLobatto_nPt(int n){
   switch(n) {

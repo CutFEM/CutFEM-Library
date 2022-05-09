@@ -1,4 +1,5 @@
 #include "FESpace.hpp"
+#include "../common/DA.hpp"
 
 struct InitTypeOfRTk_2d {
   int k;       // order poly on edge
@@ -53,20 +54,12 @@ struct InitTypeOfRTk_2d {
     Data[o[4] + 5] = 0;
     Data[o[4] + 6] = ndf;    // end_dfcomp
 
-// std::cout << Data << std::endl;
-// getchar();
     (R2&) verticesHat[0] = R2::KHat[0];
     (R2&) verticesHat[1] = R2::KHat[1];
     (R2&) verticesHat[2] = R2::KHat[2];
     int iv[3] = {0,1,2};
     TriangleHat.set(verticesHat, iv, 0);
 
-    // std::cout << TriangleHat[0] << "\n"
-    // << TriangleHat[1] << "\n"
-    // << TriangleHat[2] << "\n";
-    //
-    // std::cout << QFE << std::endl;
-    // std::cout << QFK << std::endl;
   }
 
 
@@ -159,12 +152,27 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
 
   void FB(const What_d, const Element &K, const Rd &PHat, RNMK_ &bfMat) const;
 
+private:
+  void FB_Freefem(const What_d, const Element &K, const Rd &PHat, RNMK_ &bfMat) const;
+  void FB_ID(const Element &K, const Rd &Phat, RNMK_ &bfMat) const ;
+  void FB_D1(const Element &K, const Rd &Phat, RNMK_ &bfMat) const ;
+  void FB_D2(const Element &K, const Rd &Phat, RNMK_ &bfMat) const ;
 
 };
 
-// ENDOFCLASS TypedgeOrientationfFE_PkEdge
-
 void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, RNMK_ &bfMat) const{
+
+  assert(bfMat.N( ) >= ndf);
+  assert(bfMat.M( ) == 2);
+  bfMat = 0;
+
+  if ((whatd & Fop_D2) ) { FB_D2(K, Phat, bfMat);}
+  // else if ((whatd & Fop_D1) ) { FB_D1(K, Phat, bfMat);}
+  // else {FB_ID(K, Phat, bfMat);}
+  else { FB_Freefem(whatd, K, Phat, bfMat);}
+
+}
+void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd &Phat, RNMK_ &bfMat) const{
     R2 X = K(Phat); // [Phat is the quadrature point X mapped to the reference triangle (in loop of addElementMat, X is sent to Phat)]
     R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])}; // Triangle K node points
     R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y; // [reference triangle barycentric coords]
@@ -215,8 +223,6 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
     R2 phi_dx[3] = {X_dx, X_dx, X_dx};
     R2 phi_dy[3] = {X_dy, X_dy, X_dy};
 
-    // Kmap = 1/triMeas2*[Q[2].y-Q[0].y -(Q[2].x-Q[0].x)
-    //                  -(Q[1].y-Q[0].y) Q[1].x-Q[0].x]
     R Kmap[2][2]; // Kmap: K -> Khat
     Kmap[0][0] =  1/triMeas2*(Q[2].y-Q[0].y);
     Kmap[0][1] = -1/triMeas2*(Q[2].x-Q[0].x);
@@ -278,7 +284,6 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
     }
 
     assert(dof == 8);
-
     if (whatd & Fop_id) {
       for (int dof = 0; dof < 8; ++dof) {
         R2 fd(0., 0.);
@@ -289,6 +294,7 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
 
         bfMat(dof, 0, op_id) = fd.x * s;
         bfMat(dof, 1, op_id) = fd.y * s;
+
       }
     }
 
@@ -337,6 +343,7 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
 
             bfMat(dof, 0, op_dxx) = fd.x * s;
             bfMat(dof, 1, op_dxx) = fd.y * s;
+
           }
         }
 
@@ -353,6 +360,8 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
 
             bfMat(dof, 0, op_dxy) = fd.x * s;
             bfMat(dof, 1, op_dxy) = fd.y * s;
+
+
           }
         }
 
@@ -368,6 +377,7 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
 
             bfMat(dof, 0, op_dyy) = fd.x * s;
             bfMat(dof, 1, op_dyy) = fd.y * s;
+
           }
         }
 
@@ -388,7 +398,272 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
         // }
       }
     }
+
   }
+void TypeOfFE_RT1_2d::FB_ID(const Element &K, const Rd &Phat, RNMK_ &bfMat) const {
+
+  R2 X = K(Phat); // [Phat is the quadrature point X mapped to the reference triangle (in loop of addElementMat, X is sent to Phat)]
+  R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])}; // Triangle K node points
+  R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y; // [reference triangle barycentric coords]
+  R refBaryc[3] = {l0, l1, l2};
+  int arrEdgeOrient[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
+
+  R triMeas2 = 2 * K.mesure();
+  R2 phi[3] = {X - Q[0], X - Q[1], X - Q[2]};    // phi * area *2
+
+  int pI[8][3];    // store p_k
+  int lI[8][3];    // store l_k
+  R   cI[8][3];    // store c_k
+  int dof = 0;
+  double s = sqrt(K.mesure());
+
+  for (int e = 0; e < 3; ++e) {
+    //int i = e;
+    int ii[2] = {(e + 1) % 3, (e + 2) % 3};
+    R eOrientation = arrEdgeOrient[e] / triMeas2;
+    if (eOrientation < 0) {
+      Exchange(ii[0], ii[1]);
+    }
+
+    for (int j = 0; j < 2; ++j, dof++) {
+      pI[dof][0] = e;
+      lI[dof][0] = ii[j];
+      cI[dof][0] = eOrientation;
+
+      pI[dof][1] = e;
+      lI[dof][1] = e;
+      cI[dof][1] = -eOrientation * 4. / 3.;
+
+      pI[dof][2] = ii[j];
+      lI[dof][2] = ii[j];
+      cI[dof][2] = eOrientation / 3.;
+    }
+  }
+
+
+  R s8 = 8 / triMeas2, s01 = s8;
+  R cbb[] = {s8, 2 * s01, -s01, s8};    // { [ 8, 16], [ -8, 8] }
+  // [the 2 bubbles]
+  for (int j = 0; j < 2; ++j, dof++) {    // [j indexes the bubble funs]
+    pI[dof][0] = 0;                       // i
+    lI[dof][0] = 0;
+    cI[dof][0] = cbb[j];
+
+    pI[dof][1] = 1;    // i
+    lI[dof][1] = 1;
+    cI[dof][1] = cbb[j + 2];
+
+    pI[dof][2] = 2;
+    lI[dof][2] = 2;
+    cI[dof][2] = 0; // [the third constant is zero for the bubbles]
+  }
+
+  assert(dof == 8);
+  for (int dof = 0; dof < 8; ++dof) {
+    R2 fd(0., 0.);
+
+    for (int k = 0; k < 3; ++k) {
+      fd += (cI[dof][k] * refBaryc[lI[dof][k]]) * phi[pI[dof][k]];
+    }
+
+    bfMat(dof, 0, op_id) = fd.x * s;
+    bfMat(dof, 1, op_id) = fd.y * s;
+
+  }
+
+};
+void TypeOfFE_RT1_2d::FB_D1(const Element &K, const Rd &Phat, RNMK_ &bfMat) const {
+  R2 X = K(Phat); // [Phat is the quadrature point X mapped to the reference triangle (in loop of addElementMat, X is sent to Phat)]
+  R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])}; // Triangle K node points
+  R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y; // [reference triangle barycentric coords]
+  R refBaryc[3] = {l0, l1, l2};
+  int arrEdgeOrient[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
+  R triMeas2 = 2 * K.mesure();
+  R2 phi[3] = {X - Q[0], X - Q[1], X - Q[2]};    // phi * area *2
+
+  R2 ddd[3] = {K.H(0), K.H(1), K.H(2)};
+  Diff<double, 2>  ll1(l1,0), ll2(l2,1);
+  ll1.d[0] = ddd[1].x;ll1.d[1] = ddd[1].y;
+  ll2.d[0] = ddd[2].x;ll2.d[1] = ddd[2].y;
+  Diff<double, 2>  ll0 = 1 - ll1 - ll2;
+  Diff<double, 2> Xx(X.x,0), Xy(X.y,1);
+  Diff<double, 2> LL[3] = {ll0, ll1, ll2};
+  Diff<double, 2> PHIx[3] = {Xx-Q[0].x, Xx-Q[1].x,Xx-Q[2].x};
+  Diff<double, 2> PHIy[3] = {Xy-Q[0].y, Xy-Q[1].y,Xy-Q[2].y};
+  int pI[8][3];    // store p_k
+  int lI[8][3];    // store l_k
+  R cI[8][3];      // store c_k
+  int dof = 0;
+  double s = sqrt(K.mesure());
+
+
+  for (int e = 0; e < 3; ++e) {
+    //int i = e;
+    int ii[2] = {(e + 1) % 3, (e + 2) % 3};
+    R eOrientation = arrEdgeOrient[e] / triMeas2;
+    if (eOrientation < 0) {
+      Exchange(ii[0], ii[1]);
+    }
+
+    for (int j = 0; j < 2; ++j, dof++) {
+      pI[dof][0] = e;
+      lI[dof][0] = ii[j];
+      cI[dof][0] = eOrientation;
+
+      pI[dof][1] = e;
+      lI[dof][1] = e;
+      cI[dof][1] = -eOrientation * 4. / 3.;
+
+      pI[dof][2] = ii[j];
+      lI[dof][2] = ii[j];
+      cI[dof][2] = eOrientation / 3.;
+    }
+  }
+
+  R s8 = 8 / triMeas2, s01 = s8;
+  R cbb[] = {s8, 2 * s01, -s01, s8};    // { [ 8, 16], [ -8, 8] }
+
+  for (int j = 0; j < 2; ++j, dof++) {
+    pI[dof][0] = 0;
+    lI[dof][0] = 0;
+    cI[dof][0] = cbb[j];
+
+    pI[dof][1] = 1;    // i
+    lI[dof][1] = 1;
+    cI[dof][1] = cbb[j + 2];
+
+    pI[dof][2] = 2;
+    lI[dof][2] = 2;
+    cI[dof][2] = 0;
+  }
+
+  assert(dof == 8);
+
+  for (int dof = 0; dof < 8; ++dof) {
+    R2 fd(0., 0.);
+    Diff<double, 2> FDx, FDy;
+
+    for (int k = 0; k < 3; ++k) {
+      fd += (cI[dof][k] * refBaryc[lI[dof][k]]) * phi[pI[dof][k]];
+      FDx += (cI[dof][k] * LL[lI[dof][k]]) *  PHIx[pI[dof][k]];
+      FDy += (cI[dof][k] * LL[lI[dof][k]]) *  PHIy[pI[dof][k]];
+
+    }
+
+    bfMat(dof, 0, op_id) = FDx.val  * s;
+    bfMat(dof, 1, op_id) = FDy.val  * s;
+    bfMat(dof, 0, op_dx) = FDx.d[0] * s;
+    bfMat(dof, 1, op_dx) = FDy.d[0] * s;
+    bfMat(dof, 0, op_dy) = FDx.d[1] * s;
+    bfMat(dof, 1, op_dy) = FDy.d[1] * s;
+
+  }
+
+
+};
+void TypeOfFE_RT1_2d::FB_D2(const Element &K, const Rd &Phat, RNMK_ &bfMat) const {
+  R2 X = K(Phat); // [Phat is the quadrature point X mapped to the reference triangle (in loop of addElementMat, X is sent to Phat)]
+  R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])}; // Triangle K node points
+  R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y; // [reference triangle barycentric coords]
+  R refBaryc[3] = {l0, l1, l2};
+  int arrEdgeOrient[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
+  R triMeas2 = 2 * K.mesure();
+  R2 phi[3] = {X - Q[0], X - Q[1], X - Q[2]};    // phi * area *2
+
+  R2 ddd[3] = {K.H(0), K.H(1), K.H(2)};
+  Diff<Diff<R,2>, 2>  ll1(l1,0), ll2(l2,1);
+  ll1.d[0] = ddd[1].x;ll1.d[1] = ddd[1].y;
+  ll2.d[0] = ddd[2].x;ll2.d[1] = ddd[2].y;
+  ll1.val.d[0]=ddd[1].x;ll1.val.d[1]=ddd[1].y;                                    // init val of dx
+  ll2.val.d[0]=ddd[2].x;ll2.val.d[1]=ddd[2].y;
+
+  Diff<Diff<R,2>, 2>  ll0 = 1 - ll1 - ll2;
+  Diff<Diff<R,2>, 2> Xx(X.x,0), Xy(X.y,1);
+  Xx.val.d[0]=1;                                      // init val of dx
+  Xy.val.d[1]=1;
+  Diff<Diff<R,2>, 2> LL[3] = {ll0, ll1, ll2};
+  Diff<Diff<R,2>, 2> PHIx[3] = {Xx-Q[0].x, Xx-Q[1].x,Xx-Q[2].x};
+  Diff<Diff<R,2>, 2> PHIy[3] = {Xy-Q[0].y, Xy-Q[1].y,Xy-Q[2].y};
+
+
+  int pI[8][3];    // store p_k
+  int lI[8][3];    // store l_k
+  R cI[8][3];      // store c_k
+  int dof = 0;
+  double s = sqrt(K.mesure());
+
+
+  for (int e = 0; e < 3; ++e) {
+    //int i = e;
+    int ii[2] = {(e + 1) % 3, (e + 2) % 3};
+    R eOrientation = arrEdgeOrient[e] / triMeas2;
+    if (eOrientation < 0) {
+      Exchange(ii[0], ii[1]);
+    }
+
+    for (int j = 0; j < 2; ++j, dof++) {
+      pI[dof][0] = e;
+      lI[dof][0] = ii[j];
+      cI[dof][0] = eOrientation;
+
+      pI[dof][1] = e;
+      lI[dof][1] = e;
+      cI[dof][1] = -eOrientation * 4. / 3.;
+
+      pI[dof][2] = ii[j];
+      lI[dof][2] = ii[j];
+      cI[dof][2] = eOrientation / 3.;
+    }
+  }
+
+  R s8 = 8 / triMeas2, s01 = s8;
+  R cbb[] = {s8, 2 * s01, -s01, s8};    // { [ 8, 16], [ -8, 8] }
+
+  for (int j = 0; j < 2; ++j, dof++) {
+    pI[dof][0] = 0;
+    lI[dof][0] = 0;
+    cI[dof][0] = cbb[j];
+
+    pI[dof][1] = 1;    // i
+    lI[dof][1] = 1;
+    cI[dof][1] = cbb[j + 2];
+
+    pI[dof][2] = 2;
+    lI[dof][2] = 2;
+    cI[dof][2] = 0;
+  }
+
+  assert(dof == 8);
+
+  for (int dof = 0; dof < 8; ++dof) {
+    R2 fd(0., 0.);
+    Diff<Diff<double,2>, 2> FDx, FDy;
+
+    for (int k = 0; k < 3; ++k) {
+      fd += (cI[dof][k] * refBaryc[lI[dof][k]]) * phi[pI[dof][k]];
+      FDx += (cI[dof][k] * LL[lI[dof][k]]) *  PHIx[pI[dof][k]];
+      FDy += (cI[dof][k] * LL[lI[dof][k]]) *  PHIy[pI[dof][k]];
+
+    }
+
+    bfMat(dof, 0, op_id) = FDx.val.val  * s;
+    bfMat(dof, 1, op_id) = FDy.val.val  * s;
+    bfMat(dof, 0, op_dx) = FDx.d[0].val * s;
+    bfMat(dof, 1, op_dx) = FDy.d[0].val * s;
+    bfMat(dof, 0, op_dy) = FDx.d[1].val * s;
+    bfMat(dof, 1, op_dy) = FDy.d[1].val * s;
+    bfMat(dof, 0, op_dxx) = FDx.d[0].d[0] * s;
+    bfMat(dof, 1, op_dxx) = FDy.d[0].d[0] * s;
+    bfMat(dof, 0, op_dxy) = FDx.d[0].d[1] * s;
+    bfMat(dof, 1, op_dxy) = FDy.d[0].d[1] * s;
+    bfMat(dof, 0, op_dyy) = FDx.d[1].d[1] * s;
+    bfMat(dof, 1, op_dyy) = FDy.d[1].d[1] * s;
+
+  }
+
+
+
+};
 
 static TypeOfFE_RT1_2d  myRT1_2d;
 GTypeOfFE<Mesh2> & RT1_2d(myRT1_2d);
@@ -518,19 +793,34 @@ class TypeOfFE_RT2_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
   }
 
   void FB(const What_d whatd, const Element &K, const Rd &Phat, RNMK_ &val) const;
+private:
+  void FB_Freefem(const What_d, const Element &K, const Rd &PHat, RNMK_ &bfMat) const;
+  // void FB_ID(const Element &K, const Rd &Phat, RNMK_ &bfMat) const ;
+  // void FB_D1(const Element &K, const Rd &Phat, RNMK_ &bfMat) const ;
+  void FB_D2(const Element &K, const Rd &Phat, RNMK_ &bfMat) const ;
+
+
 };
 
-void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const R2 &Phat, RNMK_ &val) const{
+void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, RNMK_ &bfMat) const{
+
+  assert(bfMat.N( ) >= ndf);
+  assert(bfMat.M( ) == 2);
+  bfMat = 0;
+
+  if ((whatd & Fop_D2) ) { FB_D2(K, Phat, bfMat);}
+  // else if ((whatd & Fop_D1) ) { FB_D1(K, Phat, bfMat);}
+  // else {FB_ID(K, Phat, bfMat);}
+  else { FB_Freefem(whatd, K, Phat, bfMat);}
+
+}
+void TypeOfFE_RT2_2d::FB_Freefem(const What_d whatd, const Element &K, const R2 &Phat, RNMK_ &val) const{
   R2 X = K(Phat);
   R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])};
   R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y;
   R L[3] = {l0, l1, l2};
   R eo[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
 
-  assert(val.N( ) >= ndf);
-  assert(val.M( ) == 2);
-
-  val = 0;
   int p[15] = {0, 1, 2,  5,  4,  3,  6, 7,
                8, 9, 10, 11, 12, 13, 14};    // Permutation for orinatation
   R2 Pm[18];                                 // all the momome function ..
@@ -558,17 +848,13 @@ void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const R2 &Phat, R
   int k6[] = {4, 5, 9, 11, 15, 16};
   R CKK = K.mesure() * 2;
   R2 phi[3] = {X - Q[0], X - Q[1], X - Q[2]};    // phi * area *2
-  if (Ortho){
-    phi[0] = phi[0].perp( );
-    phi[1] = phi[1].perp( );
-    phi[2] = phi[2].perp( );
-  }
 
   for (int l = 0; l < 18; ++l){
     int i = Bii[l][0];
     int j = Bii[l][1];
     int k = Bii[l][2];
     Pm[l] = phi[i] * (L[j] * L[k] / CKK);
+
   }
 
   // static int ddd=0;
@@ -588,24 +874,33 @@ void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const R2 &Phat, R
   double sg[15] = {eo[0], eo[0], eo[0], eo[1], eo[1], eo[1], eo[2], eo[2],
                    eo[2], 1.,    1.,    1.,    1.,    1.,    1.};
 
+
   if (whatd & Fop_id){
     for (int pdf = 0; pdf < 15; ++pdf) {
       int df = p[pdf];
       R2 fd(0., 0.);
+
       if (df < 9) {
         fd = Pm[fe[df]];    // edge function ..
+
       }
 
       for (int k = 0; k < 6; ++k) {
-        fd += cf[df][k] * Pm[k6[k]];
+        fd  += cf[df][k] * Pm[k6[k]];
+
       }
 
       fd *= sg[df];
+
+
       val(pdf, 0, op_id) = fd.x;
       val(pdf, 1, op_id) = fd.y;
+
+      // std::cout << FDx[pdf].val.val << "\t" << fd.x << std::endl;
+      // std::cout << FDy[pdf].val.val << "\t" << fd.y << std::endl;
+
     }
   }
-
   if ((whatd & Fop_D1) || (whatd & Fop_D2) ) {
     R2 DL[3] = {K.H(0), K.H(1), K.H(2)};
     R2 Dphi1(1, 0);    // D(phi.x)
@@ -628,6 +923,7 @@ void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const R2 &Phat, R
       R2 DF2 = (Dphi2 * Ljk + phi[i].y * DLjk) / CKK;
       DxPm[l] = R2(DF1.x, DF2.x);
       DyPm[l] = R2(DF1.y, DF2.y);
+
     }
 
     if (whatd & Fop_dx) {
@@ -637,7 +933,6 @@ void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const R2 &Phat, R
         if (df < 9) {
           fd = DxPm[fe[df]];    // edge function ..
         }
-
         for (int k = 0; k < 6; ++k) {
           fd += cf[df][k] * DxPm[k6[k]];
         }
@@ -645,9 +940,10 @@ void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const R2 &Phat, R
         fd *= sg[df];
         val(pdf, 0, op_dx) = fd.x;
         val(pdf, 1, op_dx) = fd.y;
-      }
-    }
 
+      }
+
+    }
     if (whatd & Fop_dy) {
       for (int pdf = 0; pdf < 15; ++pdf) {
         int df = p[pdf];
@@ -667,10 +963,122 @@ void TypeOfFE_RT2_2d::FB(const What_d whatd, const Element &K, const R2 &Phat, R
     }
 
     if (whatd & Fop_D2) {
+
+
+
       cout << " to do FH RT2 dxx, dyy dxy " << endl;
       ffassert(0);
     }
   }
+}
+void TypeOfFE_RT2_2d::FB_D2(const Element &K, const R2 &Phat, RNMK_ &bfMat) const{
+  R2 X = K(Phat);
+  R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])};
+  R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y;
+  R L[3] = {l0, l1, l2};
+  R eo[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
+  double s = 1.;
+
+  R2 ddd[3] = {K.H(0), K.H(1), K.H(2)};
+  Diff<Diff<R,2>, 2>  ll1(l1,0), ll2(l2,1);
+  ll1.d[0] = ddd[1].x;ll1.d[1] = ddd[1].y;
+  ll2.d[0] = ddd[2].x;ll2.d[1] = ddd[2].y;
+  ll1.val.d[0]=ddd[1].x;ll1.val.d[1]=ddd[1].y;                                    // init val of dx
+  ll2.val.d[0]=ddd[2].x;ll2.val.d[1]=ddd[2].y;
+
+  Diff<Diff<R,2>, 2>  ll0 = 1 - ll1 - ll2;
+  Diff<Diff<R,2>, 2> Xx(X.x,0), Xy(X.y,1);
+  Xx.val.d[0]=1;                                      // init val of dx
+  Xy.val.d[1]=1;
+  Diff<Diff<R,2>, 2> LL[3] = {ll0, ll1, ll2};
+  Diff<Diff<R,2>, 2> PHIx[3] = {Xx-Q[0].x, Xx-Q[1].x,Xx-Q[2].x,};
+  Diff<Diff<R,2>, 2> PHIy[3] = {Xy-Q[0].y, Xy-Q[1].y,Xy-Q[2].y,};
+  Diff<Diff<R,2>, 2> PMx[18];
+  Diff<Diff<R,2>, 2> PMy[18];
+
+  int p[15] = {0, 1, 2,  5,  4,  3,  6, 7, 8, 9, 10, 11, 12, 13, 14};    // Permutation for orinatation
+  // R2 Pm[18];                                 // all the momome function ..
+  double cf[][6] = {{0, -5.5, 0, -2.5, -0.5, -1.5} /* 0 */,
+  {-1.25, -1.25, 0.25, -1, 0.25, -1} /* 1 */,
+  {-5.5, 0, -0.5, -1.5, 0, -2.5} /* 2 */,
+  {0, -2.5, 0, -5.5, -1.5, -0.5} /* 3 */,
+  {0.25, -1, -1.25, -1.25, -1, 0.25} /* 4 */,
+  {-0.5, -1.5, -5.5, 0, -2.5, 0} /* 5 */,
+  {-2.5, 0, -1.5, -0.5, 0, -5.5} /* 6 */,
+  {-1, 0.25, -1, 0.25, -1.25, -1.25} /* 7 */,
+  {-1.5, -0.5, -2.5, 0, -5.5, 0} /* 8 */,
+  {30, 90, -30, 180, 30, 60} /* 9 */,
+  {90, 30, 30, 60, -30, 180} /* 10 */,
+  {30, -180, -30, -90, -60, -30} /* 11 */,
+  {60, -120, 60, -60, 120, -60} /* 12 */,
+  {-120, 60, 120, -60, 60, -60} /* 13 */,
+  {-180, 30, -60, -30, -30, -90} /* 14 */};
+  int Bii[][3] = {{0, 0, 0} /* 0 */,  {0, 1, 1} /* 1 */,  {0, 2, 2} /* 2 */,  {0, 1, 2} /* 3 */,
+  {0, 2, 0} /* 4 */,  {0, 0, 1} /* 5 */,  {1, 0, 0} /* 6 */,  {1, 1, 1} /* 7 */,
+  {1, 2, 2} /* 8 */,  {1, 1, 2} /* 9 */,  {1, 2, 0} /* 10 */, {1, 0, 1} /* 11 */,
+  {2, 0, 0} /* 12 */, {2, 1, 1} /* 13 */, {2, 2, 2} /* 14 */, {2, 1, 2} /* 15 */,
+  {2, 2, 0} /* 16 */, {2, 0, 1} /* 17 */};
+  int fe[] = {1, 3, 2, 6, 10, 8, 12, 17, 13};
+  int k6[] = {4, 5, 9, 11, 15, 16};
+  R CKK = K.mesure() * 2;
+  // R2 phi[3] = {X - Q[0], X - Q[1], X - Q[2]};    // phi * area *2
+
+  for (int l = 0; l < 18; ++l){
+    int i = Bii[l][0];
+    int j = Bii[l][1];
+    int k = Bii[l][2];
+    // Pm[l] = phi[i] * (L[j] * L[k] / CKK);
+    PMx[l] = PHIx[i] * (LL[j] * LL[k] / CKK);
+    PMy[l] = PHIy[i] * (LL[j] * LL[k] / CKK);
+
+  }
+  if (eo[0] < 0){
+    Exchange(p[0], p[2]);
+  }
+  if (eo[1] < 0){
+    Exchange(p[3], p[5]);
+  }
+  if (eo[2] < 0){
+    Exchange(p[6], p[8]);
+  }
+
+  double sg[15] = {eo[0], eo[0], eo[0], eo[1], eo[1], eo[1], eo[2], eo[2],  eo[2], 1.,    1.,    1.,    1.,    1.,    1.};
+
+  for (int pdf = 0; pdf < 15; ++pdf) {
+    int df = p[pdf];
+    // R2 fd(0., 0.);
+    Diff<Diff<R,2>, 2> FDx, FDy;
+    if (df < 9) {
+      // fd = Pm[fe[df]];    // edge function ..
+      FDx = PMx[fe[df]];
+      FDy = PMy[fe[df]];
+    }
+
+    for (int k = 0; k < 6; ++k) {
+      // fd  += cf[df][k] * Pm[k6[k]];
+      FDx += cf[df][k] * PMx[k6[k]];
+      FDy += cf[df][k] * PMy[k6[k]];
+    }
+
+    // fd *= sg[df];
+    FDx *= sg[df];
+    FDy *= sg[df];
+
+    bfMat(pdf, 0, op_id) = FDx.val.val  * s;
+    bfMat(pdf, 1, op_id) = FDy.val.val  * s;
+    bfMat(pdf, 0, op_dx) = FDx.d[0].val * s;
+    bfMat(pdf, 1, op_dx) = FDy.d[0].val * s;
+    bfMat(pdf, 0, op_dy) = FDx.d[1].val * s;
+    bfMat(pdf, 1, op_dy) = FDy.d[1].val * s;
+    bfMat(pdf, 0, op_dxx) = FDx.d[0].d[0] * s;
+    bfMat(pdf, 1, op_dxx) = FDy.d[0].d[0] * s;
+    bfMat(pdf, 0, op_dxy) = FDx.d[0].d[1] * s;
+    bfMat(pdf, 1, op_dxy) = FDy.d[0].d[1] * s;
+    bfMat(pdf, 0, op_dyy) = FDx.d[1].d[1] * s;
+    bfMat(pdf, 1, op_dyy) = FDy.d[1].d[1] * s;
+
+  }
+
 }
 
 

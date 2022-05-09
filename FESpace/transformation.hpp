@@ -4,34 +4,56 @@
 #include "../common/RNM.hpp"
 #include "../common/dataStruct2D.hpp"
 #include "../common/dataStruct3D.hpp"
-#include <vector>
+#include <map>
 
 
-
+template<typename E>
 class Transformation {
 
 protected:
   struct Memory{
     // number of element to remember
     const int n = 2;
+
   };
+  static const int N = E::Rd::d;
 
   struct LocalTransformation{
-    KNM<double> F_t, invF_t;
-    R det;
-    LocalTransformation(int N) : F_t(N,N), invF_t(N,N) {}
+    KNM<double> DF, invF_t;
+    R detDF;
+    LocalTransformation() : DF(N,N), invF_t(N,N) {}
   };
 
-  std::vector<LocalTransformation> mapK;
+  std::map<const E*, LocalTransformation> mapK;
+  LocalTransformation* transformation;
 
+  Transformation() {}
 
-  // Transformation(int N) : F_t(N,N), invF_t(N,N) {}
-  Transformation(int N) :  mapK(2,LocalTransformation(N)){}
-
-  template<int d> void compute_inverse();
-
+  // template<int d> void compute_inverse();
+  void initialize(const E&K){}; // new local transfo or give the existing one
+  void transform_phi(const E&K, KNMK_<double> & bfMat);
+  virtual void init(const E&K) = 0;
 };
 
+template<typename E>
+class PiolaContravariant : public Transformation<E> {
+
+public:
+  PiolaContravariant() {}
+
+private:
+  void init(const E&K)  {
+
+    this->initialize(K);
+    for(int i=0;i<this->N;++i) {
+      for(int j=0;j<this->N;++j) {
+        this->transformation->DF(i,j) = K[j+1][i] - K[0][i];
+      }
+    }
+    this->transformation->detDF = this->transformation->DF(0,0)*this->transformation->DF(1,1) - this->transformation->DF(0,1)*this->transformation->DF(1,0);
+  }
+
+};
 
 // template<typename E>
 // class Linear_Transformation : public Transformation {

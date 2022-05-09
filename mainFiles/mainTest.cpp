@@ -38,11 +38,7 @@ R fun_levelSet2_1(const R2 P, const int i) {
   R shiftY = 0.5;
   R r = 0.250001;//0.3;
   double x=P.x, y=P.y;
-  // return 0.5*(sqrt(x*x + y*y) -0.075*cos(5*atan2(y,x)+2) - 0.25);
   return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
-  // return P.x-P.y + 0.1197;
-  // return P.y - 0.550766;
-
 }
 
 R fun_levelSet2_2(const R2 P, const int i) {
@@ -64,7 +60,6 @@ R fun_levelSet2_3(const R2 P, const int i) {
   return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
   // return P.x-P.y + 0.07064;
 }
-
 R fun_levelSet2_4(const R2 P, const int i) {
   R shiftX = 0.5;
   R shiftY = 1.5;
@@ -78,11 +73,20 @@ R fun_time(const R2 P,const int i, const R t) {return 1+t;}
 // R fun_test(const R2 P,const int i) {return P.x + P.y;}
 R fun_test(const R2 P,const int i, int d) {return d;}
 
-//
-// template<((double)(*pfun)(double)) f>
-// double myfun(double x) { return f(x);}
-//
-// double myx2(double x) {return x*x;}
+R fun_levelSet_t0(const R2 P, const int i) {
+  R shiftX = 0.45;
+  R shiftY = 0.45;
+  R r = 0.250001;//0.3;
+  double x=P.x, y=P.y;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+}
+R fun_levelSet_t1(const R2 P, const int i) {
+  R shiftX = 0.55;
+  R shiftY = 0.55;
+  R r = 0.250001;//0.3;
+  double x=P.x, y=P.y;
+  return sqrt((P.x-shiftX)*(P.x-shiftX) + (P.y-shiftY)*(P.y-shiftY)) - r;
+}
 
 int main(int argc, char** argv ){
   // typedef MeshQuad2 Mesh;
@@ -116,8 +120,10 @@ int main(int argc, char** argv ){
 
   Space Lh(Th, DataFE<Mesh>::P1);
   Fun_h levelSet1(Lh, fun_levelSet2_1);
-  // Fun_h levelSet2(Lh, fun_levelSet2_2);
-  // Fun_h levelSet3(Lh, fun_levelSet2_3);
+
+  Fun_h levelSet_t0(Lh, fun_levelSet_t0);
+  Fun_h levelSet_t1(Lh, fun_levelSet_t1);
+
   // Fun_h levelSet4(Lh, fun_levelSet2_4);
 
   // KN<Fun_h> ls(2);
@@ -133,32 +139,25 @@ int main(int argc, char** argv ){
   // ls(1) = &interface2;
 
 
-  // Time_Interface<Mesh> interface(2);
-  // interface.init(0,Th, ls[0]);
-  // interface.init(1,Th, ls[1]);
-
-  // interface.init(Th, &levelSet1);
+  TimeInterface<Mesh> interface(2);
+  interface.init(0,Th, levelSet_t0);
+  interface.init(1,Th, levelSet_t1);
 
 
-  ActiveMesh<Mesh> Khi(Th);
-  Khi.truncate(interface1, 1);
-  ActiveMesh<Mesh> Khi_op(Th);
-  Khi_op.truncate(interface1, -1);
-  // Khi.createSurfaceMesh(interface1);
-  // cutTh.add(interface1);
-  // cutTh.add(interface2);
-  // cutTh.truncate(interface3, -1);
-  // cutTh.truncate(interface4, -1);
-  // cutTh.add(interface1);
+
+  ActiveMesh<Mesh> Kh0(Th);
+  Kh0.createSurfaceMesh(interface);
+  ActiveMesh<Mesh> Kh1(Th);
+  Kh1.truncate(interface, -1);
+  ActiveMesh<Mesh> Kh2(Th);
+  Kh2.truncate(interface, 1);
 
 
-  // cutTh.add(interface4, -1);
-  // CutMesh cutTh(Th, interface);
-
-  // CutSpace Vh(cutTh, Lh);
-  // Fun_h ftest(Vh, fun_test);
-  MacroElement<Mesh> macro(Khi, 1);
-  // MacroElementSurface<Mesh> macro_surface(interface1, 1e-1);
+  // MacroElement<Mesh> macro1(Kh1, 0.2);
+  // MacroElement<Mesh> macro1full(Kh1, 1);
+  // MacroElement<Mesh> macro2(Kh2, 0.2);
+  // MacroElement<Mesh> macro2full(Kh2, 1);
+  // MacroElementSurface<Mesh> macro_surface(interface1, 0.2);
 
 
   // const MeshHexa::Element& T(Th[0]);
@@ -188,32 +187,49 @@ int main(int argc, char** argv ){
   // FK.BF(Fop_Dall, x, bf);
   // std::cout << bf<< std::endl;
 
-  // Paraview<Mesh> writer(Th, "backMesh.vtk");
-  // writer.add(levelSet1, "levelSet1", 0, 1);
-  Paraview<Mesh> writer;
-  // Paraview<Mesh> writer(Th, "backMesh.vtk");
 
-  // writer.writeActiveMesh(Khi, "active_mesh.vtk");
+  // Paraview<Mesh> writer(Th, "backMesh.vtk");
+  // writer.writeActiveMesh(Kh0, "active_mesh0.vtk");
+  // writer.writeActiveMesh(Kh1, "active_mesh1.vtk");
+  // writer.writeActiveMesh(Kh2, "active_mesh2.vtk");
+  //
+  //
+  // writer.writeFaceStab(Kh0, 0, "fullstab_face0.vtk");
+  // writer.writeFaceStab(Kh1, 0, "fullstab_face1.vtk");
+  // writer.writeFaceStab(Kh2, 0, "fullstab_face2.vtk");
+  //
+  //
+  // writer.writeNonStabMesh(Kh1, "Omega1_nonstabElement.vtk");
+  // writer.writeNonStabMesh(Kh2, "Omega2_nonstabElement.vtk");
+  // writer.writeNonStabMeshEdge(Kh1, "Omega1_nonstabEdge.vtk");
+  // writer.writeNonStabMeshEdge(Kh2, "Omega2_nonstabEdge.vtk");
+
+  // writer.writeMacroInnerEdge(macro1, 0, "macro_inner_edge1.vtk");
+  // writer.writeMacroOutterEdge(macro1, 0, "macro_outter_edge1.vtk");
+  // writer.writeNonStabMesh(macro1, 0, "nonStab_macro_element1.vtk");
+  // writer.writeMacroInnerEdge(macro1full, 0, "macrofull_inner_edge1.vtk");
+  // writer.writeMacroOutterEdge(macro1full, 0, "macrofull_outter_edge1.vtk");
+  // writer.writeNonStabMesh(macro1full, 0, "nonStab_macroFull_element1.vtk");
+  //
+  // writer.writeMacroInnerEdge(macro2, 0, "macro_inner_edge2.vtk");
+  // writer.writeMacroOutterEdge(macro2, 0, "macro_outter_edge2.vtk");
+  // writer.writeNonStabMesh(macro2, 0, "nonStab_macro_element2.vtk");
+  // writer.writeMacroInnerEdge(macro2full, 0, "macrofull_inner_edge2.vtk");
+  // writer.writeMacroOutterEdge(macro2full, 0, "macrofull_outter_edge2.vtk");
+  // writer.writeNonStabMesh(macro2full, 0, "nonStab_macroFull_element2.vtk");
+  //
   // writer.writeMacroElement(macro, 0, "macro_element.vtk");
-  // writer.writeFaceStab(Khi, 0, "fullstab_face.vtk");
-  // writer.writeMacroInnerEdge(macro, 0, "macro_inner_edge.vtk");
-  writer.writeMacroOutterEdge(macro, 0, "macro_outter_edge.vtk");
-  // writer.writeNonStabMesh(macro, 0, "non_stab_element.vtk");
+  // writer.writeMacroElement(macro, 0, "macro_element.vtk");
+  // writer.writeMacroElement(macro_surface, "macro_element0.vtk");
+  // writer.writeMacroOutterEdge(macro_surface, "macro_outter_edge0.vtk");
+  // writer.writeMacroInnerEdge(macro_surface, "macro_inner_edge0.vtk");
+  // writer.writeNonStabMesh(macro_surface, "nonStab_maxro_element0.vtk");
+  //
 
-  // // Paraview<Mesh> writer;
-  // writer.writeNonStabMesh(Khi_op, "Omega1_nonstab.vtk");
-  // writer.writeNonStabMesh(Khi, "Omega2_nonstab.vtk");
-
-
-  // writer.writeActiveMesh(Khi, "active_mesh.vtk");
-  // writer.writeMacroElement(macro_surface, "macro_element.vtk");
-  // writer.writeMacroOutterEdge(macro_surface, "macro_outter_edge.vtk");
-  // writer.writeMacroInnerEdge(macro_surface, "macro_inner_edge.vtk");
-
-
-
-  // writer.add(levelSet1, "levelSet1", 0, 1);
-  // writer.add(levelSet2, "levelSet2", 0, 1);
+  // Paraview<Mesh> writer(Th, "backMesh_smooth_time.vtk");
+  // writer.add(levelSet_t0, "levelSet1", 0, 1);
+  // writer.add(levelSet_t1, "levelSet2", 0, 1);
+    // writer.add(levelSet1, "levelSet1", 0, 1);
   // writer.add(levelSet3, "levelSet3", 0, 1);
   // writer.add(levelSet4, "levelSet4", 0, 1);
 

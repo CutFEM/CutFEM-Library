@@ -685,7 +685,6 @@ void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int 
       typename QF::QuadraturePoint ip(qf[ipq]);
       const Rd mip = K.map(ip);
       double Cint = meas * ip.getWeight();
-
       // EVALUATE THE BASIS FUNCTIONS
       FKv.BF(Fop,ip, fv);
       //   VF[l].applyFunNL(fu,fv);

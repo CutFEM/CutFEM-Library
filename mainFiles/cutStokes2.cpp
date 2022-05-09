@@ -336,11 +336,11 @@ int main(int argc, char** argv )
 
 
   MPIcf cfMPI(argc,argv);
-  MPIcf::setLoopSplitWork("block");
+  // MPIcf::setLoopSplitWork("block");
   const double cpubegin = CPUtime();
 
-  int nx = 200;
-  int ny = 200;
+  int nx = 50;
+  int ny = 50;
 
   vector<double> ul2,uh1,pl2,ph1,hv,convul2, convuh1,convpl2, convph1;
 
