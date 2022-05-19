@@ -91,7 +91,7 @@ public:
 
   int whichDomain() const {return Vh.whichDomain(number);}
   int get_domain() const {return Vh.get_domain(number);}
-  bool isCut() const {return Vh.isCut(number);}
+  // bool isCut() const {return Vh.isCut(number);}
   // const Interface<Mesh>& getInterface() const { Vh.get_interface(number);}
 };
 
@@ -363,7 +363,7 @@ public:
   virtual int getNeighborElement(int k,int &j, int domain = 0) const { return Th.ElementAdj(k,j);}
   virtual int nbDomain() const {return 1;}
   virtual bool containBackElement(int k)const {return true;}
-  virtual bool isCut(int k) const { return false;}
+  // virtual bool isCut(int k) const { return false;}
   // virtual bool isCut() const { return (this->gamma.size()>0);}
   virtual bool isCutSpace() const {return false;}
   virtual vector<int> idxAllElementFromBackMesh (int k, int d) const { assert(d==-1);vector<int> v = {idxElementFromBackMesh(k)}; return v ;}
@@ -537,7 +537,7 @@ public:
   const ActiveMesh<Mesh>& get_mesh() const { return cutTh;}
   const GFESpace<Mesh>& get_back_space() const {return backSpace;}
   int get_domain(int k) const { return cutTh.get_domain_element(k);}
-  bool isCut(int k) const { return cutTh.isCut(k);}
+  // bool isCut(int k) const { return cutTh.isCut(k);}
   int idxElementInBackMesh(int k) const { return cutTh.idxElementInBackMesh(k);}
   int idxElementFromBackMesh (int k) const { return cutTh.idxElementFromBackMesh(k) ;}
   int idxElementFromBackMesh(int k,int i) const { return cutTh.idxElementFromBackMesh(k,i); }

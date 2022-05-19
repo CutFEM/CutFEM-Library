@@ -197,7 +197,7 @@ public:
   }
 
 
-  bool isCut(int k, int t=0) const {
+  bool isCut(int k, int t) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
@@ -209,7 +209,7 @@ public:
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
     assert(it != interface_id_[t].end());
-    int s = it->second.at(0).second;
+    int s = it->second.at(0).second;  // 0 because no multi cut
     if(s == 0) return false; // means surface mesh
     int kb = this->idxElementInBackMesh(k);
     return it->second.at(0).first->isCutFace(kb,ifac);
@@ -228,14 +228,14 @@ public:
     if(it == in_active_mesh_[domain][t].end()) return false;
     return true;
   }
-  const Interface<Mesh>& get_interface(int k, int t = 0) const {
+  const Interface<Mesh>& get_interface(int k, int t) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
     assert(it != interface_id_[t].end());
     return *(it->second.at(0).first);
   }
-  Partition<Element> get_partition(int k, int t = 0) const {
+  Partition<Element> get_partition(int k, int t) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
@@ -243,15 +243,14 @@ public:
     int kb = this->idxElementInBackMesh(k);
     return it->second.at(0).first->get_partition(kb);
   }
-  int get_sign_cut(int k, int t = 0) const {
+  int get_sign_cut(int k, int t) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
     assert(it != interface_id_[t].end());
     return it->second.at(0).second;
   }
-  Cut_Part<Element> get_cut_part(int k, int t = 0) const {
-
+  Cut_Part<Element> get_cut_part(int k, int t) const {
     int domain = get_domain_element(k);
     int kloc = idxK_in_domain(k, domain);
     auto it = interface_id_[t].find(std::make_pair(domain, kloc));
@@ -930,7 +929,7 @@ Physical_Partition<typename Mesh::Element> ActiveMesh<Mesh>::build_local_partiti
     elements_idx.push_back(ElementIdx(iv[e]));
   }
 
-  if(!isCut(k)) return partition;
+  if(!isCut(k, t)) return partition;
 
   // START CUTTING PROCEDURE
   std::list<int> erased_element;

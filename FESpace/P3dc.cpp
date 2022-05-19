@@ -13,7 +13,12 @@ public:
   static const int ndf = (k + 2) * (k + 1) / 2;
   static int Data[];
   static double alpha_Pi_h[];
-
+  static const int nn[10][3];
+  static const int aa[10][3];
+  static const int ff[10];
+  static const int il[10];
+  static const int jl[10];
+  static const int kl[10];
   // dof, dim Im, Data, coefInterp, nbPt, coeff
   TypeOfFE_P3dcLagrange2d(): GTypeOfFE<Mesh2>(10, 1, Data, 10, 10, alpha_Pi_h) {
 
@@ -28,11 +33,6 @@ public:
       ipj_Pi_h[i] = IPJ(i,i,0);
     }
   }
-
-  // void Pi_h_alpha(const baseFElement &K, KN_< double > &v) const {
-  //   for (int i = 0; i < 3; ++i) v[i] = 1;
-  // }
-
 
   void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
 } ;
@@ -51,144 +51,101 @@ int TypeOfFE_P3dcLagrange2d::Data[] = {
 
 double TypeOfFE_P3dcLagrange2d::alpha_Pi_h[] = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1.};
 
+// const R2 TypeOfFE_P3dcLagrange2d::G(1. / 3., 1. / 3.);
+// const R TypeOfFE_P3dcLagrange2d::cshrink = 1 - 1e-2;
+// const R TypeOfFE_P3dcLagrange2d::cshrink1 = 1. / TypeOfFE_P3dcLagrange2d::cshrink;
+
 
 void TypeOfFE_P3dcLagrange2d::FB(const What_d whatd, const Element & K,
-			     const Rd & P, RNMK_ & val) const
+			     const Rd & PHat, RNMK_ & val) const
 {
-
-  R l[]={1.-P.x-P.y,P.x,P.y};
-
-  assert(val.N() >= E::nv+2*E::ne+E::nf);
+  R2 A(K[0]), B(K[1]), C(K[2]);
+  R l0 = 1. - PHat.x - PHat.y, l1 = PHat.x, l2 = PHat.y;
+  R L[3] = {l0 * k, l1 * k, l2 * k};
+  assert(val.N() >= 10);
   assert(val.M()==1 );
 
+  int p[10] = {};
+
+  for (int i = 0; i < 10; ++i) {
+      p[i] = i;
+  }
   val=0;
   RN_ f0(val('.',0,op_id));
 
     if (whatd & Fop_D0)  {
+      RN_ f0(val('.', 0, op_id));
 
-      f0[0]  = l[0]*(3.0*l[0]-1.0)*(3.0*l[0]-2.0)*0.5;
-      f0[1]  = l[1]*(3.0*l[1]-1.0)*(3.0*l[1]-2.0)*0.5;
-      f0[2]  = l[2]*(3.0*l[2]-1.0)*(3.0*l[2]-2.0)*0.5;
+      for (int df = 0; df < ndf; df++) {
+          int pdf = p[df];
+          R f = 1. / ff[df];
 
-      f0[3]  = 9.0*l[1]*l[2]*(3.0*l[1]-1.0)*0.5;
-      f0[4]  = 9.0*l[1]*l[2]*(3.0*l[2]-1.0)*0.5;
+          for (int i = 0; i < k; ++i) {
+              f *= L[nn[df][i]] - aa[df][i];
+          }
 
-      f0[5]  = 9.0*l[0]*l[2]*(3.0*l[2]-1.0)*0.5;
-      f0[6]  = 9.0*l[0]*l[2]*(3.0*l[0]-1.0)*0.5;
-
-      f0[7]  = 9.0*l[0]*l[1]*(3.0*l[0]-1.0)*0.5;
-      f0[8]  = 9.0*l[0]*l[1]*(3.0*l[1]-1.0)*0.5;
-
-      f0[9] = 27.0*l[0]*l[1]*l[2];
+          f0[pdf] = f;
+      }
     }
 
-    if( whatd & Fop_D1 ) {
-      R2 Dl[3];
-      K.Gradlambda(Dl);
+    if( whatd & Fop_D1 || whatd & Fop_D2) {
+      R2 D[] = {K.H(0) * k, K.H(1) * k, K.H(2) * k};
 
-      R l0[3]={ l[0],(3.0*l[0]-1.0),(3.0*l[0]-2.0)};
-      R l1[3]={ l[1],(3.0*l[1]-1.0),(3.0*l[1]-2.0)};
-      R l2[3]={ l[2],(3.0*l[2]-1.0),(3.0*l[2]-2.0)};
-      int d=0;
-      for( int der=op_dx; der<=op_dy; der++,d++) {
+      if( whatd & Fop_D1){
 
-        RN_ f0x(val('.',0,der));
+        for (int df = 0; df < ndf; df++) {
+          int pdf = p[df];
+          R fx = 0., fy = 0., f = 1. / ff[df];
 
-        f0x[0] = 0.5 * (Dl[0][d]*l0[1]*l0[2] + l0[0]*3.0*Dl[0][d]*l0[2] + l0[0]*l0[1]*3.0*Dl[0][d]);
-        f0x[1] = 0.5 * (Dl[1][d]*l1[1]*l1[2] + l1[0]*3.0*Dl[1][d]*l1[2] + l1[0]*l1[1]*3.0*Dl[1][d]);
-        f0x[2] = 0.5 * (Dl[2][d]*l2[1]*l2[2] + l2[0]*3.0*Dl[2][d]*l2[2] + l2[0]*l2[1]*3.0*Dl[2][d]);
+          for (int i = 0; i < k; ++i) {
+            int n = nn[df][i];
+            R Ln = L[n] - aa[df][i];
+            fx = fx * Ln + f * D[n].x;
+            fy = fy * Ln + f * D[n].y;
+            f = f * Ln;
+          }
+          val(pdf, 0, op_dx) = fx;
+          val(pdf, 0, op_dy) = fy;
 
-        f0x[3] = 9.0 * (Dl[1][d]*l[2]*l1[1] + l[1]*Dl[2][d]*l1[1] + l[1]*l[2]*3.0*Dl[1][d]) * 0.5;
-        f0x[4] = 9.0 * (Dl[1][d]*l[2]*l2[1] + l[1]*Dl[2][d]*l2[1] + l[1]*l[2]*3.0*Dl[2][d]) * 0.5;
-
-        f0x[5] = 9.0 * (Dl[0][d]*l[2]*l2[1] + l[0]*Dl[2][d]*l2[1] + l[0]*l[2]*3.0*Dl[2][d]) * 0.5;
-        f0x[6] = 9.0 * (Dl[0][d]*l[2]*l0[1] + l[0]*Dl[2][d]*l0[1] + l[0]*l[2]*3.0*Dl[0][d]) * 0.5;
-
-        f0x[7] = 9.0 * (Dl[0][d]*l[1]*l0[1] + l[0]*Dl[1][d]*l0[1] + l[0]*l[1]*3.0*Dl[0][d]) * 0.5;
-        f0x[8] = 9.0 * (Dl[0][d]*l[1]*l1[1] + l[0]*Dl[1][d]*l1[1] + l[0]*l[1]*3.0*Dl[1][d]) * 0.5;
-
-        f0x[9] = 27.0 * (Dl[0][d]*l[1]*l[2] + l[0]*Dl[1][d]*l[2] + l[0]*l[1]*Dl[2][d]);
+        }
       }
 
-
       if (whatd & Fop_D2) {
+        for (int df = 0; df < ndf; df++) {
+          int pdf = p[df];
+          R fx = 0., fy = 0., f = 1. / ff[df];
+          R fxx = 0., fyy = 0., fxy = 0.;
 
-      	R2 Dl0[3]={ Dl[0],(3.0*Dl[0]),(3.0*Dl[0])};
-      	R2 Dl1[3]={ Dl[1],(3.0*Dl[1]),(3.0*Dl[1])};
-      	R2 Dl2[3]={ Dl[2],(3.0*Dl[2]),(3.0*Dl[2])};
-      	int d=0;
-      	int op_dder[] = {op_dxx, op_dxy, op_dyy};
-
-      	for( int d1=0; d1<2; d1++) {
-      	  for( int d2=d1; d2<2; d2++) {
-
-      	    RN_ f0x(val('.',0,op_dder[d]));
-
-      	    f0x[0] = 0.5 * (
-      			    Dl[0][d1]*Dl0[1][d2]*l0[2] + Dl[0][d1]*l0[1]*Dl0[2][d2] +
-      			    Dl0[0][d2]*3.0*Dl[0][d1]*l0[2] + l0[0]*3.0*Dl[0][d1]*Dl0[2][d2] +
-      			    Dl0[0][d2]*l0[1]*3.0*Dl[0][d1] + l0[0]*Dl0[1][d2]*3.0*Dl[0][d1]
-      			    );
-      	    f0x[1] = 0.5 * (
-      			    Dl[1][d1]*Dl1[1][d2]*l1[2] + Dl[1][d1]*l1[1]*Dl1[2][d2] +
-      			    Dl1[0][d2]*3.0*Dl[1][d1]*l1[2] + l1[0]*3.0*Dl[1][d1]*Dl1[2][d2] +
-      			    Dl1[0][d2]*l1[1]*3.0*Dl[1][d1] + l1[0]*Dl1[1][d2]*3.0*Dl[1][d1]
-      			    );
-      	    f0x[2] = 0.5 * (
-      			    Dl[2][d1]*Dl2[1][d2]*l2[2] + Dl[2][d1]*l2[1]*Dl2[2][d2] +
-      			    Dl2[0][d2]*3.0*Dl[2][d1]*l2[2] + l2[0]*3.0*Dl[2][d1]*Dl2[2][d2] +
-      			    Dl2[0][d2]*l2[1]*3.0*Dl[2][d1] + l2[0]*Dl2[1][d2]*3.0*Dl[2][d1]
-      			    );
-
-      	    f0x[3] = 9.0 * (
-      			    Dl[1][d1]*Dl[2][d2]*l1[1] + Dl[1][d1]*l[2]*Dl1[1][d2] +
-      			    Dl[1][d2]*Dl[2][d1]*l1[1] + l[1]*Dl[2][d1]*Dl1[1][d2] +
-      			    Dl[1][d2]*l[2]*3.0*Dl[1][d1] + l[1]*Dl[2][d2]*3.0*Dl[1][d1]
-      			    ) * 0.5;
-      	    f0x[4] = 9.0 * (
-      			    Dl[1][d1]*Dl[2][d2]*l2[1] + Dl[1][d1]*l[2]*Dl2[1][d2] +
-      			    Dl[1][d2]*Dl[2][d1]*l2[1] + l[1]*Dl[2][d1]*Dl2[1][d2] +
-      			    Dl[1][d2]*l[2]*3.0*Dl[2][d1] + l[1]*Dl[2][d2]*3.0*Dl[2][d1]
-      			    ) * 0.5;
-
-
-      	    f0x[5] = 9.0 * (
-      			    Dl[0][d1]*Dl[2][d2]*l2[1] + Dl[0][d1]*l[2]*Dl2[1][d2] +
-      			    Dl[0][d2]*Dl[2][d1]*l2[1] + l[0]*Dl[2][d1]*Dl2[1][d2] +
-      			    Dl[0][d2]*l[2]*3.0*Dl[2][d1] + l[0]*Dl[2][d2]*3.0*Dl[2][d1]
-      			    ) * 0.5;
-      	    f0x[6] = 9.0 * (
-      			    Dl[0][d1]*Dl[2][d2]*l0[1] + Dl[0][d1]*l[2]*Dl0[1][d2] +
-      			    Dl[0][d2]*Dl[2][d1]*l0[1] + l[0]*Dl[2][d1]*Dl0[1][d2] +
-      			    Dl[0][d2]*l[2]*3.0*Dl[0][d1] + l[0]*Dl[2][d2]*3.0*Dl[0][d1]
-      			    ) * 0.5;
-
-      	    f0x[7] = 9.0 * (
-      			    Dl[0][d1]*Dl[1][d2]*l0[1] + Dl[0][d1]*l[1]*Dl0[1][d2] +
-      			    Dl[0][d2]*Dl[1][d1]*l0[1] + l[0]*Dl[1][d1]*Dl0[1][d2] +
-      			    Dl[0][d2]*l[1]*3.0*Dl[0][d1] + l[0]*Dl[1][d2]*3.0*Dl[0][d1]
-      			    ) * 0.5;
-      	    f0x[8] = 9.0 * (
-      			    Dl[0][d1]*Dl[1][d2]*l1[1] + Dl[0][d1]*l[1]*Dl1[1][d2] +
-      			    Dl[0][d2]*Dl[1][d1]*l1[1] + l[0]*Dl[1][d1]*Dl1[1][d2] +
-      			    Dl[0][d2]*l[1]*3.0*Dl[1][d1] + l[0]*Dl[1][d2]*3.0*Dl[1][d1]
-      			    ) * 0.5;
-
-      	    f0x[9] = 27.0 * (
-      			     Dl[0][d1]*Dl[1][d2]*l[2] + Dl[0][d1]*l[1]*Dl[2][d2] +
-      			     Dl[0][d2]*Dl[1][d1]*l[2] + l[0]*Dl[1][d1]*Dl[2][d2] +
-      			     Dl[0][d2]*l[1]*Dl[2][d1] + l[0]*Dl[1][d2]*Dl[2][d1]
-      			     );
-
-      	  d++;
-      	  }
-      	}
-
+          for (int i = 0; i < k; ++i) {
+            int n = nn[df][i];
+            R Ln = L[n] - aa[df][i];
+            fxx = fxx * Ln + 2. * fx * D[n].x;
+            fyy = fyy * Ln + 2. * fy * D[n].y;
+            fxy = fxy * Ln + fx * D[n].y + fy * D[n].x;
+            fx = fx * Ln + f * D[n].x;
+            fy = fy * Ln + f * D[n].y;
+            f = f * Ln;
+          }
+          val(pdf, 0, op_dxx) = fxx;
+          val(pdf, 0, op_dyy) = fyy;
+          val(pdf, 0, op_dxy) = fxy;
+        }
       }
     }
 
   }
 
+
+  const int TypeOfFE_P3dcLagrange2d::nn[10][3] = {{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {1, 1, 2},
+                                                {1, 2, 2}, {0, 2, 2}, {0, 0, 2}, {0, 0, 1},
+                                                {0, 1, 1}, {0, 1, 2}};
+  const int TypeOfFE_P3dcLagrange2d::aa[10][3] = {{0, 1, 2}, {0, 1, 2}, {0, 1, 2}, {0, 1, 0},
+                                                {0, 0, 1}, {0, 0, 1}, {0, 1, 0}, {0, 1, 0},
+                                                {0, 0, 1}, {0, 0, 0}};
+  const int TypeOfFE_P3dcLagrange2d::ff[10] = {6, 6, 6, 2, 2, 2, 2, 2, 2, 1};
+  const int TypeOfFE_P3dcLagrange2d::il[10] = {3, 0, 0, 0, 0, 1, 2, 2, 1, 1};
+  const int TypeOfFE_P3dcLagrange2d::jl[10] = {0, 3, 0, 2, 1, 0, 0, 1, 2, 1};
+  const int TypeOfFE_P3dcLagrange2d::kl[10] = {0, 0, 3, 1, 2, 2, 1, 0, 0, 1};
 
 
 static TypeOfFE_P3dcLagrange2d  P3dc_2d;

@@ -5,8 +5,26 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) 
   assert(!VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    if(Th.isCut(k))  BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+    if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
     else             BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+
+    this->addLocalContribution();
+  }
+}
+template<typename M>
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, int itq, const TimeSlab& In) {
+  assert(!VF.isRHS());
+  auto tq = this->get_quadrature_time(itq);
+  double tid = In.map(tq);
+  KNMK<double> basisFunTime(In.NbDoF(),1,op_dz+1);
+  RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
+  In.BF(tq.x, bf_time);
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(Th.isInactive(k, itq)) continue;
+
+    if(Th.isCut(k, itq))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+    else                  BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
 
     this->addLocalContribution();
   }
@@ -32,10 +50,13 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    if(Th.isCut(k))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
-    else             BaseFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
+    if(Th.isInactive(k, itq)) continue;
+
+    if(Th.isCut(k, itq))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
+    else                  BaseFEM<M>::addElementContribution   (VF, k, &In, itq, cst_time);
 
     this->addLocalContribution();
+
   }
 }
 
@@ -44,8 +65,27 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    if(Th.isCut(k))  BaseCutFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
+    if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
     else             BaseFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
+  }
+}
+
+template<typename M>
+void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, int itq, const TimeSlab& In) {
+  assert(VF.isRHS());
+  auto tq = this->get_quadrature_time(itq);
+  double tid = In.map(tq);
+  KNMK<double> basisFunTime(In.NbDoF(),1,op_dz+1);
+  RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
+  In.BF(tq.x, bf_time);
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(Th.isInactive(k, itq)) continue;
+
+    if(Th.isCut(k, itq))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+    else                  BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+
+    this->addLocalContribution();
   }
 }
 
@@ -69,8 +109,10 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, co
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    if(Th.isCut(k))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
-    else             BaseFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
+    if(Th.isInactive(k, itq)) continue;
+
+    if(Th.isCut(k, itq))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
+    else                  BaseFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
 
   }
 }
@@ -81,7 +123,7 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
   // GET CUT AND COMPUTE PARAMETERS
   const FESpace& Vh(VF.get_spaceV(0));
   const CutMesh& Th(Vh.get_mesh());
-  const Cut_Part<Element> cutK(Th.get_cut_part(k));
+  const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
   const FElement& FK(Vh[k]);
   const Element &  K(FK.T);
 
@@ -138,10 +180,14 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
         if(!same) FKu.BF(Fop, cut_ip, fu);
         //   VF[l].applyFunNL(fu,fv);
 
+        // std::cout << mip << std::endl;
+        // std::cout << fu << std::endl;
+        // getchar();
+
         // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
         Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
         Cint *= coef * VF[l].c;
-        // Cint = coef;
+        // Cint = 1.;/coef;
         if( In ){
           if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, Cint);
           else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
@@ -201,12 +247,16 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
   double cst_time = tq.a*In.get_measure();
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    if(Th.isInactive(k, itq)) continue;
+
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
 
       int jfac = ifac;
       int kn = Th.ElementAdj(k, jfac);
       // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
       if(kn == -1 || kn < k) continue;
+
+      if(Th.isInactive(kn, itq)) continue;
 
       std::pair<int,int> e1 = std::make_pair(k,ifac);
       std::pair<int,int> e2 = std::make_pair(kn,jfac);
@@ -260,12 +310,15 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, co
   double cst_time = tq.a*In.get_measure();
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    if(Th.isInactive(k, itq)) continue;
+
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
 
       int jfac = ifac;
       int kn = Th.ElementAdj(k, jfac);
       // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
       if(kn == -1 || kn < k) continue;
+      if(Th.isInactive(kn, itq)) continue;
 
       std::pair<int,int> e1 = std::make_pair(k,ifac);
       std::pair<int,int> e2 = std::make_pair(kn,jfac);
@@ -430,7 +483,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
     if(util::contain(label, BE.lab) || all_label) {
 
       // CHECK IF IT IS A CUT EDGE
-      if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+      if(cutTh.isCutFace(idxK[0], ifac, itq)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
       else BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
       this->addLocalContribution();
     }
@@ -526,7 +579,7 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
     int k = idxK[e];
     typename Element::Face face;
     const Cut_Part<typename Element::Face> cutFace(Th.get_cut_face(face, k, ifac));
-    const Cut_Part<Element> cutK(Th.get_cut_part(k));
+    const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
 
     double meas_cut  = cutK.measure();
 
@@ -693,7 +746,7 @@ template<typename M>
 void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(!VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
-    if(!Th.isCut(k)) continue;
+    if(!Th.isCut(k, 0)) continue;
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
 
       int jfac = ifac;
@@ -778,10 +831,11 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double va
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    if(Th.isCut(k))  BaseCutFEM<M>::addLagrangeContribution(VF, k);
+    if(Th.isCut(k,0))  BaseCutFEM<M>::addLagrangeContribution(VF, k);
     else BaseFEM<M>::addLagrangeContribution(VF, k);
 
     this->addLocalContributionLagrange(ndf);
+
   }
 }
 
@@ -791,7 +845,7 @@ void BaseCutFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const i
   // GET CUT AND COMPUTE PARAMETERS
   const FESpace& Vh(VF.get_spaceV(0));
   const CutMesh& Th(Vh.get_mesh());
-  const Cut_Part<Element> cutK(Th.get_cut_part(k));
+  const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
   const FElement& FK(Vh[k]);
   const Element &  K(FK.T);
 

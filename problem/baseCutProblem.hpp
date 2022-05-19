@@ -26,9 +26,11 @@ public:
 
   // Integral on K
   void addBilinear(  const ListItemVF<Rd::d>& VF, const CutMesh&) ;
+  void addBilinear(  const ListItemVF<Rd::d>& VF, const CutMesh&, int itq, const TimeSlab& In) ;
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In);
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, int itq);
   void addLinear(  const ListItemVF<Rd::d>& VF, const CutMesh&) ;
+  void addLinear(  const ListItemVF<Rd::d>& VF, const CutMesh&, int itq, const TimeSlab& In) ;
   void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In);
   void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, int itq);
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time);
@@ -114,8 +116,9 @@ public:
     Solver::solve(this->mat_, this->rhs_);
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
-  void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
+  void solve(std::map<std::pair<int,int>,R> & A, Rn & b, string solverName = "mumps") {
     R tt0 = MPIcf::Wtime();
+    this->solver_name_ = solverName;
     Solver::solve(A, b);
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }

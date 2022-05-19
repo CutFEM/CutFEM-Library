@@ -107,7 +107,31 @@ void multiply(const SparseMatrixRC<double>& A, const SparseMatrixRC<double>& B, 
   }
 }
 
+void eraseRow( int N, std::map<std::pair<int,int>,double>& A, Rn& b, std::map<int, double>& dof2rm){
 
+  std::map<std::pair<int,int>,double> C;
+  std::map<std::pair<int,int>,double> P;
+  for(int i=0;i<N;++i){
+    P[make_pair(i,i)] = 1;
+  }
+
+  for( auto & p : dof2rm) {
+    int i0 = p.first;
+    P [make_pair(i0,i0)] = 0;
+    b(i0) = p.second;
+  }
+
+  SparseMatrixRC<double> AA (N,N,A);
+  SparseMatrixRC<double> PP (N,N,P);
+  multiply(AA,PP, C);
+  A = C;
+
+  for( auto & p : dof2rm) {
+    int i0 = p.first;
+    A [make_pair(i0,i0)] = 1;
+  }
+
+}
 
 
 

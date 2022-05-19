@@ -20,7 +20,7 @@ DONE ** 16) take away all the basisFun to use the bfdata array
 DONE ** 18) save solution called from FESpace with map as input
 DONE ** 19) changer saveSolution et initSolution pour que ce soit plus general
 DONE ** 21) Need to add the mapping for the curvature terms
-22) Check P3 element because doesnt work with mapping, maybe because use of Vh.nbnode so edge nodes are sharing deformation
+DONE ** 22) Check P3 element because doesnt work with mapping, maybe because use of Vh.nbnode so edge nodes are sharing deformation
 DONE ** 23) Only use of expressionFunFEM in (,). no Fun in testFunction anymore, only expression
 DONE ** 24) Remove degre() method in finite element classes. It is just an artefact from old stuff
 DONE ** 25) create computeCoef, computeCoefBorder, computeCoefInterface, etc to be able to compute correclty all coefficient
@@ -31,12 +31,12 @@ DONE ** 27) change getcoeffU,V to have a unique one that compute both directly
 29) in integrals, change Vh->backSpace->Th[kb] when getting the partition of the cut element
 30) study convergence of projection on interface (which h power do we need)
 DONE ** 31) change the cutFem parameter thing. Not by name but maybe by pointer. To be able to do h^p
-32) what_part in Partition should be more general, not only (-1, 1) subdomain. We want a cutDomain with -1 only for example.
+DONE ** 32) what_part in Partition should be more general, not only (-1, 1) subdomain. We want a cutDomain with -1 only for example.
 33) NEED TO CHANGE SET VELOCITY IN NAVIER STOKES PROBLEM.
 DONE ** 34) ADD normal in function evaluation in on edges and boundary integrals
 35) !!! REMOVE SOME OF THE OPERATION CLASS FOR EXPRESSION AND USE TESTFUNCTION INSTEAD !!!!
-36) FIX BUG WHEN DECLARE SAME CUTFEM_PARAMETER IN 2 FUNCTION => SEGFAULT.
-37) WHEN ADDING A INTERFACE, NEED TO PASS AN OPERATOR TO SAY WHAT TO DO ( *, min, max etc)
+DONE ** 36) FIX BUG WHEN DECLARE SAME CUTFEM_PARAMETER IN 2 FUNCTION => SEGFAULT.
+OBSOLET ** 37) WHEN ADDING A INTERFACE, NEED TO PASS AN OPERATOR TO SAY WHAT TO DO ( *, min, max etc)
 38) change addFaceStab for macro to addBilinear , inner_edge, macro_element
 DONE ** 39) Have a common root class for the macro class
 DONE ** 40) take away addEdgeIntegral and replace with addBilinear
@@ -76,3 +76,5 @@ DONE ** 57) should give a mesh in addIntegralFunction so it is clear where we in
 64) Update gnuplot file with new classes
 65) Fixe general norm file with new classes
 66) Fixe normsFun function
+67) Connect In to testFunction so when we need to integrate only in space a time dependent
+    function we don't need to give the time slab otherwise it becomes very confusing.

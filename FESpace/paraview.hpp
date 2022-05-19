@@ -130,9 +130,9 @@ static double paraviewFormat( double x) {
         if( cutTh.isInactive(k, 0)) {
           continue;
         }
-        if( cutTh.isCut(k)) {
+        if( cutTh.isCut(k, 0)) {
 
-          const Cut_Part<Element> cutK(cutTh.get_cut_part(k));
+          const Cut_Part<Element> cutK(cutTh.get_cut_part(k,0));
 
           if(cutK.multi_interface()){ assert(0);}
 
@@ -181,9 +181,9 @@ static double paraviewFormat( double x) {
         if( cutTh.isInactive(k, 0)) {
           continue;
         }
-        if( cutTh.isCut(k)) {
+        if( cutTh.isCut(k,0)) {
 
-          const Cut_Part<Element> cutK(cutTh.get_cut_part(k));
+          const Cut_Part<Element> cutK(cutTh.get_cut_part(k,0));
 
           if(cutK.multi_interface()){
             // Here we need to create triangles to feel the multi cut

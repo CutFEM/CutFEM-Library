@@ -10,7 +10,6 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, cons
 
 template<typename M>
 void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const TimeSlab& In, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint) {
-
   RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
   for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {
     for(int jt=In.dfcbegin(0); jt<In.dfcend(0); ++jt) {

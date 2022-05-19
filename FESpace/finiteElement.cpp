@@ -2,10 +2,11 @@
 
 
 const GTypeOfFE<Mesh2>* TaylorHood2::FE_[3] = {&DataFE<Mesh2>::P2,&DataFE<Mesh2>::P2,&DataFE<Mesh2>::P1};//&DataFE<Mesh2>::P2;
-const GTypeOfFE<Mesh2>* Lagrange2::FE_[4][2] = {{&DataFE<Mesh2>::P0,&DataFE<Mesh2>::P0},
+const GTypeOfFE<Mesh2>* Lagrange2::FE_[5][2] = {{&DataFE<Mesh2>::P0,&DataFE<Mesh2>::P0},
                                                 {&DataFE<Mesh2>::P1,&DataFE<Mesh2>::P1},
                                                 {&DataFE<Mesh2>::P2,&DataFE<Mesh2>::P2},
-                                                {&DataFE<Mesh2>::P3,&DataFE<Mesh2>::P3}};
+                                                {&DataFE<Mesh2>::P3,&DataFE<Mesh2>::P3},
+                                                {&DataFE<Mesh2>::P4,&DataFE<Mesh2>::P4}};
 
 const GTypeOfFE<Mesh2>* LagrangeDC2::FE_[4][2] = {{&DataFE<Mesh2>::P0,&DataFE<Mesh2>::P0},
                                                 {&DataFE<Mesh2>::P1dc,&DataFE<Mesh2>::P1dc},

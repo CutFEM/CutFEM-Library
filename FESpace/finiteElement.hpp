@@ -7,7 +7,7 @@
 
 class Lagrange2 :  public GTypeOfFESum<Mesh2>{
   typedef KN<const GTypeOfFE<Mesh2>*> FEarray;
-  static const GTypeOfFE<Mesh2>* FE_[4][2];
+  static const GTypeOfFE<Mesh2>* FE_[5][2];
 public:
   Lagrange2(int k=1)
   : GTypeOfFESum<Mesh2>(FEarray(2,FE_[k])){}

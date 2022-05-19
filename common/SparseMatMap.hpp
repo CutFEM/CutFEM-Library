@@ -14,7 +14,7 @@ using namespace std;
 
 
 void multiply( int N, const std::map<std::pair<int,int>,double>& A, const std::map<std::pair<int,int>,double>& B, std::map<std::pair<int,int>,double>& C);
-void removeDF( int N, std::map<std::pair<int,int>,double>& A, Rn& b, const set<int>& df);
+void eraseRow( int N, std::map<std::pair<int,int>,double>& A, Rn& b, std::map<int, double>& dof2rm);
 // void multiply( int N, const std::map<std::pair<int,int>,double>& A, const Rn& rhs, Rn& b);
 void multiply( int N, int M, const std::map<std::pair<int,int>,double>& A, const Rn& rhs, Rn& b);
 

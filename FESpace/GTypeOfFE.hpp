@@ -192,7 +192,7 @@ struct DataFE
   static GTypeOfFE<mesh> & P1;
   static GTypeOfFE<mesh> & P2;
   static GTypeOfFE<mesh> & P3;
-  // static GTypeOfFE<mesh> & P4;
+  static GTypeOfFE<mesh> & P4;
 
 
   static GTypeOfFE<mesh> & P0Poly;

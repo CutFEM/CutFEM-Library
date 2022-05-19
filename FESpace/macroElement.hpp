@@ -15,16 +15,26 @@ public:
   vector<int> idx_element;
   vector<std::pair<int,int>> inner_edge; // idx_Element, idx_edge
 
+  double area_root_ = 0;
+  double area_total_ = 0;
+
   MElement(int idx_root = -1){
     idx_root_element = idx_root;
     idx_element.push_back(idx_root);
   }
+  MElement(int idx_root, double s){
+    idx_root_element = idx_root;
+    idx_element.push_back(idx_root);
+    area_root_ = s;
+    area_total_ += s;
+  }
   int get_index_root() const {return idx_root_element;}
   int size() const {return idx_element.size();}
-  void add(int idx_K, std::pair<int,int> ke) {
+  void add(int idx_K, std::pair<int,int> ke, double s) {
     idx_element.push_back(idx_K);
     // int kk =(idx_root_element < idx_K)? idx_root_element : idx_K;
     inner_edge.push_back(ke);
+    area_total_ += s;
   }
   int get_index_element(int k) const {return idx_element[k];}
   int get_nb_inner_edge() const {return inner_edge.size();}
@@ -49,6 +59,7 @@ struct SmallElement {
   int index_root;
   int chain_position;
   int idx_edge_to_root;
+  double area;
 
   SmallElement(int idx = -1, int idx_root = -1) :index(idx), index_root(idx_root), chain_position(0), idx_edge_to_root(-1) {}
   void setRoot(int i) { index_root = i;}
@@ -82,8 +93,9 @@ class GMacro {
     assert(it != small_element.end());
     return it->second;
   }
-  bool isRootFat(int k) const { return (macro_element.find(k) != macro_element.end());}
   int nb_macro_element() const { return macro_element.size();}
+
+  bool isRootFat(int k) const { return (macro_element.find(k) != macro_element.end());}
   bool isSmall(int k) const { return (small_element.find(k) != small_element.end());}
 
 
@@ -112,7 +124,16 @@ public:
   int nb_element_0, nb_element_1;
 
   MacroElement(const ActiveMesh<Mesh>& th, const double C);
-
+  double get_area(int k) const {
+    if( isSmall(k)){
+      return getSmallElement(k).area;
+    }
+    else if ( isRootFat(k)){
+      const auto it (macro_element.find(k));
+      return it->second.area_root_;
+    }
+    else assert(0);
+  }
 private:
   void findSmallElement();
   void createMacroElement();
@@ -140,16 +161,17 @@ MacroElement<Mesh>::MacroElement(const ActiveMesh<Mesh>& th, const double C) : T
 template<typename Mesh>
 void MacroElement<Mesh>::findSmallElement() {
   for(int k=0; k<Th_.get_nb_element(); k+= 1) {
-    if(!Th_.isCut(k)) continue;
+    if(!Th_.isCut(k,0)) continue;
 
     const typename Mesh::Element& K(Th_[k]);
 
-    const Cut_Part<typename Mesh::Element> cutK(Th_.get_cut_part(k));
+    const Cut_Part<typename Mesh::Element> cutK(Th_.get_cut_part(k,0));
     const int domain = Th_.get_domain_element(k);
     double areaCut = cutK.measure();
 
     if(areaCut < tol) {
       small_element[k] = SmallElement(k);
+      small_element[k].area = areaCut;
       if(domain == 0) { nb_element_0++;}else{ nb_element_1++;}
     }
   }
@@ -202,11 +224,16 @@ void MacroElement<Mesh>::createMacroElement(){
         int ie = (k < kn)? ifac : ifacn;
         int kk = (k < kn)?k: kn;
         if(it != macro_element.end()){ // already exist
-          it->second.add(k, std::make_pair(kk,ie));
+          it->second.add(k, std::make_pair(kk,ie), Ks.area);
         }
         else{
-          macro_element[root_id] = MElement(root_id);
-          macro_element[root_id].add(k, std::make_pair(kk, ie));
+
+          const Cut_Part<typename Mesh::Element> cutK(Th_.get_cut_part(root_id,0));
+          double areaCut = cutK.measure();
+
+          macro_element[root_id] = MElement(root_id, areaCut);
+          macro_element[root_id].add(k, std::make_pair(kk, ie), Ks.area);
+
         }
 
         // remove small element from the list
@@ -248,6 +275,7 @@ void MacroElementSurface<Mesh>::findSmallElement() {
     if(meas > tol) continue;
 
     small_element[iface] = SmallElement(iface);
+    small_element[iface].area = meas;
   }
 }
 template<typename Mesh>
@@ -296,11 +324,11 @@ void MacroElementSurface<Mesh>::findRootElement(){
     int kk = (k < kn)? k_loc : kn_loc;
     int ke = (k < kn)? ie : je;
     if(pRoot != macro_element.end()) {   // already exist
-      pRoot->second.add(k_loc, std::make_pair(kk, ke));
+      pRoot->second.add(k_loc, std::make_pair(kk, ke), 0);
     }
     else{
       macro_element[idx_root] = MElement(idx_root);
-      macro_element[idx_root].add(k_loc, std::make_pair(kk, ke));
+      macro_element[idx_root].add(k_loc, std::make_pair(kk, ke), 0.);
     }
   }
 

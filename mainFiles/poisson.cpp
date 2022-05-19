@@ -6,16 +6,15 @@
 #include <experimental/filesystem>
 #include <omp.h>
 #include "../util/cputime.h"
-#include "../util/redirectOutput.hpp"
 
 #ifdef USE_MPI
 #  include "cfmpi.hpp"
 #endif
 
-#include "finiteElement.hpp"
-#include "baseCutProblem.hpp"
+// #include "finiteElement.hpp"
+#include "baseProblem.hpp"
 
-#include "../num/gnuplot.hpp"
+// #include "../num/gnuplot.hpp"
 
 #define PROBLEM_POISSON_LAGRANGE
 //#define PROBLEM_POISSON_MIXED
@@ -52,46 +51,25 @@ int main(int argc, char** argv )
   typedef ExpressionFunFEM<Mesh2> Expression;
 
   MPIcf cfMPI(argc,argv);
-  // MPIcf::setLoopSplitWork("block");
-  // int iam = 0, np = 1;
-  // #pragma omp parallel default(shared) private(iam, np)
-  //   {
-  //     np = omp_get_num_threads();
-  //     iam = omp_get_thread_num();
-  //     printf("Hello from thread %d out of %d from process %d out of %d \n",
-  //            iam, np, MPIcf::my_rank(), MPIcf::size());
-  //   }
-  //
-  // printf("HELLO from thread %d out of %d from process %d out of %d \n",
-  //        iam, np, MPIcf::my_rank(), MPIcf::size());
-  // return 0;
 
   int nx = 10; // used to be 10
   int ny = 10;
   vector<double> ul2,pl2,h, convu, convp, tid;
 
-  // std::string pathOutpuFolder = "../../outputFiles/poisson/";
-  // std::string pathOutpuFigure = "../../outputFiles/poisson/paraview/";
-  std::string pathOutpuFolder = "";
-  std::string pathOutpuFigure = "";
-
-  CoutFileAndScreen myCout(pathOutpuFolder+"output.txt");
-
-
   const bool writeVTKFiles = true;
-  if(MPIcf::IamMaster()) {
-    std::experimental::filesystem::create_directories(pathOutpuFigure);
-  }
 
-  for(int i=0;i<1;++i) { // i<6 works too, but takes too much time for debugging
+  ProblemOption optionPoisson;
+  optionPoisson.order_space_element_quadrature_ = 9;
+  int order_element = 4;
+  for(int i=0;i<4;++i) {
     const double cpubegin = CPUtime();
 
     Mesh Th(nx, ny, 0., 0., 1., 1.);
+    double hi = 1./(nx-1);
+    FESpace2 Vh(Th, DataFE<Mesh>::P4);
 
-    FESpace2 Vh(Th, DataFE<Mesh>::P1);
-
-    const CutFEM_Parameter& lambdaB(Parameter::lambdaB);
-    // const double lambdaB = 1e5;
+    // const CutFEMParameter& lambdaB(Parameter::lambdaB);
+    const double lambdaB = 1./pow(hi, order_element+1);
 
     const R meshSize = Th[0].lenEdge(0);
     const R penaltyParam = 1e1/(meshSize);
@@ -99,7 +77,7 @@ int main(int argc, char** argv )
     Fun_h gh(Vh, fun_boundary);
 
 
-    FEM<Mesh> poisson(Vh);
+    FEM<Mesh> poisson(Vh, optionPoisson);
 
     int d = 2;
     Normal n;
@@ -107,56 +85,41 @@ int main(int argc, char** argv )
 
     double t0 = MPIcf::Wtime();
 
-
-    // int iam = 0, np = 1;
-    // // omp_set_dynamic(0);     // Explicitly disable dynamic teams
-    // omp_set_num_threads(2);
-    // #pragma omp parallel default(shared) private(iam, np)
-    //   {
-        // np = omp_get_num_threads();
-        // iam = omp_get_thread_num();
-        // printf("Hello from thread %d out of %d from process %d out of %d \n",
-        //        iam, np, MPIcf::my_rank(), MPIcf::size());
-
-
-
     // a(u,v)_Domain
     poisson.addBilinear(
       innerProduct(grad(u), grad(v))
+      , Th
     );
-  // }
-    std::cout << " Time loop " << MPIcf::Wtime() - t0 << std::endl;
-    return 0;
     // l(v)_Domain
-    Expression fx(fh, 0, op_id);
     poisson.addLinear(
-      innerProduct({fx}, v)
+      innerProduct(fh.expression(), v)
+      , Th
     );
 
     // weak boundary condition
-    poisson.addBilinearFormBorder(
+    poisson.addBilinear(
       innerProduct(lambdaB*u, v)
+      , Th
+      , boundary
     );
-    Expression gx(gh, 0, op_id);
-    poisson.addLinearFormBorder(
-      innerProduct(gx, lambdaB*v) //+ innerProduct(gh, v)*penaltyParam
+
+    poisson.addLinear(
+      innerProduct(gh.expression(), lambdaB*v) //+ innerProduct(gh, v)*penaltyParam
+      , Th
+      , boundary
     );
     poisson.solve();
 
 
-    Fun_h femSolh(Vh,  poisson.rhs);
-    R errU = L2norm(femSolh, fun_exact, 0,1);
-
-    // Fun_h uex(Vh, fun_exact);
-    // uex.v -= poisson.rhs;
-    // R errU = L2norm(uex, 0,1);
+    Fun_h uh(Vh,  poisson.rhs_);
+    R errU = L2norm(uh, fun_exact, 0,1);
 
 
-    if(MPIcf::IamMaster() && writeVTKFiles) {
-      Fun_h sol(Vh, poisson.rhs);
-      Paraview2 writerS(Vh, pathOutpuFigure+"poissonLagrange_"+to_string(i)+".vtk");
-      writerS.add(sol, "poisson", 0, 1);
-    }
+    // if(MPIcf::IamMaster() && writeVTKFiles) {
+    //   Fun_h sol(Vh, poisson.rhs);
+    //   Paraview2 writerS(Vh, pathOutpuFigure+"poissonLagrange_"+to_string(i)+".vtk");
+    //   writerS.add(sol, "poisson", 0, 1);
+    // }
 
     ul2.push_back(errU);
     h.push_back(1./nx);
@@ -173,9 +136,9 @@ int main(int argc, char** argv )
   }
 
   std::cout << "\n \n " << std::endl;
-  myCout << "h \t err u \t\t convU \t\t  time" << std::endl;
+  std::cout << "h \t err u \t\t convU \t\t  time" << std::endl;
   for(int i=0;i<ul2.size();++i) {
-    myCout << h[i] << "\t"
+    std::cout << h[i] << "\t"
   	      << ul2[i] << "\t" << convu[i] << "\t \t" << tid[i] << std::endl;
   }
 }

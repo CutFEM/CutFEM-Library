@@ -83,7 +83,7 @@ double L2normCut_2(const ExpressionVirtual& fh,int domain, const ActiveMesh<Mesh
 
     if(domain != Th.get_domain_element(k)) continue;
 
-    const Cut_Part<Element> cutK(Th.get_cut_part(k));
+    const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
     int kb = Th.idxElementInBackMesh(k);
 
     int kk = k;
@@ -133,7 +133,7 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 
     if(domain != Th.get_domain_element(k)) continue;
 
-    const Cut_Part<Element> cutK(Th.get_cut_part(k));
+    const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
     int kb = Th.idxElementInBackMesh(k);
 
     int kk = k;
@@ -183,7 +183,7 @@ double L2normCut_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M
 
     if(domain != Th.get_domain_element(k)) continue;
 
-    const Cut_Part<Element> cutK(Th.get_cut_part(k));
+    const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
     int kb = Th.idxElementInBackMesh(k);
 
     int kk = k;
@@ -352,7 +352,7 @@ double L2norm_2(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>::
   typedef typename FElement::Rd Rd;
   typedef typename QF::QuadraturePoint QuadraturePoint;
 
-  const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
+  const QF& qf(*QF_Simplex<typename FElement::RdHat>(9));
   What_d Fop = Fwhatd(op_id);
   double val = 0.;
 
@@ -506,7 +506,7 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Me
   typedef typename FElement::Rd Rd;
   typedef typename QF::QuadraturePoint QuadraturePoint;
 
-    const QF& qf(*QF_Simplex<typename FElement::RdHat>(0));
+    const QF& qf(*QF_Simplex<typename FElement::RdHat>(3));
     What_d Fop = Fwhatd(op_id);
 
     double val = 0.;
@@ -515,7 +515,7 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Me
 
       if(domain != Th.get_domain_element(k)) continue;
 
-      const Cut_Part<Element> cutK(Th.get_cut_part(k));
+      const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
       int kb = Th.idxElementInBackMesh(k);
 
       for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
@@ -545,7 +545,7 @@ double maxNormCut(const ExpressionVirtual& fh,int domain,const ActiveMesh<Mesh>&
   typedef typename FElement::Rd Rd;
   typedef typename QF::QuadraturePoint QuadraturePoint;
 
-    const QF& qf(*QF_Simplex<typename FElement::RdHat>(0));
+    const QF& qf(*QF_Simplex<typename FElement::RdHat>(3));
     What_d Fop = Fwhatd(op_id);
 
     double val = 0.;
@@ -554,7 +554,7 @@ double maxNormCut(const ExpressionVirtual& fh,int domain,const ActiveMesh<Mesh>&
 
       if(domain != Th.get_domain_element(k)) continue;
 
-      const Cut_Part<Element> cutK(Th.get_cut_part(k));
+      const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
       int kb = Th.idxElementInBackMesh(k);
 
       for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){

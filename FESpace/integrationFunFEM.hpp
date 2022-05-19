@@ -147,7 +147,17 @@ double integral( const ActiveMesh<M>& Th, const FunFEM<M>& fh, int c0) {
   double val = 0.;
   ExpressionFunFEM<M> ui(fh, c0, op_id);
   for(int i=0;i<nb_dom;++i) {
-    val += integral(Th, ui, i);
+    val += integral(Th, ui, i, 0);
+  }
+  return val;
+}
+template<typename M>
+double integral( const ActiveMesh<M>& Th, const FunFEM<M>& fh, int c0, int itq) {
+  int nb_dom = Th.get_nb_domain();
+  double val = 0.;
+  ExpressionFunFEM<M> ui(fh, c0, op_id);
+  for(int i=0;i<nb_dom;++i) {
+    val += integral(Th, ui, i, itq);
   }
   return val;
 }
@@ -156,12 +166,21 @@ double integral( const ActiveMesh<M>& Th, const ExpressionVirtual& fh) {
   int nb_dom = Th.get_nb_domain();
   double val = 0.;
   for(int i=0;i<nb_dom;++i) {
-    val += integral(Th, fh, i);
+    val += integral(Th, fh, i, 0);
   }
   return val;
 }
 template<typename M>
-double integral(const ActiveMesh<M>& Th, const ExpressionVirtual& fh, int domain) {
+double integral( const ActiveMesh<M>& Th, const ExpressionVirtual& fh, int itq) {
+  int nb_dom = Th.get_nb_domain();
+  double val = 0.;
+  for(int i=0;i<nb_dom;++i) {
+    val += integral(Th, fh, i, itq);
+  }
+  return val;
+}
+template<typename M>
+double integral(const ActiveMesh<M>& Th, const ExpressionVirtual& fh, int domain, int itq) {
   typedef M Mesh;
   typedef typename Mesh::Element Element;
   typedef GFESpace<Mesh> FESpace;
@@ -178,7 +197,9 @@ double integral(const ActiveMesh<M>& Th, const ExpressionVirtual& fh, int domain
 
     if(domain != Th.get_domain_element(k)) continue;
 
-    const Cut_Part<Element> cutK(Th.get_cut_part(k));
+    if(Th.isInactive(k, itq)) continue;
+
+    const Cut_Part<Element> cutK(Th.get_cut_part(k,itq));
     int kb = Th.idxElementInBackMesh(k);
     for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
 
@@ -199,6 +220,66 @@ double integral(const ActiveMesh<M>& Th, const ExpressionVirtual& fh, int domain
 
   return val_receive;
 }
+
+template<typename M>
+double integral( const ActiveMesh<M>& Th, const TimeSlab& In, const FunFEM<M>& fh, int c0, const QuadratureFormular1d& qTime) {
+  int nb_dom = Th.get_nb_domain();
+  double val = 0.;
+  ExpressionFunFEM<M> ui(fh, c0, op_id);
+  for(int i=0;i<nb_dom;++i) {
+    val += integral(Th, In, ui, qTime, i);
+  }
+  return val;
+}
+template<typename M>
+double integral(const ActiveMesh<M>& Th, const TimeSlab& In, const ExpressionVirtual& fh, const QuadratureFormular1d& qTime, int domain){
+  typedef M Mesh;
+  typedef typename Mesh::Element Element;
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::Rd Rd;
+  typedef typename QF::QuadraturePoint QuadraturePoint;
+
+  const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
+  double val = 0.;
+
+  for(int itq = 0; itq<qTime.n; ++itq){
+    GQuadraturePoint<R1> tq((qTime)[itq]);
+    const double t = In.mapToPhysicalElement(tq);
+
+
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+      if(domain != Th.get_domain_element(k)) continue;
+      if(Th.isInactive(k, itq)) continue;
+
+
+      const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
+      int kb = Th.idxElementInBackMesh(k);
+      for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+
+        const R meas = cutK.measure(it);
+
+        for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+          QuadraturePoint ip(qf[ipq]); // integration point
+          Rd mip = cutK.mapToPhysicalElement(it, ip);
+          const R Cint = meas * ip.getWeight()* In.T.mesure()* tq.a ;
+
+          val += Cint * fh.evalOnBackMesh(kb, domain, mip, t);
+
+        }
+      }
+    }
+
+  }
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_SUM);
+
+  return val_receive;
+}
+
 
 
 
@@ -337,6 +418,8 @@ double integral(FunFEM<M>& fh, const TimeSlab& In, const TimeInterface<M>& gamma
 
   return val_receive;
 }
+
+
 
 
 
