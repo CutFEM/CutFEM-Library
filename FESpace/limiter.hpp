@@ -9,7 +9,7 @@ namespace limiter {
 
   // Only for discontinuous Lagrange
   template<typename Mesh>
-  void extendToMacro(const FunFEM<Mesh>& uh, Rn& u_new, const MacroElement<Mesh>& macro) {
+  void extendToMacroP0(const FunFEM<Mesh>& uh, Rn& u_new, const MacroElement<Mesh>& macro) {
     typedef typename GFESpace<Mesh>::FElement FElement;
     typedef typename Mesh::Rd Rd;
 
@@ -43,23 +43,78 @@ namespace limiter {
         }
       }
 
-      // double C0 = 0;
-      // for(auto k : MK.idx_element ) {
-      //
-      //   quad
-      //   C0 += uh.eval(k, P) - u_new(k,P);
-      //
-      // }
-      //
-      // for(auto k : MK.idx_element ) {
-      //   for(int df=0; df<FK.NbNode(); ++df) {
-      //     int df_glb = FK.loc2glb(df);
-      //     u_new(df_glb) += C0;
-      //   }
-      // }
-
     }
   }
+
+  // Only for discontinuous Lagrange
+  template<typename Mesh>
+  void extendToMacroP1(const FunFEM<Mesh>& uh, Rn& u_new, const MacroElement<Mesh>& macro) {
+    typedef typename Mesh::Element Element;
+
+    typedef typename GFESpace<Mesh>::FElement FElement;
+    typedef typename FElement::QF QF;
+    typedef typename Mesh::Rd Rd;
+
+    const QF& qf(*QF_Simplex<typename FElement::RdHat>(2));
+    const GFESpace<Mesh>& Wh(*uh.Vh);
+    FunFEM<Mesh> fun_u_new(Wh, u_new);
+
+    for (auto& p : macro.macro_element) {
+
+      // compute the value of the dof of the elements in the
+      // macro element.
+      // u_{h,M} = {sum_{K in M} |K \cap \Omega|*u_{h}^K }{sum_{K in M} |K \cap \Omega|}
+      const MElement& MK(p.second);
+      int n_element = MK.size();
+      double area_total = MK.area_total_;
+
+      // loop over the elements that has to be changed
+      for(auto s : MK.idx_element ) {
+        const FElement& FK(Wh[s]);
+
+        // loop over the dof (in that case just node evaluation)
+        for(int df=0; df<FK.NbDoF() ; ++df) {
+          Rd P = FK.Pt(df);
+          int df_glb = FK.loc2glb(df);
+          double val = 0;
+
+          for(auto k : MK.idx_element ) {
+            double s = macro.get_area(k);
+            val += s * uh.eval(k, P);
+          }
+          val = val / area_total;
+          u_new(df_glb) = val;
+        }
+      }
+
+      double C0 = 0;
+      for(auto k : MK.idx_element ) {
+        const FElement& FK(Wh[k]);
+        const Cut_Part<Element> cutK(macro.Th_.get_cut_part(k,0));
+
+        for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+          double meas = cutK.measure(it);
+
+          for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+            typename QF::QuadraturePoint ip(qf[ipq]); // integration point
+            Rd mip = cutK.mapToPhysicalElement(it, ip);
+            double Cint = meas * ip.getWeight();
+            C0 += Cint*(uh.eval(k, mip) - fun_u_new.eval(k,mip));
+          }
+        }
+      }
+      C0 = C0 / area_total;
+
+      for(auto k : MK.idx_element ) {
+        const FElement& FK(Wh[k]);
+        for(int df=0; df<FK.NbDoF() ; ++df) {
+          int df_glb = FK.loc2glb(df);
+          u_new(df_glb) += C0;
+        }
+      }
+    }
+  }
+
 
 };
 
