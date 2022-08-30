@@ -435,7 +435,7 @@ void ReynoldNeumann(int argc, char** argv) {
         double dT = h/divisionMeshSize; // Time step size
         //double dT = 0.4; // Time step size
 
-        double tfinal = .25;           // Final time
+        double tfinal = .75;           // Final time
         GTime::total_number_iteration = (int)(tfinal/dT);
         dT = tfinal / GTime::total_number_iteration;
         GTime::time_step = dT;
@@ -739,13 +739,13 @@ void ReynoldNeumann(int argc, char** argv) {
 
               // outputData << setprecision(10);
               // outputData << GTime::current_time() << ","
-              std::cout << setprecision(10);
-              std::cout << GTime::current_time() << ","
-              // << (q_1-qp_1) << ","
-              << fabs(q_1-qp_1) << ","
-              << intF << ","
-              << intG << ","
-              << ((q_1 -qp_1) - intF - intG) << ","<<  std::endl;
+              std::cout << setprecision(5);
+              std::cout << std::scientific;
+              std::cout << std::setw(10) << std::setfill(' ') << GTime::current_time() << " \t"
+              << std::setw(10) << std::setfill(' ') << fabs(q_1-qp_1) << "\t"
+              << std::setw(10) << std::setfill(' ') << intF << "\t"
+              << std::setw(10) << std::setfill(' ') << intG << "\t"
+              << std::setw(10) << std::setfill(' ') << ((q_1 -qp_1) - intF - intG) <<  std::endl;
               // << q0_1 - q_1 <<  std::endl;
               qp_1 = q_1;
             }

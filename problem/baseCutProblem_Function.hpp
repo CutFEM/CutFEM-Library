@@ -3,14 +3,40 @@
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(!VF.isRHS());
+
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
-    else             BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+    if(Th.isCut(k, 0))  {
+      if(VF.varFormType_ == VarFormType::VF_MONOSPACE) {
+        BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+      }
+      else{
+        BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+      }
+      this->addLocalContribution();
+    }
+    else  {
+      if(VF.varFormType_ == VarFormType::VF_MONOSPACE) {
+        BaseFEM<M>::addElementContribution_Opt(VF, k, nullptr, 0, 1.);
+      }
+      else {
+        BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+      }
 
-    this->addLocalContribution();
+
+      if(VF.varFormType_ == VarFormType::VF_MONOSPACE) {
+        this->addLocalContribution_Opt((*VF[0].fespaceV)[k]);
+        // this->addLocalContribution();
+      }
+      else {
+        this->addLocalContribution();
+      }
+
+
+    }
   }
 }
+
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, int itq, const TimeSlab& In) {
   assert(!VF.isRHS());
@@ -64,9 +90,14 @@ template<typename M>
 void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(VF.isRHS());
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
-
-    if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
-    else             BaseFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
+    if(Th.isCut(k, 0))  {
+      BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+    }
+    else  {
+      BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+    }
+    // if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
+    // else             BaseFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
   }
 }
 
@@ -203,6 +234,114 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
 }
 
 
+template<typename M>
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CExtension& ext, const int espE) {
+  assert(!VF.isRHS());
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(Th.isCut(k, 0))  {
+      BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+      BaseCutFEM<M>::addElementContributionOtherSide(VF, k, nullptr, 0, espE);
+    }
+    else BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+
+    this->addLocalContribution();
+  }
+}
+template<typename M>
+void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CExtension& ext, const int espE) {
+  assert(VF.isRHS());
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(Th.isCut(k, 0))  {
+      BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+      BaseCutFEM<M>::addElementContributionOtherSide(VF, k, nullptr, 0, espE);
+    }
+    else BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+
+  }
+}
+template<typename M>
+void BaseCutFEM<M>::addElementContributionOtherSide(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time) {
+
+  // GET CUT AND COMPUTE PARAMETERS
+  const FESpace& Vh(VF.get_spaceV(0));
+  const CutMesh& Th(Vh.get_mesh());
+  const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
+  const FElement& FK(Vh[k]);
+  const Element &  K(FK.T);
+
+  if(cutK.multi_interface()){ assert(0);} // not handled yet
+
+  double meas = K.measure();
+  double h    = K.get_h();
+  int domain  = FK.get_domain();
+  int kb      = Vh.idxElementInBackMesh(k);
+
+
+  // GET THE QUADRATURE RULE
+  const QF& qf(this->get_quadrature_formular_cutK());
+  auto tq = this->get_quadrature_time(itq);
+  double tid = (In)? (double)In->map(tq) : 0.;
+
+  // LOOP OVER ELEMENTS IN THE CUT
+  for(auto it = cutK.other_side_element_begin();it != cutK.other_side_element_end(); ++it){
+
+    double meas_cut = cutK.measure(it);
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for(int l=0; l<VF.size();++l) {
+      if(!VF[l].on(domain)) continue;
+
+      // FINTE ELEMENT SPACES && ELEMENTS
+      const FESpace& Vhv(VF.get_spaceV(l));
+      const FESpace& Vhu(VF.get_spaceU(l));
+      const FElement& FKv(Vhv[k]);
+      const FElement& FKu(Vhu[k]);
+      this->initIndex(FKu, FKv);
+
+      // BF MEMORY MANAGEMENT -
+      bool same = (&Vhu == &Vhv);
+      int lastop = getLastop(VF[l].du, VF[l].dv);
+      RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+      RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
+      What_d Fop = Fwhatd(lastop);
+
+      // COMPUTE COEFFICIENT
+      double coef  = VF[l].computeCoefElement(h,meas_cut,meas, meas_cut, domain);
+
+
+      // LOOP OVER QUADRATURE IN SPACE
+      for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+        typename QF::QuadraturePoint ip(qf[ipq]);
+        Rd mip = cutK.mapToPhysicalElement(it, ip);     // to the physical cut part
+        Rd cut_ip = K.mapToReferenceElement(mip); // back to the cut part in reference element
+        double Cint = meas_cut * ip.getWeight() * cst_time;
+
+        // EVALUATE THE BASIS FUNCTIONS
+        FKv.BF(Fop,cut_ip, fv);
+        if(!same) FKu.BF(Fop, cut_ip, fu);
+        //   VF[l].applyFunNL(fu,fv);
+
+
+        // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
+        Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+        Cint *= coef * VF[l].c;
+        // Cint = 1.;/coef;
+        if( In ){
+          if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, Cint);
+          else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+        }
+        else {
+          if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
+          else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+        }
+      }
+    }
+  }
+
+}
 
 
 // INTEGRATION ON INNER FACE
@@ -282,8 +421,6 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, co
       std::pair<int,int> e1 = std::make_pair(k,ifac);
       std::pair<int,int> e2 = std::make_pair(kn,jfac);
       // CHECK IF IT IS A CUT EDGE
-
-      // if(Th.isCutFace(k, ifac, 0)) std::cout << " cut edge" << std::endl;
       if(Th.isCutFace(k, ifac, 0)) BaseCutFEM<M>::addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
       else BaseFEM<M>::addFaceContribution(VF, e1, e2, nullptr, 0,1.);
     }
@@ -443,13 +580,33 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
     const BorderElement & BE(cutTh.be(idx_be));
     if(util::contain(label, BE.lab) || all_label) {
 
+
+      // for(int i=0;i<idxK.size();++i){
+      //   std::cout << idxK[i] << "\t";
+      // }
+      // std::cout << std::endl;
+
       // CHECK IF IT IS A CUT EDGE
       if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
-      else BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, nullptr, 0, 1.);
+      else {
+        if(idxK.size() == 1){
+          BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, nullptr, 0, 1.);
+        }
+        else{
+          assert( cutTh.get_nb_domain() < 3);
+
+          // need to find out in what domain is the BOUNDARY
+          int k0 = idxK[0];
+          const auto cutK = cutTh.get_cut_part(k0, 0);
+          int ss = cutK.get_sign();
+          int nv = Element::nvface[ifac][0];
+          int id_sub = (cutK.get_sign_node(nv)*ss == 1)? 0 : 1;
+          BaseFEM<M>::addBorderContribution(VF, K, BE,ifac+id_sub*Element::nea, nullptr, 0, 1.);
+        }
+      }
       this->addLocalContribution();
     }
   }
-
 }
 
 template<typename M>
@@ -483,8 +640,13 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
     if(util::contain(label, BE.lab) || all_label) {
 
       // CHECK IF IT IS A CUT EDGE
-      if(cutTh.isCutFace(idxK[0], ifac, itq)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
-      else BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
+      if(cutTh.isCutFace(idxK[0], ifac, itq)) {
+        BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+      }
+      else {
+        assert(idxK.size() == 1);
+        BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
+      }
       this->addLocalContribution();
     }
   }
@@ -509,7 +671,21 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
 
       // CHECK IF IT IS A CUT EDGE
       if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
-      else BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
+      else {
+        if(idxK.size() == 1){
+          BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
+        }
+        else {
+          assert( cutTh.get_nb_domain() < 3);
+          // need to find out in what domain is the BOUNDARY
+          int k0 = idxK[0];
+          const auto cutK = cutTh.get_cut_part(k0, 0);
+          int ss = cutK.get_sign();
+          int nv = Element::nvface[ifac][0];
+          int id_sub = (cutK.get_sign_node(nv)*ss == 1)? 0 : 1;
+          BaseFEM<M>::addBorderContribution(VF, K, BE,ifac+id_sub*Element::nea, nullptr, 0, 1.);
+        }
+      }
     }
   }
 }
@@ -546,7 +722,10 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
 
       // CHECK IF IT IS A CUT EDGE
       if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
-      else BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
+      else {
+        assert(idxK.size() == 1);
+        BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
+      }
     }
   }
 
@@ -642,6 +821,57 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
   }
 }
 
+
+template<typename Mesh>
+void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh>& gh, const CutMesh& cutTh, list<int> label) {
+
+  bool all_label = (label.size() == 0);
+  std::map<int, double> df2set;
+  const FESpace& Vh(gh.getSpace());
+
+
+  for(int idx_be=cutTh.first_boundary_element(); idx_be<cutTh.last_boundary_element(); idx_be+= cutTh.next_boundary_element()) {
+
+    int ifac;
+    const int kb = cutTh.Th.BoundaryElement(idx_be, ifac);
+    std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1);
+    int k = idxK[0];
+
+    assert(idxK.size() == 1);
+    const Element & K(cutTh.Th[kb]);
+    const BorderElement & BE(cutTh.be(idx_be));
+    const FElement& FK(Vh[k]);
+
+    if(util::contain(label, BE.lab) || all_label) {
+
+      for( int ic=0; ic<Vh.N;++ic) {
+        for( int df=FK.dfcbegin(ic);df<FK.dfcend(ic);++df){
+
+          int id_item = FK.DFOnWhat(df);
+
+          if(id_item < K.nv){
+            assert(0);
+          }
+          else if(id_item < K.nv + K.ne) {
+            // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
+            int df_glob = FK.loc2glb(df);
+            df2set.insert({df_glob, gh(df_glob)});
+
+          }
+          else {
+            // std::cout << " on face  " << FK.DFOnWhat(df) << std::endl;
+          }
+          // std::cout << FK.DFOnWhat(df) << std::endl;
+          // std::cout << FK.NodeOfDF(df) << std::endl;
+
+        }
+      }
+      getchar();
+      // df2rm.insert({dfu, val});
+
+    }
+  }
+}
 
 
 // On Ridges
@@ -837,6 +1067,48 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double va
     this->addLocalContributionLagrange(ndf);
 
   }
+  // (*this)(ndf,ndf) = 1;
+}
+
+template<typename M>
+void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh& Th, const int k) {
+  assert(VF.isRHS());
+  int ndf = this->rhs_.size();
+  this->rhs_.resize(ndf+1);
+  this->rhs_(ndf) = val;
+
+  if(Th.isCut(k,0))  BaseCutFEM<M>::addLagrangeContribution(VF, k);
+  else BaseFEM<M>::addLagrangeContribution(VF, k);
+
+  this->addLocalContributionLagrange(ndf);
+
+}
+
+template<typename M>
+void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh& cutTh,const CBorder& b,list<int> label) {
+  assert(VF.isRHS());
+  bool all_label = (label.size() == 0);
+
+  int ndf = this->rhs_.size();
+  this->rhs_.resize(ndf+1);
+  this->rhs_(ndf) = val;
+
+  for(int idx_be=cutTh.first_boundary_element(); idx_be<cutTh.last_boundary_element(); idx_be+= cutTh.next_boundary_element()) {
+
+    int ifac;
+    const int kb = cutTh.Th.BoundaryElement(idx_be, ifac);
+    std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1);
+
+    const Element & K(cutTh.Th[kb]);
+    const BorderElement & BE(cutTh.be(idx_be));
+    if(util::contain(label, BE.lab) || all_label) {
+
+      // CHECK IF IT IS A CUT EDGE
+      if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addLagrangeBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
+      else BaseFEM<M>::addLagrangeBorderContribution(VF, K, BE,ifac, nullptr, 0, 1.);
+      this->addLocalContributionLagrange(ndf);
+    }
+  }
 }
 
 template<typename M>
@@ -863,6 +1135,183 @@ void BaseCutFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const i
 
   // LOOP OVER ELEMENTS IN THE CUT
   for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+
+    double meas_cut = cutK.measure(it);
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for(int l=0; l<VF.size();++l) {
+      if(!VF[l].on(domain)) continue;
+      // FINTE ELEMENT SPACES && ELEMENTS
+      const FESpace& Vhv(VF.get_spaceV(l));
+      const FElement& FKv(Vhv[k]);
+      this->initIndex(FKv, FKv);
+
+      // BF MEMORY MANAGEMENT -
+      int lastop = getLastop(VF[l].du, VF[l].dv);
+      RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+      What_d Fop = Fwhatd(lastop);
+
+      // COMPUTE COEFFICIENT
+      double coef  = VF[l].computeCoefElement(h,meas_cut,meas, meas_cut, domain);
+
+      // LOOP OVER QUADRATURE IN SPACE
+      for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+        typename QF::QuadraturePoint ip(qf[ipq]);
+        Rd mip = cutK.mapToPhysicalElement(it, ip);     // to the physical cut part
+        Rd cut_ip = K.mapToReferenceElement(mip); // back to the cut part in reference element
+        double Cint = meas_cut * ip.getWeight();
+
+        // EVALUATE THE BASIS FUNCTIONS
+        FKv.BF(Fop,cut_ip, fv);
+        //   VF[l].applyFunNL(fu,fv);
+
+        // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
+        // Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip);
+        Cint *= coef * VF[l].c;
+        // Cint = coef;
+        this->addToMatrix(VF[l], FKv, fv, Cint);
+
+      }
+    }
+  }
+
+}
+template<typename M>
+void BaseCutFEM<M>::addLagrangeBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time)  {
+
+  // typedef typename FElement::RdHatBord RdHatBord;
+  //
+  // // Compute parameter connected to the mesh.
+  // double measK = K.measure();
+  // double h     = K.get_h();
+  // Rd normal    = K.N(ifac);
+  //
+  // // U and V HAS TO BE ON THE SAME MESH
+  // const FESpace& Vh(VF.get_spaceV(0));
+  // const CutMesh& Th(Vh.get_mesh());
+  // int kb = Vh.Th(K);
+  // std::vector<int> idxK = Vh.idxAllElementFromBackMesh(kb,-1);
+  // assert(idxK.size() == 2);
+  //
+  // // GET THE QUADRATURE RULE
+  // const QFB& qfb(this->get_quadrature_formular_cutFace());
+  // auto tq = this->get_quadrature_time(itq);
+  // double tid = (In)? (double)In->map(tq) : 0.;
+  //
+  // for(int e=0;e<2;++e) {
+  //
+  //   int k = idxK[e];
+  //   typename Element::Face face;
+  //   const Cut_Part<typename Element::Face> cutFace(Th.get_cut_face(face, k, ifac));
+  //   const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
+  //
+  //   double meas_cut  = cutK.measure();
+  //
+  //   // LOOP OVER ELEMENTS IN THE CUT
+  //   for(auto it = cutFace.element_begin();it != cutFace.element_end(); ++it){
+  //
+  //     double meas  = cutFace.measure(it);
+  //
+  //     for(int l=0; l<VF.size();++l) {
+  //       // if(!VF[l].on(domain)) continue;
+  //
+  //       // FINITE ELEMENT SPACES && ELEMENTS
+  //       const FESpace& Vhv(VF.get_spaceV(l));
+  //       const FESpace& Vhu(VF.get_spaceU(l));
+  //       assert(Vhv.get_nb_element() == Vhu.get_nb_element());
+  //       bool same = (VF.isRHS() || (&Vhu == &Vhv));
+  //       const FElement& FKu(Vhu[k]);
+  //       const FElement& FKv(Vhv[k]);
+  //       int domain = FKv.get_domain();
+  //       this->initIndex(FKu, FKv);
+  //
+  //
+  //       // BF MEMORY MANAGEMENT -
+  //       int lastop = getLastop(VF[l].du, VF[l].dv);
+  //       RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop);
+  //       RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
+  //       What_d Fop = Fwhatd(lastop);
+  //
+  //       // COMPUTE COEFFICIENT && NORMAL
+  //       double coef = VF[l].computeCoefElement(h,meas,measK,meas_cut,domain) ;
+  //       coef *= VF[l].computeCoefFromNormal(normal);
+  //
+  //
+  //       // LOOP OVER QUADRATURE IN SPACE
+  //       for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+  //         typename QFB::QuadraturePoint ip(qfb[ipq]);
+  //         const Rd mip = cutFace.mapToPhysicalElement(it, (RdHatBord)ip);
+  //         const Rd cut_ip = K.mapToReferenceElement(mip);
+  //         double Cint = meas * ip.getWeight() * cst_time;
+  //
+  //         // EVALUATE THE BASIS FUNCTIONS
+  //         FKv.BF(Fop,cut_ip, fv);
+  //         if(!same) FKu.BF(Fop, cut_ip, fu);
+  //         //   VF[l].applyFunNL(fu,fv);
+  //
+  //         Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid, normal);
+  //         Cint *= coef * VF[l].c;
+  //
+  //         if( In ){
+  //           if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, Cint);
+  //           else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+  //         }
+  //         else {
+  //           if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
+  //           else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+}
+
+
+template<typename M>
+void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh& Th, const CExtension& ext, const int epsE) {
+  assert(VF.isRHS());
+  int ndf = this->rhs_.size();
+  this->rhs_.resize(ndf+1);
+  this->rhs_(ndf) = val;
+
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(Th.isCut(k,0))  {
+      BaseCutFEM<M>::addLagrangeContribution(VF, k);
+      BaseCutFEM<M>::addLagrangeContributionOtherSide(VF, k, epsE);
+    }
+    else BaseFEM<M>::addLagrangeContribution(VF, k);
+
+    this->addLocalContributionLagrange(ndf);
+
+  }
+  // (*this)(ndf,ndf) = 1;
+}
+template<typename M>
+void BaseCutFEM<M>::addLagrangeContributionOtherSide(const ListItemVF<Rd::d>& VF, const int k, const int epsE) {
+
+  // GET CUT AND COMPUTE PARAMETERS
+  const FESpace& Vh(VF.get_spaceV(0));
+  const CutMesh& Th(Vh.get_mesh());
+  const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
+  const FElement& FK(Vh[k]);
+  const Element &  K(FK.T);
+
+  if(cutK.multi_interface()){ assert(0);} // not handled yet
+
+  double meas = K.measure();
+  double h    = K.get_h();
+  int domain  = FK.get_domain();
+  int kb      = Vh.idxElementInBackMesh(k);
+
+
+  // GET THE QUADRATURE RULE
+  const QF& qf(this->get_quadrature_formular_cutK());
+
+
+  // LOOP OVER ELEMENTS IN THE CUT
+  for(auto it = cutK.other_side_element_begin();it != cutK.other_side_element_end(); ++it){
 
     double meas_cut = cutK.measure(it);
 

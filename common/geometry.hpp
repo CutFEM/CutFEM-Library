@@ -5,7 +5,7 @@
 #include "Mesh2dn.hpp"
 
 
-namespace geometry{
+namespace geometry {
 
   template<typename Rd>
   struct Segment{

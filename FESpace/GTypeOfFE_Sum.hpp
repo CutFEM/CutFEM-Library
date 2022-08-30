@@ -43,6 +43,15 @@ public:
   comp(k)
   {
     build();
+
+    this->polynomialOrder = 0;
+    for(int i=0;i<k;++i) {
+      this->polynomialOrder = max(this->polynomialOrder, t[i]->polynomialOrder);
+    }
+    this->basisFctType = t[0]->basisFctType;
+    for(int i=1;i<k;++i) {
+      if(t[i]->basisFctType != this->basisFctType) this->basisFctType = BasisFctType::UNDEFINED;
+    }
   }
 
 

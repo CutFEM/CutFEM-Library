@@ -225,7 +225,6 @@ R fun_levelSet(const R2 P, const int i) {
 R fun_init_solution(const R2 P, int elementComp, int domain) {
   return sin(pi*(P.x+P.y));
 }
-
 R fun_solution(const R2 P, int elementComp, int domain, double t) {
   double C = P.x+P.y;
   double x1 = 0;

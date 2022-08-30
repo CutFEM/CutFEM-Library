@@ -9,7 +9,8 @@ template<typename Mesh>
 double integralCut(const ListItemVF<Mesh::Rd::d>& VF, const FunFEM<Mesh>& f,const FunFEM<Mesh>& g, const ActiveMesh<Mesh>& Th) {
 
   // TYPEDEF NAMES OF TEMPLATE CLASSES
-  typedef CutFESpace<Mesh> FESpace;
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename Mesh::Element  Element;
   typedef typename FESpace::FElement  FElement;
   typedef typename FElement::QF QF;
 
@@ -19,21 +20,22 @@ double integralCut(const ListItemVF<Mesh::Rd::d>& VF, const FunFEM<Mesh>& f,cons
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    const Cut_Part<Element> cutK(Th.get_cut_part(k));
+    const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
     const Element & K(Th[k]);
-    int domain  = Th.get_domain(k);
+    int domain  = Th.get_domain_element(k);
     double measK = K.measure();
+    double h = K.hElement();
     int kb = Th.idxElementInBackMesh(k);
 
     // LOOP OVER PART IN THE DOMAIN
     for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
 
-      const R meas = cutK.mesure(it);
+      const R meas = cutK.measure(it);
 
       // LOOP OVER TERMS IN THE WEAK FORMULATION
       for(int l=0; l<VF.size();++l) {
 
-        double coef  = VF[l].computeCoefElement(h,meas,measK, meas, domain);
+        double coef  = 1.;//VF[l].computeCoefElement(h,meas,measK, meas, domain);
 
         for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
 
@@ -41,8 +43,8 @@ double integralCut(const ListItemVF<Mesh::Rd::d>& VF, const FunFEM<Mesh>& f,cons
           typename Mesh::Rd mip = cutK.mapToPhysicalElement(it, ip);
 
           double Cint = meas * ip.getWeight() * coef;
-          double val_fh = f.evalOnBackMesh(kb, mip, VF[l].cu, VF[l].du, domain);
-          double val_gh = g.evalOnBackMesh(kb, mip, VF[l].cv, VF[l].dv, domain);
+          double val_fh = f.evalOnBackMesh(kb, domain, mip, VF[l].cu, VF[l].du);
+          double val_gh = g.evalOnBackMesh(kb, domain, mip, VF[l].cv, VF[l].dv);
 
           val += Cint * val_fh * val_gh * VF[l].c;
         }

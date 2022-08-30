@@ -300,7 +300,7 @@ public:
     return Ut;
   }
 
-  TestFunction operator*(const Normal& N) {
+  TestFunction operator * (const Normal& N) {
     // assert(!(A.M() == 1 && A.N() == dim ));// no column accepted
     assert(A.M() == dim || A.M() == 1);
     bool scalar (A.M() == 1 && A.N() == 1);
@@ -354,7 +354,7 @@ public:
     }
     return Un;
   }
-  TestFunction operator*(const Tangent& N) {
+  TestFunction operator * (const Tangent& N) {
     // assert(!(A.M() == 1 && A.N() == dim ));// no column accepted
     assert(A.M() == dim || A.M() == 1);
     bool scalar (A.M() == 1 && A.N() == 1);
@@ -408,7 +408,7 @@ public:
     }
     return Un;
   }
-  TestFunction operator*(const Conormal& N) {
+  TestFunction operator * (const Conormal& N) {
     // assert(!(A.M() == 1 && A.N() == dim ));// no column accepted
     assert(A.M() == dim || A.M() == 1);
     bool scalar (A.M() == 1 && A.N() == 1);
@@ -555,7 +555,9 @@ template<int N> friend TestFunction<N> dt(const TestFunction<N> & T);
 template<int N> friend TestFunction<N> operator - (const TestFunction<N>& F1, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator + (const TestFunction<N>& F1, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator * (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F2);
-template<int N> friend TestFunction<N>  operator * (const CutFEM_Rd<N>& cc, const TestFunction<N>& T);
+template<int N> friend TestFunction<N> operator * (const CutFEM_Rd<N>& cc, const TestFunction<N>& T);
+template<int N> friend TestFunction<N> operator * (const typename typeRd<N>::Rd& cc, const TestFunction<N>& T);
+
 };
 
 
@@ -627,40 +629,102 @@ TestFunction<N> operator - (const TestFunction<N>& F1, const TestFunction<N>& F2
 }
 
 template <int N>
-TestFunction<N> operator* (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {
+TestFunction<N> operator * (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F) {
   assert(F.A.M() == 1);
-  assert(F.A.N() == N);
-  TestFunction<N> multU(1);
-  if(F.A.N() != fh.size()){
-    std::cout << "size expression \t" << fh.size() << std::endl;
-    std::cout << "size test function \t" << F.A.N() << std::endl;
-  }
-  assert(F.A.N() == fh.size());
+  assert(fh.size() == 1 || fh.size() == N);
+  assert(F.A.N() == 1 || F.A.N() == N);
 
-  int k = 0,ksum=0;
-  for(int i=0;i<N;++i) ksum += F.A(i,0)->size();
-  multU.A(0,0) = new ItemList<N>(ksum);
+  int dim_vh = F.A.N();
+  int dim_fh = fh.size();
 
+  bool scalar (fh.size() == F.A.N());
+  int s = (scalar)? 1 : N;
+  TestFunction<N> Un(s);   // initialize a scalar or vector
 
-  auto it = fh.begin();
-  for(int i=0;i<F.A.N();++i, ++it) {
-    for(int j=0;j<F.A.M();++j) {
-      for(int ui=0;ui<F.A(i,j)->size();++ui) {
-        const ItemTestFunction<N>& v(F.A(i,j)->getItem(ui));
-        ItemTestFunction<N>& u(multU.A(0,0)->getItem(k));
-        u = v;
-        u.expru = &(*it);
-        k++;
+  if(scalar) {
+    int ksum=0;
+    for(int i=0;i<dim_vh;++i) ksum += F.A(i,0)->size();
+    Un.A(0,0) = new ItemList<N> (ksum);
+    auto it = fh.begin();
+    if(dim_fh == 1) {
+      int k = 0;
+      for(int i=0;i<F.A.N();++i) {
+        for(int j=0;j<F.A.M();++j) {
+          for(int ui=0;ui<F.A(i,j)->size();++ui) {
+            const ItemTestFunction<N>& v(F.A(i,j)->getItem(ui));
+            ItemTestFunction<N>& u(Un.A(0,0)->getItem(k));
+            u = v;
+            u.expru = &(*it);
+            k++;
+          }
+        }
+      }
+    } else {
+      int k = 0;
+      for(int i=0;i<F.A.N();++i, ++it) {
+        for(int j=0;j<F.A.M();++j) {
+          for(int ui=0;ui<F.A(i,j)->size();++ui) {
+            const ItemTestFunction<N>& v(F.A(i,j)->getItem(ui));
+            ItemTestFunction<N>& u(Un.A(0,0)->getItem(k));
+            u = v;
+            u.expru = &(*it);
+            k++;
+          }
+        }
       }
     }
   }
-  return multU;
+  else { // result is a vector
+    if(dim_fh == 1) { // v_h is a vector , fh is a scalar
+      auto it = fh.begin();
+      for(int i=0;i<F.A.N();++i) {
+        int k=0;
+        int ksum = F.A(i,0)->size();
+        Un.A(i,0) = new ItemList<N> (ksum);
+
+        for(int ui=0;ui<ksum;++ui) {
+          const ItemTestFunction<N>& v(F.A(i,0)->getItem(ui));
+          ItemTestFunction<N>& u(Un.A(i,0)->getItem(k));
+          u = v;
+          u.expru = &(*it);
+          k++;
+        }
+      }
+    } else {          // v_h is a scalar , fh is a vector
+      int ksum = F.A(0,0)->size();
+      auto it = fh.begin();
+      for(int i=0;i<dim_fh;++i, ++it) {
+        int k=0;
+        Un.A(i,0) = new ItemList<N> (ksum);
+        for(int ui=0;ui<ksum;++ui) {
+          const ItemTestFunction<N>& v(F.A(0,0)->getItem(ui));
+          ItemTestFunction<N>& u(Un.A(i,0)->getItem(k));
+          u = v;
+          u.expru = &(*it);
+          k++;
+        }
+      }
+    }
+  }
+  // int k = 0,ksum=0;
+  // for(int i=0;i<N;++i) ksum += F.A(i,0)->size();
+  // multU.A(0,0) = new ItemList<N>(ksum);
+  //
+  // auto it = fh.begin();
+  // for(int i=0;i<F.A.N();++i, ++it) {
+  //   for(int j=0;j<F.A.M();++j) {
+  //     for(int ui=0;ui<F.A(i,j)->size();++ui) {
+  //       const ItemTestFunction<N>& v(F.A(i,j)->getItem(ui));
+  //       ItemTestFunction<N>& u(multU.A(0,0)->getItem(k));
+  //       u = v;
+  //       u.expru = &(*it);
+  //       k++;
+  //     }
+  //   }
+  // }
+  return Un;
 }
 
-// template <int N>
-// TestFunction<N> operator* (const FunFEM<typename typeMesh<N>::Mesh>& fh, const TestFunction<N>& F) {
-//   return (fh.expression()* F);
-// }
 
 
 template <int N>
@@ -788,11 +852,11 @@ TestFunction<d> operator * (const CutFEM_Rd<d>& cc, const TestFunction<d>& T) {
         ItemTestFunction<d>& u(resU.A(0,0)->getItem(k++));
         u = v;
         u.addParameter(cc.get_parameter(j));
-       }
       }
     }
-    return resU;
   }
+  return resU;
+}
 
 
 
@@ -801,32 +865,47 @@ TestFunction<N> ln(const TestFunction<N>& F) {
   return TestFunction<N>(F, f_ln);
 }
 
+template <int d>
+TestFunction<d> operator * (const typename typeRd<d>::Rd& cc, const TestFunction<d>& T) {
+  assert(T.A.M() == 1);
+  int N = T.A.N();
+  bool scalar = (N==1);
+  int r = (scalar)?d:1;  // dim of the result
+  TestFunction<d> resU(r,1);
 
+  if(scalar){
+    int nitem = T.A(0,0)->size();
 
-// Need to modify that to make it inner product
-// template <int N>
-// TestFunction<N> operator * (const TestFunction<N>& F, typename typeRd<N>::Rd cc) {
-//   assert(F.A.N() == N);
-//   TestFunction<N> multU(F);
-//   for(int i=0;i<F.A.N();++i) {
-//     for(int j=0;j<F.A.M();++j) {
-//       *multU.A(i,j) *= cc[i] ;
-//     }
-//   }
-//   return multU;
-// }
-//
-// template <int N>
-// TestFunction<N> operator * (typename typeRd<N>::Rd cc, const TestFunction<N>& F) {
-//   assert(F.A.N() == N);
-//   TestFunction<N> multU(F);
-//   for(int i=0;i<F.A.N();++i) {
-//     for(int j=0;j<F.A.M();++j) {
-//       *multU.A(i,j) *= cc[i] ;
-//     }
-//   }
-//   return multU;
-// }
+    for(int j=0;j<d;++j) {
+      resU.A(j,0) = new ItemList<d>(nitem);
+      for(int ui=0;ui<nitem;++ui) {
+        const ItemTestFunction<d>& v(T.A(0,0)->getItem(ui));
+        ItemTestFunction<d>& u(resU.A(j,0)->getItem(ui));
+        u = v;
+        u.c *= cc[j];
+      }
+    }
+  }
+  else {
+    assert(N == d);  // column
+    int nitem = 0;
+    for(int i=0;i<d;++i) {
+      nitem += T.A(i,0)->size();
+    }
+    resU.A(0,0) = new ItemList<d>(nitem);
+    int k = 0;
+    for(int j=0;j<d;++j) {
+      int nloc = T.A(j,0)->size();
+      for(int ui=0;ui<nloc;++ui) {
+        const ItemTestFunction<d>& v(T.A(j,0)->getItem(ui));
+        ItemTestFunction<d>& u(resU.A(0,0)->getItem(k++));
+        u = v;
+        u.c *= cc[j];
+      }
+    }
+  }
+  return resU;
+}
 
 
 

@@ -17,6 +17,9 @@ class TypeOfFE_P4Lagrange2d : public GTypeOfFE<Mesh2> {
   static const int kl[15];
 
   TypeOfFE_P4Lagrange2d() : GTypeOfFE<Mesh2>(15, 1, Data, 15+6, 15, 0) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P4;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
+
     static const R2 Pt[15] = {R2(0 / 4., 0 / 4.), R2(4 / 4., 0 / 4.), R2(0 / 4., 4 / 4.),
                               R2(3 / 4., 1 / 4.), R2(2 / 4., 2 / 4.), R2(1 / 4., 3 / 4.),
                               R2(0 / 4., 3 / 4.), R2(0 / 4., 2 / 4.), R2(0 / 4., 1 / 4.),

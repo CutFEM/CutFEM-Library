@@ -15,6 +15,8 @@ public:
   static double alpha_Pi_h[];
 
   TypeOfFE_P1dcLagrange2d(): GTypeOfFE<Mesh2>(3, 1, Data, 3, 3, alpha_Pi_h) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P1dc;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R2 Pt[3] = {R2(0., 0.), R2(1., 0.), R2(0., 1.)};
 
@@ -99,6 +101,8 @@ public:
   static int Data[];
 
   TypeOfFE_P1dcScLagrange2d(): GTypeOfFE<Mesh2>(3, 1, Data, 3, 3) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P1dc;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R2 Pt[3] = {R2(0., 0.), R2(1., 0.), R2(0., 1.)};
 
@@ -188,6 +192,8 @@ public:
   static double alpha_Pi_h[];
 
   TypeOfFE_P1dcLagrange3d(): GTypeOfFE<Mesh3>(4, 1, Data, 4, 4, alpha_Pi_h) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P1dc;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R3 Pt[4] = {R3(0., 0., 0.), R3(1., 0., 0.), R3(0., 1., 0.), R3(0., 0., 1.) };
 
@@ -272,6 +278,9 @@ public:
   static double alpha_Pi_h[];
   static const double h_eps;
   TypeOfFE_P1dcTaylor2d(): GTypeOfFE<Mesh2>(3, 1, Data, 5, 5, alpha_Pi_h) {
+
+    GTypeOfFE<Mesh>::polynomialOrder = k;
+
 
     static const R2 Pt[5] = { R2(1./3., 1./3.)
                              ,R2(1./3.+h_eps, 1./3.), R2(1./3.-h_eps, 1./3.)

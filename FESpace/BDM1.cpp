@@ -4,6 +4,7 @@
 
 class TypeOfFE_BDM1_2d : 	public GTypeOfFE<Mesh2> {
 
+  typedef   Mesh2 Mesh;
   const QuadratureFormular1d& QFE;
   public:
   static int Data[];
@@ -17,6 +18,9 @@ class TypeOfFE_BDM1_2d : 	public GTypeOfFE<Mesh2> {
 		),
     QFE(QF_GaussLegendre2)  // quadrature formula with 2 points
   {
+
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::BDM1;
+    GTypeOfFE<Mesh>::polynomialOrder = 1;
 
 		Triangle2 TriangleHat;
 		Vertex2 verticesHat[3];

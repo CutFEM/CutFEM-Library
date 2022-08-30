@@ -36,6 +36,7 @@ struct Cut_Part {
 
   // GETTERS
   int get_sign() const {return sign_cut_;}
+  int get_sign_node(int i) const {return partition_->get_sign_node(i);}
   void get_list_node (vector<typename E::Rd>& node) const{ partition_->get_list_node(node, sign_cut_); }
   CutElement<E> get_element(int k) const {return partition_->get_element(k);}
   Rd get_vertex(const_element_iterator it, const int i) const {return partition_->get_vertex(it,i);}
@@ -61,12 +62,21 @@ struct Cut_Part {
 
   // ITERATORS
   const_element_iterator element_begin () const{
-     return partition_->element_begin(sign_cut_);
-   }
+    return partition_->element_begin(sign_cut_);
+  }
   const_element_iterator element_end () const{
     return partition_->element_end(sign_cut_);
   }
-
+  const_element_iterator other_side_element_begin () const{
+    assert(sign_cut_ != 0);
+    int other_side_cut = (sign_cut_==1);
+    return partition_->element_begin(other_side_cut);
+  }
+  const_element_iterator other_side_element_end () const{
+    assert(sign_cut_ != 0);
+    int other_side_cut = (sign_cut_==1);
+    return partition_->element_end(other_side_cut);
+  }
 
 
 };
@@ -142,7 +152,7 @@ public:
 
   void truncate(const Interface<Mesh>& interface, int sign_domain);
   void truncate(const TimeInterface<Mesh>& interface, int sign_domain);
-  void add(const Interface<Mesh>& interface);
+  void add(const Interface<Mesh>& interface, int sign_domain);
   void createSurfaceMesh(const Interface<Mesh>& interface);
   void createSurfaceMesh(const TimeInterface<Mesh>& interface);
 private:
@@ -300,6 +310,16 @@ public:
     return idx;
   }
 
+  vector<int> getAllDomainId(int k) const {
+    std::vector<int> idx(0);
+    for(int i=0;i<get_nb_domain();++i) {
+      int ret = idxElementFromBackMesh(k,  i);
+      if(ret != -1) idx.push_back(i);
+    }
+    assert(idx.size()>0 && idx.size() < 3);
+    return idx;
+  }
+
   int idxElementFromBackMesh(int k) const {
     assert(0);
     return -1;
@@ -408,11 +428,11 @@ void ActiveMesh<Mesh>::init(const Interface<Mesh>& interface){
 
 //  constructor a subdopmain corresponding to the positive sign
 template<typename Mesh>
-void ActiveMesh<Mesh>::add(const Interface<Mesh>& interface){
+void ActiveMesh<Mesh>::add(const Interface<Mesh>& interface, int sign_domain){
 
   int dom_size = this->get_nb_domain();
   idx_element_domain.resize(0);
-  int sign_domain = 1;
+  // int sign_domain = -1;
   // Initialize the first new subdomain domain
   // and clear old array with element indices.
   {
@@ -433,10 +453,7 @@ void ActiveMesh<Mesh>::add(const Interface<Mesh>& interface){
       int kb  = it_k->first;
       int k   = it_k->second;
 
-
       auto it_gamma = interface_id_[0].find(std::make_pair(d, k));
-
-
       const SignElement<Element> signK = interface.get_SignElement(kb);
 
       int nb_interface = (it_gamma == interface_id_[0].end())? 0 :it_gamma->second.size();

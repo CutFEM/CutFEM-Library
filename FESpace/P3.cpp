@@ -16,6 +16,8 @@ public:
   static const int kl[10];
 
   TypeOfFE_P3Lagrange2d( ) : GTypeOfFE<Mesh2>(10, 1, Data, 16, 10, 0) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P3;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R2 Pt[10] = {R2(0 / 3., 0 / 3.), R2(3 / 3., 0 / 3.), R2(0 / 3., 3 / 3.),
       R2(2 / 3., 1 / 3.), R2(1 / 3., 2 / 3.),

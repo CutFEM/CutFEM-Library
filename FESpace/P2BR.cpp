@@ -16,6 +16,9 @@ class TypeOfFE_P2BRLagrange : public GTypeOfFE<Mesh2> {
                 6 + 3 * (2 + 2),    // Number kPi of coefficients to build the interpolation
                 9                  // number nPi of integration points to build the interpolation
        ) {
+         GTypeOfFE<Mesh>::basisFctType = BasisFctType::P2BR;
+         GTypeOfFE<Mesh>::polynomialOrder = 2;
+
      const double gauss1 = (1. - sqrt(1. / 3.)) / 2;
      const double gauss2 = 1. - gauss1;
      const R2 Pt[] = {R2(0, 0), R2(1, 0), R2(0, 1)};

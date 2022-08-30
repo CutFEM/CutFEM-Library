@@ -41,7 +41,7 @@ public:
   static const int (* const nvedge)[2] ;                  //idx nodes on edges
   static const int (* const nvface)[nvOnFace] ;                  //idx nodes on faces
 
-  static const int (* const nvhyperFace)[nva] ; 
+  static const int (* const nvhyperFace)[nva] ;
 
   static const int (* const onWhatBorder)[nitem] ;        //
   static const int (* const commonVertOfEdges)[ne] ;      //
@@ -143,16 +143,22 @@ public:
   //     r+=  Phat[i-1]*(*(Rd*) vertices[i]);
   //   return r;
   // }
+  Rd barycenter() const {
+    Rd Q;
+    for (int i=1;i<nv;++i) Q += *(Rd*) vertices[i];
+    return 1./nv*Q;
+  }
 
-//  int faceOrient(int i) const
-//     {// def the permutatution of orient the face
-// 	int fo =1;
-// 	const Vertex * f[3]={&at(nvface[i][0]), &at(nvface[i][1]), &at(nvface[i][2])};
-// 	if(f[0]>f[1]) fo = -fo,Exchange(f[0],f[1]);
-// 	if(f[1]>f[2]) { fo = -fo,Exchange(f[1],f[2]);
-// 	if(f[0]>f[1]) fo = -fo,Exchange(f[0],f[1]); }
-// 	return fo;
-//     }
+  int faceOrient(int i) const {// def the permutatution of orient the face
+    int fo =1;
+    const Vertex * f[3]={&at(nvface[i][0]), &at(nvface[i][1]), &at(nvface[i][2])};
+    if(f[0]>f[1]) fo = -fo,Exchange(f[0],f[1]);
+    if(f[1]>f[2]) {
+      fo = -fo,Exchange(f[1],f[2]);
+      if(f[0]>f[1]) fo = -fo,Exchange(f[0],f[1]);
+    }
+    return fo;
+  }
 
 
 // THIS IS DIFFERENT FOR RECTANGLES

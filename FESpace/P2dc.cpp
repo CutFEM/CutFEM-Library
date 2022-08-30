@@ -16,6 +16,8 @@ public:
 
   // dof, dim Im, Data, coefInterp, nbPt, coeff
   TypeOfFE_P2dcLagrange2d(): GTypeOfFE<Mesh2>(6, 1, Data, 6, 6, alpha_Pi_h) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P2dc;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R2 Pt[6] = {R2(0., 0.), R2(1., 0.), R2(0., 1.),
 			     R2(1./2, 1./2), R2(0.,1./2), R2(1./2,0)};

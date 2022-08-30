@@ -12,6 +12,14 @@
 #include "transformation.hpp"
 
 
+enum class BasisFctType {P0, P1, P2, P3, P4,
+                         P1dc, P2dc, P3dc,
+                         P0poly, P1poly, P2poly,
+                         P2BR,
+                         RT0, RT1, RT2, BDM1,
+                         UNDEFINED
+                         };
+
 /*
  *   Basis class for the FE
  *   Contains divers information
@@ -73,6 +81,9 @@ public:
   typedef typename Element::RdHat RdHat;
   typedef typename Element::Rd Rd;
   typedef GFElement<Mesh> FElement;
+
+  BasisFctType basisFctType = BasisFctType::UNDEFINED;
+  int polynomialOrder;
 
   int NbPtforInterpolation;                     // Nb of interpolation points per elemen
   int NbcoefforInterpolation;                   // Nb of interpolation points per element

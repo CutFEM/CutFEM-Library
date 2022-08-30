@@ -17,7 +17,9 @@ template<class F>
 class FEMTimeFunction;
 
 static double paraviewFormat( double x) {
-  return (fabs(x) < 1e-20)? 0.: x;
+  // return (fabs(x) < 1e-25)? util::fsign(x)*1e-25: x;
+  return (fabs(x) < 1e-25)? 0: x;
+
 }
 
 

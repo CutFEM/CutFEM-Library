@@ -109,8 +109,8 @@ int main(int argc, char** argv ){
 
   MPIcf cfMPI(argc,argv);
 
-  Mesh Th(14, 14, 0., 0., 1., 1.);
-  // Mesh Th(50, 50, 0., 0., 1., 1.);
+  // Mesh Th(14, 14, 0., 0., 1., 1.);
+  Mesh Th(50, 50, 0., 0., 1., 1.);
 
   Th.info();
   // Space Vh(Th, DataFE<Mesh2>::P1);
@@ -192,7 +192,7 @@ int main(int argc, char** argv ){
   // writer.writeActiveMesh(Kh0, "active_mesh0.vtk");
   // writer.writeActiveMesh(Kh1, "active_mesh1.vtk");
   // writer.writeActiveMesh(Kh2, "active_mesh2.vtk");
-  //
+
   //
   // writer.writeFaceStab(Kh0, 0, "fullstab_face0.vtk");
   // writer.writeFaceStab(Kh1, 0, "fullstab_face1.vtk");
@@ -226,10 +226,10 @@ int main(int argc, char** argv ){
   // writer.writeNonStabMesh(macro_surface, "nonStab_maxro_element0.vtk");
   //
 
-  // Paraview<Mesh> writer(Th, "backMesh_smooth_time.vtk");
-  // writer.add(levelSet_t0, "levelSet1", 0, 1);
-  // writer.add(levelSet_t1, "levelSet2", 0, 1);
-    // writer.add(levelSet1, "levelSet1", 0, 1);
+  Paraview<Mesh> writer(Th, "backMesh_smooth.vtk");
+  writer.add(levelSet_t0, "levelSet1", 0, 1);
+  writer.add(levelSet_t1, "levelSet2", 0, 1);
+  writer.add(levelSet1  , "levelSet", 0, 1);
   // writer.add(levelSet3, "levelSet3", 0, 1);
   // writer.add(levelSet4, "levelSet4", 0, 1);
 

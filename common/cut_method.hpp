@@ -518,7 +518,7 @@ public:
   virtual double measure(int s) const = 0;
   virtual double measure(const_element_iterator it) const = 0;
   virtual Rd mapToPhysicalElement(const_element_iterator it, const RdHat Phat) const  = 0;
-
+  virtual int get_sign_node(int i) const = 0;
 
 };
 
@@ -565,7 +565,7 @@ public :
   int whatSign (const_element_iterator t) const { return patch.whatSign(t); }
   bool is_cut () const { return patch.is_cut(); }
   bool isnot_cut () const { return patch.is_uncut(); }
-
+  int get_sign_node(int i) const { return util::sign(ls[i]);}
 
 
   //Obsolete in multi domains
@@ -769,6 +769,7 @@ public:
     }
     return geometry::map_point_to_simplex(N, Phat);
   }
+  int get_sign_node(int i) const { assert(0); return 0;}
 
 };
 

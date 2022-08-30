@@ -76,9 +76,11 @@ public:
 
 
   // add local to Matrix or rhs
-  void addToMatrix(const ItemVF<Rd::d>& VF, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
+  void addToMatrix    (const ItemVF<Rd::d>& VF, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
+  void addToMatrix_Opt(const ItemVF<Rd::d>& VF, const FElement& FK, const RNMK_& fv, double Cint);
   void addToMatrix(const ItemVF<Rd::d>& VF, const TimeSlab& In, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
   void addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint);
+  void addToMatrix(const ItemVF<Rd::d>& VFi, const TimeSlab& In, const FElement& FKv, const RNMK_& fv, double Cint);
 
   void addToRHS(const ItemVF<Rd::d>& VF, const FElement& FKv, const RNMK_& fv, double Cint);
   void addToRHS(const ItemVF<Rd::d>& VF, const TimeSlab& In, const FElement& FKv, const RNMK_& fv, double Cint);
@@ -91,6 +93,7 @@ public:
   void addBilinear(  const ListItemVF<Rd::d>& VF, const Mesh&) ;
   void addLinear(  const ListItemVF<Rd::d>& VF, const Mesh&) ;
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time);
+  void addElementContribution_Opt(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time);
 
   // integral on innerFace
   void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CFacet& b);
@@ -101,6 +104,8 @@ public:
   void addBilinear(const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b,list<int> label = {});
   void addLinear  (const ListItemVF<Rd::d>& VF, const Mesh&, const CBorder& b,list<int> label = {});
   void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
+
+  void setDirichlet(const FunFEM<Mesh>&, const Mesh&, list<int> label = {});
 
   // integral on interface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {});
@@ -117,6 +122,7 @@ public:
   // integral for Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const Mesh& Th);
   void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k);
+  void addLagrangeBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
 
 };
 

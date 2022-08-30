@@ -109,6 +109,7 @@ void InterfaceLevelSet<M>::make_patch(const KN<double>& ls, int label) {
   double loc_ls[nb_vertex_K];
   byte   loc_ls_sign[nb_vertex_K];
 
+
   for (int k=0; k<this->backMesh->nbElmts(); k++) {                      // loop over elements
 
     const typename Mesh::Element & K(Th[k]);
@@ -116,9 +117,8 @@ void InterfaceLevelSet<M>::make_patch(const KN<double>& ls, int label) {
     for (Uint i= 0; i < K.nv; ++i) {
       loc_ls_sign[i] = ls_sign[Th(K[i])];
       loc_ls     [i] = ls     [Th(K[i])];
-      // std::cout << loc_ls[i] << std::endl;
-    }
 
+    }
     const RefPatch<Element>& cut =  RefPatch<Element>::instance( loc_ls_sign);
     if (cut.empty()) continue;
     // int iii=0;

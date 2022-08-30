@@ -3,23 +3,38 @@
 #include <iostream>
 #include <string>
 
-#include "problem.hpp"
+#include "baseProblem.hpp"
+#include "paraview.hpp"
+
+typedef FunFEM<Mesh2> Fun_h;
+typedef Mesh2 Mesh;
+typedef ActiveMeshT2 CutMesh;
+typedef FESpace2   Space;
+typedef CutFESpaceT2 CutSpace;
+
+R shift = 0.;
+R fun_levelSet(const R2 P, const int i) {
+  return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - 0.5;
+}
+
 int main(int argc, char** argv )
 {
 
-// std::string f = argv[1];
 
-// Mesh2 Th(f.c_str());
-Mesh3 Th(5, 10, 5, 0.,0.,0., 1., 2., 1.);
-FESpace3 Vh(Th);
-// std::cout << " P1 Space " << std::endl;
-// Vh.info();
-// FESpace2 Vhh(Th, DataFE<Mesh2>::P2);
-// std::cout << " P2 Space " << std::endl;
-// Vhh.info();
-Paraview3 writer(Vh, "showMesh3Output.vtk");
+  // Mesh2 Kh("../mesh/FittedMesh.msh");
+  Mesh Kh("../mesh/square2.msh");
+  Mesh Th(100, 100, -1., -1., 2., 2.);
+  Space Lh(Kh, DataFE<Mesh2>::P1);
+  Space Lh2(Th, DataFE<Mesh2>::P1);
+  Fun_h levelSet(Lh, fun_levelSet);
+  Fun_h levelSet2(Lh2, fun_levelSet);
 
-// system("open -a /Applications/ParaView-5.7.0.app showMeshOutput.vtk" );
+  Paraview<Mesh> writer(Kh, "staticDropMesh.vtk");
+  writer.add(levelSet, "levelSet" , 0, 1);
+  Paraview<Mesh> writer2(Th, "levelSet.vtk");
+  writer2.add(levelSet2, "levelSet" , 0, 1);
+
+
 
 return 0;
 };

@@ -28,15 +28,25 @@
 struct CBorder {
   CBorder() {}
 };
-const  CBorder boundary;
+const  CBorder INTEGRAL_BOUNDARY;
 struct CFacet {
   CFacet() {}
 };
-const CFacet innerFacet;
+const CFacet INTEGRAL_INNER_FACET;
+const CFacet INTEGRAL_INNER_EDGE_2D;
+const CFacet INTEGRAL_INNER_FACE_3D;
+
 struct CRidge {
   CRidge() {}
 };
-const CRidge innerRidge;
+const CRidge INTEGRAL_INNER_RIDGE;
+const CRidge INTEGRAL_INNER_NODE_2D;
+const CRidge INTEGRAL_INNER_EDGE_3D;
+
+struct CExtension {
+  CExtension() {}
+};
+const CExtension INTEGRAL_EXTENSION;
 
 
 // Base class for problem.
@@ -72,6 +82,7 @@ public:
   // the local contribution is added to the global matrix
   // pointed by pmat
   Matrix local_contribution_matrix_;
+  Rnm loc_mat;
 
   // number of degree of freedom of the problem
   // This is never modify after initialization
@@ -91,7 +102,7 @@ public:
 
 
 public :
-  ShapeOfProblem() : nb_dof_(0), nb_dof_time_(1) { pmat_ = &mat_;};
+  ShapeOfProblem() : nb_dof_(0), nb_dof_time_(1){ pmat_ = &mat_;};
   ShapeOfProblem(int n) : nb_dof_(n), rhs_(n), nb_dof_time_(1) {pmat_ = &mat_; rhs_=0.0;}
 
   // return the number of degrees of freedom
@@ -131,7 +142,12 @@ public :
   R & operator()(int i) { return rhs_[i+index_i0_];}
 
  protected :
-  double & addToLocalContribution(int i, int j) { return local_contribution_matrix_[std::make_pair(i+index_i0_,j+index_j0_)]; }
+  double & addToLocalContribution(int i, int j) {
+    return local_contribution_matrix_[std::make_pair(i+index_i0_,j+index_j0_)];
+  }
+  double & addToLocalContribution_Opt(int i, int j) {
+    return  loc_mat(i,j);
+  }
   void addLocalContribution() {
     this->index_i0_ = 0;
     this->index_j0_ = 0;
@@ -140,6 +156,16 @@ public :
     }
     this->local_contribution_matrix_.clear();
   }
+  void addLocalContribution_Opt(const FElement& FK) {
+    for(int i = 0; i < FK.NbDoF(); ++i) {
+      for(int j = 0; j < FK.NbDoF(); ++j) {
+        (*this)(FK.loc2glb(i),FK.loc2glb(j)) += loc_mat(i,j);
+      }
+    }
+    this->index_i0_ = 0;
+    this->index_j0_ = 0;
+  }
+
   void addLocalContributionLagrange(int nend) {
     this->index_j0_ = 0;
     this->index_i0_ = 0;

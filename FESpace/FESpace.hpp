@@ -19,13 +19,11 @@ using namespace std;
 
 #include "interpolationMatrix.hpp"
 #include "GTypeOfFE_Sum.hpp"
-// #include "GTypeOfFE_Rd.hpp"
 
 #include "../common/Mesh3dn.hpp"
 #include "../common/Mesh2dn.hpp"
 #include "../common/Mesh1dn.hpp"
-// #include "../common/Interface3dn.hpp"
-// #include "../common/timeInterface.hpp"
+
 
 #include "../common/base_interface.hpp"
 #include "../common/cut_mesh.hpp"
@@ -72,7 +70,7 @@ public:
 
   Rd Pt(RdHat Phat) const {return T(Phat);}     // Ref to Global
   Rd PtHat(int i) const { assert(i < tfe->NbPtforInterpolation);
-    RdHat Phat(tfe->PtInterpolation(i)); return Phat;
+    RdHat Phat(tfe->Pt_Pi_h(i)); return Phat;
   }
   Rd Pt(int i) const { assert(i < tfe->NbPtforInterpolation);
     RdHat Phat(tfe->Pt_Pi_h(i));
@@ -253,6 +251,8 @@ public:
   const int Nproduit; // 1 if non constant Max number df par node. else Max number df par node..
   // GFESpace const * backSpace = this;
   const PeriodicBC* periodicBC = nullptr;
+  const BasisFctType basisFctType;
+  const int polynomialOrder;
   // KN<const GInterface*> gamma;
   // KN<const GInterface*>* gamma2;
 
@@ -275,9 +275,14 @@ public:
     TFE(1,0,&tfe),
     N(tfe.N),
     Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
-    periodicBC(PPeriod)
+    periodicBC(PPeriod),
+    basisFctType(tfe.basisFctType),
+    polynomialOrder(tfe.polynomialOrder)
     {
     }
+
+
+
 
     // GFESpace(const Mesh & TTh,
     //   // TimeInterface<Mesh>& g,
@@ -305,7 +310,9 @@ public:
     TFE(1,0,vh.TFE(0)),
     N(TFE[0]->N),
     Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
-    periodicBC(PPeriod)
+    periodicBC(PPeriod),
+    basisFctType(vh.basisFctType),
+    polynomialOrder(vh.polynomialOrder)
     {
     }
 
@@ -316,7 +323,9 @@ public:
     TFE(1,0,vh.TFE(0)),
     N(TFE[0]->N),
     Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
-    periodicBC(PPeriod)
+    periodicBC(PPeriod),
+    basisFctType(vh.basisFctType),
+    polynomialOrder(vh.polynomialOrder)
     {
     }
     DataFENodeDF BuildDFNumbering(const ActiveMesh<Mesh> & TTh) const;

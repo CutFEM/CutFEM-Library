@@ -199,7 +199,6 @@ public:
       f.data = temp;
       v.set(data, Vh->NbDoF());
       f.v.set(f.data, f.Vh->NbDoF());
-
     }
 
   double& operator()(int i) { return v(i); }
@@ -222,7 +221,13 @@ public:
   int idxElementFromBackMesh(int kb, int dd=0) const {
     return Vh->idxElementFromBackMesh(kb, dd);
   }
+  std::vector<int> getAllDomainId(int k) const {
+    return Vh->getAllDomainId(k);
+  };
 
+  const FESpace& getSpace() const { return *Vh;}
+  BasisFctType getBasisFctType() const {return Vh->basisFctType;}
+  int getPolynomialOrder() const {return Vh->polynomialOrder;}
   std::list<ExpressionFunFEM<M>> expression(int n = -1)const;
   std::list<ExpressionFunFEM<M>> expression(int n, int i0)const;
 
@@ -268,6 +273,7 @@ public:
   virtual R evalOnBackMesh(const int k, int dom, const R* x,            const R* normal = nullptr) const = 0;
   virtual R evalOnBackMesh(const int k, int dom, const R* x, const R t, const R* normal = nullptr) const = 0;
   virtual int idxElementFromBackMesh(int kb, int dd=0) const = 0;
+  virtual std::vector<int> getAllDomainId(int k) const {assert(0); };
 public:
   R GevalOnBackMesh(const int k, int dom, const R* x, const R* normal) const {
     int theDomain = (domain == -1)? dom : domain;
@@ -397,11 +403,11 @@ public:
   ExpressionMultConst(const ExpressionVirtual & fh1, const Normal_Component_Z& nnz)
   : fun1(fh1) , c(1.), nx(false), ny(true), nz(true), p(R2(1,1)){
   }
-  ExpressionMultConst(const ExpressionVirtual & fh1, const R2& v)
-  : fun1(fh1) , c(1.), nx(false), ny(false), nz(false), p(R2(v)){
-  }
+  // ExpressionMultConst(const ExpressionVirtual & fh1, const R2& v)
+  // : fun1(fh1) , c(1.), nx(false), ny(false), nz(false), p(R2(v)){
+  // }
 
-  R operator()(long i) const {c*fun1(i);}
+  R operator()(long i) const {return c*fun1(i);}
 
   R eval(const int k, const R* x, const R* normal)const  {
     double compN = ((nx)?normal[0]:1)*((ny)?normal[1]:1)*((nz)?normal[2]:1);
@@ -439,7 +445,7 @@ public:
   : fun1(fh1) {
   }
 
-  R operator()(long i) const {fabs(fun1(i));}
+  R operator()(long i) const {return fabs(fun1(i));}
 
   R eval(const int k, const R* x, const R* normal)const  {
     return fabs(fun1.eval(k,x, normal));
@@ -468,7 +474,7 @@ ExpressionAbs fabs(const ExpressionVirtual& f1);
    : fun1(fh1){
    }
 
-   R operator()(long i) const {sqrt(fun1(i));}
+   R operator()(long i) const {return sqrt(fun1(i));}
 
    R eval(const int k, const R* x, const R* normal)const  {
      return sqrt(fun1.eval(k,x, normal));
@@ -497,7 +503,7 @@ public:
   ExpressionProduct(const ExpressionVirtual & fh1, const ExpressionVirtual & fh2)
   : fun1(fh1), fun2(fh2) {}
 
-  R operator()(long i) const {fun1(i)*fun2(i);}
+  R operator()(long i) const {return fun1(i)*fun2(i);}
 
   R eval(const int k, const R* x, const R* normal)const  {
     return fun1.eval(k,x,normal) * fun2.eval(k,x,normal);
@@ -527,7 +533,7 @@ public:
   ExpressionDivision(const ExpressionVirtual & fh1, const ExpressionVirtual & fh2)
   : fun1(fh1), fun2(fh2) {}
 
-  R operator()(long i) const {fun1(i)/fun2(i);}
+  R operator()(long i) const {return fun1(i)/fun2(i);}
 
   R eval(const int k, const R* x, const R* normal)const  {
     double v = fun2.eval(k,x,normal);
@@ -566,7 +572,7 @@ public:
   ExpressionSum(const ExpressionVirtual & fh1, const ExpressionVirtual & fh2)
   : fun1(fh1), fun2(fh2) {
   }
-  R operator()(long i) const {fun1(i) + fun2(i);}
+  R operator()(long i) const {return fun1(i) + fun2(i);}
 
   R eval(const int k, const R* x, const R* normal)const  {
     return fun1.eval(k,x,normal) + fun2.eval(k,x,normal);
@@ -596,7 +602,7 @@ public:
   ExpressionDif(const ExpressionVirtual & fh1, const ExpressionVirtual & fh2)
   : fun1(fh1), fun2(fh2) {}
 
-  R operator()(long i) const {fun1(i)-fun2(i);}
+  R operator()(long i) const {return fun1(i)-fun2(i);}
 
   R eval(const int k, const R* x, const R* normal)const  {
     return fun1.eval(k,x,normal) - fun2.eval(k,x,normal);
@@ -646,7 +652,7 @@ public:
     uxnx.addNormal(0); uyny.addNormal(1);
   }
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0);return 0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
@@ -690,7 +696,7 @@ public:
     uxnx.addNormal(0); uyny.addNormal(1); uznz.addNormal(2);
   }
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0); return 0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
@@ -736,7 +742,7 @@ public:
     dyu1nxny.addNormal(0); dyu1nxny.addNormal(1);
   }
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0); return  0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating DSx expression withoutr giving the normal as input " << std::endl;
@@ -777,7 +783,7 @@ public:
     dyu2nyny.addNormal(1); dyu2nyny.addNormal(1);
   }
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0); return  0; };
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating DSx expression withoutr giving the normal as input " << std::endl;
@@ -815,7 +821,7 @@ class ExpressionDivS2 : public ExpressionVirtual {
 public:
   ExpressionDivS2(const FunFEM<M> & fh1) : fun(fh1), dx(dxS(fh1)),dy(dyS(fh1)){}
 
-    R operator()(long i) const {assert(0);};
+    R operator()(long i) const {assert(0); return 0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating DSx expression withoutr giving the normal as input " << std::endl;
@@ -859,7 +865,7 @@ public:
     dzu1nxnz.addNormal(0); dzu1nxnz.addNormal(2);
   }
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0); return 0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating DSx expression withoutr giving the normal as input " << std::endl;
@@ -901,7 +907,7 @@ public:
     dzu2nynz.addNormal(1); dzu2nynz.addNormal(2);
   }
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0);return  0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating DSx expression withoutr giving the normal as input " << std::endl;
@@ -943,7 +949,7 @@ public:
     dzu3nznz.addNormal(2); dzu3nznz.addNormal(2);
   }
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0); return 0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating DSx expression withoutr giving the normal as input " << std::endl;
@@ -981,7 +987,7 @@ class ExpressionDivS3 : public ExpressionVirtual {
 public:
   ExpressionDivS3(const FunFEM<M> & fh1) : fun(fh1), dx(dxS(fh1)),dy(dyS(fh1)),dz(dzS(fh1)){}
 
-  R operator()(long i) const {assert(0);};
+  R operator()(long i) const {assert(0); return 0;};
 
   R eval(const int k, const R* x, const R* normal)const  {
     std::cout << " evaluating DSx expression withoutr giving the normal as input " << std::endl;
@@ -1005,11 +1011,27 @@ public:
   int idxElementFromBackMesh(int kb, int dd=0) const {
     return fun.idxElementFromBackMesh(kb, dd);
   }
+
   ~ExpressionDivS3(){}
 };
 ExpressionDivS3 divS(const FunFEM<Mesh3>& f1);
 
 
+class ExpressionAverage {
+  public:
+  const ExpressionVirtual & fun1;
+  const R k1, k2;
+
+  ExpressionAverage(const ExpressionVirtual & fh1, double kk1, double kk2)
+  : fun1(fh1), k1(kk1), k2(kk2){
+  }
+
+  ~ExpressionAverage(){}
+};
+ExpressionAverage average(const ExpressionVirtual & fh1, const double kk1=0.5, const double kk2=0.5);
+ExpressionAverage jump(const ExpressionVirtual & fh1, const double kk1=1, const double kk2=-1);
+ExpressionAverage operator* (double c, const ExpressionAverage& fh);
+ExpressionAverage operator* ( const ExpressionAverage& fh, double c);
 
 
 template<typename M>
@@ -1028,6 +1050,110 @@ template<typename M>
 ExpressionFunFEM<M> dt(const ExpressionFunFEM<M>& u) {
   return ExpressionFunFEM<M>(u.fun, u.cu, u.op, op_dx, u.domain);
 }
+
+
+
+class ExpressionBurgerFlux : public ExpressionVirtual {
+  const ExpressionVirtual & fun1;
+public:
+  ExpressionBurgerFlux(const ExpressionVirtual & fh1)
+  : fun1(fh1) {
+  }
+
+  R operator()(long i) const {return fabs(fun1(i));}
+
+  R eval(const int k, const R* x, const R* normal)const  {
+    double val = fun1.eval(k,x, normal);
+    return 0.5*val*val;
+  }
+  R eval(const int k, const R* x, const R t, const R* normal)const  {
+    double val = fun1.eval(k,x,t, normal);
+    return 0.5*val*val;
+  }
+
+  R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
+    double val = fun1.evalOnBackMesh(k,dom,x,normal);
+    return 0.5*val*val;
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    double val = fun1.evalOnBackMesh(k,dom,x,t,normal);
+    return 0.5*val*val;
+  }
+  int idxElementFromBackMesh(int kb, int dd=0) const {
+    return fun1.idxElementFromBackMesh(kb, dd);
+  }
+  ~ExpressionBurgerFlux(){}
+};
+class ExpressionNormalBurgerFlux : public ExpressionVirtual {
+  const ExpressionVirtual & fun1;
+public:
+  ExpressionNormalBurgerFlux(const ExpressionVirtual & fh1)
+  : fun1(fh1) {
+  }
+
+  R operator()(long i) const {return fabs(fun1(i));}
+
+  R eval(const int k, const R* x, const R* normal)const  {
+    assert(normal);
+    double val = fun1.eval(k,x, normal);
+    return 0.5*val*val*(normal[0] + normal[1]);
+  }
+  R eval(const int k, const R* x, const R t, const R* normal)const  {
+    assert(normal);
+    double val = fun1.eval(k,x,t, normal);
+    return 0.5*val*val*(normal[0] + normal[1]);
+  }
+
+  R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
+    assert(normal);
+    double val = fun1.evalOnBackMesh(k,dom,x,normal);
+    return 0.5*val*val*(normal[0] + normal[1]);
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    assert(normal);
+    double val = fun1.evalOnBackMesh(k,dom,x,t,normal);
+    return 0.5*val*val*(normal[0] + normal[1]);
+  }
+  int idxElementFromBackMesh(int kb, int dd=0) const {
+    return fun1.idxElementFromBackMesh(kb, dd);
+  }
+  ~ExpressionNormalBurgerFlux(){}
+};
+ExpressionBurgerFlux burgerFlux(const ExpressionVirtual & f1);
+ExpressionNormalBurgerFlux burgerFlux(const ExpressionVirtual & f1, const Normal& n ) ;
+
+
+// class ExpressionNormalBurgerFlux : public ExpressionVirtual {
+//   const ExpressionVirtual & fun1;
+// public:
+//   ExpressionNormalBurgerFlux(const ExpressionVirtual & fh1)
+//   : fun1(fh1) {
+//   }
+//
+//   R operator()(long i) const {return fabs(fun1(i));}
+//
+//   R eval(const int k, const R* x, const R* normal)const  {
+//     double val = fun1.eval(k,x, normal)
+//     return 0.5*val*val;
+//   }
+//   R eval(const int k, const R* x, const R t, const R* normal)const  {
+//     double val = fun1.eval(k,x,t, normal);
+//     return 0.5*val*val;
+//   }
+//
+//   R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
+//     double val = fun1.evalOnBackMesh(k,dom,x,normal);
+//     return 0.5*val*val;
+//   }
+//   R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+//     double val = fun1.evalOnBackMesh(k,dom,x,t,normal);
+//     return 0.5*val*val;
+//   }
+//   int idxElementFromBackMesh(int kb, int dd=0) const {
+//     return fun1.idxElementFromBackMesh(kb, dd);
+//   }
+//   ~ExpressionNormalBurgerFlux(){}
+// };
 
 
 #include "expression.tpp"

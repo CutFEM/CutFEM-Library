@@ -16,15 +16,19 @@
 
 // #include "../num/gnuplot.hpp"
 
-#define PROBLEM_POISSON_LAGRANGE
+// #define PROBLEM_POISSON_LAGRANGE
+#define WIRE_POISSON
+
 //#define PROBLEM_POISSON_MIXED
 // #define PROBLEM_CUT_POISSON_LAGRANGE
 // #define PROBLEM_ARTIFICIALCUT_POISSON_LAGRANGE
 //#define PROBLEM_CUT_POISSON_MIXED
 
-/*   Different Poisson Problem using different element,
-            FEM and CutFEM
-*/
+typedef Mesh2 Mesh;
+typedef FESpace2 FESpace;
+typedef TestFunction<2> FunTest;
+typedef FunFEM<Mesh> Fun_h;
+typedef ExpressionFunFEM<Mesh2> Expression;
 
 #ifdef PROBLEM_POISSON_LAGRANGE
 
@@ -42,14 +46,7 @@ R fun_exact(const R2 P, int elementComp) {
 }
 
 using namespace Data_PoissonLagrange;
-int main(int argc, char** argv )
-{
-  typedef Mesh2 Mesh;
-  typedef FESpace2 FESpace;
-  typedef TestFunction<2> FunTest;
-  typedef FunFEM<Mesh> Fun_h;
-  typedef ExpressionFunFEM<Mesh2> Expression;
-
+int main(int argc, char** argv ){
   MPIcf cfMPI(argc,argv);
 
   int nx = 10; // used to be 10
@@ -141,6 +138,256 @@ int main(int argc, char** argv )
     std::cout << h[i] << "\t"
   	      << ul2[i] << "\t" << convu[i] << "\t \t" << tid[i] << std::endl;
   }
+}
+#endif
+
+
+#ifdef WIRE_POISSON
+
+
+R fun_rhs(const R2 P, int elementComp, int dom) {
+  switch (dom) {
+    case 0 : return 0.; break;
+    case 1 : return 1.; break;
+    default : return -1; break;
+  }
+}
+
+  R fun_levelSet(const R2 P, const int i) {
+    return sqrt((P.x-0.5)*(P.x-0.5) + (P.y-0.5)*(P.y-0.5)) - 0.25;
+    // return sqrt(P.x*P.x + P.y*P.y) - 2./3;
+  }
+
+
+int main(int argc, char** argv )
+{
+  typedef Mesh2 Mesh;
+  typedef FESpace2 Space;
+  typedef TestFunction<2> FunTest;
+  typedef FunFEM<Mesh> Fun_h;
+  typedef ExpressionFunFEM<Mesh2> Expression;
+
+
+  MPIcf cfMPI(argc,argv);
+  const double cpubegin = CPUtime();
+
+  int nx = 20; // used to be 10
+  int ny = 20;
+  const bool writeVTKFiles = true;
+
+  Mesh Th(nx, ny, 0., 0., 1., 1.);   // [-1,1]*[-1,1]
+  Space Lh(Th, DataFE<Mesh>::P1);
+
+
+  // Interface2 interface(Th, levelSet.v);
+  // FESpace2 Vh(Th, DataFE<Mesh2>::P1);
+  // CutFESpace2 Wh(Vh, interface, {1,-1});
+  //
+  // CutFEM<Mesh2> poisson(Wh);
+  //
+  // // CutFEM_Parameter mu("mu",1.,1.);
+  //
+  //   // double mu = 1;
+  //   // const CutFEM_Parameter& lambdaG(Parameter::lambdaG);
+  //   const R meshSize = Th[0].lenEdge(0);
+  //
+  //   // We define fh on the cutSpace
+  //   Fun_h fh(Wh, fun_rhs);
+  //   Fun_h gh(Wh, fun_boundary);
+  //
+  //   Normal n;
+  //   FunTest u(Wh,1), v(Wh,1);
+  //   FunTest Dun = (grad(u).t()*n), Dvn = (grad(v).t()*n);
+  //
+  //   // a(u,v)_Omega
+  //   poisson.addBilinear(
+  //     innerProduct(mu*grad(u), grad(v))
+  //   );
+  //   // l(v)_Omega
+  //   poisson.addLinear(
+  //     innerProduct(fh.expression(1), v)
+  //   );
+  //
+  //   poisson.addBilinear(
+  //     - innerProduct(mu*average1(Dun), jump(v))
+  //     - innerProduct(mu*jump(Dun), average2(v))
+  //     - innerProduct(mu*jump(u), average1(Dvn))
+  //     + innerProduct(lambdaG*jump(u), jump(v))
+  //     , interface
+  //   );
+  //
+  //   poisson.addBilinearFormBorder(
+  //     innerProduct(lambdaB*u,v)
+  //   );
+  //   Expression gx(gh, 0, op_id);
+  //   poisson.addLinearFormBorder(
+  //     innerProduct(gx, lambdaB*v) //+ innerProduct(gh, v)*penaltyParam
+  //   );
+  //
+  //   poisson.solve();
+
+    // if(MPIcf::IamMaster()) {
+    //   Fun_h sol(Wh, poisson.rhs);
+    //   Paraview2 writerS(Wh, "poissonCutLagrange_"+to_string(i)+".vtk");
+    //   writerS.add(sol, "poisson", 0, 1);
+    // }
+}
+#endif
+
+
+#ifdef PROBLEM_CUT_POISSON_LAGRANGE
+
+namespace Erik_Data_CutPoissonLagrange {
+  R fun_boundary(const R2 P, int elementComp, int dom) {
+    // return 0;
+    return 2*sin(2*pi*P[0])*sin(4*pi*P[1]);
+  }
+  R fun_rhs(const R2 P, int elementComp, int dom) {
+    // return 1;
+    return 40*pow(pi,2)*sin(2*pi*P.x)*sin(4*pi*P.y);
+  }
+  R fun_exact(const R2 P, int elementComp) {
+    return 2*sin(2*pi*P[0])*sin(4*pi*P[1]);
+    }
+  R fun_levelSet(const R2 P, const int i) {
+    return sqrt((P.x-0.5)*(P.x-0.5) + (P.y-0.5)*(P.y-0.5)) - 0.25;
+    // return sqrt(P.x*P.x + P.y*P.y) - 2./3;
+  }
+  R2 fparam(double t){ return R2(0.5+0.25*cos(t+1./3), 0.5+0.25*sin(t+1./3));}
+
+
+}
+
+using namespace Erik_Data_CutPoissonLagrange;
+// #define _USE_MARKER
+
+int main(int argc, char** argv )
+{
+  typedef Mesh2 Mesh;
+  typedef FESpace2 FESpace;
+  typedef Interface2 Interface;
+  typedef TestFunction<2> FunTest;
+  typedef FunFEM<Mesh> Fun_h;
+  typedef ExpressionFunFEM<Mesh2> Expression;
+
+
+  MPIcf cfMPI(argc,argv);
+  const double cpubegin = CPUtime();
+
+  int nx = 50; // used to be 10
+  int ny = 50;
+  vector<double> ul2,h, convu;
+
+  std::string pathOutpuFolder = "../../outputFiles/poisson/";
+  std::string pathOutpuFigure = "../../outputFiles/poisson/paraview/";
+  const bool writeVTKFiles = true;
+
+  if(MPIcf::IamMaster()) {
+    std::experimental::filesystem::create_directories(pathOutpuFigure);
+  }
+
+  int nmarker = 50;
+  for(int i=0;i<1;++i) {
+    Mesh Th(nx, ny, 0., 0., 1., 1.);   // [-1,1]*[-1,1]
+
+    FESpace Lh(Th, DataFE<Mesh>::P1);
+    Fun_h levelSet(Lh, fun_levelSet);
+    // Interface2 tempI(Th, levelSet.v);
+
+    // Marker interface(Th, fparam, 0, 2*M_PI, nmarker);
+    // interface.make_interface();
+
+    // // gnuplot::save(, "marker.dat");
+    // gnuplot::save(Th, "Th.dat");
+    // gnuplot::saveMarker(interface, "interface.dat");
+    // gnuplot::save(tempI, "levelSetInterface.dat");
+// return 0;
+    Interface2 interface(Th, levelSet.v);
+
+    FESpace2 Vh(Th, DataFE<Mesh2>::P1);
+
+    CutFESpace2 Wh(Vh, interface, {1,-1});
+
+    // McDonald macro(Wh, 0.1);
+    // macro.make_S();
+    //
+    // return 0;
+
+    // FESpace2 Wh(Th, interface, DataFE<Mesh2>::P1);
+
+    CutFEM<Mesh2> poisson(Wh);
+
+    CutFEM_Parameter mu("mu",1.,1.);
+
+    // double mu = 1;
+    const CutFEM_Parameter& lambdaG(Parameter::lambdaG);
+    const CutFEM_Parameter& lambdaB(Parameter::lambdaB);
+    const R meshSize = Th[0].lenEdge(0);
+
+    // We define fh on the cutSpace
+    Fun_h fh(Wh, fun_rhs);
+    Fun_h gh(Wh, fun_boundary);
+
+    Normal n;
+    FunTest u(Wh,1), v(Wh,1);
+    FunTest Dun = (grad(u).t()*n), Dvn = (grad(v).t()*n);
+
+    // a(u,v)_Omega
+    poisson.addBilinear(
+      innerProduct(mu*grad(u), grad(v))
+    );
+    // l(v)_Omega
+    poisson.addLinear(
+      innerProduct(fh.expression(1), v)
+    );
+
+    poisson.addBilinear(
+      - innerProduct(mu*average1(Dun), jump(v))
+      - innerProduct(mu*jump(Dun), average2(v))
+      - innerProduct(mu*jump(u), average1(Dvn))
+      + innerProduct(lambdaG*jump(u), jump(v))
+      , interface
+    );
+
+    poisson.addBilinearFormBorder(
+      innerProduct(lambdaB*u,v)
+    );
+    Expression gx(gh, 0, op_id);
+    poisson.addLinearFormBorder(
+      innerProduct(gx, lambdaB*v) //+ innerProduct(gh, v)*penaltyParam
+    );
+
+    poisson.solve();
+
+    if(MPIcf::IamMaster() && writeVTKFiles) {
+      Fun_h sol(Wh, poisson.rhs);
+      Paraview2 writerS(Wh, levelSet, pathOutpuFigure+"poissonCutLagrange_"+to_string(i)+".vtk");
+      writerS.add(sol, "poisson", 0, 1);
+    }
+
+    Fun_h femSolh(Wh,  poisson.rhs);
+    // R errU = L2normCut(femSolh, fun_exact, 0,1);
+    R errU = L2norm(femSolh, fun_exact, 0,1);
+
+    ul2.push_back(errU);
+    h.push_back(1./nx);
+
+    if(i==0) {convu.push_back(0);}
+    else {
+      convu.push_back( log(ul2[i]/ul2[i-1])/log(h[i]/h[i-1]));
+    }
+
+    nx *= 2;
+    ny *= 2;
+    nmarker *= 2;
+  }
+
+  std::cout << "\n\n h \t err u \t\t convU " << std::endl;
+  for(int i=0;i<ul2.size();++i) {
+    std::cout << h[i]   << "\t"
+              << ul2[i] << "\t" << convu[i] << std::endl;
+  }
+
 }
 #endif
 
@@ -445,161 +692,7 @@ int main(int argc, char** argv )
 #endif
 
 
-#ifdef PROBLEM_CUT_POISSON_LAGRANGE
 
-namespace Erik_Data_CutPoissonLagrange {
-  R fun_boundary(const R2 P, int elementComp, int dom) {
-    // return 0;
-    return 2*sin(2*pi*P[0])*sin(4*pi*P[1]);
-  }
-  R fun_rhs(const R2 P, int elementComp, int dom) {
-    // return 1;
-    return 40*pow(pi,2)*sin(2*pi*P.x)*sin(4*pi*P.y);
-  }
-  R fun_exact(const R2 P, int elementComp) {
-    return 2*sin(2*pi*P[0])*sin(4*pi*P[1]);
-    }
-  R fun_levelSet(const R2 P, const int i) {
-    return sqrt((P.x-0.5)*(P.x-0.5) + (P.y-0.5)*(P.y-0.5)) - 0.25;
-    // return sqrt(P.x*P.x + P.y*P.y) - 2./3;
-  }
-  R2 fparam(double t){ return R2(0.5+0.25*cos(t+1./3), 0.5+0.25*sin(t+1./3));}
-
-
-}
-
-using namespace Erik_Data_CutPoissonLagrange;
-#define _USE_MARKER
-
-int main(int argc, char** argv )
-{
-  typedef Mesh2 Mesh;
-  typedef FESpace2 FESpace;
-  typedef Interface2 Interface;
-  typedef TestFunction<2> FunTest;
-  typedef FunFEM<Mesh> Fun_h;
-  typedef ExpressionFunFEM<Mesh2> Expression;
-
-
-  MPIcf cfMPI(argc,argv);
-  const double cpubegin = CPUtime();
-
-  int nx = 50; // used to be 10
-  int ny = 50;
-  vector<double> ul2,h, convu;
-
-  std::string pathOutpuFolder = "../../outputFiles/poisson/";
-  std::string pathOutpuFigure = "../../outputFiles/poisson/paraview/";
-  const bool writeVTKFiles = true;
-
-  if(MPIcf::IamMaster()) {
-    std::experimental::filesystem::create_directories(pathOutpuFigure);
-  }
-
-  int nmarker = 50;
-  for(int i=0;i<1;++i) {
-    Mesh Th(nx, ny, 0., 0., 1., 1.);   // [-1,1]*[-1,1]
-
-    FESpace Lh(Th, DataFE<Mesh>::P1);
-    Fun_h levelSet(Lh, fun_levelSet);
-    // Interface2 tempI(Th, levelSet.v);
-
-    // Marker interface(Th, fparam, 0, 2*M_PI, nmarker);
-    // interface.make_interface();
-
-    // // gnuplot::save(, "marker.dat");
-    // gnuplot::save(Th, "Th.dat");
-    // gnuplot::saveMarker(interface, "interface.dat");
-    // gnuplot::save(tempI, "levelSetInterface.dat");
-// return 0;
-    Interface2 interface(Th, levelSet.v);
-
-    FESpace2 Vh(Th, DataFE<Mesh2>::P1);
-
-    CutFESpace2 Wh(Vh, interface, {1,-1});
-
-    // McDonald macro(Wh, 0.1);
-    // macro.make_S();
-    //
-    // return 0;
-
-    // FESpace2 Wh(Th, interface, DataFE<Mesh2>::P1);
-
-    CutFEM<Mesh2> poisson(Wh);
-
-    CutFEM_Parameter mu("mu",1.,1.);
-
-    // double mu = 1;
-    const CutFEM_Parameter& lambdaG(Parameter::lambdaG);
-    const CutFEM_Parameter& lambdaB(Parameter::lambdaB);
-    const R meshSize = Th[0].lenEdge(0);
-
-    // We define fh on the cutSpace
-    Fun_h fh(Wh, fun_rhs);
-    Fun_h gh(Wh, fun_boundary);
-
-    Normal n;
-    FunTest u(Wh,1), v(Wh,1);
-    FunTest Dun = (grad(u).t()*n), Dvn = (grad(v).t()*n);
-
-    // a(u,v)_Omega
-    poisson.addBilinear(
-      innerProduct(mu*grad(u), grad(v))
-    );
-    // l(v)_Omega
-    poisson.addLinear(
-      innerProduct(fh.expression(1), v)
-    );
-
-    poisson.addBilinear(
-      - innerProduct(mu*average1(Dun), jump(v))
-      - innerProduct(mu*jump(Dun), average2(v))
-      - innerProduct(mu*jump(u), average1(Dvn))
-      + innerProduct(lambdaG*jump(u), jump(v))
-      , interface
-    );
-
-    poisson.addBilinearFormBorder(
-      innerProduct(lambdaB*u,v)
-    );
-    Expression gx(gh, 0, op_id);
-    poisson.addLinearFormBorder(
-      innerProduct(gx, lambdaB*v) //+ innerProduct(gh, v)*penaltyParam
-    );
-
-    poisson.solve();
-
-    if(MPIcf::IamMaster() && writeVTKFiles) {
-      Fun_h sol(Wh, poisson.rhs);
-      Paraview2 writerS(Wh, levelSet, pathOutpuFigure+"poissonCutLagrange_"+to_string(i)+".vtk");
-      writerS.add(sol, "poisson", 0, 1);
-    }
-
-    Fun_h femSolh(Wh,  poisson.rhs);
-    // R errU = L2normCut(femSolh, fun_exact, 0,1);
-    R errU = L2norm(femSolh, fun_exact, 0,1);
-
-    ul2.push_back(errU);
-    h.push_back(1./nx);
-
-    if(i==0) {convu.push_back(0);}
-    else {
-      convu.push_back( log(ul2[i]/ul2[i-1])/log(h[i]/h[i-1]));
-    }
-
-    nx *= 2;
-    ny *= 2;
-    nmarker *= 2;
-  }
-
-  std::cout << "\n\n h \t err u \t\t convU " << std::endl;
-  for(int i=0;i<ul2.size();++i) {
-    std::cout << h[i]   << "\t"
-              << ul2[i] << "\t" << convu[i] << std::endl;
-  }
-
-}
-#endif
 
 #ifdef PROBLEM_CUT_POISSON_MIXED
 

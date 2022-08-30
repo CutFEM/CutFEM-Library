@@ -120,14 +120,5 @@ int  geometry::find_triangle_contenant_p(const Mesh2& Th, const R2 P, int k_init
     idx_elt = Th.ElementAdj(idx_elt, iface);
   }
   const typename Mesh2::Element& K(Th[idx_elt]);
-
-  // for(int i=0;i<3;++i) {
-  //   plot << K[i] << std::endl;
-  // }
-  // plot << K[0] << std::endl;
-  // plot << std::endl;
-  // plot << std::endl;
-  // plot.close();
-
   return idx_elt;
 }

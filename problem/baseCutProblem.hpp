@@ -25,7 +25,7 @@ public:
 
 
   // Integral on K
-  void addBilinear(  const ListItemVF<Rd::d>& VF, const CutMesh&) ;
+  void addBilinear(  const ListItemVF<Rd::d>&, const CutMesh&) ;
   void addBilinear(  const ListItemVF<Rd::d>& VF, const CutMesh&, int itq, const TimeSlab& In) ;
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In);
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, int itq);
@@ -34,6 +34,10 @@ public:
   void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In);
   void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, int itq);
   void addElementContribution(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time);
+
+  void addBilinear(const ListItemVF<Rd::d>&, const CutMesh&, const CExtension&, const int);
+  void addLinear(const ListItemVF<Rd::d>&, const CutMesh&, const CExtension&, const int);
+  void addElementContributionOtherSide(const ListItemVF<Rd::d>&, const int, const TimeSlab*, int, double);
 
   // integral on innerFace
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CFacet& b);
@@ -55,6 +59,7 @@ public:
   void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In, int itq,list<int> label = {});
   void addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
 
+  void setDirichlet(const FunFEM<Mesh>& gh, const CutMesh& Th, list<int> label = {});
 
   // integral on interface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,list<int> label = {}) {return BaseFEM<Mesh>::addBilinear(VF, gamma, label);}
@@ -87,7 +92,12 @@ public:
 
   // Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&);
+  void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&, const int k);
   void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k);
+  void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&,const CBorder& b,list<int> label = {});
+  void addLagrangeBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
+  void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh& Th, const CExtension& ext, const int epsE);
+  void addLagrangeContributionOtherSide(const ListItemVF<Rd::d>& VF, const int k, const int epsE);
 
 
   // For time problem

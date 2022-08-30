@@ -17,6 +17,8 @@ public:
 
   // dof, dim Im, Data, coefInterp, nbPt, coeff
   TypeOfFE_P2Polynomial1d(): GTypeOfFE<Mesh1>(3, 1, Data, 7, 3, alpha_Pi_h) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P2poly;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R1 Pt[3] = {R1(0.), R1(1.), R1(1./2)};
 
@@ -101,6 +103,8 @@ public:
   static double alpha_Pi_h[];
 
   TypeOfFE_P2Lagrange2d(): GTypeOfFE<Mesh2>(6, 1, Data, 6, 6, alpha_Pi_h) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P2;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R2 Pt[6] = {R2(0., 0.), R2(1., 0.), R2(0., 1.),
 			     R2(1./2, 1./2), R2(0.,1./2), R2(1./2,0)};
@@ -214,6 +218,8 @@ public:
   static double alpha_Pi_h[];
 
   TypeOfFE_P2Lagrange3d(): GTypeOfFE<Mesh3>(10, 1, Data, 10, 10, alpha_Pi_h) {
+    GTypeOfFE<Mesh>::basisFctType = BasisFctType::P2;
+    GTypeOfFE<Mesh>::polynomialOrder = k;
 
     static const R3 Pt[10] = {R3(0., 0., 0.), R3(1., 0., 0.), R3(0., 1., 0.), R3(0., 0., 1.),
 			      R3(1./2, 0., 0.), R3(0., 1./2, 0.), R3(0., 0., 1./2),

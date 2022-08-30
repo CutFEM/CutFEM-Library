@@ -71,8 +71,8 @@ DONE ** 57) should give a mesh in addIntegralFunction so it is clear where we in
 60) remove whichDomain + other function renamed
 61) change Rd::Khat from dataStuct to Rd.hpp files
 62) add   R2 toReferenceElement(const R1& P, int i) const; and other for quad and hexa
-62) remove doublon dans datastuct files
-63) add domain_id in itemVF and fixe onDomain in the integration function and on interface integrals
+62) remove doublon dans datastruct files
+DONE ** 63) add domain_id in itemVF and fixe onDomain in the integration function and on interface integrals
 64) Update gnuplot file with new classes
 65) Fixe general norm file with new classes
 66) Fixe normsFun function
