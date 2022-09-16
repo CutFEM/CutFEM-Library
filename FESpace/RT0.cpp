@@ -319,7 +319,7 @@ TypeOfFE_RT0_3d::TypeOfFE_RT0_3d(): GTypeOfFE<Mesh3>(
 void TypeOfFE_RT0_3d::get_Coef_Pi_h(const GbaseFElement<Mesh> & K, KN_< double > &v) const {
   const Element &T = K.T;
   for (int f=0,k=0;f<4;f++) {
-    R3 N=T.N(f);//  exterior and  ||N|| = 2* area f
+    R3 N=T.N_notNormalized(f);//  exterior and  ||N|| = 2* area f
     N *= T.faceOrient(f)/2.;
 
     v[k++] = N.x;
