@@ -140,7 +140,50 @@
 //   if(fh.getSpace().isCut()) return integral(fh,0) + integral(fh,1);
 //   else return integral(fh,-1) ;
 // }
+// Integration on Mesh
+// ===============================================================
+// template<typename Mesh>
+// double integral( const Mesh& Th, const ExpressionVirtual& fh) {
+//   double val = 0.;
+//   val += integral(Th, fh, 0);
+//   return val;
+// }
+// template<typename Mesh>
+// double integral(const Mesh& Th, const ExpressionVirtual& fh, int itq) {
+//   typedef M Mesh;
+//   typedef typename Mesh::Element Element;
+//   typedef typename FElement::QF QF;
+//   typedef typename FElement::Rd Rd;
+//   typedef typename QF::QuadraturePoint QuadraturePoint;
+//
+//   const QF& qf(*QF_Simplex<typename FElement::RdHat>(5));
+//
+//   double val = 0.;
+//
+//   // for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+//   //
+//   //   const Element& K
+//   //     const R meas = K.measure();
+//   //
+//   //     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+//   //
+//   //       QuadraturePoint ip(qf[ipq]); // integration point
+//   //       Rd mip = cutK.mapToPhysicalElement(it, ip);
+//   //       const R Cint = meas * ip.getWeight();
+//   //
+//   //       val += Cint * fh.evalOnBackMesh(kb, domain, mip);
+//   //     }
+//   //   }
+//   // }
+//   double val_receive = 0;
+//   MPIcf::AllReduce(val, val_receive, MPI_SUM);
+//
+//   return val_receive;
+// }
 
+
+// Integration on Cut Mesh
+// ===============================================================
 template<typename M>
 double integral( const ActiveMesh<M>& Th, const FunFEM<M>& fh, int c0) {
   int nb_dom = Th.get_nb_domain();
@@ -288,6 +331,45 @@ double integral(const ActiveMesh<M>& Th, const TimeSlab& In, const ExpressionVir
   return val_receive;
 }
 
+// Integration of constant
+template<typename M>
+double integral( const ActiveMesh<M>& Th, const double C) {
+  int nb_dom = Th.get_nb_domain();
+  double val = 0.;
+  for(int i=0;i<nb_dom;++i) {
+    val += integral(Th, C, i, 0);
+  }
+  return val;
+}
+template<typename M>
+double integral(const ActiveMesh<M>& Th, const double C, int domain, int itq) {
+  typedef M Mesh;
+  typedef typename Mesh::Element Element;
+
+  double val = 0.;
+
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(domain != Th.get_domain_element(k)) continue;
+
+    if(Th.isInactive(k, itq)) continue;
+
+    const Cut_Part<Element> cutK(Th.get_cut_part(k,itq));
+    int kb = Th.idxElementInBackMesh(k);
+    for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+
+      const R meas = cutK.measure(it);
+
+      val += meas;
+
+    }
+  }
+  val = C*val;
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_SUM);
+
+  return val_receive;
+}
 
 
 
@@ -345,13 +427,14 @@ double integral(FunFEM<M>& fh, const Interface<M>& interface, int cu, double t) 
 
 
 
+// Integration on Cut Mesh
+// ===============================================================
 
 template<typename Mesh>
 double integral( const Mesh& Th, const ExpressionVirtual& fh) {
   double val = integral(Th, fh, 0);
   return val;
 }
-
 template<typename Mesh>
 double integral(const Mesh& Th, const ExpressionVirtual& fh, int itq) {
   typedef typename Mesh::Element Element;
@@ -384,6 +467,12 @@ double integral(const Mesh& Th, const ExpressionVirtual& fh, int itq) {
   return val_receive;
 }
 
+template<typename Mesh>
+double integral( const Mesh& Th, const FunFEM<Mesh>& fh, int c0) {
+  ExpressionFunFEM<Mesh> ui(fh, c0, op_id);
+  double val = integral(Th, ui, 0);
+  return val;
+}
 
 
 //
