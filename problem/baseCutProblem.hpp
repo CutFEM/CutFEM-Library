@@ -52,7 +52,7 @@ public:
   // integral on boundary
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b,list<int> label = {});
   void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In,list<int> label = {});
-  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In, int itq,list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In, int itq, list<int> label = {});
 
   void addLinear  (const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b,list<int> label = {});
   void addLinear(const ListItemVF<Rd::d>& VF, const CutMesh&, const CBorder& b, const TimeSlab& In,list<int> label = {});

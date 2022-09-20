@@ -151,7 +151,7 @@ void TypeOfFE_RT2_2d::FB_Freefem(const What_d whatd, const Element &K, const R2 
   R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])};
   R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y;
   R L[3] = {l0, l1, l2};
-  R eo[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
+  R eo[] = {(double)K.EdgeOrientation(0), (double)K.EdgeOrientation(1), (double)K.EdgeOrientation(2)};
 
   int p[15] = {0, 1, 2,  5,  4,  3,  6, 7,
                8, 9, 10, 11, 12, 13, 14};    // Permutation for orinatation
@@ -308,7 +308,7 @@ void TypeOfFE_RT2_2d::FB_D2(const Element &K, const R2 &Phat, RNMK_ &bfMat) cons
   R2 Q[] = {R2(K[0]), R2(K[1]), R2(K[2])};
   R l0 = 1 - Phat.x - Phat.y, l1 = Phat.x, l2 = Phat.y;
   R L[3] = {l0, l1, l2};
-  R eo[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
+  R eo[] = {(double)K.EdgeOrientation(0), (double)K.EdgeOrientation(1), (double)K.EdgeOrientation(2)};
   double s = 1.;
 
   R2 ddd[3] = {K.H(0), K.H(1), K.H(2)};

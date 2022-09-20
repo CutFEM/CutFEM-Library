@@ -113,7 +113,7 @@ class TypeOfFE_P2BRLagrange : public GTypeOfFE<Mesh2> {
    R2 E[3] = {K.Edge(0), K.Edge(1), K.Edge(2)};
    double l2E[3] = {(E[0], E[0]), (E[1], E[1]), (E[2], E[2])};
    // double lE[3] = {sqrt(l2E[0]), sqrt(l2E[1]), sqrt(l2E[2])};
-   double sgE[3] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2)};
+   double sgE[3] = {(double)K.EdgeOrientation(0), (double)K.EdgeOrientation(1), (double)K.EdgeOrientation(2)};
    R2 cN[3] = {E[0].perp( ) * (6. * sgE[0] / l2E[0]), E[1].perp( ) * (6. * sgE[1] / l2E[1]),
                E[2].perp( ) * (6. * sgE[2] / l2E[2])};
 
@@ -228,7 +228,7 @@ class TypeOfFE_P2BRLagrange : public GTypeOfFE<Mesh2> {
      double b[6] = {eN[2].x, eN[2].y, eN[0].x, eN[0].y, eN[1].x, eN[1].y};
      int nop = 0;
 
-     int vop[max_op] = {};
+     int vop[max_op];
 
 
      for (int j = 0; j < max_op; j++) {

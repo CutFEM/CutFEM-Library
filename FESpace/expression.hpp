@@ -122,12 +122,20 @@ public:
     FunFEM(const FESpace& vh, const TimeSlab& in, R (*f)(const Rd, int i, R tt) )
     : FunFEMVirtual (vh.NbDoF()*in.NbDoF()),
     alloc(true), Vh(&vh), In(&in),
-      // data(new double[vh.NbDoF()*in.NbDoF()]),
-      // v(data, vh.NbDoF()*in.NbDoF()) ,
-      databf(new double[10*vh[0].NbDoF()*vh.N*4])
-      {
-        interpolate(*Vh,*In, this->v, f);
-      }
+    // data(new double[vh.NbDoF()*in.NbDoF()]),
+    // v(data, vh.NbDoF()*in.NbDoF()) ,
+    databf(new double[10*vh[0].NbDoF()*vh.N*4])
+    {
+      interpolate(*Vh,*In, this->v, f);
+    }
+
+    FunFEM(const FESpace& vh, const TimeSlab& in, R (*f)(const Rd, int i, int d, R tt) )
+          : FunFEMVirtual (vh.NbDoF()*in.NbDoF()),
+          alloc(true), Vh(&vh), In(&in),
+          databf(new double[10*vh[0].NbDoF()*vh.N*4])
+    {
+        interpolate(*Vh, *In, this->v, f);
+    }
 
       FunFEM(const FESpace& vh, const ExpressionVirtual& fh);
       FunFEM(const FESpace& vh, const ExpressionVirtual& fh1, const ExpressionVirtual& fh2);

@@ -119,7 +119,7 @@ template<> const int (* const GenericElement<DataHexa>::commonVertOfEdges)[12] =
 template<> const int (* const GenericElement<DataHexa>::faceOfEdge)[2] = faceOfEdgeHexa;
 template<> const int (* const GenericElement<DataHexa>::edgeOfFace)[4] = edgeOfFaceHexa;
 template<> const int  GenericElement<DataHexa>::nitemdim[4] = {8,12,6,1 }  ;
-const int  Hexa::oppEdgeOfEdge[12] = {10,11,8,9,6,7,4,5,2,3,0,1};
+const int Hexa::oppEdgeOfEdge[12] = {10,11,8,9,6,7,4,5,2,3,0,1};
 const int (*const Hexa::nodeConnectivity)[3] = connectivityNodeHexa;
 
 

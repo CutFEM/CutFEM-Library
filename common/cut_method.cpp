@@ -440,7 +440,7 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
         // std::cout << " case \t 3" <<std::endl;
         // only one option, 1 tetra + 1 prisme + complet with 4 tetra
         // same way we cut a hexa into tetra (1tetra+prism => one fat tetra)
-        int v0 = Hexa::commonVertOfEdges[cut[0]][cut[1]];
+        Ubyte v0 = Hexa::commonVertOfEdges[cut[0]][cut[1]];
         Ubyte list_v[] = {v0, cut(0), cut(1), cut(2)};
         AddElement( list_v, cut.sign( v0));
         AddPrism  (cut(0),Hexa::oppVertOfEdge( cut[0], v0),
@@ -451,22 +451,22 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
        int e_op0 = Hexa::oppEdgeOfEdge[cut[0]];
        int e_op1 = Hexa::oppEdgeOfEdge[cut[1]];
        int e_op2 = Hexa::oppEdgeOfEdge[cut[2]];
-       int u1 = Hexa::commonVertOfEdges[e_op0][e_op1];
+       Ubyte u1 = Hexa::commonVertOfEdges[e_op0][e_op1];
 
         // sommet des 3 autres tetra de coin
-        int s0 = Hexa::oppVertOfEdge( e_op0, u1);
-        int s1 = Hexa::oppVertOfEdge( e_op1, u1);
-        int s2 = Hexa::oppVertOfEdge( e_op2, u1);
+        Ubyte s0 = Hexa::oppVertOfEdge( e_op0, u1);
+        Ubyte s1 = Hexa::oppVertOfEdge( e_op1, u1);
+        Ubyte s2 = Hexa::oppVertOfEdge( e_op2, u1);
 
         // center tetra
-        Ubyte list_v5[] = {u1,Hexa::oppVertOfEdge( cut[0], v0), Hexa::oppVertOfEdge( cut[1], v0), Hexa::oppVertOfEdge( cut[2], v0)};
+        Ubyte list_v5[] = {u1,static_cast<Ubyte>(Hexa::oppVertOfEdge( cut[0], v0)), static_cast<Ubyte>(Hexa::oppVertOfEdge( cut[1], v0)), static_cast<Ubyte>(Hexa::oppVertOfEdge( cut[2], v0))};
         AddElement( list_v5, cut.sign( s0));
 
-        Ubyte list_v1[] = {s0, Hexa::nodeConnectivity[s0][0],Hexa::nodeConnectivity[s0][1], Hexa::nodeConnectivity[s0][2]};
+        Ubyte list_v1[] = {s0, static_cast<Ubyte>(Hexa::nodeConnectivity[s0][0]),static_cast<Ubyte>(Hexa::nodeConnectivity[s0][1]), static_cast<Ubyte>(Hexa::nodeConnectivity[s0][2])};
         AddElement( list_v1, cut.sign( s0));
-        Ubyte list_v2[] = {s1, Hexa::nodeConnectivity[s1][0],Hexa::nodeConnectivity[s1][1], Hexa::nodeConnectivity[s1][2]};
+        Ubyte list_v2[] = {s1, static_cast<Ubyte>(Hexa::nodeConnectivity[s1][0]),static_cast<Ubyte>(Hexa::nodeConnectivity[s1][1]), static_cast<Ubyte>(Hexa::nodeConnectivity[s1][2])};
         AddElement( list_v2, cut.sign( s0));
-        Ubyte list_v3[] = {s2, Hexa::nodeConnectivity[s2][0],Hexa::nodeConnectivity[s2][1], Hexa::nodeConnectivity[s2][2]};
+        Ubyte list_v3[] = {s2, static_cast<Ubyte>(Hexa::nodeConnectivity[s2][0]),static_cast<Ubyte>(Hexa::nodeConnectivity[s2][1]), static_cast<Ubyte>(Hexa::nodeConnectivity[s2][2])};
         AddElement( list_v3, cut.sign( s0));
 
       }
@@ -588,9 +588,9 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
           AddPrism( cut(e(0)),v(0),cut(e(1)),v(1),cut(e(2)),v(3),cut.sign(v(0)));
           AddPrism( cut(e(4)),cut(e(2)), cut(e(3)),cut(e(1)),v(6),v(2), cut.sign(v(2)));
 
-          Ubyte list_v2[] = {v(1),cut(e(1)),cut(e(2)),v(2)};
+          Ubyte list_v2[] = {static_cast<Ubyte>(v(1)),cut(e(1)),cut(e(2)),static_cast<Ubyte>(v(2))};
           AddElement( list_v2,cut.sign(v(2)));
-          Ubyte list_v3[] = {v(3),v(1),cut(e(2)),v(2)};
+          Ubyte list_v3[] = {static_cast<Ubyte>(v(3)),static_cast<Ubyte>(v(1)),cut(e(2)),static_cast<Ubyte>(v(2))};
           AddElement( list_v3,cut.sign(v(2)));
 
       }
@@ -623,14 +623,14 @@ template<> bool RefPartition<Hexa>::assign (const SignPattern<Hexa>& cut) {
         }
         AddPrism( cut(1),cut(0), cut(2),cut(3),v(0),v(4), cut.sign(v(0)));
         AddPrism( cut(4),cut(3), cut(5),cut(0),v(6),v(2), cut.sign(v(2)));
-        Ubyte list_v0[] = {v(5),cut(3),cut(0),v(4)};
+        Ubyte list_v0[] = {static_cast<Ubyte>(v(5)),cut(3),cut(0),static_cast<Ubyte>(v(4))};
         AddElement( list_v0,cut.sign(v(4)));
-        Ubyte list_v1[] = {v(5),v(7),cut(0),v(4)};
+        Ubyte list_v1[] = {static_cast<Ubyte>(v(5)),static_cast<Ubyte>(v(7)),cut(0),static_cast<Ubyte>(v(4))};
         AddElement( list_v1,cut.sign(v(4)));
 
-        Ubyte list_v2[] = {v(1),cut(3),cut(0),v(2)};
+        Ubyte list_v2[] = {static_cast<Ubyte>(v(1)),cut(3),cut(0),static_cast<Ubyte>(v(2))};
         AddElement( list_v2,cut.sign(v(2)));
-        Ubyte list_v3[] = {v(3),v(1),cut(0),v(2)};
+        Ubyte list_v3[] = {static_cast<Ubyte>(v(3)),static_cast<Ubyte>(v(1)),cut(0),static_cast<Ubyte>(v(2))};
         AddElement( list_v3,cut.sign(v(2)));
       }
       break;

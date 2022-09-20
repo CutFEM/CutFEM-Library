@@ -139,6 +139,7 @@ public:
     nb_quadrature_time_ = 1;
     this->init(interface);
   }
+
   ActiveMesh(const Mesh& th, const TimeInterface<Mesh>& interface) :  Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
@@ -146,6 +147,7 @@ public:
     idx_from_background_mesh_.resize(2);
     nb_quadrature_time_ = interface.size();
     interface_id_.resize(nb_quadrature_time_);
+    in_active_mesh_.resize(10);   // Added to avoid stack overflow error
     for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
     this->init(interface);
   }

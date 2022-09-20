@@ -201,9 +201,9 @@ public:
   const QuadratureFormular1d& get_quadrature_time() const {return time_quadrature_;}
 
   ~TimeInterface(){
-    for(int i=0;i<n_;++i){
-      if(interface_[i]) delete interface_[i];
-    }
+    // for(int i=0;i<n_;++i){
+    //   if(interface_[i]) delete interface_[i];
+    // }
   }
 
 private:

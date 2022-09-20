@@ -7,6 +7,8 @@
 #include "GenericVertex.hpp"
 #include "GenericElement.hpp"
 #include<array>
+#include "../util/util.hpp"
+
 
 
 
@@ -21,6 +23,7 @@ struct DataPoint3  {
   static const int NbOfTet =0;
   static const int NbOfAdjElem =1;
   static const int NbOfVertexOnHyperFace =1;
+  static const int ParaviewNumCell = 3;
   static const int NbOfRef = 0;
   static const int NbOfVerticesCut = 0;
   static const int nva = 0;
@@ -69,6 +72,7 @@ struct DataSeg3  {
   static const int NbOfVertexOnHyperFace =NbOfVertices-1;
   static const int NbOfRef = 2;
   static const int NbOfVerticesCut = 1;
+  static const int ParaviewNumCell = 3;
   static const int nva = 1;
   static const int NvOnFace = 1;
   static const int NbSignPattern = 9;
@@ -168,7 +172,7 @@ struct DataQuad3  {
   static const int NbOfAdjElem = 4;
   static const int NbOfVertexOnHyperFace = 2;
   static const int NvOnFace = 4;
-
+  static const int NbOfRef = 4;
 
   static const int ParaviewNumCell = 9;
   static const int NbSignPattern = 81;
@@ -333,7 +337,7 @@ struct DataHexa  {
   static const int NbOfTet =1;
   static const int NbOfAdjElem = 6;
   static const int NbOfVertexOnHyperFace = 4;
-
+  static const int NbOfRef = 8;
   static const int ParaviewNumCell = 12;
   static const int NvOnFace = 4;
   static const int NbSignPattern = 6561; //3^8

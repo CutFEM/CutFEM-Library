@@ -65,10 +65,12 @@ public:
 
 private:
   void make_patch (const KN<double>& ls, int label);
+  
   const Face  make_face(const typename RefPatch<Element>::FaceIdx& ref_tri,
 			    const typename Mesh::Element& K,
 			    const double lset[Element::nv],
 			    int label);
+  
   Rd make_normal(const typename Mesh::Element& K, const double lset[Element::nv]);
 
   Rd get_intersection_node(int k, const Rd A, const Rd B) const {
@@ -77,6 +79,7 @@ private:
     double t = -fA/(fB-fA);
     return (1-t) * A + t * B;
   }
+  
   R measure(const Face& f) const {
     Rd l[nve];
     for(int i=0;i<nve;++i) l[i] = this->vertices_[f[i]];
@@ -135,6 +138,7 @@ void InterfaceLevelSet<M>::make_patch(const KN<double>& ls, int label) {
 
 template<typename M>
 const typename InterfaceLevelSet<M>::Face
+
 InterfaceLevelSet<M>::make_face (const typename RefPatch<Element>::FaceIdx& ref_tri,
 				  const typename Mesh::Element& K,
 				  const double lset[Element::nv],
@@ -189,10 +193,16 @@ template<typename Mesh>
 void TimeInterface<Mesh>::init(int i, const Mesh & Th, const FunFEMVirtual& ls) {
   assert(0 <= i && i < n_);
   if(interface_[i]) {
-    delete interface_[i];
+    //std::cout << interface_[i] << std::endl;
+    //std::cout << "interface delete" << std::endl;
+    //delete interface_[i];
+    
   }
+  //std::cout << "interface create" << std::endl;
   interface_[i] = new InterfaceLevelSet<Mesh>(Th,ls);
+  //std::cout << interface_[i] << std::endl;
 }
+
 template<typename Mesh>
 void TimeInterface<Mesh>::init(const Mesh & Th, const KN<FunFEMVirtual>& ls) {
   for(int i=0;i<n_;++i){

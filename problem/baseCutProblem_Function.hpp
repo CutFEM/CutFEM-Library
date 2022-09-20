@@ -39,6 +39,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) 
 
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, int itq, const TimeSlab& In) {
+  
   assert(!VF.isRHS());
   auto tq = this->get_quadrature_time(itq);
   double tid = In.map(tq);
@@ -610,17 +611,19 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
 }
 
 template<typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CBorder& b, const TimeSlab& In,list<int> label) {
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CBorder& b, const TimeSlab& In, list<int> label) {
+  
   for(int itq=0;itq<this->get_nb_quad_point_time();++itq) {
     addBilinear(VF, Th, b, In, itq, label);
   }
 }
 
 template<typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh, const CBorder& b, const TimeSlab& In, int itq,list<int> label) {
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh, const CBorder& b, const TimeSlab& In, int itq, list<int> label) {
+  
   assert(!VF.isRHS());
   bool all_label = (label.size() == 0);
-
+  
   auto tq = this->get_quadrature_time(itq);
   double tid = In.map(tq);
 
@@ -698,7 +701,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, co
 }
 
 template<typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh, const CBorder& b, const TimeSlab& In, int itq,list<int> label) {
+void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh, const CBorder& b, const TimeSlab& In, int itq, list<int> label) {
   assert(VF.isRHS());
   bool all_label = (label.size() == 0);
 
@@ -721,7 +724,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
     if(util::contain(label, BE.lab) || all_label) {
 
       // CHECK IF IT IS A CUT EDGE
-      if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+      if(cutTh.isCutFace(idxK[0], ifac, itq)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
       else {
         assert(idxK.size() == 1);
         BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);

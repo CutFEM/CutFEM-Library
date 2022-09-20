@@ -10,7 +10,7 @@ double L2normCut( const FunFEM<M>& fh,R (fex)(const typename GFESpace<M>::FEleme
   double val = 0;
   for(int i=c0;i<num_comp+c0;++i) {
     ExpressionFunFEM<M> ui(fh, i, op_id);
-    val += L2normCut_2(ui,fex, Th, t, macro);
+    val += L2normCut_2(ui, fex, Th, t, macro);
   }
   return sqrt(val);
 }
