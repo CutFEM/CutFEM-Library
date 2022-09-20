@@ -727,7 +727,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
       if(cutTh.isCutFace(idxK[0], ifac, itq)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
       else {
         assert(idxK.size() == 1);
-        BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
+        BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
       }
     }
   }

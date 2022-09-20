@@ -83,6 +83,51 @@ namespace Frachon1 {
 
 }
 
+namespace Frachon2 {
+
+    double c0 = 0.25;
+
+    R fun_levelSet(const R2 P, const int i, double t) {
+        return -P.x - P.y + c0;
+    }
+
+    R fun_levelSet(const R2 P, const int i) {
+        return -P.x - P.y + c0;
+    }
+
+    R fun_boundary(const R2 P, int elementComp, double t) {
+        return 0.;
+    }
+
+    R fun_uBulk(const R2 P, int elementComp, int domain, double t) {
+        // return 2*sin(pi*(P.x+P.y-3*t));
+        if(domain == 0) return sin(pi*(P.x + P.y- 4*t));
+        else return 4./3*sin(4./3*pi*(P.x + P.y - 3*t - c0/4));
+    }
+
+    R fun_uBulkInit(const R2 P, int elementComp, int domain) {
+
+        if(domain == 1) return 0;
+        double xs = -0.3, ys = -0.3;
+        double r = 0.3;
+        double v = (P.x-xs)*(P.x-xs) + (P.y-ys)*(P.y-ys);
+        if(v < r*r) return 1;//exp(-pow(P.x - xs,2)/r - pow(P.y - ys,2)/r);
+        else return 0.;
+    }
+
+    // Velocity field
+    R fun_velocity(const R2 P, const int i, int domain) {
+        if (domain == 0) {
+            if (i == 0) return 3.;
+            else return 1.;
+        }
+        else {
+            if (i == 0) return 1.;
+            else return 2.;
+        }
+    }
+
+}
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -99,16 +144,18 @@ typedef FunFEM<Mesh2> Fun_h;
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define dg
 // Set numerical example (options: "frachon1", "flower", "example1")
-#define frachon1
+#define frachon2
 // Set scheme for the dg method (options: "conservative", "classical")
 #define conservative
 // Set stabilization method (options: "fullstab", "macro") 
 #define fullstab       
 
-#define use_vel   // (options: "use_vel", "use_beta")
+
 
 #ifdef frachon1
     using namespace Frachon1;
+#elif defined(frachon2)
+    using namespace Frachon2;
 #endif
 
 int main(int argc, char** argv) {
@@ -116,12 +163,16 @@ int main(int argc, char** argv) {
     // Mesh settings and data objects
     const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
     int nx = 20, ny = 20;       // starting mesh size
-
-#ifdef frachon1
     const double lx = 2., ly = 2.;    // domain length
+
+#ifdef frachon1    
     // Paths to store data
     const std::string pathOutputFolder = "../outputFiles/SpaceTimeCoupled/Frachon1/data/";
     const std::string pathOutputFigures = "../outputFiles/SpaceTimeCoupled/Frachon1/paraview/";
+#elif defined(frachon2)
+    // Paths to store data
+    const std::string pathOutputFolder = "../outputFiles/SpaceTimeCoupled/Frachon2/data/";
+    const std::string pathOutputFigures = "../outputFiles/SpaceTimeCoupled/Frachon2/paraview/";
 #endif
 
     // Initialize MPI
@@ -144,9 +195,7 @@ int main(int argc, char** argv) {
     for (int j=0; j<iterations; ++j) {
 
         // Define background mesh
-    #ifdef frachon1
         Mesh Th(nx, ny, -1., -1., lx, ly);
-    #endif
 
     //// Parameters
         
@@ -175,16 +224,17 @@ int main(int argc, char** argv) {
         }
 
         // Penalty parameter for outer boundary
-        double lambdaB = 3;    // coefficient on the outer boundary
+        //double lambdaB = 3;    // coefficient on the outer boundary
 
-        CutFEM_R2 beta({R2(3,1), R2(2,1)});
+        //CutFEM_R2 beta({R2(3,1), R2(2,1)});
 
-        CutFEMParameter lambda(0., 1.);
+        CutFEMParameter lambda(0., 1.);     // lambda2 = 0, lambda1 = 1,  1+lambda2-lambda1 = 0
+        //CutFEMParameter lambda(1./3, 1.);
 
-        CutFEMParameter lambdaE(3, 2);  //  ||beta||_inf in Omega_1/Omega_2
+        //CutFEMParameter lambdaE(3, 2);  //  ||beta||_inf in Omega_1/Omega_2
 
         // DG stabilization parameters
-        double tau20 = 1e-2, tau21 = 1e-2;      // bulk
+        double tau20 = 5e-1, tau21 = 5e-1;      // bulk
 
 
         // Background FE Space, Time FE Space & Space-Time Space
@@ -215,12 +265,6 @@ int main(int argc, char** argv) {
 
         std::cout << "Number of time slabs \t : \t " << GTime::total_number_iteration << std::endl;
         
-        int iter = 0;
-        double q0_0, q0_1, qp_0, qp_1;
-        double intF = 0, intG = 0;      // hold integrals of rhs and Neumann bcs
-
-        // ls.begin()->swap(ls[nbTime - 1]);
-
         // computation of the interface in each of the three quadrature points
         for (int i = 0; i < nbTime; ++i) {
         
@@ -228,6 +272,9 @@ int main(int argc, char** argv) {
 
         }
 
+        int iter = 0;
+        double q0_0, q0_1, qp_0, qp_1;
+        double intF = 0, intG = 0;      // hold integrals of rhs and Neumann bcs
         // Iterate over time-slabs
         while (iter < GTime::total_number_iteration) {
             
@@ -257,7 +304,7 @@ int main(int argc, char** argv) {
             Normal n;
 
             // Exact solution
-            Fun_h g(Wh, In, fun_uBulk);    // create an FE-function of the exact bulk solution Omega1
+            Fun_h g(Wh, In, fun_boundary);    // create an FE-function of the exact bulk solution Omega1
 
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1); // Omega1 U Omega2                 
@@ -275,10 +322,11 @@ int main(int argc, char** argv) {
         //// Assembling linear and bilinear forms
         
         #ifdef classical
+
             // Bulk terms
             convdiff.addBilinear(
                 + innerProduct(dt(u), v)
-                - innerProduct(beta*u, grad(v))
+                - innerProduct(u, (vel.expression()*grad(v)))
                 , Khi
                 , In
             );
@@ -302,23 +350,14 @@ int main(int argc, char** argv) {
 
 
         #elif defined(conservative)
-            // Bulk terms
 
-            #ifdef use_vel
+            // Bulk terms
             convdiff.addBilinear(
                 - innerProduct(u, dt(v))
                 - innerProduct(u, (vel.expression()*grad(v)))
                 , Khi
                 , In
             );
-            #elif defined(use_beta)
-            convdiff.addBilinear(
-                - innerProduct(u, dt(v))
-                - innerProduct(beta*u, grad(v))
-                , Khi
-                , In
-            );
-            #endif
 
             // Time penalty term bulk LHS
             convdiff.addBilinear(
@@ -339,8 +378,6 @@ int main(int argc, char** argv) {
         #endif
 
         
-            // Common terms
-        #ifdef use_vel
             // Inner edges bulk convection
             convdiff.addBilinear(
                 + innerProduct(average((vel*n)*u), jump(v))         
@@ -369,7 +406,7 @@ int main(int argc, char** argv) {
             
             convdiff.addBilinear(
                 + innerProduct((vel*n)*u, 0.5*v) 
-                - innerProduct(0.5*fabs(vel*n)*u, v)  
+                + innerProduct(0.5*fabs(vel*n)*u, v)  
                 , Khi
                 , INTEGRAL_BOUNDARY
                 , In
@@ -378,94 +415,13 @@ int main(int argc, char** argv) {
             
             convdiff.addLinear(
                 - innerProduct(g.expression(), (vel*n)*(0.5*v))
-                - innerProduct(g.expression(), fabs(vel*n)*0.5*v) 
+                + innerProduct(g.expression(), fabs(vel*n)*0.5*v) 
                 , Khi
                 , INTEGRAL_BOUNDARY
                 , In
                 , (std::list<int>){1,4}          // 1 - bottom, 4 - left
             );
 
-            // convdiff.addBilinear(   
-            //     + innerProduct((vel*n)*u, 0.5*v) 
-            //     - innerProduct(0.5*3*u, v)   
-            //     , Khi
-            //     , INTEGRAL_BOUNDARY
-            //     , In
-            //     , (std::list<int>){4}
-            // );
-            
-            // convdiff.addLinear(
-            //     - innerProduct(g.expression(), (vel*n)*(0.5*v))
-            //     - innerProduct(g.expression(), 3*0.5*v)   
-            //     , Khi
-            //     , INTEGRAL_BOUNDARY
-            //     , In
-            //     , (std::list<int>){4}          // label left and bottom boundary 
-            // );
-
-        #elif defined(use_beta)
-            // Inner edges bulk convection
-            convdiff.addBilinear(
-                + innerProduct(average(beta*u*n), jump(v))         
-                + innerProduct(0.5*lambdaE*jump(u), jump(v))  
-                , Khi
-                , INTEGRAL_INNER_EDGE_2D                 
-                , In
-            );
-
-            // Interface terms q
-            convdiff.addBilinear(
-                + jump(innerProduct(beta*u*n,v))
-                + innerProduct(jump(beta*u*n), jump(lambda*v))
-                , interface
-                , In
-            );
-
-            convdiff.addBilinear(
-                + innerProduct(beta*u*n, v)
-                , Khi
-                , INTEGRAL_BOUNDARY
-                , In
-                , {2, 3}          
-            );
-            
-            convdiff.addBilinear(
-                - innerProduct(beta*u*n, 0.5*v) 
-                - innerProduct(0.5*1*u, v)  
-                , Khi
-                , INTEGRAL_BOUNDARY
-                , In
-                , (std::list<int>){1}
-            );
-            
-            convdiff.addLinear(
-                + innerProduct(g.expression(), beta*(0.5*v)*n)
-                - innerProduct(g.expression(), 1*0.5*v) 
-                , Khi
-                , INTEGRAL_BOUNDARY
-                , In
-                , (std::list<int>){1}          // 1 - bottom, 4 - left
-            );
-
-            // convdiff.addBilinear(   
-            //     - innerProduct(beta*u*n, 0.5*v) 
-            //     - innerProduct(0.5*3*u, v)   
-            //     , Khi
-            //     , INTEGRAL_BOUNDARY
-            //     , In
-            //     , (std::list<int>){4}
-            // );
-            
-            // convdiff.addLinear(
-            //     + innerProduct(g.expression(), beta*(0.5*v)*n)
-            //     - innerProduct(g.expression(), 3*0.5*v)   
-            //     , Khi
-            //     , INTEGRAL_BOUNDARY
-            //     , In
-            //     , (std::list<int>){4}          // label left and bottom boundary 
-            // );
-
-        #endif
             
             // Stabilization
 
@@ -482,12 +438,8 @@ int main(int argc, char** argv) {
 
         #elif defined(fullstab)
             convdiff.addFaceStabilization(
-                // + innerProduct(1./h*tau20*jump(u), jump(v))
-                // + innerProduct(h*tau21*jump(grad(u)), jump(grad(v)))
                 + innerProduct(tau20*jump(u), jump(v))
                 + innerProduct(h*h*tau21*jump(grad(u)), jump(grad(v)))
-                // + innerProduct(h*jump(u), tau20*jump(v))
-                // + innerProduct((h*h*h)*jump(grad(u)), tau21*jump(grad(v)))
                 , Khi
                 , In
             );
@@ -498,6 +450,38 @@ int main(int argc, char** argv) {
             
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
+
+            Expression2 bhexp(b0h, 0, op_id);
+            Expression2 ghexp(g, 0, op_id);
+
+            double intConvection = integral(Khi, In, (vel*n)*ghexp, INTEGRAL_BOUNDARY, qTime);
+
+            if (iterations == 1) {
+                  
+                Fun_h funuh(Wh, data_u0);
+
+                Rn sol2(Wh.NbDoF(), 0.);
+                Fun_h funsol(Wh, sol2);
+                sol2 += data_u0(SubArray(Wh.NbDoF(), 0));
+                double q_0 = integral(Khi, funsol, 0, 0);
+                sol2 += data_u0(SubArray(Wh.NbDoF(), Wh.NbDoF()));
+                double q_1 = integral(Khi, funsol, 0, lastQuadTime);
+                
+                if(iter==0) { 
+                    q0_0 = q_0; q0_1 = q_1;
+                    qp_1 = q_1;
+                    q0_1 = integral(Khi, b0h, 0, 0);
+                }
+            
+                outputData << setprecision(10);
+                outputData << GTime::current_time() << ","
+                        << (q_1-qp_1) << ","
+                        << intConvection << ","
+                        << ((q_1 -qp_1) + intConvection) << std::endl;
+
+                qp_1 = q_1;
+                
+            }
 
 
             R errBulk =  L2normCut(b0h, fun_uBulk, GTime::current_time(), 0, 1);
