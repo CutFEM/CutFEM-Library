@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 
-set(CMAKE_C_COMPILER "/usr/local/Cellar/gcc/11.1.0/bin/gcc-11")
-set(CMAKE_CXX_COMPILER "/usr/local/Cellar/gcc/11.1.0/bin/g++-11")
+set(CMAKE_C_COMPILER "/opt/homebrew/Cellar/gcc/12.2.0/bin/gcc-12")
+set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/gcc/12.2.0/bin/g++-12")
 
 project(CutFEM VERSION 1.0)
 
@@ -18,7 +18,8 @@ option(USE_MUMPS "Found the MUMPS library" ON)
 
 
 if(USE_MPI)
-  set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.1_2/bin/mpicxx")
+  set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/open-mpi/4.1.4_1/bin/mpicxx")
+  
 endif()
 ## ##############################
 ## Configuration
@@ -28,7 +29,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w -fopenmp -D_Float128=__float128")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17 -DCHECK_KN -O3 -w -D_Float128=__float128")
 
 message( " cxx compiler ${CMAKE_CXX_COMPILER}")
 
@@ -47,81 +48,39 @@ add_subdirectory(solver)
 list(APPEND EXTRA_LIBS solver)
 add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
-list(APPEND EXTRA_LIBS -lstdc++fs)
 
 
-#
-set(EX_NAME stokesMixed)
-add_executable(${EX_NAME}  mainFiles/stokesRT.cpp )
+set(EX_NAME bulkconvdiff2)
+add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion2.cpp)
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
                         "${PROJECT_BINARY_DIR}"
                         ${EXTRA_INCLUDES})
-#
+
+set(EX_NAME statint)
+add_executable(${EX_NAME}  mainFiles/static_interface.cpp)
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+
+set(EX_NAME bulkconvdiff)
+add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp)
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+
+set(EX_NAME limiter)
+add_executable(${EX_NAME}  mainFiles/limiter_example.cpp)
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+
+
 set(EX_NAME peiFu)
 add_executable(${EX_NAME}  mainFiles/peiFu.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-set(EX_NAME darcy)
-add_executable(${EX_NAME}  mainFiles/darcy.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                       "${PROJECT_BINARY_DIR}"
-                       ${EXTRA_INCLUDES})
-
-#
-set(EX_NAME convDiff)
-add_executable(${EX_NAME}  mainFiles/statConvectionDiffusion.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-
-set(EX_NAME testMarker)
-add_executable(${EX_NAME}  mainFiles/testMarker.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-
-
-#
-set(EX_NAME bulkSurface)
-add_executable(${EX_NAME}  mainFiles/bulkSurface.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-#
-set(EX_NAME bulkSurface3)
-add_executable(${EX_NAME}  mainFiles/bulkSurface3.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-set(EX_NAME mainTest)
-add_executable(${EX_NAME}  mainFiles/mainTest.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                            "${PROJECT_BINARY_DIR}"
-                            ${EXTRA_INCLUDES})
-
-set(EX_NAME surfactant2)
-add_executable(${EX_NAME}  mainFiles/surfactant.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-#
-set(EX_NAME poisson)
-add_executable(${EX_NAME}  mainFiles/poisson.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
                         "${PROJECT_BINARY_DIR}"
