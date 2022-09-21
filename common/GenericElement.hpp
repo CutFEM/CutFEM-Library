@@ -132,6 +132,8 @@ public:
     return Rd(at(nvedge[i][0]),at(nvedge[i][1]));}// opposite edge vertex i
 
   Rd N(int i) const  { return ExtNormal(vertices,nvadj[i])/(ExtNormal(vertices,nvadj[i]).norm());}
+  Rd N_notNormalized(int i) const  { return ExtNormal(vertices,nvadj[i]);}
+
   Rd PBord(int i,RdHatBord P) const   { return Data::PBord(nvadj[i],P);}
 
 
