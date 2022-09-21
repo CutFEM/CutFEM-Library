@@ -20,6 +20,7 @@ struct DataPoint2  {
   static const int NbOfAdjElem =1;
   static const int NbOfVertexOnHyperFace =1;
   static const int NbOfRef = 0;
+  static const int ParaviewNumCell = 1;
   static const int NbOfVerticesCut = 0;
   static const int nva = 0;
   static const int NvOnFace = 1;
@@ -67,6 +68,7 @@ struct DataSeg2  {
   static const int NbOfVertexOnHyperFace =NbOfVertices-1;
   static const int NbOfRef = 2;
   static const int NbOfVerticesCut = 1;
+  static const int ParaviewNumCell = 3;
   static const int nva = 1;
   static const int NvOnFace = 1;
   static const int NbSignPattern = 9;
@@ -213,6 +215,7 @@ struct DataQuad2  {
   static const int NbOfAdjElem = 4;
   static const int NbOfVertexOnHyperFace = 2;
   static const int NbOfVerticesCut =2;
+  static const int NbOfRef = 4;
   static const int NvOnFace = 4;
   static const int ParaviewNumCell = 9;
   static const int NbSignPattern = 81;

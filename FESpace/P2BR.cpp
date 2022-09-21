@@ -228,7 +228,7 @@ class TypeOfFE_P2BRLagrange : public GTypeOfFE<Mesh2> {
      double b[6] = {eN[2].x, eN[2].y, eN[0].x, eN[0].y, eN[1].x, eN[1].y};
      int nop = 0;
 
-     int vop[max_op] = {};
+     int vop[max_op];// = {};
 
 
      for (int j = 0; j < max_op; j++) {
