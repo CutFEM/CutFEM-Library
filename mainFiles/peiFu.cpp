@@ -19,7 +19,7 @@ typedef CutFESpace<Mesh> CutSpace;
 typedef TestFunction<2> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 
-#define EXAMPLE3
+#define EXAMPLE1
 
 // Example to check convergence
 #ifdef EXAMPLE1

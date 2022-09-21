@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <experimental/filesystem>
-#include <omp.h>
+//#include <omp.h>
 #include "../util/cputime.h"
 #include "cfmpi.hpp"
 
@@ -2310,7 +2310,7 @@ void assembly(const Space& Wh, const Interface<Mesh>& interface, MatMap& Ah, Mat
   // F(u)_e = {B.u} - lambda_e/2 [u]
   problem.addBilinear(
     - innerProduct(0.5*lambdaE*jump(u)  , jump(v))
-    // - innerProduct(average(beta*u*n), jump(v))
+    - innerProduct(average(beta*u*n), jump(v))
     , Khi
     , INTEGRAL_INNER_EDGE_2D
   );

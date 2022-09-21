@@ -86,13 +86,86 @@ namespace Lehrenfeld_6_2 {
     // RHS fB bulk
     R fun_rhsBulk(const R2 P, const int i, const R t) {
         R x = P.x, y = P.y;
-
-        return M_PI*cos(M_PI*t)*cos(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y)) + 16*M_PI*sin(M_PI*t)*sin(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y)) + 64*y*y*M_PI*M_PI*sin(M_PI*t)*cos(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y)) + 16*M_PI*M_PI*sin(M_PI*t)*cos(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y))*(2*x - 2/pi*sin(2*M_PI*t))*(2*x - 2/pi*sin(2*M_PI*t)) - 8*M_PI*cos(2*M_PI*t)*sin(M_PI*t)*sin(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y))*(2*x - (5734161139222659*sin(2*M_PI*t))/9007199254740992) + (5734161139222659*M_PI*M_PI*cos(2*M_PI*t)*sin(M_PI*t)*sin(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y))*(x - (5734161139222659*sin(2*M_PI*t))/18014398509481984))/1125899906842624;
+        return 3.1415927*cos(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 50.265482*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 631.65468*y*y*sin(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 157.91367*sin(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(2.0*x - 0.63661977*sin(6.2831853*t))*(2.0*x - 0.63661977*sin(6.2831853*t)) - 25.132741*cos(6.2831853*t)*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(2.0*x - 0.63661977*sin(6.2831853*t)) + 50.265482*cos(6.2831853*t)*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(x - 0.31830989*sin(6.2831853*t));
+        //return M_PI*cos(M_PI*t)*cos(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y)) + 16*M_PI*sin(M_PI*t)*sin(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y)) + 64*y*y*M_PI*M_PI*sin(M_PI*t)*cos(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y)) + 16*M_PI*M_PI*sin(M_PI*t)*cos(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y))*(2*x - 2/pi*sin(2*M_PI*t))*(2*x - 2/pi*sin(2*M_PI*t)) - 8*M_PI*cos(2*M_PI*t)*sin(M_PI*t)*sin(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y))*(2*x - (5734161139222659.*sin(2*M_PI*t))/9007199254740992.) + (5734161139222659.*M_PI*M_PI*cos(2*M_PI*t)*sin(M_PI*t)*sin(4*M_PI*((x - 1/pi*sin(2*M_PI*t))*(x - 1/pi*sin(2*M_PI*t)) + y*y))*(x - (5734161139222659.*sin(2*M_PI*t))/18014398509481984.))/1125899906842624.;
     }
+
+
     
 }
 
+namespace Lehrenfeld_6_3 {
 
+    // Level-set function
+    double fun_levelSet(const R2 P, const int i, const R t) {
+        double x = P.x, y = P.y;
+
+        return -(min(sqrt(x*x + (y-t+3./4)*(y-t+3./4)), sqrt(x*x + (y-t+3./4)*(y+t-3./4))) - 0.5);
+    }
+
+    // Level-set function initial
+    double fun_levelSet(const R2 P, const int i) {
+        
+        double x = P.x, y = P.y;
+
+        return -(min(sqrt(x*x + (y+3./4)*(y+3./4)), sqrt(x*x + (y+3./4)*(y-3./4))) - 0.5);
+    }
+
+    // The rhs Neumann boundary condition
+    R fun_neumann_Gamma(const R2 P, const int i, const R t) {
+        R x = P.x, y = P.y;
+    
+        return 0.;
+        
+    }
+
+    // Velocity field
+    R fun_velocity(const R2 P, const int i, const R t) {
+        
+        if ((P.y > 0 && t <= 3./4) || (P.y < 0 && t > 3./4)) {
+            if (i == 0) {
+                return 0.;
+            }
+            else return -1.;
+        }
+
+        else if ((P.y <= 0 && t <= 3./4) || (P.y > 0 && t > 3./4)) {
+            if (i == 0) {
+                return 0.;
+            }
+            else return 1.;
+        }
+
+    }
+
+    // Initial solution bulk
+    R fun_uBulkInit(const R2 P, const int i) {
+        
+        // Sign(y)
+        if (P.y > 0) return 1.;
+        else if (P.y == 0) return 0.;
+        else return -1.;
+
+    }
+
+    // Exact solution bulk
+    R fun_uBulk(const R2 P, const int i, const R t) {
+        return 0.;
+    }
+
+    R fun_uBulkD(const R2 P, const int i, const int d, const R t) {
+        return 0.;
+    }
+
+    // RHS fB bulk
+    R fun_rhsBulk(const R2 P, const int i, const R t) {
+        R x = P.x, y = P.y;
+
+        return 0.;
+
+    }
+    
+}
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -107,7 +180,7 @@ typedef FunFEM<Mesh2> Fun_h;
 
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define dg
-// Set numerical example (options: "circle", "flower", "example1", "lehrenfeld")
+// Set numerical example (options: "lehrenfeld_6_2", "lehrenfeld_6_3")
 #define lehrenfeld_6_2
 // Set boundary condition type on Omega 2 (options: "dirichlet", "neumann" – note: neumann only works combined with example1)
 #define neumann
@@ -121,18 +194,28 @@ typedef FunFEM<Mesh2> Fun_h;
 
 #if defined(lehrenfeld_6_2)
     using namespace Lehrenfeld_6_2;
+#elif defined(lehrenfeld_6_3)
+    using namespace Lehrenfeld_6_3;
 #endif
 
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
     const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
-    int nx = 20, ny = 12;       // starting mesh size
+    int nx = 80, ny = 50;       // starting mesh size
 
 #if defined(lehrenfeld_6_2)
+    const double lx = 2., ly = 1.2;
+    Mesh Th(nx, ny, -1., -0.6, lx, ly);
     // Paths to store data
     const std::string pathOutputFolder = "../outputFiles/SpaceTimeBulk/Lehrenfeld_6_2/data/";
     const std::string pathOutputFigures = "../outputFiles/SpaceTimeBulk/Lehrenfeld_6_2/paraview/";
+#elif defined(lehrenfeld_6_3)
+    const double lx = 2.7, ly = 2.7;
+    Mesh Th(nx, ny, -1.35, -1.35, lx, ly);
+    // Paths to store data
+    const std::string pathOutputFolder = "../outputFiles/SpaceTimeBulk/Lehrenfeld_6_3/data/";
+    const std::string pathOutputFigures = "../outputFiles/SpaceTimeBulk/Lehrenfeld_6_3/paraview/";
 #endif
 
     // Initialize MPI
@@ -153,22 +236,16 @@ int main(int argc, char** argv) {
 
     // Iterate over mesh sizes
     for (int j=0; j<iterations; ++j) {
-
-        // Define background mesh
-
-        const double lx = 2., ly = 1.2;
-        Mesh Th(nx, ny, -1., -0.6, lx, ly);
-
-    //// Parameters
         
         // Mesh size
-        double h = lx/(nx);
+        double h = lx/(nx-1);
         //double h = sqrt(lx*lx/(nx*nx) + ly*ly/(ny*ny));
         hs.at(j) = h;
         int divisionMeshSize = 2;
 
         // Time
         double dT = h/divisionMeshSize; // Time step size
+        //double dT = 3./32;
         double tfinal = 1.5;            // Final time
         GTime::total_number_iteration = (int)(tfinal/dT);
         dT = tfinal / GTime::total_number_iteration;
@@ -185,8 +262,15 @@ int main(int argc, char** argv) {
         std::cout << "nx = " << nx << std::endl;
         std::cout << "dT = " << dT << std::endl;
 
-        double A2 = 1;
+        #if defined(lehrenfeld_6_2) 
+            double A2 = 1;
+            double kappaTilde2 = 1;
 
+        #elif defined(lehrenfeld_6_3)
+            double A2 = 0.1;
+            double kappaTilde2 = 1;
+        #endif
+        
         // Constants for penalty terms
         double tau_a2 = 500;        // diffusion penalty scaling
         double tau_b2 = 10;        // convection penalty scaling

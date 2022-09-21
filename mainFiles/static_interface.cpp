@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
     //// Parameters
         
         // Mesh size
-        double h = lx/(nx);
+        double h = lx/(nx-1);
         hs.at(j) = h;
         int divisionMeshSize = 2*3*sqrt(10);
         //int divisionMeshSize = 2;
@@ -224,14 +224,12 @@ int main(int argc, char** argv) {
         }
 
         // Penalty parameter for outer boundary
-        //double lambdaB = 3;    // coefficient on the outer boundary
+        double lambdaB = 3;    // coefficient on the outer boundary
 
-        //CutFEM_R2 beta({R2(3,1), R2(2,1)});
+        //CutFEMParameter lambda(0., 1.);     // lambda2 = 0, lambda1 = 1,  1+lambda2-lambda1 = 0
+        CutFEMParameter lambda(1./3, 1.);
 
-        CutFEMParameter lambda(0., 1.);     // lambda2 = 0, lambda1 = 1,  1+lambda2-lambda1 = 0
-        //CutFEMParameter lambda(1./3, 1.);
-
-        //CutFEMParameter lambdaE(3, 2);  //  ||beta||_inf in Omega_1/Omega_2
+        CutFEMParameter lambdaE(3, 2);  //  ||beta||_inf in Omega_1/Omega_2
 
         // DG stabilization parameters
         double tau20 = 5e-1, tau21 = 5e-1;      // bulk
@@ -274,7 +272,7 @@ int main(int argc, char** argv) {
 
         int iter = 0;
         double q0_0, q0_1, qp_0, qp_1;
-        double intF = 0, intG = 0;      // hold integrals of rhs and Neumann bcs
+        double inflow = 0, outflow = 0;      // hold integrals of rhs and Neumann bcs
         // Iterate over time-slabs
         while (iter < GTime::total_number_iteration) {
             
@@ -291,12 +289,12 @@ int main(int argc, char** argv) {
             
             // Velocity field
 
-            Lagrange2 FEvelocity(0);
+            
             CutSpace Wh(Khi, Vh);
 
+            Lagrange2 FEvelocity(0);
             FESpace2 VelocitySpace(Th, FEvelocity);
             CutSpace VelSpace(Khi, VelocitySpace);
-
             Fun_h vel(VelSpace, fun_velocity);
 
             convdiff.initSpace(Wh, In);
@@ -407,6 +405,7 @@ int main(int argc, char** argv) {
             convdiff.addBilinear(
                 + innerProduct((vel*n)*u, 0.5*v) 
                 + innerProduct(0.5*fabs(vel*n)*u, v)  
+                //+ innerProduct(0.5*lambdaB*u, v)  
                 , Khi
                 , INTEGRAL_BOUNDARY
                 , In
@@ -416,6 +415,7 @@ int main(int argc, char** argv) {
             convdiff.addLinear(
                 - innerProduct(g.expression(), (vel*n)*(0.5*v))
                 + innerProduct(g.expression(), fabs(vel*n)*0.5*v) 
+                //+ innerProduct(g.expression(), lambdaB*0.5*v) 
                 , Khi
                 , INTEGRAL_BOUNDARY
                 , In
@@ -424,7 +424,6 @@ int main(int argc, char** argv) {
 
             
             // Stabilization
-
         #ifdef macro    
             TimeMacroElement TimeMacro(Wh, In, qTime, 0.125);
             
@@ -454,7 +453,8 @@ int main(int argc, char** argv) {
             Expression2 bhexp(b0h, 0, op_id);
             Expression2 ghexp(g, 0, op_id);
 
-            double intConvection = integral(Khi, In, (vel*n)*ghexp, INTEGRAL_BOUNDARY, qTime);
+            inflow = integral(Khi, In, (vel*n)*ghexp, INTEGRAL_BOUNDARY, qTime, {1,4});
+            outflow = integral(Khi, In, (vel*n)*bhexp, INTEGRAL_BOUNDARY, qTime, {2,3});
 
             if (iterations == 1) {
                   
@@ -476,8 +476,9 @@ int main(int argc, char** argv) {
                 outputData << setprecision(10);
                 outputData << GTime::current_time() << ","
                         << (q_1-qp_1) << ","
-                        << intConvection << ","
-                        << ((q_1 -qp_1) + intConvection) << std::endl;
+                        << inflow << ","
+                        << outflow << ","
+                        << ((q_1 -qp_1) + inflow + outflow) << std::endl;
 
                 qp_1 = q_1;
                 

@@ -28,7 +28,6 @@ class GQuadraturePoint: public QuadratureWeight,public Rd {
 
 template<class Rdd>
 class GQuadratureFormular {
-
 public:
   typedef Rdd Rd;
   typedef  GQuadraturePoint<Rd> QuadraturePoint;

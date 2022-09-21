@@ -375,6 +375,11 @@ int main(int argc, char** argv) {
     #if defined(lehrenfeld) 
         double A2 = 1;
         double kappaTilde2 = 1;
+        
+    #else   // For Example 1
+        double A2 = 0.01;
+        double kappaTilde2 = 1; 
+    #endif
 
         // Constants for penalty terms
         double tau_a2 = 500;        // diffusion penalty scaling
@@ -393,31 +398,7 @@ int main(int argc, char** argv) {
         #elif defined(cg)
         // CG stabilization parameters
         double tau20 = 0, tau21 = 1e-1;
-        #endif            
-    #else   // For Example 1
-        double A2 = 0.01;
-        double kappaTilde2 = 1;
-
-        // Constants for penalty terms
-        double tau_a2 = 500;        // diffusion penalty scaling
-        double tau_b2 = 10;        // convection penalty scaling
-        
-        // Bulk penalties
-        double lambdaA = tau_a2/h;      // diffusion term
-        double lambdaB = tau_b2;            // convection term
-
-        // Penalty parameter for outer boundary
-        double lambda = 500/h;    // coefficient on the outer boundary
-
-        #ifdef dg
-        // DG stabilization parameters
-        double tau20 = 1e-1, tau21 = 1e-1;      // bulk
-        #elif defined(cg)
-        // CG stabilization parameters
-        double tau20 = 0, tau21 = 1e-1;
-        #endif        
-    #endif
-
+        #endif
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space

@@ -24,31 +24,6 @@
 #include "../solver/solver.hpp"
 
 
-
-struct CBorder {
-  CBorder() {}
-};
-const  CBorder INTEGRAL_BOUNDARY;
-struct CFacet {
-  CFacet() {}
-};
-const CFacet INTEGRAL_INNER_FACET;
-const CFacet INTEGRAL_INNER_EDGE_2D;
-const CFacet INTEGRAL_INNER_FACE_3D;
-
-struct CRidge {
-  CRidge() {}
-};
-const CRidge INTEGRAL_INNER_RIDGE;
-const CRidge INTEGRAL_INNER_NODE_2D;
-const CRidge INTEGRAL_INNER_EDGE_3D;
-
-struct CExtension {
-  CExtension() {}
-};
-const CExtension INTEGRAL_EXTENSION;
-
-
 // Base class for problem.
 // contain info about the linear system
 template<typename Mesh>
