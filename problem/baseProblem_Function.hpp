@@ -92,20 +92,28 @@ void BaseFEM<M>::setDiagonal(const FESpace& Qh, double val){
 template<typename Mesh>
 void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th) {
   assert(!VF.isRHS());
-  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+  progress bar("Add Bilinear Mesh", Th.last_element());
 
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    bar += Th.next_element();
     BaseFEM<Mesh>::addElementContribution(VF, k, nullptr, 0, 1.);
 
     this->addLocalContribution();
   }
+  bar.end();
 }
 template<typename Mesh>
 void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th) {
   assert(VF.isRHS());
+  progress bar("Add Linear Mesh", Th.last_element());
+
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    bar += Th.next_element();
 
     BaseFEM<Mesh>::addElementContribution(VF, k, nullptr, 0, 1.);
   }
+  bar.end();
+
 }
 template<typename M>
 void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k,const TimeSlab* In, int itq, double cst_time) {
@@ -375,9 +383,10 @@ template<typename Mesh>
 void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CBorder& b,list<int> label) {
   assert(!VF.isRHS());
   bool all_label = (label.size() == 0);
+  progress bar("Add Bilinear border", Th.last_boundary_element());
 
   for(int idx_be=Th.first_boundary_element(); idx_be<Th.last_boundary_element(); idx_be+= Th.next_boundary_element()) {
-
+    bar += Th.next_boundary_element();
     int ifac;
     const int kb = Th.BoundaryElement(idx_be, ifac);
     const Element & K(Th[kb]);
@@ -387,14 +396,16 @@ void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, con
       this->addLocalContribution();
     }
   }
-
+  bar.end();
 }
 template<typename Mesh>
 void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CBorder& b,list<int> label) {
   assert(VF.isRHS());
   bool all_label = (label.size() == 0);
+  progress bar("Add Bilinear border", Th.last_boundary_element());
 
   for(int idx_be=Th.first_boundary_element(); idx_be<Th.last_boundary_element(); idx_be+= Th.next_boundary_element()) {
+    bar += Th.next_boundary_element();
 
     int ifac;
     const int kb = Th.BoundaryElement(idx_be, ifac);
@@ -407,6 +418,7 @@ void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const
       BaseFEM<Mesh>::addBorderContribution(VF, K, BE, ifac,nullptr, 0, 1.);
     }
   }
+  bar.end();
 }
 template<typename M>
 void BaseFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int iiifac, const TimeSlab* In, int itq, double cst_time) {
@@ -490,22 +502,55 @@ void BaseFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Elemen
 }
 
 template<typename Mesh>
-void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh>&, const Mesh&, list<int> label) {
+void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh>& gh, const Mesh& Th, list<int> label) {
 
-  // bool all_label = (label.size() == 0);
-  // std::map<int, double> df2set;
-  //
-  // for(int idx_be=Th.first_boundary_element(); idx_be<Th.last_boundary_element(); idx_be+= Th.next_boundary_element()) {
-  //
-  //   int ifac;
-  //   const int kb = Th.BoundaryElement(idx_be, ifac);
-  //   const Element & K(Th[kb]);
-  //   const BorderElement & BE(Th.be(idx_be));
-  //   if(util::contain(label, BE.lab) || all_label) {
-  //
-  //     // df2rm.insert({dfu, val});
-  //
-  //   }
+  bool all_label = (label.size() == 0);
+  std::map<int, double> dof2set;
+  const FESpace& Vh(gh.getSpace());
+
+  for(int idx_be=Th.first_boundary_element(); idx_be<Th.last_boundary_element(); idx_be+= Th.next_boundary_element()) {
+
+    int ifac;
+    const int k = Th.BoundaryElement(idx_be, ifac);
+
+    // assert(idxK.size() == 1);
+    const Element & K(Th[k]);
+    const BorderElement & BE(Th.be(idx_be));
+    const FElement& FK(Vh[k]);
+
+    if(util::contain(label, BE.lab) || all_label) {
+
+      // for( int ic=0; ic<Vh.N;++ic) {
+      for( int ic=0; ic<1;++ic) {
+        for( int df=FK.dfcbegin(ic);df<FK.dfcend(ic);++df){
+
+          int id_item = FK.DFOnWhat(df);
+
+          if(id_item < K.nv){
+            assert(0);
+          }
+          else if(id_item < K.nv + K.ne) {
+            // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
+            int id_face = id_item - K.nv;
+            if(id_face == ifac){
+              int df_glob = FK.loc2glb(df);
+              // dof2set.insert({df_glob, gh(df_glob)});
+              dof2set.insert({df_glob, gh(df_glob)});
+
+              // std::cout << df_glob << std::endl;
+            }
+          }
+          else {
+            // std::cout << " on face  " << FK.DFOnWhat(df) << std::endl;
+          }
+        }
+      }
+    }
+    // getchar();
+  }
+
+  int N = this->get_nb_dof();
+  eraseAndSetRow(this->get_nb_dof(), *this->pmat_, this->rhs_, dof2set);
 
 }
 
@@ -516,9 +561,11 @@ template<typename M>
 void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma,list<int> label) {
   assert(!VF.isRHS());
   bool all_label = (label.size() == 0);
+  progress bar("Add Bilinear Interface", gamma.last_element());
 
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
     const typename Interface<M>::Face& face = gamma[iface];  // the face
+    bar += gamma.next_element();
     if(util::contain(label, face.lab) || all_label) {
 
       addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1.);
@@ -526,7 +573,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& ga
 
     }
   }
-
+  bar.end();
 }
 
 template<typename M>
@@ -590,15 +637,19 @@ template<typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma,list<int> label) {
   assert(VF.isRHS());
   bool all_label = (label.size() == 0);
+  progress bar("Add Linear Interface", gamma.last_element());
 
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
+    bar += gamma.next_element();
+
     const typename Interface<M>::Face& face = gamma[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
       addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1.);
-
     }
   }
+
+  bar.end();
 }
 
 template<typename M>
@@ -726,13 +777,16 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Int
         else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
       }
       else {
-        if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
+        if(VF.isRHS()) {
+          // std::cout << Cint << std::endl;
+          // std::cout << fv << std::endl;
+          this->addToRHS(   VF[l], FKv, fv, Cint);
+        }
         else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
       }
-
     }
-
   }
+
 }
 
 

@@ -1,8 +1,12 @@
 #ifndef UTIL_HPP_
 #define UTIL_HPP_
 
-#include <valarray>
+#include <ctime>
 #include <vector>
+#include <sstream>
+#include <iostream>
+#include <stack>
+#include <valarray>
 #include <map>
 #include <cstring>
 #include <limits>
@@ -198,7 +202,69 @@ public :
 
 
 
+////========================================================////
+////////////===== Barre de progression ======///////////////////
 
+class progress{
+
+private:
+    const char* title;
+    const int length;
+    int       it;
+    int       prg;
+    clock_t   t0;
+    int       verbose;
+
+public:
+    progress(const char* aff,const int& l, int v=1): title(aff), length(l) {
+        t0 = clock();
+        it=0; prg=0;
+        verbose=v;
+
+        if (verbose>0){
+            std::cout << "\r";
+            std::cout << title << ": \t";
+            std::cout << 0 << "%";
+            std::cout.flush();
+        }
+    }
+
+    void operator++(int n){
+        it++;
+
+        if( int(it*100./length)>prg & verbose>0){
+            prg=int(it*100./length);
+            std::cout << "\r";
+            std::cout << title << ": \t";
+            std::cout << prg << "%";
+            std::cout.flush();
+
+        }
+    }
+    void operator+=(int n){
+        it+=n;
+
+        if( int(it*100./length)>prg & verbose>0){
+            prg=int(it*100./length);
+            std::cout << "\r";
+            std::cout << title << ": \t";
+            std::cout << prg << "%";
+            std::cout.flush();
+
+        }
+    }
+
+    void end(){
+        t0 = clock()-t0;
+        time_t now; time(&now);
+        if (verbose>0){
+            std::cout << "\r";
+            std::cout << title << ": \t";
+            std::cout << ((float)t0)/CLOCKS_PER_SEC << " sec." << std::endl;
+        }
+    }
+
+};
 
 
 

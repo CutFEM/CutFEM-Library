@@ -4,8 +4,11 @@ template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(!VF.isRHS());
 
-  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+  progress bar("Add Bilinear CutMesh", Th.last_element());
 
+
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    bar += Th.next_element();
     if(Th.isCut(k, 0))  {
       if(VF.varFormType_ == VarFormType::VF_MONOSPACE) {
         BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
@@ -35,6 +38,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) 
 
     }
   }
+  bar.end();
 }
 
 template<typename M>
@@ -89,7 +93,11 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
 template<typename M>
 void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(VF.isRHS());
+  progress bar("Add Linear CutMesh", Th.last_element());
+
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    bar += Th.next_element();
+
     if(Th.isCut(k, 0))  {
       BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
     }
@@ -99,6 +107,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
     // if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
     // else             BaseFEM<M>::addElementContribution(VF, k,nullptr, 0, 1.);
   }
+  bar.end();
 }
 
 template<typename M>
@@ -175,7 +184,6 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
   for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
 
     double meas_cut = cutK.measure(it);
-
     // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
     for(int l=0; l<VF.size();++l) {
       if(!VF[l].on(domain)) continue;
@@ -348,7 +356,10 @@ void BaseCutFEM<M>::addElementContributionOtherSide(const ListItemVF<Rd::d>& VF,
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const CFacet& b) {
   assert(!VF.isRHS());
+  progress bar("Add Bilinear Face", Th.last_element());
+
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    bar += Th.next_element();
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
 
       int jfac = ifac;
@@ -364,6 +375,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
     }
     this->addLocalContribution();
   }
+  bar.end();
 }
 
 template<typename M>
@@ -400,7 +412,11 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
       std::pair<int,int> e1 = std::make_pair(k,ifac);
       std::pair<int,int> e2 = std::make_pair(kn,jfac);
       // CHECK IF IT IS A CUT EDGE
-      if(Th.isCutFace(k, ifac, itq)) BaseCutFEM<M>::addFaceContribution(VF, e1, e2 , &In, itq, cst_time);
+      if(Th.isCutFace(k, ifac, itq)) {
+        // std::cout << k << "\t" << ifac << std::endl;
+        BaseCutFEM<M>::addFaceContribution(VF, e1, e2 , &In, itq, cst_time);
+
+      }
       else BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
     }
     this->addLocalContribution();
@@ -506,7 +522,7 @@ void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::
   for(auto it = cutFace.element_begin();it != cutFace.element_end(); ++it){
 
     double meas  = cutFace.measure(it);
-
+    // std::cout << meas << std::endl;
     for(int l=0; l<VF.size();++l) {
       if(!VF[l].on(domain)) continue;
 
@@ -575,6 +591,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
     int ifac;
     const int kb = cutTh.Th.BoundaryElement(idx_be, ifac);
     std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1);
+    if(idxK.size() == 0) continue;
 
     const Element & K(cutTh.Th[kb]);
     const BorderElement & BE(cutTh.be(idx_be));
@@ -663,14 +680,17 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
     int ifac;
     const int kb = cutTh.Th.BoundaryElement(idx_be, ifac);
     std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb,-1);
-
+    if(idxK.size() == 0) continue;
     const Element & K(cutTh.Th[kb]);
     const BorderElement & BE(cutTh.be(idx_be));
     if(util::contain(label, BE.lab) || all_label) {
 
 
       // CHECK IF IT IS A CUT EDGE
-      if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
+      if(cutTh.isCutFace(idxK[0], ifac, 0)) {
+          BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
+
+      }
       else {
         if(idxK.size() == 1){
           BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
@@ -721,7 +741,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
     if(util::contain(label, BE.lab) || all_label) {
 
       // CHECK IF IT IS A CUT EDGE
-      if(cutTh.isCutFace(idxK[0], ifac, 0)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+      if(cutTh.isCutFace(idxK[0], ifac, itq)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
       else {
         assert(idxK.size() == 1);
         BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
@@ -746,14 +766,15 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
   const CutMesh& Th(Vh.get_mesh());
   int kb = Vh.Th(K);
   std::vector<int> idxK = Vh.idxAllElementFromBackMesh(kb,-1);
-  assert(idxK.size() == 2);
+  // assert(idxK.size() == 2);
 
   // GET THE QUADRATURE RULE
   const QFB& qfb(this->get_quadrature_formular_cutFace());
   auto tq = this->get_quadrature_time(itq);
   double tid = (In)? (double)In->map(tq) : 0.;
 
-  for(int e=0;e<2;++e) {
+  int Ne = idxK.size();
+  for(int e=0;e<Ne;++e) {
 
     int k = idxK[e];
     typename Element::Face face;
@@ -826,9 +847,8 @@ template<typename Mesh>
 void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh>& gh, const CutMesh& cutTh, list<int> label) {
 
   bool all_label = (label.size() == 0);
-  std::map<int, double> df2set;
+  std::map<int, double> dof2set;
   const FESpace& Vh(gh.getSpace());
-
 
   for(int idx_be=cutTh.first_boundary_element(); idx_be<cutTh.last_boundary_element(); idx_be+= cutTh.next_boundary_element()) {
 
@@ -844,7 +864,8 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh>& gh, const CutMesh& cutTh
 
     if(util::contain(label, BE.lab) || all_label) {
 
-      for( int ic=0; ic<Vh.N;++ic) {
+      // for( int ic=0; ic<Vh.N;++ic) {
+      for( int ic=0; ic<1;++ic) {
         for( int df=FK.dfcbegin(ic);df<FK.dfcend(ic);++df){
 
           int id_item = FK.DFOnWhat(df);
@@ -854,25 +875,62 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh>& gh, const CutMesh& cutTh
           }
           else if(id_item < K.nv + K.ne) {
             // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
-            int df_glob = FK.loc2glb(df);
-            df2set.insert({df_glob, gh(df_glob)});
+            int id_face = id_item - K.nv;
+            if(id_face == ifac){
+              int df_glob = FK.loc2glb(df);
+              // dof2set.insert({df_glob, gh(df_glob)});
+              dof2set.insert({df_glob, gh(df_glob)});
 
+              // std::cout << df_glob << std::endl;
+            }
           }
           else {
             // std::cout << " on face  " << FK.DFOnWhat(df) << std::endl;
           }
-          // std::cout << FK.DFOnWhat(df) << std::endl;
-          // std::cout << FK.NodeOfDF(df) << std::endl;
-
         }
       }
-      getchar();
-      // df2rm.insert({dfu, val});
-
     }
+    // getchar();
   }
+
+  int N = this->get_nb_dof();
+  eraseAndSetRow(this->get_nb_dof(), *this->pmat_, this->rhs_, dof2set);
+
 }
 
+template<typename Mesh>
+void BaseCutFEM<Mesh>::removeDofForHansbo(const FESpace& Vh) {
+
+  assert(Vh.basisFctType == BasisFctType::P0 || Vh.basisFctType == BasisFctType::P1dc);
+
+  std::set<int> dof2rm;
+  const CutMesh& Th(Vh.get_mesh());
+  int idx0 = this->mapIdx0_[&Vh];
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+    if(Th.isCut(k, 0))  { }
+    else {
+      if(Vh.basisFctType == BasisFctType::P0){
+        int df_glob0 = 2*k   + idx0;
+        int df_glob1 = 2*k+1 + idx0;
+
+        dof2rm.insert(df_glob0);
+        dof2rm.insert(df_glob1);
+      }
+      else {
+        for(int i=0;i<6;++i){
+          int df_glob = 6*k + i + idx0;
+          dof2rm.insert(df_glob);
+        }
+      }
+    }
+  }
+  int N = this->get_nb_dof();
+  eraseRow(N, *this->pmat_, this->rhs_, dof2rm);
+
+
+
+}
 
 // On Ridges
 template<typename M>
@@ -975,7 +1033,10 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M
 template<typename M>
 void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(!VF.isRHS());
+  progress bar("Add Face Stabilization CutMesh", Th.last_element());
+
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    bar += Th.next_element();
     if(!Th.isCut(k, 0)) continue;
     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
 
@@ -991,6 +1052,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutM
     }
     this->addLocalContribution();
   }
+  bar.end();
 }
 
 template<typename M>

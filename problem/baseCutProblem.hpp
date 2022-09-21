@@ -100,6 +100,8 @@ public:
   void addLagrangeContributionOtherSide(const ListItemVF<Rd::d>& VF, const int k, const int epsE);
 
 
+  void removeDofForHansbo(const FESpace& Vh) ;
+
   // For time problem
   void saveSolution(const Rn&);
   void initialSolution(Rn&);
