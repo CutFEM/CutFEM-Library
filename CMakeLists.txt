@@ -64,7 +64,14 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
                         "${PROJECT_BINARY_DIR}"
                         ${EXTRA_INCLUDES})
+#
 
+set(EX_NAME limiter)
+add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 set(EX_NAME darcy)
 add_executable(${EX_NAME}  mainFiles/darcy.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
@@ -91,6 +98,13 @@ target_include_directories(${EX_NAME} PUBLIC
 
 
 #
+set(EX_NAME bulkConvDiff)
+add_executable(${EX_NAME}  mainFiles/bulk_Sebastian.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+
 set(EX_NAME bulkSurface)
 add_executable(${EX_NAME}  mainFiles/bulkSurface.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
@@ -122,6 +136,14 @@ target_include_directories(${EX_NAME} PUBLIC
 #
 set(EX_NAME poisson)
 add_executable(${EX_NAME}  mainFiles/poisson.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+#
+#
+set(EX_NAME showMesh)
+add_executable(${EX_NAME}  mainFiles/showMesh.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
                         "${PROJECT_BINARY_DIR}"

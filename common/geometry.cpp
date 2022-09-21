@@ -52,7 +52,8 @@ R2 geometry::map_point_to_simplex(const R2 N[2], const R1 Phat) {
   return P;
 }
 R3 geometry::map_point_to_simplex(const R3 N[3], const R2 Phat) {
-  R3 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1];
+
+  R3 P = (1-Phat.sum()) * N[0] + Phat[0] * N[1] + Phat[1] * N[2];
   return P;
 }
 
