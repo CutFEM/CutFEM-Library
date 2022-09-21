@@ -155,6 +155,7 @@ public:
   void add(const Interface<Mesh>& interface, int sign_domain);
   void createSurfaceMesh(const Interface<Mesh>& interface);
   void createSurfaceMesh(const TimeInterface<Mesh>& interface);
+  void addArtificialInterface(const Interface<Mesh>& interface);
 private:
   void init(const Interface<Mesh>& interface);
   void init(const TimeInterface<Mesh>& interface);
@@ -850,6 +851,7 @@ void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh>& interface,int sign_do
   }
 
   std::vector<int> nt(dom_size, 0.);
+
   for( int d=0; d<dom_size;++d){
     for(auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end() ;) {
 
@@ -861,7 +863,9 @@ void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh>& interface,int sign_do
       for(int t=0;t<interface.size()-1;++t){
         const SignElement<Element> signKi  = interface(t)->get_SignElement(kb);
         const SignElement<Element> signKii = interface(t+1)->get_SignElement(kb);
+
         s = signKi.sign();
+
         if(signKi.cut() || signKii.cut() || signKi.sign()*signKii.sign()<=0) {
           active_element = true;
           break;
@@ -907,7 +911,6 @@ void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh>& interface,int sign_do
       it_k++;
     }
   }
-
   idx_element_domain.push_back(0);
   for( int d=0; d<dom_size;++d){
     idx_in_background_mesh_[d].resize(nt[d]);
@@ -918,6 +921,28 @@ void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh>& interface,int sign_do
 
 }
 
+template<typename Mesh>
+void ActiveMesh<Mesh>::addArtificialInterface(const Interface<Mesh>& interface){
+
+  int dom_size = this->get_nb_domain();
+  assert(dom_size == 1);
+  int sign_domain = 0;
+
+  bool sub_is_cut = false;
+  for(auto it_k = idx_from_background_mesh_[0].begin(); it_k != idx_from_background_mesh_[0].end() ;++it_k) {
+
+    int kb  = it_k->first;
+    int k   = it_k->second;
+    assert(kb == k);
+
+    // auto it_gamma = interface_id_[0].find(std::make_pair(0, k));
+    const SignElement<Element> signK = interface.get_SignElement(kb);
+
+    if(signK.cut()) {
+      interface_id_[0][std::make_pair(0,k)].push_back(std::make_pair(&interface,  sign_domain));
+    }
+  }
+}
 
 
 template<typename Mesh>
