@@ -487,7 +487,7 @@ double integral_dK_cut(const ExpressionVirtual& fh, const ActiveMesh<Mesh>& Th, 
     const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
 
     typename Element::Face face;
-    const Cut_Part<typename Element::Face> cutFace(Th.get_cut_face(face, k, ifac));
+    const Cut_Part<typename Element::Face> cutFace(Th.get_cut_face(face, k, ifac, itq));
 
     int kb = Th.idxElementInBackMesh(k);
 

@@ -642,15 +642,34 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutT
     const BorderElement & BE(cutTh.be(idx_be));
     if(util::contain(label, BE.lab) || all_label) {
 
-      // CHECK IF IT IS A CUT EDGE
-      if(cutTh.isCutFace(idxK[0], ifac, itq)) {
-        BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
-      }
-      else {
-        assert(idxK.size() == 1);
-        BaseFEM<M>::addBorderContribution(VF, K, BE,ifac, &In, itq, cst_time);
-      }
-      this->addLocalContribution();
+        // CHECK IF IT IS A CUT EDGE
+        if(cutTh.isCutFace(idxK[0], ifac, itq)) {
+          BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+        }
+        else {
+
+            if(idxK.size() == 1){
+              BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+            }
+            else if (!cutTh.isCut(idxK[0], itq)) {
+              int id_sub = (cutTh.isInactive(idxK[0], itq)) ? 1 : 0;
+              
+              BaseFEM<M>::addBorderContribution(VF, K, BE, ifac+id_sub*Element::nea, &In, itq, cst_time);
+              
+            }
+            else{
+                assert( cutTh.get_nb_domain() < 3);
+                
+                // need to find out in what domain is the BOUNDARY
+                int k0 = idxK[0];
+                const auto cutK = cutTh.get_cut_part(k0, itq);
+                int ss = cutK.get_sign();
+                int nv = Element::nvface[ifac][0];
+                int id_sub = (cutK.get_sign_node(nv)*ss == 1)? 0 : 1;
+                BaseFEM<M>::addBorderContribution(VF, K, BE, ifac+id_sub*Element::nea, &In, itq, cst_time);
+            }
+        }
+        this->addLocalContribution();
     }
   }
 
@@ -679,6 +698,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
           BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
         }
         else {
+
           assert( cutTh.get_nb_domain() < 3);
           // need to find out in what domain is the BOUNDARY
           int k0 = idxK[0];
@@ -725,9 +745,26 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const CutMesh& cutTh,
 
       // CHECK IF IT IS A CUT EDGE
       if(cutTh.isCutFace(idxK[0], ifac, itq)) BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+      else if (!cutTh.isCut(idxK[0], itq)) {
+              int id_sub = (cutTh.isInactive(idxK[0], itq)) ? 1 : 0;
+              BaseFEM<M>::addBorderContribution(VF, K, BE, ifac+id_sub*Element::nea, &In, itq, cst_time);
+      }
       else {
-        assert(idxK.size() == 1);
-        BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+        if(idxK.size() == 1){
+            BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+        }
+        else {
+          assert( cutTh.get_nb_domain() < 3);
+
+          // need to find out in what domain is the BOUNDARY
+          int k0 = idxK[0];
+          const auto cutK = cutTh.get_cut_part(k0, itq);
+          int ss = cutK.get_sign();
+          int nv = Element::nvface[ifac][0];
+          int id_sub = (cutK.get_sign_node(nv)*ss == 1)? 0 : 1;
+          BaseFEM<M>::addBorderContribution(VF, K, BE, ifac+id_sub*Element::nea, &In, itq, cst_time);
+        }
+        
       }
     }
   }
@@ -760,7 +797,7 @@ void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d>& VF, const Ele
 
     int k = idxK[e];
     typename Element::Face face;
-    const Cut_Part<typename Element::Face> cutFace(Th.get_cut_face(face, k, ifac));
+    const Cut_Part<typename Element::Face> cutFace(Th.get_cut_face(face, k, ifac, itq));
     const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
 
     double meas_cut  = cutK.measure();

@@ -300,7 +300,7 @@ public:
     else
     return Cut_Part<Element>(this->build_local_partition(k), 0);
   }
-  Cut_Part<typename Element::Face> get_cut_face(Face& face, int k, int ifac, int t = 0) const {
+  Cut_Part<typename Element::Face> get_cut_face(Face& face, int k, int ifac, int t) const {
 
     // BUILD THE FACE
     // In the class mesh the inner faces are not built
