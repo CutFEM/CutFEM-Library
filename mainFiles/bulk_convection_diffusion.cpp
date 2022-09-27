@@ -182,7 +182,7 @@ namespace Lehrenfeld {
 
     // Level-set function
     double fun_levelSet(const R2 P, const int i, const R t) {
-        double r0 = 1.;
+        double r0 = 1. + Epsilon;
         double x = P.x, y = P.y;
 
         return -(sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y) - r0);
@@ -190,7 +190,7 @@ namespace Lehrenfeld {
 
     // Level-set function initial
     double fun_levelSet(const R2 P, const int i) {
-        double r0 = 1.;
+        double r0 = 1. + Epsilon;
         return -(sqrt(P.x*P.x + P.y*P.y) - r0);
     }
 
@@ -216,40 +216,44 @@ namespace Lehrenfeld {
     // Exact solution bulk
     R fun_uBulk(const R2 P, const int i, const R t) {
         double r0 = 1., x = P.x, y = P.y;
-        return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/r0)*sin(M_PI*t);
+        //return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/r0)*sin(M_PI*t);
+        return cos(M_PI*((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/(r0*r0))*sin(M_PI*t);
     }
 
     R fun_uBulkD(const R2 P, const int i, const int d, const R t) {
         double r0 = 1., x = P.x, y = P.y;
-        return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/r0)*sin(M_PI*t);
+        //return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/r0)*sin(M_PI*t);
+        return cos(M_PI*((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/(r0*r0))*sin(M_PI*t);
     }
 
     // RHS fB bulk
     R fun_rhsBulk(const R2 P, const int i, const R t) {
         R x = P.x, y = P.y;
 
-        return M_PI*cos(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            + (M_PI*sin(M_PI*t)*sin(M_PI*sqrtf((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)))/
-            sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)
-            + (M_PI*M_PI*sin(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            *(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            + (M_PI*M_PI*sin(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            *(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))
-            /(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            + (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            *(8*t*t*y*y + 4*t*(x + t*(y*y - 1)) + 2))
-            /(2*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            - (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            *(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)
-            *sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            - (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-            *(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))
-            /(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)*sqrt((x + t*(y*y - 1))
-            *(x + t*(y*y - 1)) + y*y)) - (M_PI*sin(M_PI*t)
-            *sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(x + t*(y*y - 1)))
-            /sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y) + (M_PI*sin(M_PI*t)
-            *sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(2*x + 2*t*(y*y - 1)))
-            /(2*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y));
+        // return M_PI*cos(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     + (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)))/
+        //     sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)
+        //     + (M_PI*M_PI*sin(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     *(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     + (M_PI*M_PI*sin(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     *(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))
+        //     /(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     + (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     *(8*t*t*y*y + 4*t*(x + t*(y*y - 1)) + 2))
+        //     /(2*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     - (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     *(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)
+        //     *sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     - (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
+        //     *(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))
+        //     /(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)*sqrt((x + t*(y*y - 1))
+        //     *(x + t*(y*y - 1)) + y*y)) - (M_PI*sin(M_PI*t)
+        //     *sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(x + t*(y*y - 1)))
+        //     /sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y) + (M_PI*sin(M_PI*t)
+        //     *sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(2*x + 2*t*(y*y - 1)))
+        //     /(2*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y));
+
+        return M_PI*cos(M_PI*t)*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)) + 2*M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)) + M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(8*t*t*y*y + 4*t*(x + t*(y*y - 1)) + 2) + M_PI*M_PI*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*sin(M_PI*t)*(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)) + M_PI*M_PI*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*sin(M_PI*t)*(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))) + M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(2*x + 2*t*(y*y - 1)) - 2*M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(x + t*(y*y - 1));
 
     }
     
@@ -286,6 +290,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // If "omega1" is defined, set type of BCs on outer boundary (options: "dirichlet1" or "neumann1")
 #define dirichlet1
 
+#define use_h
 
 
 #ifdef example1
@@ -301,8 +306,9 @@ typedef FunFEM<Mesh2> Fun_h;
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
-    const size_t iterations = 5;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
-    int nx = 70, ny = 30;       // starting mesh size
+    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
+    int nx = 10, ny = 10;       // starting mesh size
+    double h = 0.05;             // starting mesh size
 
 #ifdef example1
     // Paths to store data
@@ -333,9 +339,19 @@ int main(int argc, char** argv) {
     // Arrays to hold data
     std::array<double, iterations> errorsBulk;          // array to hold bulk errors
     std::array<double, iterations> hs;                  // array to hold mesh sizes
+    std::array<double, iterations> dts;
 
     // Iterate over mesh sizes
     for (int j=0; j<iterations; ++j) {
+        
+        // Mesh size
+        //double h = pow(0.5, j+1);   //0.9*pow(0.5, j);    //lx/(nx);
+        //double h = sqrt(lx*lx/(nx*nx) + ly*ly/(ny*ny));
+        
+
+        // Time
+        //double dT = pow(2, -j-2);    // Time step size
+        
 
         // Define background mesh
     #if defined(example1)
@@ -343,20 +359,23 @@ int main(int argc, char** argv) {
         Mesh Th(nx, ny, 0., 0., lx, ly);
     #elif defined(lehrenfeld)
         const double lx = 7., ly = 3.;
+        #ifdef use_h
+        nx = (int)(lx/h)+1, ny = (int)(ly/h)+1;
+        #elif defined(use_n)
+        h = lx/(nx-1);
+        #endif
         Mesh Th(nx, ny, -3.5, -1.5, lx, ly);
     #endif
 
+        int divisionMeshSize = 2;
+        double dT = h/divisionMeshSize;
+        hs.at(j) = h;
+        dts.at(j) = dT;
+
     //// Parameters
         
-        // Mesh size
-        double h = lx/(nx);
-        //double h = sqrt(lx*lx/(nx*nx) + ly*ly/(ny*ny));
-        hs.at(j) = h;
-        int divisionMeshSize = 2;
-
-        // Time
-        double dT = h/divisionMeshSize; // Time step size
-        double tfinal = .25;            // Final time
+        
+        double tfinal = 1.;            // Final time
         GTime::total_number_iteration = (int)(tfinal/dT);
         dT = tfinal / GTime::total_number_iteration;
         GTime::time_step = dT;
@@ -369,6 +388,7 @@ int main(int argc, char** argv) {
             std::cout << "Iteration " << j + 1 << "/" << iterations << std::endl;
             std::cout << "h = " << h << std::endl;
             std::cout << "nx = " << nx << std::endl;
+            std::cout << "ny = " << ny << std::endl;
             std::cout << "dT = " << dT << std::endl;
         }
 
@@ -394,20 +414,20 @@ int main(int argc, char** argv) {
 
         #ifdef dg
         // DG stabilization parameters
-        double tau20 = 1e-1, tau21 = 1e-1;      // bulk
+        double tau20 = 5e-2, tau21 = 5e-2;      // bulk
+        // DG Space
+        FESpace2 Vh(Th, DataFE<Mesh>::P1dc);        // discontinuous basis functions
         #elif defined(cg)
         // CG stabilization parameters
         double tau20 = 0, tau21 = 1e-1;
+        FESpace2 Vh(Th, DataFE<Mesh>::P1);          // continuous basis functions
         #endif
+
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
-
-    #ifdef dg
-        FESpace2 Vh(Th, DataFE<Mesh>::P1dc);        // discontinuous basis functions
-    #elif defined(cg)
-        FESpace2 Vh(Th, DataFE<Mesh>::P1);          // continuous basis functions
-    #endif
+        FESpace2 Vh2(Th, DataFE<Mesh>::P2);     // higher order space for interpolation
+        
         // 1D Time mesh
         Mesh1 Qh(GTime::total_number_iteration+1, GTime::t0, GTime::final_time());
         // 1D Time space
@@ -437,7 +457,7 @@ int main(int argc, char** argv) {
         // Declare time dependent interface
         TimeInterface<Mesh> interface(qTime);
         
-        // Bulk-Surface Convection-Diffusion Problem Object
+        // Convection-Diffusion Problem Object
         CutFEM<Mesh> convdiff(qTime);
 
         std::cout << "Number of time slabs \t : \t " << GTime::total_number_iteration << std::endl;
@@ -494,8 +514,8 @@ int main(int argc, char** argv) {
             Tangent t;
 
             // Right hand side functions
-            Fun_h f(Wh, In, fun_rhsBulk);
-            Fun_h g(Wh, In, fun_uBulk);    // create an FE-function of the exact bulk solution Omega1
+            Fun_h f(Vh2, In, fun_rhsBulk);
+            Fun_h g(Vh2, In, fun_uBulk);    // create an FE-function of the exact bulk solution Omega1
 
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1);
@@ -518,8 +538,10 @@ int main(int argc, char** argv) {
                 
                 // Add exact solutions
                 Fun_h uBex(Wh, fun_uBulkD, 0.);
+                Fun_h uRhs(Wh, fun_rhsBulk, 0.);
                 
                 writerInitial.add(uBex, "bulk_exact", 0, 1);
+                writerInitial.add(uRhs, "bulk_rhs", 0, 1);
                 writerInitial.add(ls[0], "levelSet", 0, 1);
                 
             }
@@ -618,7 +640,8 @@ int main(int argc, char** argv) {
             // Added terms 
             convdiff.addBilinear(
                 + innerProduct(average(vel*n*u), jump(v))
-                + innerProduct(lambdaB*fabs(vel*n)*jump(u), jump(v))
+                //+ innerProduct(lambdaB*fabs(vel*n)*jump(u), jump(v))
+                + innerProduct(0.5*fabs(vel*n)*jump(u), jump(v))
                 , Kh2
                 , INTEGRAL_INNER_EDGE_2D
                 , In
@@ -849,14 +872,19 @@ int main(int argc, char** argv) {
                 writer.add(ls[2], "levelSet2", 0, 1);
             }
 
+            if (iterations > 1 && iter == GTime::total_number_iteration-1) outputData << h << "," << dT << "," << errBulk << std::endl;
 
             iter++;
 
         }
 
+        #ifdef use_n
         // Refine mesh
         nx *= 2;
         ny *= 2; 
+        #elif defined(use_h)
+        h *= 0.5;
+        #endif
 
     }
 
@@ -883,6 +911,17 @@ int main(int argc, char** argv) {
     }
     std::cout << "]" << std::endl;
     
+    std::cout << "dT = [";
+    for (int i=0; i<iterations; i++) {
+
+        std::cout << dts.at(i);
+        if (i < iterations-1) {
+            std::cout << ", ";
+        }
+
+    }
+    std::cout << "]" << std::endl;
+
     return 0;
 }
 

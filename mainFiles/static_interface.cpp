@@ -55,12 +55,12 @@ namespace Frachon1 {
     }
 
     R fun_boundary(const R2 P, int elementComp, double t) {
-        return sin(pi*(P.x + P.y- 4*t));
+        return sin(pi*(P.x + P.y - 4*t));
     }
 
     R fun_uBulk(const R2 P, int elementComp, int domain, double t) {
         // return 2*sin(pi*(P.x+P.y-3*t));
-        if(domain == 0) return sin(pi*(P.x + P.y- 4*t));
+        if(domain == 0) return sin(pi*(P.x + P.y - 4*t));
         else return 4./3*sin(4./3*pi*(P.x + P.y - 3*t - c0/4));
     }
 
@@ -157,7 +157,7 @@ typedef FunFEM<Mesh2> Fun_h;
 #elif defined(frachon2)
     using namespace Frachon2;
 #endif
-
+ 
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
 
         // Time
         double dT = h / 3 / sqrt(10) * 0.5; //h/divisionMeshSize; // Time step size
-        double tfinal = .5;            // Final time
+        double tfinal = .4;            // Final time
         GTime::total_number_iteration = (int)(tfinal/dT);
         dT = tfinal / GTime::total_number_iteration;
         GTime::time_step = dT;
@@ -218,25 +218,27 @@ int main(int argc, char** argv) {
             std::cout << "--------------------------------------------" << std::endl;
             std::cout << "--------------------------------------------" << std::endl;
             std::cout << "Iteration " << j + 1 << "/" << iterations << std::endl;
-            std::cout << "h = " << h << std::endl;
-            std::cout << "nx = " << nx << std::endl;
-            std::cout << "dT = " << dT << std::endl;
         }
+
+        std::cout << "h = " << h << std::endl;
+        std::cout << "nx = " << nx << std::endl;
+        std::cout << "ny = " << ny << std::endl;
+        std::cout << "dT = " << dT << std::endl;
 
         // Penalty parameter for outer boundary
         double lambdaB = 3;    // coefficient on the outer boundary
 
-        //CutFEMParameter lambda(0., 1.);     // lambda2 = 0, lambda1 = 1,  1+lambda2-lambda1 = 0
-        CutFEMParameter lambda(1./3, 1.);
+        CutFEMParameter lambda(0., 1.);     // lambda2 = 0, lambda1 = 1,  1+lambda2-lambda1 = 0
+        //CutFEMParameter lambda(1./3, 1.);
 
         CutFEMParameter lambdaE(3, 2);  //  ||beta||_inf in Omega_1/Omega_2
 
         // DG stabilization parameters
-        double tau20 = 5e-1, tau21 = 5e-1;      // bulk
+        double tau20 = 5e-2, tau21 = 5e-2;      // bulk
 
 
         // Background FE Space, Time FE Space & Space-Time Space
-
+        FESpace2 Vh2(Th, DataFE<Mesh>::P2);        // higher order space for interpolation
         FESpace2 Vh(Th, DataFE<Mesh>::P1dc);        // discontinuous basis functions
         // 1D Time mesh
         Mesh1 Qh(GTime::total_number_iteration+1, GTime::t0, GTime::final_time());
@@ -302,7 +304,7 @@ int main(int argc, char** argv) {
             Normal n;
 
             // Exact solution
-            Fun_h g(Wh, In, fun_boundary);    // create an FE-function of the exact bulk solution Omega1
+            Fun_h g(Vh2, In, fun_boundary);    // create an FE-function of the exact bulk solution Omega1
 
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1); // Omega1 U Omega2                 
@@ -402,26 +404,31 @@ int main(int argc, char** argv) {
                 , {2, 3}          
             );
             
-            convdiff.addBilinear(
-                + innerProduct((vel*n)*u, 0.5*v) 
-                + innerProduct(0.5*fabs(vel*n)*u, v)  
-                //+ innerProduct(0.5*lambdaB*u, v)  
+            // convdiff.addBilinear(
+            //     + innerProduct((vel*n)*u, 0.5*v) 
+            //     + innerProduct(0.5*fabs(vel*n)*u, v)  
+            //     , Khi
+            //     , INTEGRAL_BOUNDARY
+            //     , In
+            //     , (std::list<int>){1,4}
+            // );
+            
+            // convdiff.addLinear(
+            //     - innerProduct(g.expression(), (vel*n)*(0.5*v))
+            //     + innerProduct(g.expression(), fabs(vel*n)*0.5*v) 
+            //     , Khi
+            //     , INTEGRAL_BOUNDARY
+            //     , In
+            //     , (std::list<int>){1,4}          // 1 - bottom, 4 - left
+            // );
+
+            convdiff.addLinear(
+                - innerProduct(g.expression(), (vel*n)*v) 
                 , Khi
                 , INTEGRAL_BOUNDARY
                 , In
                 , (std::list<int>){1,4}
             );
-            
-            convdiff.addLinear(
-                - innerProduct(g.expression(), (vel*n)*(0.5*v))
-                + innerProduct(g.expression(), fabs(vel*n)*0.5*v) 
-                //+ innerProduct(g.expression(), lambdaB*0.5*v) 
-                , Khi
-                , INTEGRAL_BOUNDARY
-                , In
-                , (std::list<int>){1,4}          // 1 - bottom, 4 - left
-            );
-
             
             // Stabilization
         #ifdef macro    
@@ -475,10 +482,10 @@ int main(int argc, char** argv) {
             
                 outputData << setprecision(10);
                 outputData << GTime::current_time() << ","
-                        << (q_1-qp_1) << ","
+                        << (q_1 - qp_1) << ","
                         << inflow << ","
                         << outflow << ","
-                        << ((q_1 -qp_1) + inflow + outflow) << std::endl;
+                        << ((q_1 - qp_1) + inflow + outflow) << std::endl;
 
                 qp_1 = q_1;
                 
