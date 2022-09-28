@@ -16,10 +16,10 @@
 // #include "../num/gnuplot.hpp"
 
 // #define PROBLEM_STOKES_DIV
-// #define POISSEUILLE_EXAMPLE
+#define POISSEUILLE_EXAMPLE
 // #define STATIC_DROP_EXAMPLE
 // #define FICTITIOUS_STOKES
-#define DYNAMIC_DROP_EXAMPLE
+// #define DYNAMIC_DROP_EXAMPLE
 
 #ifdef PROBLEM_STOKES_DIV
 
@@ -53,15 +53,15 @@ namespace Erik_Data_StokesDiv {
   //   else return 0;
   // }
 
-  R fun_rhs(const R2 P, int i) {
-    R x = P.x;
-    R y = P.y;
-     if(i==0) return -2*y;
-     else return 2*x;
-    // if(i==0) return -4*(6*x*x - 6*x + 1)*y*(2*y*y - 3*y + 1) - 12*(x-1)*(x-1)*x*x*(2*y - 1);
-    // else if(i==1) return 4*x*(2*x*x - 3 *x + 1)*(6*y*y - 6*y + 1) + 12*(2*x - 1)*(y - 1)*(y-1)*y*y;
-    // else return 0;
-  }
+  // R fun_rhs(const R2 P, int i) {
+  //   R x = P.x;
+  //   R y = P.y;
+  //    // if(i==0) return -2*y;
+  //    // else return 2*x;
+  //   if(i==0) return -4*(6*x*x - 6*x + 1)*y*(2*y*y - 3*y + 1) - 12*(x-1)*(x-1)*x*x*(2*y - 1);
+  //   else if(i==1) return 4*x*(2*x*x - 3 *x + 1)*(6*y*y - 6*y + 1) + 12*(2*x - 1)*(y - 1)*(y-1)*y*y;
+  //   else return 0;
+  // }
   // R fun_exact(const R2 P, int i) {
   //   R x = P.x;
   //   R y = P.y;
@@ -69,19 +69,19 @@ namespace Erik_Data_StokesDiv {
   //   else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
   //   else return 0;
   // }
-  R fun_exact_u(const R2 P, int i) {
-    R x = P.x;
-    R y = P.y;
-    // if(i==0) return      2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
-    // else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
-    if(i==0)      return  x*x*y;
-    else if(i==1) return -x*y*y;
-  }
-  R fun_exact_p(const R2 P, int i) {
-    R x = P.x;
-    R y = P.y;
-    return 0;
-  }
+  // R fun_exact_u(const R2 P, int i) {
+  //   R x = P.x;
+  //   R y = P.y;
+  //   if(i==0) return      2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
+  //   else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
+  //   // if(i==0)      return  x*x*y;
+  //   // else if(i==1) return -x*y*y;
+  // }
+  // R fun_exact_p(const R2 P, int i) {
+  //   R x = P.x;
+  //   R y = P.y;
+  //   return 0;
+  // }
   // R fun_rhs(const R2 P, int i) {
   //   R mu=1;
   //   R x = P.x;
@@ -97,6 +97,32 @@ namespace Erik_Data_StokesDiv {
   //   else if(i==1) return (-x)*(1-x)*(1-2*x)*pow(y,2)*pow(1-y,2);
   //   else return 10*(pow(x-0.5,3)*pow(y,2)+pow(1-x,3)*pow(y-0.5,3));
   // }
+
+  R fun_div(const R2 P, int i) {
+    R x = P.x;
+    R y = P.y;
+    return 0;
+  }
+
+  R fun_rhs(const R2 P, int i) {
+    // R mu=1;
+    R x = P.x;
+    R y = P.y;
+    if(i==0)      return  40*x*(x*x - y*y) - (16*y - 8);
+    else if(i==1) return (16*x - 8) - 40*y*(x*x - y*y);
+    else return 0;
+  }
+  R fun_exact_u(const R2 P, int i) {
+    R x = P.x;
+    R y = P.y;
+    if(i==0)      return  2*(x*x - x +0.25 +y*y-y)*(2*y-1);
+    else return -2*(x*x - x +0.25 +y*y-y)*(2*x-1);
+  }
+  R fun_exact_p(const R2 P, int i) {
+    R x = P.x;
+    R y = P.y;
+    return (10*(x*x-y*y)*(x*x-y*y));// - 670.171/(pi*interfaceRad*interfaceRad);
+  }
 }
 using namespace Erik_Data_StokesDiv;
 
@@ -133,8 +159,8 @@ int main(int argc, char** argv ) {
     Space Qh(Th, DataFE<Mesh2>::P3dc); // FOR MIXEDSPACE
 
     const R hi = Th[0].lenEdge(0);
-    const R penaltyParam = 1e1/pow(hi,3);
-    const R sigma = 1; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
+    const R penaltyParam = 1e3/pow(hi,1);
+    const R sigma = 0.5; // HIGHER 1e2,1e3,etc WORSENS THE SOL [??]
 
     Fun_h fh(Uh, fun_rhs); // interpolates fun_rhs to fh of type Fun_h
     Fun_h gh(Uh, fun_exact_u);
@@ -144,6 +170,7 @@ int main(int argc, char** argv ) {
 
     Normal n;
     Tangent t;
+    double kappa1 = 0.5, kappa2=0.5;
     /* Syntax:
     FunTest (fem space, #components, place in space)
     */
@@ -153,43 +180,43 @@ int main(int argc, char** argv ) {
     // const MeshParameter& h(Parameter::h);
     // const MeshParameter& invlEdge(Parameter::invmeas);
 
-    // stokes.addBilinear(
-    //   (grad(div(u)),grad(div(v)))
-    //   , Th
-    // );
-
     // a_h(u,v)
     stokes.addBilinear(
-      contractProduct(mu*grad(u),grad(v))
+      contractProduct(2*mu*Eps(u),Eps(v))
       - innerProduct(p,div(v))
       + innerProduct(div(u),q)
       , Th
     );
-    // stokes.addBilinear(
-    //   - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
-    //   + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
-    //   + innerProduct(1./hi*(sigma*jump(u*t)), jump(v*t))
-    //   , Th
-    //   , innerFacet
-    // );
+
     stokes.addBilinear(
-      - innerProduct(grad(u)*n, v)  //natural
-      + innerProduct(u, grad(v)*n)
+      - innerProduct(average(2*mu*Eps(u)*t*n,kappa1,kappa2), jump(v*t))
+      + innerProduct(jump(u*t), average(2*mu*Eps(v)*t*n,kappa1,kappa2))
+      + innerProduct(1./hi*(jump(u*t)), jump(v*t))
+      , Th
+      , INTEGRAL_INNER_EDGE_2D
+    );
+
+    stokes.addBilinear(
+      - innerProduct(2*mu*Eps(u)*n, v)  //natural
+      + innerProduct(u, 2*mu*Eps(v)*n)
       + innerProduct(p, v*n)  // natural
       // - innerProduct(u*n, q)  // essential
       + innerProduct(penaltyParam*u, v)
       , Th
-      , boundary
+      , INTEGRAL_BOUNDARY
     );
 
     // l(v)_Omega
     stokes.addLinear(
       + innerProduct(gh.expression(2), penaltyParam*v)
-      + innerProduct(gh.expression(2), grad(v)*n)
+      + innerProduct(gh.expression(2), 2*mu*Eps(v)*n)
       // - innerProduct(gh.expression(2), q*n)
       , Th
-      , boundary
+      , INTEGRAL_BOUNDARY
     );
+
+
+
     stokes.addLinear(
       innerProduct(fh.expression(2),v)
       , Th
@@ -306,8 +333,8 @@ int main(int argc, char** argv ) {
 #ifdef DYNAMIC_DROP_EXAMPLE
 namespace DynamicDropData {
 R2 shift(0,0);
-double sigma = 1;
-double mu1 = 1;
+double sigma = 1./3;
+double mu1 = 10;
 double mu2 = 1;
 
   R fun_levelSet(const R2 P, int i) {
@@ -456,8 +483,8 @@ int main(int argc, char** argv ) {
   ProblemOption optionStokes;
   optionStokes.order_space_element_quadrature_ = 5;
 
-  vector<double> ul2, pl2, divmax, divl2, h, convu, convp;
-  int niter = 4;
+  vector<double> ul2, pl2, divmax0, divmax1, divl2_0,divl2_1, h, convu, convp;
+  int niter = 1;
   for(int i=0;i<niter;++i) { // i<3
     double t_iter_begin = MPIcf::Wtime();
     std::cout << "\n ------------------------------------- " << std::endl;
@@ -580,46 +607,39 @@ int main(int argc, char** argv ) {
       , interface
     );
 
-    // stokes.addBilinear(
-    //   - innerProduct(2*mu*Eps(u)*n, v)  //natural
-    //   + innerProduct(p, v*n)  // natural
-    //
-    //   + innerProduct(u, 2*mu*Eps(v)*n)
-    //   + innerProduct(penaltyParam*u, v)
-    //   // - innerProduct(u*n, q)  // essential
-    //   , Khi
-    //   , INTEGRAL_BOUNDARY
-    // );
-    // stokes.addLinear(
-    //   + innerProduct(gh.expression(2), penaltyParam*v)
-    //   + innerProduct(gh.expression(2), 2*mu*Eps(v)*n)
-    //
-    //   // - innerProduct(gh.expression(2), q*n)
-    //   , Khi
-    //   , INTEGRAL_BOUNDARY
-    // );
-    stokes.setDirichlet(ghRT, Khi);
+    stokes.addBilinear(
+      - innerProduct(2*mu*Eps(u)*n, v)  //natural
+      + innerProduct(p, v*n)  // natural
 
-    // stokes.addBilinear(
-    //   // - innerProduct(2*mu*Eps(u)*n, v)  //natural
-    //   // + innerProduct(u, 2*mu*Eps(v)*n)
-    //   + innerProduct(100*p, v*n)  // natural
-    //   // + innerProduct(penaltyParam*u, v)
-    //   // - innerProduct(u*n, q)  // essential
-    //   , Khi
-    //   , boundary
-    //   , {4}
-    // );
-    // stokes.addLinear(
-    //   innerProduct(100*1, v*n)  // natural
-    //
-    //   // + innerProduct(gh.expression(2), penaltyParam*v)
-    //   // + innerProduct(gh.expression(2), 2*mu*Eps(v)*n)
-    //   // - innerProduct(gh.expression(2), q*n)
-    //   , Khi
-    //   , boundary
-    //   ,{4}
-    // );
+      + innerProduct(u, 2*mu*Eps(v)*n)
+      + innerProduct(penaltyParam*u, v)
+
+      // Weakly imposing the tangential component
+      // - innerProduct(2*mu*Eps(u)*n*t, v*t)  //natural
+      // + innerProduct(p, v*n)  // natural
+      //
+      // + innerProduct(u*t, 2*mu*Eps(v)*t*n)
+      // + innerProduct(penaltyParam*u*t, v*t)
+
+
+      // - innerProduct(u*n, q)  // essential
+      , Khi
+      , INTEGRAL_BOUNDARY
+    );
+
+
+    stokes.addLinear(
+      + innerProduct(gh.expression(2), penaltyParam*v)
+      + innerProduct(gh.expression(2), 2*mu*Eps(v)*n)
+
+      // impose tangential component weakly
+      // + innerProduct(gh*t, penaltyParam*v*t)
+      // + innerProduct(gh*t, 2*mu*Eps(v)*t*n)
+
+      // - innerProduct(gh.expression(2), q*n)
+      , Khi
+      , INTEGRAL_BOUNDARY
+    );
 
 
 
@@ -629,35 +649,37 @@ int main(int argc, char** argv ) {
     innerProduct(uPenParam*pow(hi, 1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
     +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), jump(grad(v)*n))
     +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
-  // //   // +innerProduct(pPenParam*pow(hi,1)*jump(p), jump(q))
-  // //   // +innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(q)))
-  // //
-  // //   // +innerProduct(uPenParam*pow(hi,1)*jump(u), mu*jump(v)) // [Method 1: Remove jump in vel]
-  // //   // +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), mu*jump(grad(v)*n))
-  // //   // +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
-  // //
-    -innerProduct(pPenParam*hi*jump(p), (1./mu)*jump(div(v)))
-    +innerProduct(pPenParam*hi*jump(div(u)), (1./mu)*jump(q))
-    -innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), (1./mu)*jump(grad(div(v))))
-    +innerProduct(pPenParam*pow(hi,3)*jump(grad(div(u))) , (1./mu)*jump(grad(q)))
-  // //
-  // //   // +innerProduct(uPenParam*pow(hi,3)*jump(div(u)), mu*jump(div(v))) // [Method 1: Remove jump in vel]
-  // //   // +innerProduct(uPenParam*pow(hi,5)*jump(grad(div(u))), mu*jump(grad(div(v))))
+    // //   // +innerProduct(pPenParam*pow(hi,1)*jump(p), jump(q))
+    // //   // +innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(q)))
+    // //
+    // //   // +innerProduct(uPenParam*pow(hi,1)*jump(u), mu*jump(v)) // [Method 1: Remove jump in vel]
+    // //   // +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), mu*jump(grad(v)*n))
+    // //   // +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
+    // //
+    -innerProduct(pPenParam*hi*jump(p), jump(div(v)))
+    +innerProduct(pPenParam*hi*jump(div(u)), jump(q))
+    -innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(div(v))))
+    +innerProduct(pPenParam*pow(hi,3)*jump(grad(div(u))) , jump(grad(q)))
+    // //
+    // //   // +innerProduct(uPenParam*pow(hi,3)*jump(div(u)), mu*jump(div(v))) // [Method 1: Remove jump in vel]
+    // //   // +innerProduct(uPenParam*pow(hi,5)*jump(grad(div(u))), mu*jump(grad(div(v))))
     , Khi
-  // //   // , macro
+    // //   // , macro
   );
   std::cout << "Time assembly " << MPIcf::Wtime() - t_assembly_begin << std::endl;
 
 
+  // matlab::Export(stokes.mat_, "mat1.dat");
 
   // // // Sets uniqueness of the pressure
   double tt0 = MPIcf::Wtime();
+  // stokes.setDirichlet(ghRT, Khi);
+
+
+
+
   int N = stokes.get_nb_dof();
-  // // // std::map<int, double> df2rm;
   R2 P = Ph[0].Pt(0);
-  // // std::cout << Ph[0](0) << std::endl;
-  // // // // int kkk = 57;
-  // // int dfu = Vh[0].loc2glb(0);
   int dfp = Ph[0].loc2glb(0) + Vh.get_nb_dof();
   double val = fun_exact_p(P, 0, 0);
   // // std::cout << Ph[0].PtHat(0) << std::endl;
@@ -669,19 +691,20 @@ int main(int argc, char** argv ) {
   // // stokes.mat_[std::make_pair(dfp,dfp)] += 1e15;
   // // stokes.rhs_(dfu) = val;
   // eraseAndSetRow(N, stokes.mat_, stokes.rhs_, dfp, dfp, val);
-  // // matlab::Export(stokes.mat_, "mat0.dat");
+//   matlab::Export(stokes.mat_, "mat0.dat");
+// return 0;
   // // std::cout << " rm dof \t" << dfp << std::endl;
   // // std::cout << Vh.get_nb_dof()  << std::endl;
-  // std::cout << " Time setting p val " << MPIcf::Wtime() - tt0 << std::endl;
-  // // getchar();
+  std::cout << "Time setting boundary " << MPIcf::Wtime() - tt0 << std::endl;
+  // getchar();
 
   // stokes.addLagrangeMultiplier(
-  //   innerProduct(1.,p1), 0., Khi, 0
-  //   // ,
+  //   innerProduct(1.,p1), 0., Khi
   //   // , INTEGRAL_BOUNDARY
   //   // , INTEGRAL_EXTENSION
   //   // , 1.
   // );
+
 
   // Fun_h fun1(Wh, fun_1);
   // double areaBubble   = integral(Khi, fun1, 0, 1, 0) ;
@@ -718,30 +741,31 @@ int main(int argc, char** argv ) {
 
     // std::cout << "mean P \t" << integral(Khi,ph, 0, 0, 0)/(4-areaBubble) << std::endl;
 
-    // {
-    //   Fun_h soluErr(Vh, fun_exact_u);
-    //   Fun_h soluh(Vh, fun_exact_u);
-    //   Fun_h solph(Ph, fun_exact_p);
-    //
-    //   soluErr.v -= uh.v;
-    //   soluErr.v.map(fabs);
-    //   // Fun_h divSolh(Wh, fun_div);
-    //   // ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
-    //
-    //   Paraview<Mesh> writer(Khi, "stokes_"+to_string(i)+".vtk");
-    //   writer.add(uh, "velocity" , 0, 2);
-    //   writer.add(ph, "pressure" , 0, 1);
-    //   writer.add(solph, "pressureExact" , 0, 1);
-    //   writer.add(fabs(femSol_0dx+femSol_1dy), "divergence");
-    //   writer.add(soluh, "velocityExact" , 0, 2);
-    //   writer.add(soluErr, "velocityError" , 0, 2);
-    // }
+    {
+      Fun_h soluErr(Vh, fun_exact_u);
+      Fun_h soluh(Vh, fun_exact_u);
+      Fun_h solph(Ph, fun_exact_p);
+
+      soluErr.v -= uh.v;
+      soluErr.v.map(fabs);
+      // Fun_h divSolh(Wh, fun_div);
+      // ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
+
+      Paraview<Mesh> writer(Khi, "stokes_"+to_string(i)+".vtk");
+      writer.add(uh, "velocity" , 0, 2);
+      writer.add(ph, "pressure" , 0, 1);
+      writer.add(solph, "pressureExact" , 0, 1);
+      writer.add(fabs(femSol_0dx+femSol_1dy), "divergence");
+      writer.add(soluh, "velocityExact" , 0, 2);
+      writer.add(soluErr, "velocityError" , 0, 2);
+    }
 
     R errU      = L2normCut(uh,fun_exact_u,0,2);
     R errP      = L2normCut(ph,fun_exact_p,0,1);
     R errDiv1    = L2normCut (femSol_0dx+femSol_1dy,Khi, 1);
     R errDiv0    = L2normCut (femSol_0dx+femSol_1dy,Khi, 0);
-    R maxErrDiv = maxNormCut(femSol_0dx+femSol_1dy,Khi);
+    R maxErrDiv0 = maxNormCut(femSol_0dx+femSol_1dy,Khi,0);
+    R maxErrDiv1 = maxNormCut(femSol_0dx+femSol_1dy,Khi,1);
 
 
     // // solExVec -= stokesDiv.rhs;
@@ -759,8 +783,10 @@ int main(int argc, char** argv ) {
 
     ul2.push_back(errU);
     pl2.push_back(errP);
-    divl2.push_back(errDiv0);
-    divmax.push_back(errDiv1);
+    divl2_0.push_back(errDiv0);
+    divl2_1.push_back(errDiv1);
+    divmax0.push_back(maxErrDiv0);
+    divmax1.push_back(maxErrDiv1);
 
     // divmax.push_back(maxErrDiv);
     h.push_back(1./nx);
@@ -784,7 +810,8 @@ int main(int argc, char** argv ) {
   << std::setw(15) << std::setfill(' ') << "conv u"
   << std::setw(15) << std::setfill(' ') << "err divu0"
   << std::setw(15) << std::setfill(' ') << "err divu1"
-
+  << std::setw(15) << std::setfill(' ') << "err max divu0"
+  << std::setw(15) << std::setfill(' ') << "err max divu1"
   // << std::setw(15) << std::setfill(' ') << "conv divu"
   // << std::setw(15) << std::setfill(' ') << "err_new divu"
   // << std::setw(15) << std::setfill(' ') << "convLoc divu"
@@ -798,11 +825,13 @@ int main(int argc, char** argv ) {
     << std::setw(15) << std::setfill(' ') << convp[i]
     << std::setw(15) << std::setfill(' ') << ul2[i]
     << std::setw(15) << std::setfill(' ') << convu[i]
-    << std::setw(15) << std::setfill(' ') << divl2[i]
+    << std::setw(15) << std::setfill(' ') << divl2_0[i]
+    << std::setw(15) << std::setfill(' ') << divl2_1[i]
     // << std::setw(15) << std::setfill(' ') << convdivPr[i]
     // << std::setw(15) << std::setfill(' ') << divPrintLoc[i]
     // << std::setw(15) << std::setfill(' ') << convdivPrLoc[i]
-    << std::setw(15) << std::setfill(' ') << divmax[i]
+    << std::setw(15) << std::setfill(' ') << divmax0[i]
+    << std::setw(15) << std::setfill(' ') << divmax1[i]
     // << std::setw(15) << std::setfill(' ') << convmaxdivPr[i]
     << std::endl;
   }
@@ -1127,81 +1156,73 @@ double computeMean(const CutFESpaceT2& Vh, R (*f)(const R2)) {
 
 namespace Erik_Data_StokesDiv {
 
+// Erik
+// R shift = 0.5;
+// R interfaceRad = 0.25+1e-8;//2./3; // not exactly 1/4 to avoid interface cutting exaclty a vertex
+// R fun_levelSet(const R2 P, const int i) {
+//   return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad;
+// }
+// R fun_rhs(const R2 P, int i, int dom) {
+//   R mu=1;
+//   R x = P.x;
+//   R y = P.y;
+//   if(i==0) return -2*mu*(pow(x,4)*(6*y-3)+pow(x,3)*(6-12*y)+3*pow(x,2)*(4*pow(y,3)-6*pow(y,2)+4*y-1)-6*x*y*(2*pow(y,2)-3*y+1)+y*(2*pow(y,2)-3*y+1)) + 10*(3*pow(x-0.5,2)*pow(y,2)-3*pow(1-x,2)*pow(y-0.5,3));
+//   else if(i==1) return 2*mu*(2*pow(x,3)*(6*pow(y,2)-6*y+1)-3*pow(x,2)*(6*pow(y,2)-6*y+1)+x*(6*pow(y,4)-12*pow(y,3)+12*pow(y,2)-6*y+1)-3*pow(y-1,2)*pow(y,2)) + 10*(2*pow(x-0.5,3)*y+3*pow(1-x,3)*pow(y-0.5,2));
+//   else return 0;
+// }
+// R fun_exact_u(const R2 P, int i, int dom) {
+//   R x = P.x;
+//   R y = P.y;
+//   if(i==0) return pow(x,2)*pow(1-x,2)*y*(1-y)*(1-2*y);
+//   else return (-x)*(1-x)*(1-2*x)*pow(y,2)*pow(1-y,2);
+// }
+// R fun_exact_p(const R2 P, int i, int dom) {
+//   R x = P.x;
+//   R y = P.y;
+//   return 10*(pow(x-0.5,3)*pow(y,2)+pow(1-x,3)*pow(y-0.5,3));
+// }
+// R fun_div(const R2 P, int i, int dom) {
+//   R x = P.x;
+//   R y = P.y;
+//   return 0;
+// }
+
+
+
+  //OLshanskii
   R shift = 0.5;
-  R interfaceRad = 0.250001;//2./3; // not exactly 1/4 to avoid interface cutting exaclty a vertex
+  R interfaceRad = sqrt(0.25);//2./3; // not exactly 1/4 to avoid interface cutting exaclty a vertex
   R fun_levelSet(const R2 P, const int i) {
     return sqrt((P.x-shift)*(P.x-shift) + (P.y-shift)*(P.y-shift)) - interfaceRad;
   }
 
-
-  // R fun_rhs(const R2 P, int i, int dom) {
-  //   R x = P.x;
-  //   R y = P.y;
-  //   if(i==0) return 0;
-  //   else return 0;
-  // }
-  // R fun_exact_u(const R2 P, int i, int dom) {
-  //   R x = P.x;
-  //   R y = P.y;
-  //   if(i==0)      return  20*x*pow(y,3);
-  //   else if(i==1) return 5*pow(x,4)-5*pow(y,4);
-  // }
-  // R fun_exact_p(const R2 P, int i, int dom) {
-  //   R x = P.x;
-  //   R y = P.y;
-  //   return 60*pow(x,2)*y-20*pow(y,3);
-  // }
-  // R fun_div(const R2 P, int i, int dom) {
-  //   R x = P.x;
-  //   R y = P.y;
-  //   return 0;
-  // }
-
-  // [Ex: divu = 0, inhomog. BC]
-  R fun_rhs(const R2 P, int i, int dom) {
-    R x = P.x;
-    R y = P.y;
-     if(i==0) return -2*y;
-     else return 2*x;
-    // if(i==0) return -4*(6*x*x - 6*x + 1)*y*(2*y*y - 3*y + 1) - 12*(x-1)*(x-1)*x*x*(2*y - 1);
-    // else if(i==1) return 4*x*(2*x*x - 3 *x + 1)*(6*y*y - 6*y + 1) + 12*(2*x - 1)*(y - 1)*(y-1)*y*y;
-    // else return 0;
-  }
-  R fun_exact_u(const R2 P, int i, int dom) {
-    R x = P.x;
-    R y = P.y;
-    // if(i==0) return      2*x*y*(x-1)*(y-1)*x*(1-x)*(2*y-1);
-    // else if(i==1) return 2*x*y*(x-1)*(y-1)*y*(y-1)*(2*x-1);
-    if(i==0)      return  x*x*y;
-    else if(i==1) return -x*y*y;
-  }
-  R fun_exact_p(const R2 P, int i, int dom) {
-    R x = P.x;
-    R y = P.y;
-    return 0.;
-  }
   R fun_div(const R2 P, int i, int dom) {
     R x = P.x;
     R y = P.y;
     return 0;
   }
 
-
-  // R fun_rhs(const R2 P, int i) {
-  //   R mu=1;
-  //   R x = P.x;
-  //   R y = P.y;
-  //   if(i==0) return -2*mu*(pow(x,4)*(6*y-3)+pow(x,3)*(6-12*y)+3*pow(x,2)*(4*pow(y,3)-6*pow(y,2)+4*y-1)-6*x*y*(2*pow(y,2)-3*y+1)+y*(2*pow(y,2)-3*y+1)) + 10*(3*pow(x-0.5,2)*pow(y,2)-3*pow(1-x,2)*pow(y-0.5,3));
-  //   else if(i==1) return 2*mu*(2*pow(x,3)*(6*pow(y,2)-6*y+1)-3*pow(x,2)*(6*pow(y,2)-6*y+1)+x*(6*pow(y,4)-12*pow(y,3)+12*pow(y,2)-6*y+1)-3*pow(y-1,2)*pow(y,2)) + 10*(2*pow(x-0.5,3)*y+3*pow(1-x,3)*pow(y-0.5,2));
-  //   else return 0;
-  // }
-  // R fun_exact(const R2 P, int i) {
-  //   R x = P.x;
-  //   R y = P.y;
-  //   if(i==0) return pow(x,2)*pow(1-x,2)*y*(1-y)*(1-2*y);
-  //   else if(i==1) return (-x)*(1-x)*(1-2*x)*pow(y,2)*pow(1-y,2);
-  //   else return 10*(pow(x-0.5,3)*pow(y,2)+pow(1-x,3)*pow(y-0.5,3));
-  // }
+  R fun_rhs(const R2 P, int i, int dom) {
+    // R mu=1;
+    R x = P.x;
+    R y = P.y;
+    if(i==0)      return  40*x*(x*x - y*y) - (16*y - 8);
+    else if(i==1) return (16*x - 8) - 40*y*(x*x - y*y);
+    // if(i==0)      return  40*x*(x*x - y*y);
+    // else if(i==1) return - 40*y*(x*x - y*y);
+    else return 0;
+  }
+  R fun_exact_u(const R2 P, int i, int dom) {
+    R x = P.x;
+    R y = P.y;
+    if(i==0)      return  2*(x*x - x +0.25 +y*y-y)*(2*y-1);
+    else return -2*(x*x - x +0.25 +y*y-y)*(2*x-1);
+  }
+  R fun_exact_p(const R2 P, int i, int dom ) {
+    R x = P.x;
+    R y = P.y;
+    return (10*(x*x-y*y)*(x*x-y*y));// - 670.171/(pi*interfaceRad*interfaceRad);
+  }
 }
 using namespace Erik_Data_StokesDiv;
 
@@ -1226,58 +1247,79 @@ int main(int argc, char** argv ) {
 
     std::cout << "\n ------------------------------------- " << std::endl;
     Mesh Kh(nx, ny, 0., 0., 1., 1.);
+    // Kh.info();
     const R hi = 1./(nx-1);
-    const R penaltyParam = 1e2/hi;
-    const R sigma = 1e1;
+    const R penaltyParam = 4e3/hi;
+    const R sigma = 1e-1;
     double uPenParam = 1e0;
     double pPenParam = 1e0;
     double jumpParam = 1e0;
+    double kappa1 = 0.5;//mu(1)/(mu(0)+mu(1));
+    double kappa2 = 0.5;//mu(0)/(mu(0)+mu(1));
 
 
     Space Lh(Kh, DataFE<Mesh2>::P1);
     Fun_h levelSet(Lh, fun_levelSet);
     InterfaceLevelSet<Mesh> interface(Kh, levelSet);
 
-
-    Lagrange2 FEvelocity(2);
+    Lagrange2 FEvelocity(3);
     Space UUh(Kh, FEvelocity);
-    Space RRh(Kh, DataFE<Mesh>::P2);
+    LagrangeDC2 FErho(1);
+    Space SSh(Kh, FErho);
+    // Space RRh(Kh, DataFE<Mesh>::P2);
 
 
     Space Wh(Kh, DataFE<Mesh2>::RT1); // REMOVE KhESE TWO LATER
     // Space Wh(Kh, FEvelocity);
     Space Qh(Kh, DataFE<Mesh2>::P1dc); // FOR MIXEDSPACE
+    Space PP2h(Kh, DataFE<Mesh2>::P2); // FOR MIXEDSPACE
+    Space Sh(Kh, SSh); // FOR MIXEDSPACE
+
+
 
     ActiveMesh<Mesh> Khi(Kh);//, interface);
     Khi.truncate(interface, 1);
+    Khi.info();
+
     CutSpace Vh(Khi, Wh);
     CutSpace Ph(Khi, Qh);
+    CutSpace P2h(Khi, PP2h);
 
     CutSpace Uh(Khi, UUh);
-    CutSpace Rh(Khi, RRh);
+    CutSpace Rh(Khi, Sh);
 
     Fun_h fh(Uh, fun_rhs); // interpolates fun_rhs to fh of type Fun_h
     Fun_h gh(Uh, fun_exact_u);
-    Fun_h exactph(Rh, fun_exact_p); ExpressionFunFEM<Mesh> exactp(exactph,0,op_id);
+    Fun_h exactph(P2h, fun_exact_p); ExpressionFunFEM<Mesh> exactp(exactph,0,op_id);
     // Fun_h gh(Qh, fun_div); // THIS IS IF div u != 0
 
-    CutFEM<Mesh2> stokes(Vh); stokes.add(Ph);
+    // ProblemOption optionProblem;
+    // optionProblem.order_space_element_quadrature_ = 9;
+    // optionProblem.order_space_bord_quadrature_ = 9;
+    CutFEM<Mesh2> stokes(Vh); stokes.add(Ph);stokes.add(Rh);
 
     Normal n;
     Tangent t;
     /* Syntax:
     FunTest (fem space, #components, place in space)
     */
-    FunTest u(Vh,2,0), p(Ph,1,0), v(Vh,2,0), q(Ph,1,0);
-
-    R mu = 1;
+    FunTest u(Vh,2,0), p(Ph,1,0), v(Vh,2,0), q(Ph,1,0), r(Rh,2,0), w(Rh,2,0);
+    R mu = 0.5;
     // a_h(u,v)
     stokes.addBilinear(
-      contractProduct(mu*grad(u),grad(v))
-      // contractProduct(2*mu*Eps(u),Eps(v))
+      // contractProduct(mu*grad(u),grad(v))
+      contractProduct(2*mu*Eps(u),Eps(v))
+      // - innerProduct(p,div(v))
+      // + innerProduct(div(u),q)
+      , Khi
+    );
+
+    stokes.addBilinear(
       - innerProduct(p,div(v))
       + innerProduct(div(u),q)
       , Khi
+      , INTEGRAL_EXTENSION
+      , 1.
     );
 
     stokes.addLinear(
@@ -1285,74 +1327,99 @@ int main(int argc, char** argv ) {
       , Khi
     );
 
-    // Sets uniqueness of the pressure
-    R meanP = 0.;//integral(Khi,exactp,0);
-    stokes.addLagrangeMultiplier(
-      innerProduct(1.,p), meanP
-      , Khi
-    );
+
 
     // [NECESSARY FOR RT / BDM ELEMENTS]
+    // stokes.addBilinear(
+    //   - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
+    //   + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
+    //   + innerProduct(1./hi*(sigma*jump(u*t)), jump(v*t))
+    //   , Khi
+    //   , INTEGRAL_INNER_EDGE_2D
+    // );
     stokes.addBilinear(
-      - innerProduct(average(grad(u*t)*n,0.5,0.5), jump(v*t))
-      + innerProduct(jump(u*t), average(grad(v*t)*n,0.5,0.5))
-      + innerProduct(1./hi*(sigma*jump(u*t)), jump(v*t))
+      - innerProduct(average(2*mu*Eps(u)*t*n,kappa1,kappa2), jump(v*t))
+      + innerProduct(jump(u*t), average(2*mu*Eps(v)*t*n,kappa1,kappa2))
+      + innerProduct(1./hi*(jump(u*t)), jump(v*t))
       , Khi
-      , innerFacet
+      , INTEGRAL_INNER_EDGE_2D
     );
 
-    // stokes.addBilinear(
-    //   innerProduct(jump(u), -2*mu*average(Eps(v)*n, 0.5,0.5))
-    //   + innerProduct(-2*mu*average(Eps(u)*n,0.5,0.5), jump(v))
-    //   + innerProduct(10*jump(u), jump(v))
-    //   + innerProduct(average(p,0.5,0.5), jump(v*n))
-    //   - innerProduct(jump(u*n), average(q,0.5,0.5))
+
+    stokes.addBilinear(
+      // - innerProduct(grad(u)*n, v)  //natural
+      // + innerProduct(p, v*n)  // natural
+      + innerProduct(r, v)
+      - innerProduct(u, w)
+      // + innerProduct(u, grad(v)*n)
+      // + innerProduct(penaltyParam*u, v)
+
+      // - innerProduct(2*mu*Eps(u)*n, v)  //natural
+      // + innerProduct(p, v*n)  // natural
+      //
+      // + innerProduct(u, 2*mu*Eps(v)*n)
+      // + innerProduct(penaltyParam*u, v)
+      , interface
+    );
+    // stokes.addLinear(
+    // //   // + innerProduct(gh.expression(2), grad(v)*n)
+    // //   + innerProduct(gh.expression(2), 2*mu*Eps(v)*n)
+    //   + innerProduct(gh.expression(2), penaltyParam*v)
+    //
     //   , interface
     // );
 
-    stokes.addBilinear(
-      - innerProduct(grad(u)*n, v)  //natural
-      + innerProduct(u, grad(v)*n)
-      + innerProduct(penaltyParam*u, v)
 
-      + innerProduct(p, v*n)  // natural
-      // - innerProduct(u*n, q)
-      // , Khi
-      , interface
-    );
-    stokes.addLinear(
-      + innerProduct(gh.expression(2), grad(v)*n)
-      + innerProduct(gh.expression(2), penaltyParam*v)
-
-      // - innerProduct(gh.expression(2), q*n)
-      // , Khi
-      , interface
-    );
 
 
     FunTest grad2un = grad(grad(u)*n)*n;
     // FunTest grad2pn = grad(grad(p)*n)*n;
     // FunTest grad2divun = grad(grad(div(u))*n)*n;
     stokes.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
-    //  innerProduct(uPenParam*pow(hi,-1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
-    // +innerProduct(uPenParam*pow(hi,1)*jump(grad(u)*n), jump(grad(v)*n))
-    // +innerProduct(uPenParam*pow(hi,3)*jump(grad2un), jump(grad2un))
-    // +innerProduct(pPenParam*pow(hi,1)*jump(p), jump(q))
-    // +innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(q)))
+    // //  innerProduct(uPenParam*pow(hi,-1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
+    // // +innerProduct(uPenParam*pow(hi,1)*jump(grad(u)*n), jump(grad(v)*n))
+    // // +innerProduct(uPenParam*pow(hi,3)*jump(grad2un), jump(grad2un))
+    // // +innerProduct(pPenParam*pow(hi,1)*jump(p), jump(q))
+    // // +innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(q)))
+    //
+    // +innerProduct(uPenParam*hi*jump(u), jump(v)) // [Method 1: Remove jump in vel]
+    // +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), jump(grad(v)*n))
+    // // +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
+    //
+    // -innerProduct(pPenParam*hi*jump(p), jump(div(v)))
+    // +innerProduct(pPenParam*hi*jump(div(u)), jump(q))
+    // -innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(div(v))))
+    // +innerProduct(pPenParam*pow(hi,3)*jump(grad(div(v))) , jump(grad(q)))
+    //
+    // // -innerProduct(pPenParam*pow(hi,5)*jump(grad2pn), jump(grad2divun))
+    // // +innerProduct(pPenParam*pow(hi,5)*jump(grad2divun) , jump(grad2pn))
+    //
+    //
+    +innerProduct(uPenParam*hi*jump(r), jump(w)) // [Method 1: Remove jump in vel]
 
-    +innerProduct(uPenParam*hi*jump(u), jump(v)) // [Method 1: Remove jump in vel]
-    +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), jump(grad(v)*n))
-    +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
-    -innerProduct(pPenParam*hi*jump(p), jump(div(v)))
-    +innerProduct(pPenParam*hi*jump(div(u)), jump(q))
-    -innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(div(v))))
-    +innerProduct(pPenParam*pow(hi,3)*jump(grad(div(v))) , jump(grad(q)))
-    // -innerProduct(pPenParam*pow(hi,5)*jump(grad2pn), jump(grad2divun))
-    // +innerProduct(pPenParam*pow(hi,5)*jump(grad2divun) , jump(grad2pn))
     , Khi
     // , macro
     );
 
+    // Sets uniqueness of the pressure
+    R meanP = integral(Khi,exactp,0);
+    // std::cout << meanP << std::endl;
+    // stokes.addLagrangeMultiplier(
+    //   innerProduct(1.,p), meanP
+    //   , Khi
+    // );
+
+    // matlab::Export(stokes.mat_, "mat0.dat");
+
+    // std::cout << stokes.get_nb_dof() << std::endl;
+    stokes.removeDofForHansbo(Rh);
+    // matlab::Export(stokes.mat_, "mat1.dat");
+    // getchar();
+
+    // stokes.addLagrangeMultiplier(
+    //   innerProduct(1.,p), meanP
+    //   , Khi
+    // );
     // std::cout << integral(Khi,exactp,0) << std::endl;
 
     stokes.solve();
@@ -1375,7 +1442,7 @@ int main(int argc, char** argv ) {
       // Fun_h divSolh(Wh, fun_div);
       // ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
 
-      Paraview<Mesh> writer(Khi, "stokes_"+to_string(i)+".vtk");
+      Paraview<Mesh> writer(Khi, "stokesFictitious_"+to_string(i)+".vtk");
       writer.add(uh, "velocity" , 0, 2);
       writer.add(ph, "pressure" , 0, 1);
       writer.add(femSol_0dx+femSol_1dy, "divergence");
@@ -1481,8 +1548,8 @@ int main(int argc, char** argv ) {
   const double cpubegin = CPUtime();
   MPIcf cfMPI(argc,argv);
 
-  int nx = 40;
-  int ny = 40;
+  int nx = 20;
+  int ny = 20;
   // int d = 2;
 
   ProblemOption optionStokes;
@@ -1490,7 +1557,7 @@ int main(int argc, char** argv ) {
 
   vector<double> ul2, pl2, divmax, divl2, h, convu, convp;
 
-  for(int i=0;i<1;++i) { // i<3
+  for(int i=0;i<3;++i) { // i<3
 
     std::cout << "\n ------------------------------------- " << std::endl;
     Mesh Kh(nx, ny, -3., -2., 6., 4.);
@@ -1565,7 +1632,7 @@ int main(int argc, char** argv ) {
       + innerProduct(jump(u*t), average(2*mu*Eps(v)*t*n,kappa1,kappa2))
       + innerProduct(1./hi*(jump(u*t)), jump(v*t))
       , Khi
-      , innerFacet
+      , INTEGRAL_INNER_EDGE_2D
     );
     stokes.addBilinear(
       innerProduct(jump(u), -2*mu*average(Eps(v)*n, kappa1,kappa2))
@@ -1595,7 +1662,7 @@ int main(int argc, char** argv ) {
       + innerProduct(penaltyParam*u, v)
       // - innerProduct(u*n, q)  // essential
       , Khi
-      , boundary
+      , INTEGRAL_BOUNDARY
       , {1,3}
     );
     stokes.addBilinear(
@@ -1605,25 +1672,31 @@ int main(int argc, char** argv ) {
       // + innerProduct(penaltyParam*u, v)
       // - innerProduct(u*n, q)  // essential
       , Khi
-      , boundary
-      , {2,4}
+      , INTEGRAL_BOUNDARY
+      , {4}
     );
+    // stokes.addBilinear(
+    //   - innerProduct(2*mu*Eps(u)*n, v)  //natural
+    //   // + innerProduct(u, 2*mu*Eps(v)*n)
+    //   // + innerProduct(p, v*n)  // natural
+    //   // + innerProduct(penaltyParam*u, v)
+    //   // - innerProduct(u*n, q)  // essential
+    //   , Khi
+    //   , INTEGRAL_BOUNDARY
+    //   , {2}
+    // );
     stokes.addLinear(
       innerProduct(1, v*n)  // natural
-
-      // + innerProduct(gh.expression(2), penaltyParam*v)
-      // + innerProduct(gh.expression(2), 2*mu*Eps(v)*n)
-      // - innerProduct(gh.expression(2), q*n)
       , Khi
-      , boundary
+      , INTEGRAL_BOUNDARY
       ,{4}
     );
-    stokes.addLinear(
-      innerProduct(-1, v*n)  // natural
-      , Khi
-      , boundary
-      ,{2}
-    );
+    // stokes.addLinear(
+    //   innerProduct(-1, v*n)  // natural
+    //   , Khi
+    //   , INTEGRAL_BOUNDARY
+    //   ,{2}
+    // );
 
     // l(v)_Omega
     // stokes.addLinear(
@@ -1636,15 +1709,15 @@ int main(int argc, char** argv ) {
      innerProduct(uPenParam*pow(hi,1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
     +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), jump(grad(v)*n))
     +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
-    +innerProduct(pPenParam*pow(hi,1)*jump(p), jump(q))
-    +innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(q)))
+    // +innerProduct(pPenParam*pow(hi,1)*jump(p), jump(q))
+    // +innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(q)))
 
     // +innerProduct(uPenParam*pow(hi,1)*jump(u), mu*jump(v)) // [Method 1: Remove jump in vel]
     // +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), mu*jump(grad(v)*n))
     // +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
 
-    // -innerProduct(pPenParam*hi*jump(p), (1./mu)*jump(div(v)))
-    // +innerProduct(pPenParam*hi*jump(div(u)), (1./mu)*jump(q))
+    -innerProduct(pPenParam*hi*jump(p), jump(div(v)))
+    +innerProduct(pPenParam*hi*jump(div(u)), jump(q))
     // -innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), (1./mu)*jump(grad(div(v))))
     // +innerProduct(pPenParam*pow(hi,3)*jump(grad(div(u))) , (1./mu)*jump(grad(q)))
 

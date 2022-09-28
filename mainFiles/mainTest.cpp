@@ -7,19 +7,177 @@
 #ifdef USE_MPI
 #  include "cfmpi.hpp"
 #endif
-
-// #include "baseCutProblem.hpp"
-// #include "levelSet.hpp"
-// #include "extension.cpp"
-// #include "../num/gnuplot.hpp"
 #include "interface_levelSet.hpp"
 #include "cut_mesh.hpp"
 #include "baseProblem.hpp"
 #include "paraview.hpp"
+#include <unordered_map>
+#include "omp.h"
 
 #include "../num/matlab.hpp"
-#define TEST_2D
+#define TEST_PERFORMANCE_ASSEMBLY
 
+
+#ifdef TEST_PERFORMANCE_ASSEMBLY
+
+
+struct hash_pair {
+    template <class T1, class T2>
+    std::size_t operator() (const std::pair<T1, T2> &pair) const {
+        return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+    }
+};
+
+typedef Mesh2 Mesh;
+typedef ActiveMeshT2 CutMesh;
+typedef FESpace2       Space;
+typedef CutFESpaceT2 CutSpace;
+typedef typename Space::FElement FElement;
+typedef FunFEM<Mesh> Fun_h;
+typedef TestFunction<2> FunTest;
+
+int main(int argc, char** argv ){
+
+  MPIcf cfMPI(argc,argv);
+
+
+  Mesh Th(200, 200, 0., 0., 1., 1.);
+  // FESpace2 Vh(Th, DataFE<Mesh2>::P1);
+  Lagrange2 FEu(2);
+  Space Vh(Th, FEu);
+  Mesh1 Qh(2, 0, 1);
+  FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+  const TimeSlab& In(Ih[0]);
+
+  FunTest u(Vh,2), v(Vh,2);
+  ListItemVF<2> kernel = contractProduct(Eps(u),Eps(v));
+  // std::cout << kernel << std::endl;
+
+
+  // std::map<std::pair<int,int>, double> A;
+  // std::map<std::pair<int,int>, double> B0;
+  // std::map<std::pair<int,int>, double> B1;
+  // std::map<std::pair<int,int>, double> B2;
+  // std::map<std::pair<int,int>, double> B3;
+  // std::map<std::pair<int,int>, double> *A;
+
+  int thread_count = 2;
+  cout << "Threads: ";
+  cin >> thread_count;
+  MPIcf::Bcast(thread_count, MPIcf::Master(), 1);
+  std::unordered_map<std::pair<int,int>, double,hash_pair> A[thread_count];
+
+  // std::map<std::pair<int,int>, double> A[thread_count];
+
+
+  // progress bar0("Build sparsity", Th.last_element());
+  //
+  // for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+  //   bar0 += Th.next_element();
+  //
+  //   const FElement& FK(Vh[k]);
+  //
+  //   for(int l=0;l<Vh.N;++l){
+  //
+  //     // if(it==0 && jt == 0) A = &B0;
+  //     // else if(it==0 && jt == 1) A = &B1;
+  //     // else if(it==1 && jt == 0) A = &B2;
+  //     // else A = &B3;
+  //     for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {
+  //       for(int jt=In.dfcbegin(0); jt<In.dfcend(0); ++jt) {
+  //         for(int i = FK.dfcbegin(l); i < FK.dfcend(l); ++i) {
+  //           for(int j = FK.dfcbegin(l); j < FK.dfcend(l); ++j) {
+  //             // (*A)[std::make_pair(FK.loc2glb(i),FK.loc2glb(j))] = 0;
+  //             for(int ii=1;ii<thread_count;++ii){
+  //
+  //               A[ii][std::make_pair(FK.loc2glb(i, it),FK.loc2glb(j, jt))] = 0;
+  //
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+  // bar0.end();
+
+
+
+  omp_set_num_threads(thread_count);
+  // #pragma omp parallel for
+// #pragma omp parallel
+double t0 = MPIcf::Wtime();
+
+    int iam = 0, np = 1;
+    // #pragma omp parallel
+    // omp_set_num_threads(2);
+#pragma omp parallel default(shared) private(iam, np)
+{
+  np = omp_get_num_threads();
+  iam = omp_get_thread_num();
+  // printf("Hello from thread %d out of %d from process %d out of %d \n",
+  // iam, np, MPIcf::my_rank(), MPIcf::size());
+// #pragma omp  for private(index_i0, index_j0)
+//default(shared)
+// std::map<std::pair<int,int>, double> A;
+progress bar("Add Bilinear Mesh", Th.last_element()/thread_count);
+
+  // private(index_i0, index_j0), firstprivate(localContributionMatrix)
+  #pragma omp for
+  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+    bar += Th.next_element();
+
+    // printf("Hello from thread %d out of %d from process %d out of %d \n",
+    // iam, np, MPIcf::my_rank(), MPIcf::size());
+
+    // printf("thread %d do element %d \n",iam, k);
+
+    const FElement& FK(Vh[k]);
+
+    for(int l=0;l<kernel.size();++l){
+
+      // for(int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
+      //   for(int j = FK.dfcbegin(0); j < FK.dfcend(0); ++j) {
+      //     A[std::make_pair(FK.loc2glb(i),FK.loc2glb(j))] +=  i*j;
+      //   }
+      // }
+
+      for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {
+        for(int jt=In.dfcbegin(0); jt<In.dfcend(0); ++jt) {
+          for(int i = FK.dfcbegin(kernel[l].cv); i < FK.dfcend(kernel[l].cv); ++i) {
+            for(int j = FK.dfcbegin(kernel[l].cu); j < FK.dfcend(kernel[l].cu); ++j) {
+// #pragma omp critical
+              (A[iam])[std::make_pair(FK.loc2glb(i, it),FK.loc2glb(j, jt))] += i*j;
+              // (*A)[std::make_pair(FK.loc2glb(i),FK.loc2glb(j))] += i*j;
+              // B[it][jt][std::make_pair(FK.loc2glb(i),FK.loc2glb(j))] += i*j;
+
+            }
+          }
+        }
+      }
+    }
+  }
+bar.end();
+}
+std::cout << " real time " << MPIcf::Wtime() - t0 << std::endl;
+// std::cout << A[0].size() << std::endl;
+
+// matlab::Export(A[0], "mat0.dat");
+// std::map<std::pair<int,int>, double> B = A[0];
+std::map<std::pair<int,int>, double> B;
+double tt0 = MPIcf::Wtime();
+for(int i=0;i<thread_count;++i){
+  for(const auto& it : A[i]) {
+    B[it.first] += it.second;
+  }
+}
+std::cout << " time finalizing " << MPIcf::Wtime() - tt0 << std::endl;
+
+// matlab::Export(A[0], "mat1.dat");
+  return 0;
+}
+
+#endif
 
 
 #ifdef TEST_2D
@@ -28,10 +186,32 @@ R fun_div0(const R2 P,const int i, int d) {return (i==0)?4*sin(P[0]):4*cos(P[1])
 R fdiv(const R2 P,const int i, int d) {return 4*cos(P[0]) - 4*sin(P[1]);}
 
 
-R fun_levelSet(const R2 P, const int i) {
-  double x=P.x, y=P.y;
-  return 0.5*(sqrt(x*x + y*y) -0.1*cos(5*atan2(y,x)+2) - 0.25);
+// R fun_levelSet(const R2 P, const int i) {
+//   double x=P.x, y=P.y;
+//   // return 0.5*(sqrt(x*x + y*y) -0.1*cos(5*atan2(y,x)+2) - 0.25);
+//   return x - 0.25;
+// }
+// R fun_levelSet(const R2 P, const int i, const double t) {
+//   double x=P.x, y=P.y;
+//
+//   return x - 0.25 - t;
+// }
+double fun_levelSet(const R2 P, const int i, const R t) {
+    R xc = 0.5 + 0.28*sin(M_PI*t), yc = 0.5 - 0.28*cos(M_PI*t);
+    return sqrt((P.x-0.5)*(P.x-0.5) + (P.y-0.22)*(P.y-0.22)) - 0.17;
+
+    // return sqrt((P.x - xc)*(P.x - xc) + (P.y - yc)*(P.y - yc)) - 0.17;
 }
+
+// Level-set function initial
+double fun_levelSet(const R2 P, const int i) {
+    return sqrt((P.x-0.5)*(P.x-0.5) + (P.y-0.22)*(P.y-0.22)) - 0.17;
+}
+R fun_velocity(const R2 P, const int i) {
+    if (i == 0) return M_PI*(0.5-P.y);
+    else return M_PI*(P.x-0.5);
+}
+
 
 R fun_levelSet2_1(const R2 P, const int i) {
   R shiftX = 0.5;
@@ -110,19 +290,76 @@ int main(int argc, char** argv ){
   MPIcf cfMPI(argc,argv);
 
   // Mesh Th(14, 14, 0., 0., 1., 1.);
-  Mesh Th(50, 50, 0., 0., 1., 1.);
-
+  Mesh Th(10, 10, 0., 0., 1., 1.);
   Th.info();
+  double h = 1. / 10;
+  double dt = h / 3;
+  int Nt = (int) (0.25 / dt);
+  Mesh1 Qh(Nt,0,0.25);  FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+  dt = 0.25 / Nt;
+  const QuadratureFormular1d& qTime(*Lobatto(3));
+  TimeInterface<Mesh> interface(qTime);
+  std::cout << dt << std::endl;
+
+  Lagrange2 FEvelocity(2);
+  FESpace2 VelVh(Th, FEvelocity);
+  Fun_h vel(VelVh, fun_velocity);
+  Normal N;
+
+
+  FESpace2 Lh(Th, DataFE<Mesh2>::P1);
+  const Uint nbTime = qTime.n;
+  const TimeSlab& In(Ih[0]);
+  vector<Fun_h> ls(nbTime);
+  for (int i=0; i<nbTime; i++) {
+    R tt = In.Pt(R1(qTime(i).x));
+    ls[i].init(Lh, fun_levelSet, tt);
+    interface.init(i, Th, ls[i]);
+  }
+
+
+//
+// return 0;
+
+  CutFEM<Mesh> convdiff(qTime);
+
+  ActiveMesh<Mesh> Kh2(Th);
+  Kh2.truncate(interface, 1);
+
+
+  // Paraview<Mesh> writer(Kh2, "test_mesh.vtk");
+  // writer.add(ls[0], "ls0", 0, 1);
+  // writer.add(ls[1], "ls1", 0, 1);
+  // writer.add(ls[2], "ls2", 0, 1);
+
+  FESpace2 Vh(Th, DataFE<Mesh>::P1dc);
+  CutSpace Wh(Kh2, Vh);
+  Wh.info();
+
+
+
+  convdiff.initSpace(Wh, In);
+  double kappaTilde2 = 1;
+  FunTest u(Wh, 1), v(Wh, 1);
+  convdiff.addBilinear(
+    innerProduct((vel*N)*u, kappaTilde2*v)
+      , interface
+      , In
+  );
+
+  matlab::Export(convdiff.mat_, "mat0.dat");
+
+
   // Space Vh(Th, DataFE<Mesh2>::P1);
   // FEM<Mesh2> problem(Vh);
   // FunTest u(Vh,1), v(Vh,1);
 
 
-  Space Lh(Th, DataFE<Mesh>::P1);
-  Fun_h levelSet1(Lh, fun_levelSet2_1);
-
-  Fun_h levelSet_t0(Lh, fun_levelSet_t0);
-  Fun_h levelSet_t1(Lh, fun_levelSet_t1);
+  // Space Lh(Th, DataFE<Mesh>::P1);
+  // Fun_h levelSet1(Lh, fun_levelSet2_1);
+  //
+  // Fun_h levelSet_t0(Lh, fun_levelSet_t0);
+  // Fun_h levelSet_t1(Lh, fun_levelSet_t1);
 
   // Fun_h levelSet4(Lh, fun_levelSet2_4);
 
@@ -130,7 +367,7 @@ int main(int argc, char** argv ){
   // ls(0).init(Lh, fun_levelSet);
   // ls(1).init(Lh, fun_levelSet2_2);
 
-  InterfaceLevelSet<Mesh> interface1(Th, levelSet1);
+  // InterfaceLevelSet<Mesh> interface1(Th, levelSet1);
   // Interface_LevelSet<Mesh> interface2(Th, levelSet2);
   // Interface_LevelSet<Mesh> interface3(Th, levelSet3);
   // Interface_LevelSet<Mesh> interface4(Th, levelSet4);
@@ -139,18 +376,18 @@ int main(int argc, char** argv ){
   // ls(1) = &interface2;
 
 
-  TimeInterface<Mesh> interface(2);
-  interface.init(0,Th, levelSet_t0);
-  interface.init(1,Th, levelSet_t1);
+  // TimeInterface<Mesh> interface(2);
+  // interface.init(0,Th, levelSet_t0);
+  // interface.init(1,Th, levelSet_t1);
 
 
 
-  ActiveMesh<Mesh> Kh0(Th);
-  Kh0.createSurfaceMesh(interface);
-  ActiveMesh<Mesh> Kh1(Th);
-  Kh1.truncate(interface, -1);
-  ActiveMesh<Mesh> Kh2(Th);
-  Kh2.truncate(interface, 1);
+  // ActiveMesh<Mesh> Kh0(Th);
+  // Kh0.createSurfaceMesh(interface);
+  // ActiveMesh<Mesh> Kh1(Th);
+  // Kh1.truncate(interface, -1);
+  // ActiveMesh<Mesh> Kh2(Th);
+  // Kh2.truncate(interface, 1);
 
 
   // MacroElement<Mesh> macro1(Kh1, 0.2);
@@ -226,10 +463,10 @@ int main(int argc, char** argv ){
   // writer.writeNonStabMesh(macro_surface, "nonStab_maxro_element0.vtk");
   //
 
-  Paraview<Mesh> writer(Th, "backMesh_smooth.vtk");
-  writer.add(levelSet_t0, "levelSet1", 0, 1);
-  writer.add(levelSet_t1, "levelSet2", 0, 1);
-  writer.add(levelSet1  , "levelSet", 0, 1);
+  // Paraview<Mesh> writer(Th, "backMesh_smooth.vtk");
+  // writer.add(levelSet_t0, "levelSet1", 0, 1);
+  // writer.add(levelSet_t1, "levelSet2", 0, 1);
+  // writer.add(levelSet1  , "levelSet", 0, 1);
   // writer.add(levelSet3, "levelSet3", 0, 1);
   // writer.add(levelSet4, "levelSet4", 0, 1);
 

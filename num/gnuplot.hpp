@@ -157,27 +157,27 @@ namespace gnuplot {
 
 
 
-  void save(const Marker& marker, std::string filename = "marker.dat") {
-
-    std::ofstream plot;
-    plot.open(filename.c_str(), std::ofstream::out);
-    for(int k=0; k<marker.size();++k) {
-      plot << marker.get_marker(k) << std::endl;
-    }
-    plot.close();
-
-    // plot.open("node.dat", std::ofstream::out);
-    // const int nve = 2;
-    // for(int k=0; k<marker.nbElement();++k) {
-    //   for(int i=0;i<nve;++i) {
-    // 	plot << marker(k,i) << std::endl;
-    //   }
-    //   plot << std::endl;
-    //   plot << std::endl;
-    // }
-    // plot.close();
-
-  }
+  // void save(const Marker& marker, std::string filename = "marker.dat") {
+  //
+  //   std::ofstream plot;
+  //   plot.open(filename.c_str(), std::ofstream::out);
+  //   for(int k=0; k<marker.size();++k) {
+  //     plot << marker.get_marker(k) << std::endl;
+  //   }
+  //   plot.close();
+  //
+  //   // plot.open("node.dat", std::ofstream::out);
+  //   // const int nve = 2;
+  //   // for(int k=0; k<marker.nbElement();++k) {
+  //   //   for(int i=0;i<nve;++i) {
+  //   // 	plot << marker(k,i) << std::endl;
+  //   //   }
+  //   //   plot << std::endl;
+  //   //   plot << std::endl;
+  //   // }
+  //   // plot.close();
+  //
+  // }
 
   // void saveNormal(const Marker & marker, std::string filename = "normal.dat") {
   //   std::ofstream plot;
