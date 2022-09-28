@@ -736,7 +736,7 @@ ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*>
     for(int j=0;j<F.A.M();++j){
       for(int ui=0;ui<F.A(i,j)->size();++ui) {
         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c,0,-1,v.cu,v.du,0,v.ar_nu);
+        item(k) = ItemVF<d>( v.c,i,-1,v.cu,v.du,0,v.ar_nu);
         item(k).face_sideU_ = v.face_side_;
         item(k).face_sideV_ = v.face_side_;
         item(k).domainU_id_ = v.domain_id_;

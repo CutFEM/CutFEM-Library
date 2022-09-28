@@ -68,13 +68,17 @@ DONE ** 57) should give a mesh in addIntegralFunction so it is clear where we in
     mixt terms are being used ...
 58) the rhs in problem should be private. BIG TROUBLE IF POINTING ON IT BEFORE IT IS RESIZE BY LAGRANGE MULTIPLIER eg
 59) Change ls to an struct eval coming from the interface representation or maybe just create and save the nodes
-60) remove whichDomain + other function renamed
+DONE ** 60) remove whichDomain + other function renamed
 61) change Rd::Khat from dataStuct to Rd.hpp files
 62) add   R2 toReferenceElement(const R1& P, int i) const; and other for quad and hexa
-62) remove doublon dans datastruct files
+62) remove doublons dans datastruct files
 DONE ** 63) add domain_id in itemVF and fixe onDomain in the integration function and on interface integrals
 64) Update gnuplot file with new classes
 65) Fixe general norm file with new classes
 66) Fixe normsFun function
 67) Connect In to testFunction so when we need to integrate only in space a time dependent
     function we don't need to give the time slab otherwise it becomes very confusing.
+68) try to study and add class Sparsity to speed up assembly.
+69) template the ExpressionVirtual to get the Space. Need it to give it to itemVF when
+having (fh, [v]) is fh is define on a different mesh/space as v. Right now fespaceU point
+to the space of v. Bug! The fix is realy bad right now. Check getIdxFromBackMesh in CutMEsh class.

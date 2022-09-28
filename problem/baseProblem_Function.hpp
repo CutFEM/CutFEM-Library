@@ -16,6 +16,8 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const TimeSlab& In, const
       for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
         for(int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
           this->addToLocalContribution(FKv.loc2glb(i, it),FKu.loc2glb(j, jt)) +=  Cint * tval * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
+          // double aa =  Cint * tval * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
+          // this->testMat_[std::make_pair(FKv.loc2glb(i, it),FKu.loc2glb(j, jt))] += i*j;
         }
       }
     }
@@ -46,6 +48,15 @@ void BaseFEM<M>::addToMatrix_Opt(const ItemVF<Rd::d>& VFi, const FElement& FK, c
     }
   }
 }
+// template<typename M>
+// void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint, int id_thread) {
+//
+//   for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
+//     for(int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
+//       this->addLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j), id_thread) +=  Cint * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
+//     }
+//   }
+// }
 
 template<typename M>
 void BaseFEM<M>::addToRHS(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint) {
@@ -92,7 +103,7 @@ void BaseFEM<M>::setDiagonal(const FESpace& Qh, double val){
 template<typename Mesh>
 void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th) {
   assert(!VF.isRHS());
-  progress bar("Add Bilinear Mesh", Th.last_element());
+  progress bar("Add Bilinear Mesh", Th.last_element(), globalVariable::verbose);
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
     bar += Th.next_element();
@@ -105,7 +116,7 @@ void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th) {
 template<typename Mesh>
 void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th) {
   assert(VF.isRHS());
-  progress bar("Add Linear Mesh", Th.last_element());
+  progress bar("Add Linear Mesh", Th.last_element(), globalVariable::verbose);
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
     bar += Th.next_element();
@@ -130,6 +141,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
   double h    = K.get_h();
   int domain  = FK.get_domain();
   int kb      = Vh.idxElementInBackMesh(k);
+  // int iam = omp_get_thread_num();
 
   // GET THE QUADRATURE RULE
   const QF& qf(this->get_quadrature_formular_K());
@@ -145,13 +157,16 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
     const FESpace& Vhu(VF.get_spaceU(l));
     const FElement& FKv(Vhv[k]);
     const FElement& FKu(Vhu[k]);
-    this->initIndex(FKu, FKv);
+    this->initIndex(FKu, FKv);//, iam);
 
     // BF MEMORY MANAGEMENT -
     bool same = (&Vhu == &Vhv);
     int lastop = getLastop(VF[l].du, VF[l].dv);
     RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
     RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
+    // long offset = iam*this->offset_bf_;
+    // RNMK_ fv(this->databf_+offset,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+    // RNMK_ fu(this->databf_+offset+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
     What_d Fop = Fwhatd(lastop);
 
     // COMPUTE COEFFICIENT
@@ -178,7 +193,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
       }
       else {
         if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
-        else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+        else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);//, iam);
       }
     }
   }
@@ -383,7 +398,7 @@ template<typename Mesh>
 void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CBorder& b,list<int> label) {
   assert(!VF.isRHS());
   bool all_label = (label.size() == 0);
-  progress bar("Add Bilinear border", Th.last_boundary_element());
+  progress bar("Add Bilinear border", Th.last_boundary_element(), globalVariable::verbose);
 
   for(int idx_be=Th.first_boundary_element(); idx_be<Th.last_boundary_element(); idx_be+= Th.next_boundary_element()) {
     bar += Th.next_boundary_element();
@@ -402,7 +417,7 @@ template<typename Mesh>
 void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const CBorder& b,list<int> label) {
   assert(VF.isRHS());
   bool all_label = (label.size() == 0);
-  progress bar("Add Bilinear border", Th.last_boundary_element());
+  progress bar("Add Bilinear border", Th.last_boundary_element(), globalVariable::verbose);
 
   for(int idx_be=Th.first_boundary_element(); idx_be<Th.last_boundary_element(); idx_be+= Th.next_boundary_element()) {
     bar += Th.next_boundary_element();
@@ -561,7 +576,7 @@ template<typename M>
 void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma,list<int> label) {
   assert(!VF.isRHS());
   bool all_label = (label.size() == 0);
-  progress bar("Add Bilinear Interface", gamma.last_element());
+  progress bar(" Add Bilinear Interface", gamma.last_element(), globalVariable::verbose);
 
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
     const typename Interface<M>::Face& face = gamma[iface];  // the face
@@ -587,8 +602,11 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& ga
   RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
   In.BF(tq.x, bf_time);                  // compute time basic funtions
 
+  std::string title = " Add Bilinear Interface, In("+to_string(itq)+")";
+  progress bar(title.c_str(), gamma.last_element(), globalVariable::verbose);
 
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
+    bar += gamma.next_element();
     const typename Interface<M>::Face& face = gamma[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
@@ -598,7 +616,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& ga
     }
   }
 
-
+  bar.end();
 }
 
 template<typename M>
@@ -620,8 +638,11 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>
   RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
   In.BF(tq.x, bf_time);                  // compute time basic funtions
   double cst_time = tq.a*In.get_measure();
+  std::string title = " Add Bilinear Interface, In("+to_string(itq)+")";
+  progress bar(title.c_str(), gamma[itq]->last_element(), globalVariable::verbose);
 
   for(int iface=gamma[itq]->first_element(); iface<gamma[itq]->last_element(); iface+=gamma[itq]->next_element()) {
+    bar += gamma[itq]->next_element();
     const typename Interface<M>::Face& face = (*gamma[itq])[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
@@ -630,14 +651,14 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>
 
     }
   }
-
+  bar.end();
 }
 
 template<typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma,list<int> label) {
   assert(VF.isRHS());
   bool all_label = (label.size() == 0);
-  progress bar("Add Linear Interface", gamma.last_element());
+  progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
 
   for(int iface=gamma.first_element(); iface<gamma.last_element(); iface+=gamma.next_element()) {
     bar += gamma.next_element();
@@ -756,7 +777,7 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Int
     double coef = VF[l].computeCoefInterface(h,meas,measK,measK,domu, domv) ;
     coef *= VF[l].computeCoefFromNormal(normal);
 
-    // LOOP OVER QUADRATURE IN SPACE
+    // // LOOP OVER QUADRATURE IN SPACE
     for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
 
       typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
@@ -767,8 +788,6 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Int
       // EVALUATE THE BASIS FUNCTIONS
       FKv.BF(Fop,face_ip, fv);
       if(!same) FKu.BF(Fop, face_ip, fu);
-
-
       Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb,kb), std::make_pair(domu, domv), mip, tid, normal);
       Cint *= coef * VF[l].c;
 
@@ -800,14 +819,14 @@ void BaseFEM<Mesh>::addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double va
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
 
-    BaseFEM<Mesh>::addLagrangeContribution(VF, k);
+    BaseFEM<Mesh>::addLagrangeContribution(VF, k, nullptr, 0, 1);
     this->addLocalContributionLagrange(ndf);
   }
 }
 // ADD LAGRANGE contribution
 
 template<typename M>
-void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k) {
+void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k,const TimeSlab* In, int itq, double cst_time) {
 
   // Compute parameter coonected to the mesh.
   // on can take the one from the first test function
@@ -821,7 +840,8 @@ void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int 
 
   // GET THE QUADRATURE RULE
   const QF& qf(this->get_quadrature_formular_K());
-
+  auto tq = this->get_quadrature_time(itq);
+  double tid = (In)? (double)In->map(tq) : 0.;
 
   // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
   for(int l=0; l<VF.size();++l) {
@@ -844,7 +864,7 @@ void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int 
     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
       typename QF::QuadraturePoint ip(qf[ipq]);
       const Rd mip = K.map(ip);
-      double Cint = meas * ip.getWeight();
+      double Cint = meas * ip.getWeight()*cst_time;
       // EVALUATE THE BASIS FUNCTIONS
       FKv.BF(Fop,ip, fv);
       //   VF[l].applyFunNL(fu,fv);
@@ -854,8 +874,12 @@ void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int 
       Cint *= coef * VF[l].c;
 
       // Cint = coef;
-      this->addToMatrix(VF[l], FKv, fv, Cint);
-
+      if( In ){
+        this->addToMatrix(VF[l], *In, FKv, fv, Cint);
+      }
+      else {
+        this->addToMatrix(VF[l], FKv, fv, Cint);
+      }
     }
   }
 }

@@ -332,7 +332,7 @@ public:
   {}
 
   virtual void info() {
-    std::cout << "\n ----- Mesh " << this << " info ----- "<< std::endl;
+    std::cout << " ----- Mesh " << this << " info ----- "<< std::endl;
     std::cout << " nb of nodes            : \t" << nv << std::endl;
     std::cout << " nb of elements         : \t" << nt << std::endl;
     std::cout << " nb of border elements  : \t" << nbe << std::endl;
@@ -372,15 +372,6 @@ public:
   virtual int last_boundary_element() const {return this->nbBrdElmts();}
   #endif
 
-  // #ifdef USE_MPI
-  // int first_element() const { return MPIcf::my_rank();}
-  // int next_element() const {return MPIcf::size();}
-  // #else
-  // int first_element() const { return 0;}
-  // int next_element() const {return 1;}
-  // #endif
-  // int last_element() const { return nt;}
-  // int last_boundary_element() const { return nbe;}
 
   int operator()(const T & tt) const {return CheckT(&tt - elements);}
   int operator()(const T * tt) const {return CheckT(tt - elements);}
@@ -505,6 +496,14 @@ public:
 
   R mesure()const { return mes;}
   R bordermesure()const { return mesb;}
+  double get_mesh_size() const {
+    double hh = 1e300;
+    for(int k=0;k<nt;++k){
+      hh = min((*this)[k].hElement(), hh);
+    }
+    return hh;
+  }
+
   virtual ~GenericMesh() {
     delete [] ElementConteningVertex;
     delete [] TheAdjacencesLink;
@@ -682,7 +681,7 @@ protected:
 
         int kAdj = Th.ElementAdj(k,ii=i);
         int iAdj = (kAdj == -1) ? --nbb : kAdj;
-
+        // std::cout << of << "\t" << nbb << std::endl;
         assert( (of + nbb) >= 0);
         keys[itemCounterInK++] = Key(k+of, iAdj+of);
       }
@@ -751,7 +750,7 @@ public :
   void setData() {
 
     nbElement = builder.Th.nt;
-    of = builder.Th.nv + 10;
+    of = 2*builder.Th.nv;
     builder.nbOfDF=0;
     dofCounter=0;
 

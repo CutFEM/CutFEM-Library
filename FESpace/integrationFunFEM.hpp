@@ -373,61 +373,11 @@ double integral(const ActiveMesh<M>& Th, const double C, int domain, int itq) {
 
 
 
-template<typename M>
-double integral(FunFEM<M>& fh, const Interface<M>& interface, int cu) {
-  return integral(fh, interface, cu, -1);
-}
-template<typename M>
-double integral(FunFEM<M>& fh, const Interface<M>* interface, int cu) {
-  return integral(fh, *interface, cu, -1);
-}
-template<typename M>
-double integral(FunFEM<M>& fh, const Interface<M>& interface, int cu, double t) {
-
-  typedef M Mesh;
-  typedef GFESpace<Mesh> FESpace;
-  typedef typename FESpace::FElement FElement;
-  typedef typename FElement::QFB QFB;
-  typedef typename FElement::Rd Rd;
-  typedef typename QFB::QuadraturePoint QuadraturePoint;
-
-  if(t > -Epsilon && fh.In){
-    assert(fh.In->Pt(0) <=t && t <= fh.In->Pt(1));
-  }
-  if(t < -Epsilon && fh.In) {
-    t = fh.In->Pt(0);
-    std::cout << " Use default value In(0) \t -> " << t << std::endl;
-  }
-
-  const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
-  double val = 0.;
-
-  for(int iface=interface.first_element(); iface<interface.last_element(); iface+=interface.next_element()) {
-    const int kb = interface.idxElementOfFace(iface);   // idx on backMesh
-    const R meas = interface.measure(iface);
-
-    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-
-      QuadraturePoint ip(qfb[ipq]); // integration point
-      const Rd mip = interface.mapToPhysicalFace(iface,(typename FElement::RdHatBord)ip);
-      const R Cint = meas * ip.getWeight();
-
-      val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, cu, 0, 0);
-
-    }
-  }
-
-  double val_receive = 0;
-  MPIcf::AllReduce(val, val_receive, MPI_SUM);
-
-  return val_receive;
-}
 
 
 
 
-
-// Integration on Cut Mesh
+// Integration on Mesh
 // ===============================================================
 
 template<typename Mesh>
@@ -466,7 +416,6 @@ double integral(const Mesh& Th, const ExpressionVirtual& fh, int itq) {
 
   return val_receive;
 }
-
 template<typename Mesh>
 double integral( const Mesh& Th, const FunFEM<Mesh>& fh, int c0) {
   ExpressionFunFEM<Mesh> ui(fh, c0, op_id);
@@ -527,43 +476,93 @@ double integral( const Mesh& Th, const FunFEM<Mesh>& fh, int c0) {
 // }
 //
 
+
+template<typename M>
+double integral(FunFEM<M>& fh, const Interface<M>& interface, int cu) {
+  return integral(fh, interface, cu, -1);
+}
+template<typename M>
+double integral(FunFEM<M>& fh, const Interface<M>* interface, int cu) {
+  return integral(fh, *interface, cu, -1);
+}
+template<typename M>
+double integral(FunFEM<M>& fh, const Interface<M>& interface, int cu, double t) {
+
+  typedef M Mesh;
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename FElement::QFB QFB;
+  typedef typename FElement::Rd Rd;
+  typedef typename QFB::QuadraturePoint QuadraturePoint;
+
+  if(t > -Epsilon && fh.In){
+    assert(fh.In->Pt(0) <=t && t <= fh.In->Pt(1));
+  }
+  if(t < -Epsilon && fh.In) {
+    t = fh.In->Pt(0);
+    std::cout << " Use default value In(0) \t -> " << t << std::endl;
+  }
+
+  const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
+  double val = 0.;
+
+  for(int iface=interface.first_element(); iface<interface.last_element(); iface+=interface.next_element()) {
+    const int kb = interface.idxElementOfFace(iface);   // idx on backMesh
+    const R meas = interface.measure(iface);
+
+    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+
+      QuadraturePoint ip(qfb[ipq]); // integration point
+      const Rd mip = interface.mapToPhysicalFace(iface,(typename FElement::RdHatBord)ip);
+      const R Cint = meas * ip.getWeight();
+
+      val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, cu, 0, 0);
+
+    }
+  }
+
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_SUM);
+
+  return val_receive;
+}
+
 // template<typename M>
-// double integralSurf(const ExpressionVirtual& fh, const GFESpace<M>& Vh, int it = 0, double t = 0.) {
+// double integral(const ExpressionVirtual& fh, const Interface<M>& interface, double t) {
 //
 //   typedef M Mesh;
-//   typedef GenericInterface<Mesh> Interface;
 //   typedef GFESpace<Mesh> FESpace;
 //   typedef typename FESpace::FElement FElement;
 //   typedef typename FElement::QFB QFB;
 //   typedef typename FElement::Rd Rd;
-//   typedef typename Mesh::Partition Partition;
 //   typedef typename QFB::QuadraturePoint QuadraturePoint;
 //
-//   const Interface& interface(Vh.getInterface(it));
-//   const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
+//   if(t > -Epsilon && fh.In){
+//     assert(fh.In->Pt(0) <=t && t <= fh.In->Pt(1));
+//   }
+//   if(t < -Epsilon && fh.In) {
+//     t = fh.In->Pt(0);
+//     std::cout << " Use default value In(0) \t -> " << t << std::endl;
+//   }
 //
-//   What_d Fop = Fwhatd(op_id);
+//   const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
 //   double val = 0.;
 //
 //   for(int iface=interface.first_element(); iface<interface.last_element(); iface+=interface.next_element()) {
-//
 //     const int kb = interface.idxElementOfFace(iface);   // idx on backMesh
-//     const typename Interface::Face& face = interface.getFace(iface);  // the face
-//     const R meas = interface.computeDx(face).norm();
-//
-//     int k = Vh.idxElementFromBackMesh(kb,0);
-//     const FElement& FK(Vh[k]);
+//     const R meas = interface.measure(iface);
 //
 //     for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
 //
 //       QuadraturePoint ip(qfb[ipq]); // integration point
-//       const Rd mip = interface.mapToFace(face,(typename FElement::RdHatBord)ip);
+//       const Rd mip = interface.mapToPhysicalFace(iface,(typename FElement::RdHatBord)ip);
 //       const R Cint = meas * ip.getWeight();
 //
-//       val += Cint * fh.eval(k, mip, t);
+//       val += Cint * fh.evalOnBackMesh(kb, 0, mip, t);
 //
 //     }
 //   }
+//
 //   double val_receive = 0;
 //   MPIcf::AllReduce(val, val_receive, MPI_SUM);
 //

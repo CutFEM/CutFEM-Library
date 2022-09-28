@@ -1,5 +1,6 @@
 
 set(COMMON_SOURCES
+  global.cpp
   libmesh5.c
   GTime.cpp
   dataStruct1D.cpp

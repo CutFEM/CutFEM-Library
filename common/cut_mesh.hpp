@@ -146,6 +146,7 @@ public:
     idx_from_background_mesh_.resize(2);
     nb_quadrature_time_ = interface.size();
     interface_id_.resize(nb_quadrature_time_);
+    in_active_mesh_.resize(10);
     for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
     this->init(interface);
   }
@@ -275,7 +276,7 @@ public:
     else
     return Cut_Part<Element>(this->build_local_partition(k), 0);
   }
-  Cut_Part<typename Element::Face> get_cut_face(Face& face, int k, int ifac, int t = 0) const {
+  Cut_Part<typename Element::Face> get_cut_face(Face& face, int k, int ifac, int t) const {
 
     // BUILD THE FACE
     // In the class mesh the inner faces are not built
@@ -302,7 +303,7 @@ public:
       int ret = idxElementFromBackMesh(k,  d);
       assert(ret != -1);idx.push_back(ret);
       return idx;
-      }
+    }
     for(int i=0;i<get_nb_domain();++i) {
       int ret = idxElementFromBackMesh(k,  i);
       if(ret != -1) idx.push_back(ret);
@@ -327,6 +328,7 @@ public:
   }
   int idxElementFromBackMesh(int k, int i) const {
     if(i==-1) assert(0);
+    if(get_nb_domain() == 1) { i=0;} //fix bug but not satisfying
     auto it = idx_from_background_mesh_[i].find(k);
     if(it ==  idx_from_background_mesh_[i].end()) return -1;
     return idxK_begin(i) + it->second;
@@ -351,7 +353,7 @@ public:
   }
 
   void info() const {
-    std::cout << " ------------------------------- " << std::endl;
+    // std::cout << " ------------------------------- " << std::endl;
     std::cout << " Cut Mesh has  \t" << get_nb_domain() << " domains" << std::endl;
     for(int i=0;i<get_nb_domain();++i) {
       std::cout << " nb elements in \t" << i << " => " << this->get_nb_element(i) << std::endl;

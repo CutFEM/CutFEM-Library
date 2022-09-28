@@ -22,6 +22,7 @@
 #include "../util/cputime.h"
 #include "itemVF.hpp"
 #include "../solver/solver.hpp"
+// #include "omp.h"
 
 
 
@@ -54,7 +55,6 @@ const CExtension INTEGRAL_EXTENSION;
 template<typename Mesh>
 class ShapeOfProblem {
   typedef std::map<std::pair<int,int>,R> Matrix;
-
   typedef typename GFESpace<Mesh>::FElement FElement;
 
 public:
@@ -65,6 +65,12 @@ public:
   // matrix is on a std::map form
   Matrix mat_;
 
+  // For openmp;
+  int thread_count_max_ = 1;
+  // std::vector<Matrix> openmp_mat_;
+  // std::vector<int> openmp_index_i0_ = {0};
+  // std::vector<int> openmp_index_j0_ = {0};
+  // std::vector<Matrix> openmp_local_contribution_matrix_;
 
   // pointer on a std::map
   // the user can give is own std::map
@@ -83,7 +89,6 @@ public:
   // pointed by pmat
   Matrix local_contribution_matrix_;
   Rnm loc_mat;
-
   // number of degree of freedom of the problem
   // This is never modify after initialization
   // => not when adding lagrange multiplier
@@ -102,14 +107,30 @@ public:
 
 
 public :
-  ShapeOfProblem() : nb_dof_(0), nb_dof_time_(1){ pmat_ = &mat_;};
-  ShapeOfProblem(int n) : nb_dof_(n), rhs_(n), nb_dof_time_(1) {pmat_ = &mat_; rhs_=0.0;}
+  ShapeOfProblem() : nb_dof_(0), nb_dof_time_(1)
+  // ,openmp_mat_(1),openmp_local_contribution_matrix_(1)
+  {
+     pmat_ = &mat_;
+  };
+  ShapeOfProblem(int n) : nb_dof_(n), rhs_(n), nb_dof_time_(1)
+  // ,openmp_mat_(1),openmp_local_contribution_matrix_(1)
+  {
+    pmat_ = &mat_; rhs_=0.0;
+  }
+  // void set_nb_threads(int np) {
+    // thread_count_max_ = np;
+  //   openmp_mat_.resize(thread_count_max_);
+  //   openmp_local_contribution_matrix_.resize(thread_count_max_);
+  //   openmp_index_i0_.resize(thread_count_max_);
+  //   openmp_index_j0_.resize(thread_count_max_);
+  // }
 
   // return the number of degrees of freedom
   // of the problem
   long get_size() const {return nb_dof_;}
   long get_nb_dof() const {return nb_dof_;}
   long get_nb_dof_time() const {return nb_dof_time_;}
+  int get_nb_thread() const {return thread_count_max_;}
 
   void set_map(std::map<std::pair<int,int>,R>& A) {
     pmat_ = &A;
@@ -117,9 +138,6 @@ public :
   void set_map() {
     pmat_ = &mat_;
   }
-  // void set_to_built_in_map() {
-  //   pmat_ = &mat_;
-  // }
   void cleanMatrix() {
     mat_.clear();
   }
@@ -131,6 +149,10 @@ public :
     this->index_i0_ = mapIdx0_[&FKv.Vh];
     this->index_j0_ = mapIdx0_[&FKu.Vh];
   }
+  // void initIndex(const FElement& FKu, const FElement& FKv, int thread_id) {
+  //   this->openmp_index_i0_[thread_id] = mapIdx0_[&FKv.Vh];
+  //   this->openmp_index_j0_[thread_id] = mapIdx0_[&FKu.Vh];
+  // }
   Matrix& get_matrix() {return *pmat_;}
   Rn& get_rhs() {return rhs_;}
   Rn_ get_solution() {
@@ -156,6 +178,9 @@ public :
     }
     this->local_contribution_matrix_.clear();
   }
+  // double & addLocalContribution(int i, int j, int id_thread=0) {
+  //   return openmp_mat_[id_thread][std::make_pair(i+openmp_index_i0_[id_thread],j+openmp_index_j0_[id_thread])];
+  // }
   void addLocalContribution_Opt(const FElement& FK) {
     for(int i = 0; i < FK.NbDoF(); ++i) {
       for(int j = 0; j < FK.NbDoF(); ++j) {
@@ -223,8 +248,22 @@ public:
     rhs_ = x;
 
   }
+  void addMatMul(const KN_<R> & uuh) {
+     assert(uuh.size()==nb_dof_);
+     MatriceMap<double> A(nb_dof_, nb_dof_, mat_);
+     A.addMatMul(uuh, rhs_);
+   }
 
-
+   // void gather_map() {
+   //   mat_ = openmp_mat_[0];
+   //   for(int i=1;i<thread_count_max_;++i){
+   //     const auto& A(openmp_mat_[i]);
+   //     for(const auto& aij : A) {
+   //       mat_[aij.first] += aij.second;
+   //     }
+   //
+   //   }
+   // }
 };
 
 

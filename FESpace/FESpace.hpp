@@ -304,17 +304,38 @@ public:
     //     }
 
       // for CutSpace
-  GFESpace( const GFESpace& vh, const DataFENodeDF& data,const PeriodicBC* PPeriod = nullptr) :
-    DataFENodeDF(data),
-    Th(vh.Th),
-    TFE(1,0,vh.TFE(0)),
-    N(TFE[0]->N),
-    Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
-    periodicBC(PPeriod),
-    basisFctType(vh.basisFctType),
-    polynomialOrder(vh.polynomialOrder)
-    {
-    }
+  // GFESpace( const GFESpace& vh, const DataFENodeDF& data,const PeriodicBC* PPeriod = nullptr) :
+  //   DataFENodeDF(data),
+  //   Th(vh.Th),
+  //   TFE(1,0,vh.TFE(0)),
+  //   N(TFE[0]->N),
+  //   Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
+  //   periodicBC(PPeriod),
+  //   basisFctType(vh.basisFctType),
+  //   polynomialOrder(vh.polynomialOrder)
+  //   {
+  //   }
+
+  // GFESpace(const ActiveMesh<Mesh> & TTh, const GTypeOfFE<Mesh> & tfe, const PeriodicBC* PPeriod = nullptr)
+  //   :
+  //   DataFENodeDF(TTh.Th.BuildDFNumbering(tfe.ndfonVertex,tfe.ndfonEdge,
+  //     tfe.ndfonFace,tfe.ndfonVolume,
+  //     tfe.nbNodeOnWhat[0],
+  //     tfe.nbNodeOnWhat[1],
+  //     tfe.nbNodeOnWhat[2],
+  //     tfe.nbNodeOnWhat[3],
+  //     tfe.N,
+  //     PPeriod
+  //   )),
+  //   Th(TTh.Th),
+  //   TFE(1,0,&tfe),
+  //   N(tfe.N),
+  //   Nproduit(FirstDfOfNodeData ? 1 :MaxNbDFPerNode ),
+  //   periodicBC(PPeriod),
+  //   basisFctType(tfe.basisFctType),
+  //   polynomialOrder(tfe.polynomialOrder)
+  //   {
+  //   }
 
 
     GFESpace(const ActiveMesh<Mesh> & TTh, const GFESpace& vh, const PeriodicBC* PPeriod = nullptr) :
@@ -423,10 +444,10 @@ public:
 
   virtual void info() const {
     // std::cout << "FESpace \t" << this << std::endl;
-    std::cout << "----------------------------------" << std::endl;
-    std::cout << "nb node    \t" << NbNode() << std::endl;
-    std::cout << "nb dof     \t" << NbDoF() << std::endl;
-    std::cout << "nb element \t" << NbElement() << std::endl;
+    // std::cout << "----------------------------------" << std::endl;
+    std::cout << " nb node    \t" << NbNode() << std::endl;
+    std::cout << " nb dof     \t" << NbDoF() << std::endl;
+    std::cout << " nb element \t" << NbElement() << std::endl;
   }
 
 

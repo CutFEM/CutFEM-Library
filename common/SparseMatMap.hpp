@@ -223,6 +223,21 @@ class MatriceMap: VirtualMatrice<R> { public:
 };
 
 template<class R>
+KN<R> operator*(const map<pair<int,int>,R>& A, const KN_<R> & x) {
+  KN<R> Ax(x.size());
+  auto last_index = A.end();
+  last_index--;
+  int row_end = last_index->first.first;
+  assert(row_end < x.size());
+  for (const auto& aij : A) {
+      int i= aij.first.first;
+      int j= aij.first.second;
+      Ax[i] += aij.second*x[j];
+  }
+  return Ax;
+}
+
+template<class R>
 void MatriceMap<R>::addMatMul(const KN_<R> & x, KN_<R> & Ax) const {
     for (typename Map::const_iterator k=this->m.begin(); k != this->m.end(); ++k)
     {

@@ -93,9 +93,13 @@ public:
   // Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&);
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&, const int k);
-  void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k);
+  void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh& Th, const TimeSlab& In);
+  void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh& Th, const TimeSlab& In, int itq, bool init = true);
+  void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k, const TimeSlab* In, int itq, double cst_time);
+
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&,const CBorder& b,list<int> label = {});
   void addLagrangeBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
+
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh& Th, const CExtension& ext, const int epsE);
   void addLagrangeContributionOtherSide(const ListItemVF<Rd::d>& VF, const int k, const int epsE);
 
@@ -1001,7 +1005,9 @@ void BaseCutProblem<M>::initialSolution(Rn& u0) {
   int nbTime = (*this->Ih)[0].NbDoF();
   u0.init(this->nDoF);
   if(this->mapU0.size() == 0) {
-    std::cout << " Default Initial solution " << std::endl;
+    if(globalVariable::verbose > 0 ){
+      std::cout << " Default Initial solution " << std::endl;
+    }
     return;
   }
 

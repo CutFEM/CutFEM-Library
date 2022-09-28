@@ -497,7 +497,7 @@ double L2norm( const ExpressionVirtual& fh, const M& Th) {
 // }
 
 template<typename Mesh>
-double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Mesh>::FElement::Rd, int i, int dom),int domain,const ActiveMesh<Mesh>& Th) {
+double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Mesh>::FElement::Rd, int i, int dom),const ActiveMesh<Mesh>& Th,int domain) {
 
   typedef GFESpace<Mesh> FESpace;
   typedef typename FESpace::FElement FElement;
@@ -536,7 +536,7 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<Me
     return val_receive;
 }
 template<typename Mesh>
-double maxNormCut(const ExpressionVirtual& fh,int domain,const ActiveMesh<Mesh>& Th) {
+double maxNormCut(const ExpressionVirtual& fh,const ActiveMesh<Mesh>& Th,int domain) {
 
   typedef GFESpace<Mesh> FESpace;
   typedef typename FESpace::FElement FElement;
@@ -580,7 +580,7 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(const typename GFESpace<M>
   int nb_dom = Th.get_nb_domain();
   double val = 0.;
   for(int i=0;i<nb_dom;++i) {
-    val += max(val, maxNormCut(fh,fex, i, Th));
+    val += max(val, maxNormCut(fh,fex, Th, i));
   }
   return val;
 }
@@ -589,7 +589,7 @@ double maxNormCut(const ExpressionVirtual& fh, const ActiveMesh<M>& Th) {
   int nb_dom = Th.get_nb_domain();
   double val = 0.;
   for(int i=0;i<nb_dom;++i) {
-    val += max(val, maxNormCut(fh,i, Th));
+    val += max(val, maxNormCut(fh, Th,i));
   }
   return val;
 }

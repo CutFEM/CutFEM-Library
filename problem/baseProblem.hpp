@@ -24,6 +24,7 @@ protected:
   int df_loc_max_ = 0;
   double* databf_ = nullptr;
   double* databf_time_ = nullptr;
+  long offset_bf_= 0;
 
 public:
 
@@ -39,7 +40,6 @@ public:
     df_loc_max_ = vh[0].NbDoF();
     databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
   }
-
   void initSpace(const FESpace& Vh, const TimeSlab& In) {
     this->mapIdx0_.clear();
     this->mapIdx0_[&Vh] = 0;
@@ -49,7 +49,9 @@ public:
     df_loc_max_ = Vh[0].NbDoF();
 
     if(this->databf_) delete this->databf_;
-    this->databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
+    offset_bf_ = 5*df_loc_max_*N_component_max_*op_DDall;
+    long size_data_bf = this->thread_count_max_*offset_bf_;
+    this->databf_ = new double[size_data_bf  ];
     if(this->databf_time_) delete this->databf_time_;
     this->databf_time_ = new double[In.NbDoF()*op_DDall];
 
@@ -61,7 +63,9 @@ public:
     N_component_max_ = max(N_component_max_, Qh.N);
     df_loc_max_ = max(df_loc_max_, Qh[0].NbDoF());
     delete databf_;
-    databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
+    offset_bf_  = 5*df_loc_max_*N_component_max_*op_DDall;
+    long size_data_bf = this->thread_count_max_*offset_bf_;
+    databf_ = new double[size_data_bf ];
   }
   void add(const FESpace& Vh, const TimeSlab& In) {
     assert(this->nb_dof_time_ == In.NbDoF());
@@ -71,12 +75,15 @@ public:
     N_component_max_ = max(N_component_max_, Vh.N);
     df_loc_max_ = max(df_loc_max_, Vh[0].NbDoF());
     delete databf_;
-    databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
+    offset_bf_  = 5*df_loc_max_*N_component_max_*op_DDall;
+    long size_data_bf = this->thread_count_max_*offset_bf_;
+    databf_ = new double[size_data_bf ];
   }
 
 
   // add local to Matrix or rhs
   void addToMatrix    (const ItemVF<Rd::d>& VF, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
+  void addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint, int id_thread) ;
   void addToMatrix_Opt(const ItemVF<Rd::d>& VF, const FElement& FK, const RNMK_& fv, double Cint);
   void addToMatrix(const ItemVF<Rd::d>& VF, const TimeSlab& In, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
   void addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint);
@@ -121,7 +128,7 @@ public:
 
   // integral for Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const Mesh& Th);
-  void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k);
+  void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k,const TimeSlab* In, int itq, double cst_time);
   void addLagrangeBorderContribution(const ListItemVF<Rd::d>& VF, const Element& K,const BorderElement& BE, int ifac, const TimeSlab* In, int itq, double cst_time);
 
 };

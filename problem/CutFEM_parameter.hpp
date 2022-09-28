@@ -41,7 +41,7 @@ class Parameter { public:
 //------------------------------------------------------------------------------
 class CutFEMParameter : public VirtualParameter {
 
-  typedef double (pfun)(int, double, double, double, double);
+  // typedef double (pfun)(int, double, double, double, double);
   std::vector<double> val_;
 public:
   CutFEMParameter():val_(0){}
@@ -167,8 +167,6 @@ class Mult_Parameter : public VirtualParameter{
 public:
 
   Mult_Parameter(const VirtualParameter& A, const VirtualParameter& B) : A_(&A),B_(&B){}
-
-
   double evaluate(int domain, double h, double meas, double measK, double meas_cut) const {
     double val1 = A_->evaluate(domain,h,meas,measK,meas_cut);
     double val2 = B_->evaluate(domain,h,meas,measK,meas_cut);

@@ -2,16 +2,18 @@
 #define INTERPOLATION_HPP_
 
 #include "../common/RNM.hpp"
+#include "../common/global.hpp"
 #include "FESpace.hpp"
+
 //#include "../parallel/cfmpi.hpp"
 
 
 
 
 /*
-  Interpolate f : Rd->R    on space Vh
- - output : fh contains the values
- */
+Interpolate f : Rd->R    on space Vh
+- output : fh contains the values
+*/
 template<typename F>
 void interpolate(const F& Mh, KN<double>& fh, R(*f)(const typename F::Rd ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
@@ -25,9 +27,11 @@ void interpolate(const F& Mh, KN<double>& fh, R(*f)(const typename F::Rd ) ){
   KNM<R>   Vpf(nve,1);                       // value of f at the interpolation points
   KN<R> ggf(Mh.MaxNbDFPerElement);           // stock the values of the dof of the interpolate
 
+  progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
   // for (int t=Mh.first_element();t<Mh.last_element();
   //      t+= Mh.next_element()) {      // loop over element
   for (int t=0;t<Mh.NbElement();  t+=1) {
+    bar += 1;
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
 
@@ -45,14 +49,15 @@ void interpolate(const F& Mh, KN<double>& fh, R(*f)(const typename F::Rd ) ){
     }
   }
 
+  bar.end();
   // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
 }
 
 
 /*
-  Interpolate f : Rd->R    on space Vh
- - output : fh contains the values
- */
+Interpolate f : Rd->R    on space Vh
+- output : fh contains the values
+*/
 template<typename F>
 void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
@@ -67,9 +72,12 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
   KNM<R>   Vpf(nve,d);                       // value of f at the interpolation points
   KN<R> ggf(Mh.MaxNbDFPerElement);           // stock the values of the dof of the interpolate
 
+  progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
+
   // for (int t=Mh.first_element();t<Mh.last_element();
   //      t+= Mh.next_element()) {      // loop over element
   for (int t=0;t<Mh.NbElement();  t+=1) {
+    bar += 1;
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
 
@@ -89,13 +97,14 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
     }
   }
   // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
+  bar.end();
 }
 
 
 /*
-  Interpolate f : Rd->R    on space Vh
- - output : fh contains the values
- */
+Interpolate f : Rd->R    on space Vh
+- output : fh contains the values
+*/
 template<typename F>
 void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int ii, int dom ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
@@ -109,10 +118,12 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
   const int nve = Mh.TFE(0)->NbPtforInterpolation;
   KNM<R>   Vpf(nve,d);                       // value of f at the interpolation points
   KN<R> ggf(Mh.MaxNbDFPerElement);           // stock the values of the dof of the interpolate
+  progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
 
   // for (int t=Mh.first_element();t<Mh.last_element();
   //      t+= Mh.next_element()) {      // loop over element
   for (int t=0;t<Mh.NbElement();  t+=1) {
+    bar += 1;
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
     const int domain = K.get_domain();
@@ -131,13 +142,14 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
     }
   }
 
-// MPIcf::AllReduce(fhSend, fh, MPI_MIN);
+  // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
+  bar.end();
 }
 
 /*
-  Interpolate f : Rd->R    on space Vh
- - output : fh contains the values
- */
+Interpolate f : Rd->R    on space Vh
+- output : fh contains the values
+*/
 template<typename F>
 void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i, int domain, R t ), R tid ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
@@ -151,10 +163,12 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
   const int nve = Mh.TFE(0)->NbPtforInterpolation;
   KNM<R>   Vpf(nve,d);                       // value of f at the interpolation points
   KN<R> ggf(Mh.MaxNbDFPerElement);           // stock the values of the dof of the interpolate
+  progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
 
   // for (int t=Mh.first_element();t<Mh.last_element();
   //      t+= Mh.next_element()) {      // loop over element
   for (int t=0;t<Mh.NbElement();  t+=1) {
+    bar += 1;
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
     const int domain = K.get_domain();
@@ -173,16 +187,15 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
       fh[K(df)] =  ggf[df] ;
     }
   }
-
+  bar.end();
   // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
 }
 
 
-
 /*
-  Interpolate f : Rd->R    on space Vh
- - output : fh contains the values
- */
+Interpolate f : Rd->R    on space Vh
+- output : fh contains the values
+*/
 template<typename F>
 void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int, R ), R tid ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
@@ -196,10 +209,12 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int, 
   const int nve = Mh.TFE(0)->NbPtforInterpolation;
   KNM<R>   Vpf(nve,d);                       // value of f at the interpolation points
   KN<R> ggf(Mh.MaxNbDFPerElement);           // stock the values of the dof of the interpolate
+  progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
 
   // for (int t=Mh.first_element();t<Mh.last_element();
   //      t+= Mh.next_element()) {      // loop over element
   for (int t=0;t<Mh.NbElement();  t+=1) {
+    bar += 1;
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
 
@@ -218,15 +233,15 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int, 
 
     }
   }
+  bar.end();
   // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
 }
 
 
-
 /*
-  Interpolate f : Rd->R    on space time Vh
- - output : fh contains the values
- */
+Interpolate f : Rd->R    on space time Vh
+- output : fh contains the values
+*/
 template<typename F>
 void interpolate(const F& Mh, const TimeSlab& In, KN_<double>& fh, R(*f)(const typename F::Rd, int, R ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
@@ -244,10 +259,12 @@ void interpolate(const F& Mh, const TimeSlab& In, KN_<double>& fh, R(*f)(const t
 
 
   KNMK<R>   Vpft(nve,d, nvt);                       // value of f at the interpolation points
+  progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
 
   // for (int t=Mh.first_element();t<Mh.last_element();
   //      t+= Mh.next_element()) {      // loop over element
   for (int t=0;t<Mh.NbElement();  t+=1) {
+    bar += 1;
     typename F::FElement K(Mh[t]);
     const int nbdf = K.NbDoF();            // nof local
 
@@ -286,6 +303,7 @@ void interpolate(const F& Mh, const TimeSlab& In, KN_<double>& fh, R(*f)(const t
       }
     }
   }
+  bar.end();
   // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
 }
 
