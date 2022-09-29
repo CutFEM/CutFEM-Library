@@ -389,7 +389,6 @@ public:
   // const Face& get_face(int k) const {return Th.hyper_face(k);}
   virtual int whichDomain(int k) const { return -1;}
   virtual int get_domain(int k) const { return -1;}
-  virtual int getNumberOfSubDomain() const { return 1;}
   virtual int getNeighborElement(int k,int &j, int domain = 0) const { return Th.ElementAdj(k,j);}
   virtual int nbDomain() const {return 1;}
   virtual bool containBackElement(int k)const {return true;}

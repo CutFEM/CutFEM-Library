@@ -1616,7 +1616,7 @@ void BaseCutFEM<M>::saveSolution(const Rn& sol) {
       }
     }
 
-    id_domain_0 += Wh.getNumberOfSubDomain();
+    id_domain_0 += Th.get_nb_domain();
   }
 }
 
