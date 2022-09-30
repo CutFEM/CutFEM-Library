@@ -22,7 +22,7 @@
 #include "../util/cputime.h"
 #include "itemVF.hpp"
 #include "../solver/solver.hpp"
-// #include "omp.h"
+#include "omp.h"
 
 
 
@@ -62,20 +62,20 @@ public:
   // Can be reassign user should not use it!
   KN<double> rhs_;
 
-  // matrix is on a std::map form
-  Matrix mat_;
+  // // matrix is on a std::map form
+  // Matrix mat_;
 
   // For openmp;
-  int thread_count_max_ = 1;
-  // std::vector<Matrix> openmp_mat_;
-  // std::vector<int> openmp_index_i0_ = {0};
-  // std::vector<int> openmp_index_j0_ = {0};
-  // std::vector<Matrix> openmp_local_contribution_matrix_;
+  const int thread_count_max_;
+  std::vector<Matrix> mat_;
+  std::vector<int> index_i0_ = {0};
+  std::vector<int> index_j0_ = {0};
+  std::vector<Matrix> local_contribution_matrix_;
 
   // pointer on a std::map
   // the user can give is own std::map
   // can be use for newton, matrix that wanna be saved by the user etc
-  Matrix *pmat_;
+  std::vector<Matrix*> pmat_;
 
   // std::map used to save CutFEM solution on the background mesh
   // for time dependent problem
@@ -87,7 +87,7 @@ public:
   // when the integral is computed on an elements_to_integrate
   // the local contribution is added to the global matrix
   // pointed by pmat
-  Matrix local_contribution_matrix_;
+  // Matrix local_contribution_matrix_;
   Rnm loc_mat;
   // number of degree of freedom of the problem
   // This is never modify after initialization
@@ -103,80 +103,107 @@ public:
   // it is saved in the map
   // given the space it return the where the index start
   std::map<const GFESpace<Mesh>*, int> mapIdx0_;
-  int index_i0_ = 0, index_j0_ = 0;
+  // int index_i0_ = 0, index_j0_ = 0;
 
 
 public :
   ShapeOfProblem() : nb_dof_(0), nb_dof_time_(1)
-  // ,openmp_mat_(1),openmp_local_contribution_matrix_(1)
+  ,thread_count_max_ (1)
   {
-     pmat_ = &mat_;
+     set_multithreading_tool();
   };
-  ShapeOfProblem(int n) : nb_dof_(n), rhs_(n), nb_dof_time_(1)
-  // ,openmp_mat_(1),openmp_local_contribution_matrix_(1)
+  ShapeOfProblem(int np) : nb_dof_(0), nb_dof_time_(1)
+  ,thread_count_max_ (np)
   {
-    pmat_ = &mat_; rhs_=0.0;
+    set_multithreading_tool();
   }
-  // void set_nb_threads(int np) {
-    // thread_count_max_ = np;
-  //   openmp_mat_.resize(thread_count_max_);
-  //   openmp_local_contribution_matrix_.resize(thread_count_max_);
-  //   openmp_index_i0_.resize(thread_count_max_);
-  //   openmp_index_j0_.resize(thread_count_max_);
-  // }
 
-  // return the number of degrees of freedom
-  // of the problem
+private:
+  void set_multithreading_tool() {
+    // thread_count_max_ = np;
+    mat_.resize(thread_count_max_);
+    local_contribution_matrix_.resize(thread_count_max_);
+    index_i0_.resize(thread_count_max_);
+    index_j0_.resize(thread_count_max_);
+    set_map();
+  }
+
+
+public:
   long get_size() const {return nb_dof_;}
   long get_nb_dof() const {return nb_dof_;}
   long get_nb_dof_time() const {return nb_dof_time_;}
   int get_nb_thread() const {return thread_count_max_;}
 
-  void set_map(std::map<std::pair<int,int>,R>& A) {
-    pmat_ = &A;
+  void set_map(Matrix& A) {
+    assert(thread_count_max_ == 1 && " There are multiple threads. You cannot set only one matrix");
+    pmat_.resize(0);
+    pmat_.push_back(&A);
+  }
+  void set_map(std::vector<Matrix>& M) {
+    assert(thread_count_max_ <= M.size() && " There are multiple threads. Not good size of vector");
+    pmat_.resize(0);
+    for(auto& A : M) {
+      pmat_.push_back(&A);
+    }
   }
   void set_map() {
-    pmat_ = &mat_;
+    pmat_.resize(0);
+    for(auto& A : mat_) {
+      pmat_.push_back(&A);
+    }
   }
-  void cleanMatrix() {
-    mat_.clear();
+  void cleanBuildInMatrix() {
+    for(auto& A : mat_) A.clear();
   }
+
   void init(int n) { nb_dof_=n; rhs_.init(nb_dof_);}
   void init(int n, int nt) { nb_dof_=n; nb_dof_time_=nt; rhs_.init(nb_dof_);}
 
 
   void initIndex(const FElement& FKu, const FElement& FKv) {
-    this->index_i0_ = mapIdx0_[&FKv.Vh];
-    this->index_j0_ = mapIdx0_[&FKu.Vh];
+    int thread_id = omp_get_thread_num();
+    this->index_i0_[thread_id] = mapIdx0_[&FKv.Vh];
+    this->index_j0_[thread_id] = mapIdx0_[&FKu.Vh];
   }
-  // void initIndex(const FElement& FKu, const FElement& FKv, int thread_id) {
-  //   this->openmp_index_i0_[thread_id] = mapIdx0_[&FKv.Vh];
-  //   this->openmp_index_j0_[thread_id] = mapIdx0_[&FKu.Vh];
+
+  // Matrix& get_matrix() {return *(pmat_[0]);}
+  // Rn& get_rhs() {return rhs_;}
+  // Rn_ get_solution() {
+  //   return Rn_(rhs_(SubArray(nb_dof_,0)));
   // }
-  Matrix& get_matrix() {return *pmat_;}
-  Rn& get_rhs() {return rhs_;}
-  Rn_ get_solution() {
-    return Rn_(rhs_(SubArray(nb_dof_,0)));
-  }
 
 
-  R & operator()(int i, int j) { return (*pmat_)[std::make_pair(i+index_i0_,j+index_j0_)]; }
-  R & operator()(int i) { return rhs_[i+index_i0_];}
+  R & operator()(int i, int j) { return (*pmat_[0])[std::make_pair(i+index_i0_[0],j+index_j0_[0])]; }
+  // R & operator()(int i, int j, int thread_id) { return (*pmat_[thread_id])[std::make_pair(i+index_i0_[thread_id],j+index_j0_[thread_id])]; }
+  R & operator()(int i) { return rhs_[i+index_i0_[0]];}
 
  protected :
   double & addToLocalContribution(int i, int j) {
-    return local_contribution_matrix_[std::make_pair(i+index_i0_,j+index_j0_)];
+    return local_contribution_matrix_[0][std::make_pair(i+index_i0_[0],j+index_j0_[0])];
   }
   double & addToLocalContribution_Opt(int i, int j) {
     return  loc_mat(i,j);
   }
+  double & addToLocalContribution(int i, int j, int thread_id) {
+    return local_contribution_matrix_[thread_id][std::make_pair(i+index_i0_[thread_id],j+index_j0_[thread_id])];
+    // return (*pmat_[thread_id])[std::make_pair(i+index_i0_[thread_id],j+index_j0_[thread_id])];
+
+  }
   void addLocalContribution() {
-    this->index_i0_ = 0;
-    this->index_j0_ = 0;
-    for (auto q=local_contribution_matrix_.begin(); q != this->local_contribution_matrix_.end(); ++q) {
-      (*this)(q->first.first,q->first.second) += q->second;
+    int thread_id = omp_get_thread_num();
+    this->index_i0_[thread_id] = 0;
+    this->index_j0_[thread_id] = 0;
+    auto& A(*pmat_[thread_id]);
+    // for (auto q=local_contribution_matrix_[thread_id].begin(); q != this->local_contribution_matrix_[thread_id].end(); ++q) {
+      // (*this)(q->first.first,q->first.second, thread_id) += q->second;
+      for (const auto& aij : local_contribution_matrix_[thread_id]) {
+
+      A[std::make_pair(aij.first.first+index_i0_[thread_id],aij.first.second+index_j0_[thread_id])] += aij.second;
     }
-    this->local_contribution_matrix_.clear();
+    // std::cout << thread_id << "\t" << this->local_contribution_matrix_.size() << std::endl;
+    // this->local_contribution_matrix_[thread_id].clear();
+    local_contribution_matrix_[thread_id].clear();
   }
   // double & addLocalContribution(int i, int j, int id_thread=0) {
   //   return openmp_mat_[id_thread][std::make_pair(i+openmp_index_i0_[id_thread],j+openmp_index_j0_[id_thread])];
@@ -187,18 +214,17 @@ public :
         (*this)(FK.loc2glb(i),FK.loc2glb(j)) += loc_mat(i,j);
       }
     }
-    this->index_i0_ = 0;
-    this->index_j0_ = 0;
+    this->index_i0_[0] = 0;
+    this->index_j0_[0] = 0;
   }
-
   void addLocalContributionLagrange(int nend) {
-    this->index_j0_ = 0;
-    this->index_i0_ = 0;
-    for (auto q=local_contribution_matrix_.begin(); q != this->local_contribution_matrix_.end(); ++q) {
+    this->index_j0_[0] = 0;
+    this->index_i0_[0] = 0;
+    for (auto q=local_contribution_matrix_[0].begin(); q != this->local_contribution_matrix_[0].end(); ++q) {
       (*this)(q->first.first, nend) += q->second;
       (*this)(nend, q->first.first) += q->second;
     }
-    this->local_contribution_matrix_.clear();
+    this->local_contribution_matrix_[0].clear();
   }
 
 
@@ -209,12 +235,12 @@ public:
     int N = nb_dof_;
     SparseMatrixRC<double> Pl(N,N,P);
     {// P*A -> DF
-      SparseMatrixRC<double> A(N,N,mat_);
-      multiply(Pl, A, mat_);
+      SparseMatrixRC<double> A(N,N,mat_[0]);
+      multiply(Pl, A, mat_[0]);
     }
     {// (A*P)* -> DF
-      SparseMatrixRC<double> A(N,N,mat_);
-      multiply(A, Pl, mat_);
+      SparseMatrixRC<double> A(N,N,mat_[0]);
+      multiply(A, Pl, mat_[0]);
     }
 
     Rn x(N, 0.);
@@ -236,8 +262,8 @@ public:
 
     int N = nb_dof_;
     SparseMatrixRC<double> Pl(N,N,P);
-    SparseMatrixRC<double> A(N,N,mat_);
-    multiply(Pl, A, mat_);
+    SparseMatrixRC<double> A(N,N,mat_[0]);
+    multiply(Pl, A, mat_[0]);
 
     Rn x(N, 0.);
 
@@ -249,21 +275,19 @@ public:
 
   }
   void addMatMul(const KN_<R> & uuh) {
-     assert(uuh.size()==nb_dof_);
-     MatriceMap<double> A(nb_dof_, nb_dof_, mat_);
-     A.addMatMul(uuh, rhs_);
+    assert(uuh.size()==nb_dof_);
+    MatriceMap<double> A(nb_dof_, nb_dof_, mat_[0]);
+    A.addMatMul(uuh, rhs_);
+  }
+  void gather_map() {
+     for(int i=1;i<thread_count_max_;++i){
+       auto& A(mat_[i]);
+       for(const auto& aij : A) {
+         mat_[0][aij.first] += aij.second;
+       }
+       A.clear();
+     }
    }
-
-   // void gather_map() {
-   //   mat_ = openmp_mat_[0];
-   //   for(int i=1;i<thread_count_max_;++i){
-   //     const auto& A(openmp_mat_[i]);
-   //     for(const auto& aij : A) {
-   //       mat_[aij.first] += aij.second;
-   //     }
-   //
-   //   }
-   // }
 };
 
 
@@ -310,6 +334,7 @@ public:
     assert(itq < get_nb_quad_point_time());
     return (time_quadrature_formular)? time_quadrature_formular->at(itq): QPT(1.,0.);
   }
+
 
 
 };

@@ -216,7 +216,7 @@ private:
     int       verbose;
 
 public:
-    progress(const char* aff,const int& l, int v=1): title(aff), length(l) {
+    progress(const char* aff,const int& l, int v): title(aff), length(l) {
         t0 = clock();
         it=0; prg=0;
         verbose=v;
@@ -227,6 +227,8 @@ public:
             std::cout << 0 << "%";
             std::cout.flush();
         }
+    }
+    progress(const char* aff,const int& l, int v, int np): progress(aff,l/np,v) {
     }
 
     void operator++(int n){
@@ -265,6 +267,17 @@ public:
     }
 
 };
+
+
+static void gather(std::vector<std::map<std::pair<int,int>, double>> & l) {
+  for(int i=1;i<l.size();++i){
+    auto& A(l[i]);
+    for(auto& aij : A) {
+      l[0][aij.first] += aij.second;
+    }
+    A.clear();
+  }
+}
 
 
 

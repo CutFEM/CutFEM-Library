@@ -6,45 +6,26 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th) 
 
   double t0 = MPIcf::Wtime();
 
-  // #pragma omp parallel default(shared)
-  // {
-
-  progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
-  // #pragma omp for
-  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
-    bar += Th.next_element();
-    if(Th.isCut(k, 0))  {
-      if(VF.varFormType_ == VarFormType::VF_MONOSPACE) {
+  #pragma omp parallel default(shared)
+  {
+    assert(this->get_nb_thread() == omp_get_num_threads());
+    int thread_id = omp_get_thread_num();
+    int verbose = (thread_id == 0)*globalVariable::verbose;
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), verbose, this->get_nb_thread());
+    #pragma omp for
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+      bar += Th.next_element();
+      if(Th.isCut(k, 0))  {
         BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
       }
-      else{
-        BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+      else  {
+        BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
       }
       this->addLocalContribution();
     }
-    else  {
-      if(VF.varFormType_ == VarFormType::VF_MONOSPACE) {
-        BaseFEM<M>::addElementContribution_Opt(VF, k, nullptr, 0, 1.);
-      }
-      else {
-        BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
-      }
-
-
-      if(VF.varFormType_ == VarFormType::VF_MONOSPACE) {
-        this->addLocalContribution_Opt((*VF[0].fespaceV)[k]);
-        // this->addLocalContribution();
-      }
-      else {
-        this->addLocalContribution();
-      }
-
-
-    }
+    bar.end();
   }
-  bar.end();
-// }
-// std::cout << " real time " << MPIcf::Wtime() - t0 << std::endl;
+  // std::cout << " real time " << MPIcf::Wtime() - t0 << std::endl;
 
 }
 
@@ -77,8 +58,8 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
   for(int itq=0;itq<this->get_nb_quad_point_time();++itq) {
 
     addBilinear(VF, Th, In, itq);
+    MPIcf::Barrier();
   }
-
 }
 
 template<typename M>
@@ -86,24 +67,35 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const CutMesh& Th, 
   assert(!VF.isRHS());
   auto tq = this->get_quadrature_time(itq);
   double tid = In.map(tq);
+  double t0 = MPIcf::Wtime();
 
-  // KNMK<double> bf_time(In.NbDoF(),1,op_dz+1);
-  RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
-  In.BF(tq.x, bf_time);                  // compute time basic funtions
-  double cst_time = tq.a*In.get_measure();
-  std::string title = " Add Bilinear Kh, In("+to_string(itq)+")";
-  progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+  #pragma omp parallel default(shared)
+  {
+    assert(this->get_nb_thread() == omp_get_num_threads());
+    int thread_id = omp_get_thread_num();
 
-  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
-    bar += Th.next_element();
-    if(Th.isInactive(k, itq)) continue;
+    long offset = thread_id*this->offset_bf_time;
+    RNMK_ bf_time(this->databf_time_+offset, In.NbDoF(),1,op_dz);
+    In.BF(tq.x, bf_time);                  // compute time basic funtions
+    double cst_time = tq.a*In.get_measure();
+    std::string title = " Add Bilinear CutMesh, In("+to_string(itq)+")";
+    int verbose = (thread_id == 0)*globalVariable::verbose;
+    progress bar(title.c_str(), Th.last_element(), verbose,this->get_nb_thread());
 
-    if(Th.isCut(k, itq))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
-    else                  BaseFEM<M>::addElementContribution   (VF, k, &In, itq, cst_time);
+    #pragma omp for
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+      bar += Th.next_element();
+      if(Th.isInactive(k, itq)) continue;
 
-    this->addLocalContribution();
+      if(Th.isCut(k, itq))  BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
+      else                  BaseFEM<M>::addElementContribution   (VF, k, &In, itq, cst_time);
+
+      this->addLocalContribution();
+    }
+    bar.end();
   }
-  bar.end();
+  MPIcf::Barrier();
+  // std::cout << " real time " << MPIcf::Wtime() - t0 << std::endl;
 }
 
 template<typename M>
@@ -189,8 +181,7 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
   double h    = K.get_h();
   int domain  = FK.get_domain();
   int kb      = Vh.idxElementInBackMesh(k);
-  // int iam = omp_get_thread_num();
-  // std::cout << iam << std::endl;
+  int iam = omp_get_thread_num();
 
   // GET THE QUADRATURE RULE
   const QF& qf(this->get_quadrature_formular_cutK());
@@ -210,16 +201,16 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
       const FESpace& Vhu(VF.get_spaceU(l));
       const FElement& FKv(Vhv[k]);
       const FElement& FKu(Vhu[k]);
-      this->initIndex(FKu, FKv);//, iam);
+      this->initIndex(FKu, FKv);
 
       // BF MEMORY MANAGEMENT -
       bool same = (&Vhu == &Vhv);
       int lastop = getLastop(VF[l].du, VF[l].dv);
-      RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
-      RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
-      // long offset = iam*this->offset_bf_;
-      // RNMK_ fv(this->databf_+offset,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
-      // RNMK_ fu(this->databf_+offset+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
+      // RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+      // RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
+      long offset = iam*this->offset_bf_;
+      RNMK_ fv(this->databf_+offset,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+      RNMK_ fu(this->databf_+offset+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
       What_d Fop = Fwhatd(lastop);
 
       // COMPUTE COEFFICIENT
@@ -243,18 +234,17 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const in
         // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
         Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
         Cint *= coef * VF[l].c;
-        // Cint = 1.;/coef;
+
         if( In ){
           if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, Cint);
-          else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+          else  this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
         }
         else {
           if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
-          // else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint, iam);
           else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
-
         }
       }
+
     }
   }
 

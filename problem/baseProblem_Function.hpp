@@ -1,23 +1,23 @@
 template<typename M>
 void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint) {
-
+  int thread_id = omp_get_thread_num();
   for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
     for(int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
-      this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j)) +=  Cint * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
+      this->addToLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j), thread_id) +=  Cint * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
     }
   }
 }
 template<typename M>
 void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const TimeSlab& In, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint) {
-  RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
+  int thread_id = omp_get_thread_num();
+  long offset = thread_id*this->offset_bf_time;
+  RNMK_ bf_time(this->databf_time_+offset, In.NbDoF(),1,op_dz);
   for(int it=In.dfcbegin(0); it<In.dfcend(0); ++it) {
     for(int jt=In.dfcbegin(0); jt<In.dfcend(0); ++jt) {
       const R tval = bf_time(it,0,VFi.dtv)*bf_time(jt,0,VFi.dtu);
       for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
         for(int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
-          this->addToLocalContribution(FKv.loc2glb(i, it),FKu.loc2glb(j, jt)) +=  Cint * tval * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
-          // double aa =  Cint * tval * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
-          // this->testMat_[std::make_pair(FKv.loc2glb(i, it),FKu.loc2glb(j, jt))] += i*j;
+          this->addToLocalContribution(FKv.loc2glb(i, it),FKu.loc2glb(j, jt), thread_id) +=  Cint * tval * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
         }
       }
     }
@@ -48,15 +48,6 @@ void BaseFEM<M>::addToMatrix_Opt(const ItemVF<Rd::d>& VFi, const FElement& FK, c
     }
   }
 }
-// template<typename M>
-// void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint, int id_thread) {
-//
-//   for(int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
-//     for(int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
-//       this->addLocalContribution(FKv.loc2glb(i),FKu.loc2glb(j), id_thread) +=  Cint * fv(i,VFi.cv,VFi.dv)*fu(j,VFi.cu,VFi.du);
-//     }
-//   }
-// }
 
 template<typename M>
 void BaseFEM<M>::addToRHS(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint) {
@@ -141,7 +132,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
   double h    = K.get_h();
   int domain  = FK.get_domain();
   int kb      = Vh.idxElementInBackMesh(k);
-  // int iam = omp_get_thread_num();
+  int iam = omp_get_thread_num();
 
   // GET THE QUADRATURE RULE
   const QF& qf(this->get_quadrature_formular_K());
@@ -162,11 +153,11 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
     // BF MEMORY MANAGEMENT -
     bool same = (&Vhu == &Vhv);
     int lastop = getLastop(VF[l].du, VF[l].dv);
-    RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
-    RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
-    // long offset = iam*this->offset_bf_;
-    // RNMK_ fv(this->databf_+offset,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
-    // RNMK_ fu(this->databf_+offset+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
+    // RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+    // RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value for basic fonction
+    long offset = iam*this->offset_bf_;
+    RNMK_ fv(this->databf_+offset,FKv.NbDoF(),FKv.N,lastop); //  the value for basic fonction
+    RNMK_ fu(this->databf_+offset+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
     What_d Fop = Fwhatd(lastop);
 
     // COMPUTE COEFFICIENT
@@ -189,7 +180,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d>& VF, const int k
 
       if( In ){
         if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, Cint);
-        else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+        else this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
       }
       else {
         if(VF.isRHS()) this->addToRHS(   VF[l], FKv, fv, Cint);
@@ -583,7 +574,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& ga
     bar += gamma.next_element();
     if(util::contain(label, face.lab) || all_label) {
 
-      addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1.);
+      addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
       this->addLocalContribution();
 
     }
@@ -610,7 +601,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& ga
     const typename Interface<M>::Face& face = gamma[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
-      addInterfaceContribution(VF, gamma, iface, tid, &In, 1.);
+      addInterfaceContribution(VF, gamma, iface, tid, &In, 1., itq);
       this->addLocalContribution();
 
     }
@@ -646,7 +637,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>
     const typename Interface<M>::Face& face = (*gamma[itq])[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
-      addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time);
+      addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
       this->addLocalContribution();
 
     }
@@ -666,7 +657,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamm
     const typename Interface<M>::Face& face = gamma[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
-      addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1.);
+      addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1.,0);
     }
   }
 
@@ -689,7 +680,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamm
     const typename Interface<M>::Face& face = gamma[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
-      addInterfaceContribution(VF, gamma, iface, tid, &In, 1.);
+      addInterfaceContribution(VF, gamma, iface, tid, &In, 1., itq);
 
     }
     this->addLocalContribution();
@@ -725,7 +716,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& 
     const typename Interface<M>::Face& face = (*gamma[itq])[iface];  // the face
     if(util::contain(label, face.lab) || all_label) {
 
-      addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time);
+      addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
 
     }
   }
@@ -733,7 +724,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& 
 }
 
 template<typename M>
-void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<M>& interface, int ifac, double tid, const TimeSlab* In, double cst_time) {
+void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<M>& interface, int ifac, double tid, const TimeSlab* In, double cst_time, int itq) {
   typedef typename FElement::RdHatBord RdHatBord;
 
   // GET IDX ELEMENT CONTAINING FACE ON backMes
@@ -742,6 +733,22 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Int
   double measK = K.measure();
   double h     = K.get_h() ;
   double meas  = interface.measure(ifac);
+  std::array<double,2> measCut;
+
+  { // compute each cut part
+    const FESpace& Vh(VF.get_spaceV(0));
+    const ActiveMesh<M>& Th(Vh.get_mesh());
+    std::vector<int> idxV = Vh.idxAllElementFromBackMesh(kb, -1);
+
+    const Cut_Part<Element> cutK(Th.get_cut_part(idxV[0], itq));
+    measCut[0] = cutK.measure();
+    measCut[1]= measCut[0];
+    if(idxV.size() == 2) {
+      const Cut_Part<Element> cutK(Th.get_cut_part(idxV[1], itq));
+      measCut[1] = cutK.measure();
+    }
+  }
+
 
   const Rd normal(-interface.normal(ifac));
 
@@ -758,6 +765,7 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Int
 
     std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
     std::vector<int> idxU = (same)?idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
+
     int kv = VF[l].onWhatElementIsTestFunction (idxV);
     int ku = VF[l].onWhatElementIsTrialFunction(idxU);
 
@@ -774,7 +782,7 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Int
     What_d Fop = Fwhatd(lastop);
 
     // COMPUTE COEFFICIENT && NORMAL
-    double coef = VF[l].computeCoefInterface(h,meas,measK,measK,domu, domv) ;
+    double coef = VF[l].computeCoefInterface(h,meas,measK,measCut,{domu, domv}) ;
     coef *= VF[l].computeCoefFromNormal(normal);
 
     // // LOOP OVER QUADRATURE IN SPACE

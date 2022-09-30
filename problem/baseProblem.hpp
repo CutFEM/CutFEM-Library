@@ -1,12 +1,7 @@
 #ifndef BASE_PROBLEM_HPP
 #define BASE_PROBLEM_HPP
 
-
-
 #include "problem.hpp"
-
-
-
 
 template<typename Mesh>
 class BaseFEM : public ShapeOfProblem<Mesh> , public QuadratureOfProblem<Mesh> {
@@ -25,12 +20,13 @@ protected:
   double* databf_ = nullptr;
   double* databf_time_ = nullptr;
   long offset_bf_= 0;
+  long offset_bf_time= 0;
 
 public:
 
-  BaseFEM(const ProblemOption& option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(option) {}
-  BaseFEM(const QuadratureFormular1d&qt, const ProblemOption& option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(qt, option) {}
-  BaseFEM(const FESpace& vh, const ProblemOption& option) : BaseFEM<Mesh>(option)  {
+  BaseFEM(const ProblemOption& option, int np) : ShapeOfProblem<Mesh>(np), QuadratureOfProblem<Mesh>(option) {}
+  BaseFEM(const QuadratureFormular1d&qt, const ProblemOption& option, int np) : ShapeOfProblem<Mesh>(np), QuadratureOfProblem<Mesh>(qt, option) {}
+  BaseFEM(const FESpace& vh, const ProblemOption& option, int np) : BaseFEM<Mesh>(option, np)  {
     this->mapIdx0_.clear();
     this->mapIdx0_[&vh] = 0;
     int ndf = vh.NbDoF();
@@ -38,7 +34,9 @@ public:
 
     N_component_max_ = vh.N;
     df_loc_max_ = vh[0].NbDoF();
-    databf_ = new double[5*df_loc_max_*N_component_max_*op_DDall];
+    offset_bf_  = 5*df_loc_max_*N_component_max_*op_DDall;
+    long size_data_bf = this->thread_count_max_*offset_bf_;
+    databf_ = new double[size_data_bf];
   }
   void initSpace(const FESpace& Vh, const TimeSlab& In) {
     this->mapIdx0_.clear();
@@ -53,7 +51,9 @@ public:
     long size_data_bf = this->thread_count_max_*offset_bf_;
     this->databf_ = new double[size_data_bf  ];
     if(this->databf_time_) delete this->databf_time_;
-    this->databf_time_ = new double[In.NbDoF()*op_DDall];
+    offset_bf_time = In.NbDoF()*op_DDall;
+    size_data_bf = this->thread_count_max_*offset_bf_time;
+    this->databf_time_ = new double[size_data_bf];
 
   }
   void add(const FESpace& Qh) {
@@ -83,7 +83,7 @@ public:
 
   // add local to Matrix or rhs
   void addToMatrix    (const ItemVF<Rd::d>& VF, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
-  void addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint, int id_thread) ;
+  // void addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint, int id_thread) ;
   void addToMatrix_Opt(const ItemVF<Rd::d>& VF, const FElement& FK, const RNMK_& fv, double Cint);
   void addToMatrix(const ItemVF<Rd::d>& VF, const TimeSlab& In, const FElement& FKu, const FElement& FKv, const RNMK_& fu, const RNMK_& fv, double Cint);
   void addToMatrix(const ItemVF<Rd::d>& VFi, const FElement& FKv, const RNMK_& fv, double Cint);
@@ -124,7 +124,7 @@ public:
   void addLinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {});
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, list<int> label = {});
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {});
-  void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time);
+  void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time, int itq);
 
   // integral for Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const Mesh& Th);
@@ -140,18 +140,22 @@ class FEM : public BaseFEM<Mesh>, public Solver{
   // typedef GenericMapping<Mesh> Mapping;
 
 public:
-  FEM(const QuadratureFormular1d&qt, const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(qt, option), Solver(option){}
-  FEM(const FESpace& vh,       const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option), Solver(option) {}
+  FEM(const QuadratureFormular1d&qt, const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(qt, option,1), Solver(option){}
+  FEM(const FESpace& vh,       const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option, 1), Solver(option) {}
+
+  FEM(const QuadratureFormular1d&qt, int np, const ProblemOption& option= defaultProblemOption) : BaseFEM<Mesh>(qt, option, np), Solver(option){}
+  FEM(const FESpace& vh, int np,       const ProblemOption& option = defaultProblemOption) : BaseFEM<Mesh>(vh, option, np), Solver(option) {}
+
 
   void solve() {
     double tt0 = MPIcf::Wtime();
-    Solver::solve(this->mat_, this->rhs_);
+    Solver::solve(this->mat_[0], this->rhs_);
     if(this->verbose_>0) std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
   void solve(string solverName) {
     double tt0 = MPIcf::Wtime();
     this->solver_name_ = solverName;
-    Solver::solve(this->mat_, this->rhs_);
+    Solver::solve(this->mat_[0], this->rhs_);
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
   void solve(std::map<std::pair<int,int>,R> & A, Rn & b) {

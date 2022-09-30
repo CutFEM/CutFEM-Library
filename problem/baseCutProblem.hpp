@@ -19,9 +19,9 @@ class BaseCutFEM : public BaseFEM<Mesh> {
 
 
 public:
-  BaseCutFEM(const QuadratureFormular1d& qt, const ProblemOption& option) : BaseFEM<Mesh>(qt, option) {}
+  BaseCutFEM(const QuadratureFormular1d& qt, const ProblemOption& option, int np) : BaseFEM<Mesh>(qt, option, np) {}
   // BaseCutFEM(const list<FESpace*>& vh,const ProblemOption& option) : BaseFEM<Mesh>(vh, option) {}
-  BaseCutFEM(const FESpace& vh,const ProblemOption& option) : BaseFEM<Mesh>(vh, option) {}
+  BaseCutFEM(const FESpace& vh,const ProblemOption& option, int np) : BaseFEM<Mesh>(vh, option, np) {}
 
 
   // Integral on K
@@ -116,26 +116,37 @@ public:
 template<typename Mesh>
 class CutFEM : public BaseCutFEM<Mesh>, public Solver{
   typedef GFESpace<Mesh> FESpace;
+  typedef std::map<std::pair<int,int>,R> Matrix;
 
 public:
 
-  CutFEM(const QuadratureFormular1d& qt, const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(qt, option), Solver(option) {}
-  CutFEM(const FESpace& vh        , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option), Solver(option) {}
+  CutFEM(const QuadratureFormular1d& qt, const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(qt, option,1), Solver(option) {}
+  CutFEM(const FESpace& vh        , const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option,1), Solver(option) {}
+  CutFEM(const QuadratureFormular1d& qt, int np, const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(qt, option, np), Solver(option) {}
+  CutFEM(const FESpace& vh        , int np, const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option, np), Solver(option) {}
   void solve() {
     double tt0 = MPIcf::Wtime();
-    Solver::solve(this->mat_, this->rhs_);
+    Solver::solve(this->mat_[0], this->rhs_);
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
   void solve(string solverName) {
     double tt0 = MPIcf::Wtime();
     this->solver_name_ = solverName;
-    Solver::solve(this->mat_, this->rhs_);
+    Solver::solve(this->mat_[0], this->rhs_);
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
   void solve(std::map<std::pair<int,int>,R> & A, Rn & b, string solverName = "mumps") {
     R tt0 = MPIcf::Wtime();
     this->solver_name_ = solverName;
     Solver::solve(A, b);
+    if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
+  }
+  void solve(std::vector<Matrix> & A, Rn & b, string solverName = "mumps") {
+    R tt0 = MPIcf::Wtime();
+    this->solver_name_ = solverName;
+    gather(A);
+    Solver::solve(A[0], b);
+
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
 
