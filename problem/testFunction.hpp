@@ -557,6 +557,8 @@ template<int N> friend TestFunction<N> operator + (const TestFunction<N>& F1, co
 template<int N> friend TestFunction<N> operator * (std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh, const TestFunction<N>& F2);
 template<int N> friend TestFunction<N> operator * (const CutFEM_Rd<N>& cc, const TestFunction<N>& T);
 template<int N> friend TestFunction<N> operator * (const typename typeRd<N>::Rd& cc, const TestFunction<N>& T);
+// template<int N> friend TestFunction<N> operator * (const ExpressionAverage<typename typeMesh<N>::Mesh>& fh, const TestFunction<N>& F2);
+// template<int N> friend TestFunction<N> operator * (const TestFunction<N>& F2, const ExpressionAverage<typename typeMesh<N>::Mesh>& fh);
 
 };
 
@@ -740,6 +742,56 @@ TestFunction<N> operator * (const ExpressionVirtual& expr, const TestFunction<N>
   }
   return multU;
 }
+
+// template <int N>
+// TestFunction<N> operator * (const ExpressionAverage<typename typeMesh<N>::Mesh>& expr, const TestFunction<N>& F) {
+//   assert(F.A.M() == 1 && F.A.N() == 1);
+//   int l = F.A(0,0)->size();
+//   TestFunction<N> multU(1);
+//   multU.A(0,0) = new ItemList<N> (2*l);
+//
+//   for(int ui=0;ui<l;++ui) {
+//     const ItemTestFunction<N>& v(F.A(0,0)->getItem(ui));
+//     ItemTestFunction<N>& u(multU.A(0,0)->getItem(ui));
+//     u = v;
+//     u.c *= expr.k1;
+//     u.expru = &expr.fun1;
+//   }
+//   for(int ui=0;ui<F.A(0,0)->size();++ui) {
+//     const ItemTestFunction<N>& v(F.A(0,0)->getItem(ui));
+//     ItemTestFunction<N>& u(multU.A(0,0)->getItem(l+ui));
+//     u = v;
+//     u.c *= expr.k2;
+//     u.expru = &expr.fun2;
+//   }
+//   return multU;
+// }
+//
+// template <int N>
+// TestFunction<N> operator * (const TestFunction<N>& F, const ExpressionAverage<typename typeMesh<N>::Mesh>& expr) {
+//   assert(F.A.M() == 1 && F.A.N() == 1);
+//   int l = F.A(0,0)->size();
+//   TestFunction<N> multU(1);
+//   multU.A(0,0) = new ItemList<N> (2*l);
+//
+//   for(int ui=0;ui<l;++ui) {
+//     const ItemTestFunction<N>& v(F.A(0,0)->getItem(ui));
+//     ItemTestFunction<N>& u(multU.A(0,0)->getItem(ui));
+//     u = v;
+//     u.c *= expr.k1;
+//     u.expru = &expr.fun1;
+//   }
+//   for(int ui=0;ui<F.A(0,0)->size();++ui) {
+//     const ItemTestFunction<N>& v(F.A(0,0)->getItem(ui));
+//     ItemTestFunction<N>& u(multU.A(0,0)->getItem(l+ui));
+//     u = v;
+//       u.c *= expr.k2;
+//     u.expru = &expr.fun2;
+//   }
+//   return multU;
+// }
+//
+
 
 template <int N>
 TestFunction<N> operator * (const TestFunction<N>& F, const ExpressionVirtual& expr) {
@@ -1484,6 +1536,12 @@ TestFunction<d> average(const TestFunction<d> & T, const VirtualParameter& para1
     }
   }
   return jumpU;
+}
+
+
+template <int d>
+TestFunction<d> average(const TestFunction<d> & T, const VirtualParameter& para1){
+  return average(T, para1, para1);
 }
 
 
