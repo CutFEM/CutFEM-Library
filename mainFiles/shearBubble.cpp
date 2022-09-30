@@ -60,12 +60,39 @@ class LambdaGamma : public VirtualParameter {
   const double mu2_;
   LambdaGamma(const double m1, const double m2) : mu1_(m1), mu2_(m2) {}
   double evaluate(int domain, double h, double meas, double measK, double measCut) const {
-    double gamma = meas / h ;
-    double alphaK = h;//measK / h / h;
+    double gamma = meas / h  ;
+    double alphaK = measK / h / h;
     return  (0.5*mu1_ + 0.5*mu2_)*(100 + 10*gamma)/(alphaK);
   }
 };
-
+class WeightKappa : public VirtualParameter {
+  public :
+  const double mu1_;
+  const double mu2_;
+  WeightKappa (const double m1, const double m2) : mu1_(m1), mu2_(m2) {}
+  double mu(int i) const { return (i==0)? mu1_ : mu2_;}
+  double evaluate(int dom0, double h, double meas, double measK, double measCut0) const {
+    int dom1 = (dom0 == 0);
+    double measCut1 = meas - measCut0;
+    double alphaK0 = measCut0 / h / h;
+    double alphaK1 = measCut1 / h / h;
+    return  (mu(dom1)*alphaK0)/(mu(dom0)*alphaK1+mu(dom1)*alphaK0);
+  }
+};
+class Weight2Kappa : public VirtualParameter {
+  public :
+  const double mu1_;
+  const double mu2_;
+  Weight2Kappa (const double m1, const double m2) : mu1_(m1), mu2_(m2) {}
+  double mu(int i) const { return (i==0)? mu1_ : mu2_;}
+  double evaluate(int dom0, double h, double meas, double measK, double measCut0) const {
+    int dom1 = (dom0 == 0);
+    double measCut1 = meas - measCut0;
+    double alphaK0 = measCut0 / h / h;
+    double alphaK1 = measCut1 / h / h;
+    return  (mu(dom0)*alphaK1)/(mu(dom0)*alphaK1+mu(dom1)*alphaK0);
+  }
+};
 
 
 int main(int argc, char** argv )
@@ -78,24 +105,24 @@ int main(int argc, char** argv )
   typedef CutFESpaceT2 CutSpace;
 
   MPIcf cfMPI(argc,argv);
-  int thread_count = 1;
+  int thread_count_tmp = 1;
   cout << "Threads: ";
-  cin >> thread_count;
-  MPIcf::Bcast(thread_count, MPIcf::Master(), 1);
+  cin >> thread_count_tmp;
+  MPIcf::Bcast(thread_count_tmp, MPIcf::Master(), 1);
+  const int thread_count = thread_count_tmp;
   omp_set_num_threads(thread_count);
-
   const double cpubegin = MPIcf::Wtime();
 
   // MESH DEFINITION
   // ---------------------------------------------
-  // int nx = 100;
-  // int ny = 40;
-  // Mesh Kh(nx, ny, -5., -2., 10., 4.);
-  // double mesh_size = (10./(nx-1));
+  int nx = 50;
+  int ny = 20;
+  Mesh Kh(nx, ny, -5., -2., 10., 4.);
+  double mesh_size = (10./(nx-1));
 
 
-  Mesh Kh("../mesh/shearMesh7530_10040.msh");
-  double mesh_size = Kh.get_mesh_size();
+  // Mesh Kh("../mesh/shearMesh7530_10040.msh");
+  // double mesh_size = Kh.get_mesh_size();
 
   std::cout << " ------------------------------------" << std::endl;
   std::cout << " Background mesh " << std::endl;
@@ -112,7 +139,7 @@ int main(int argc, char** argv )
   ProblemOption optionProblem;
   optionProblem.solver_name_ = "mumps";
   optionProblem.clear_matrix_ = true;
-  std::map<std::pair<int,int>, double> mat_NL;
+  std::vector<std::map<std::pair<int,int>, double>> mat_NL(thread_count);
 
 
   // TIME DEFINITION
@@ -135,17 +162,21 @@ int main(int argc, char** argv )
 
   // PROBLEM AND PARAMETER DEFINITION
   // ----------------------------------------------
-  CutFEM<Mesh2> stokes(qTime,optionProblem);
-  // stokes.set_nb_threads(thread_count);
+  CutFEM<Mesh2> stokes(qTime,thread_count, optionProblem);
   CutFEMParameter mu(0.1,0.1);
   CutFEMParameter rho(1.,1.);
   CutFEMParameter invmu(10.,10.);
   LambdaBoundary lambdaB(mu, 10, 100);
   LambdaGamma lambdaG(mu(0), mu(1));
+  WeightKappa  kappa(mu(0), mu(1));
+  Weight2Kappa kappa2(mu(0), mu(1));
+
   // const MeshParameter& h(Parameter::h);
   double hh = mesh_size;
   const double sigma0 = 0.2;
   const double beta   = 0.;
+  const double epsilon_surfactant = 0.1;
+
 
   // WRITE THE PROBLEM PARAMETERS
   // ----------------------------------------------
@@ -161,7 +192,8 @@ int main(int argc, char** argv )
   << " mu_1 = " << mu(0) << " and mu_2 = "<< mu(1) << " \n"
   << " rho_1 = "<< rho(0) << " and rho_2 = " << rho(1) << " \n"
   << " the surface tension sigma = " << sigma0 << " \n"
-  << " beta = " << beta
+  << " beta = " << beta << " \n"
+  << " D_Gamma = " << epsilon_surfactant
   << std::endl;
   std::cout << " ------------------------------------ " << std::endl;
 
@@ -217,8 +249,7 @@ int main(int argc, char** argv )
   //   const bool curvatureVTKFile = false;
   //   const bool saveLevelSetVTK = true;
   const int frequency_plotting = 1;
-  //
-  //
+
   // INTERPOLATION OF THE VELOCITY (BOUNDARY CONDITION)
   // ----------------------------------------------
   std::cout << " ------------------------------------" << std::endl;
@@ -261,7 +292,6 @@ int main(int argc, char** argv )
 
 
 
-  //   const R epsilon_surfactant = 2;
 
   //   double initialConcentrationSurfactant;
 
@@ -318,10 +348,11 @@ int main(int argc, char** argv )
         //   std::cout << " ------- reinitialization LevelSet -------" << std::endl;
         //   reinitialization.perform(ls_k[i], ls[i]);
         // }
+
+
         interface.init(i,Kh,ls[i]);
         if(i<nb_quad_time-1) {
           LevelSet::move(ls[i], vel[last_quad_time], vel[last_quad_time], dt_levelSet, ls[i+1]);
-          // levelSet.solve(ls_k[i], vel[lastQuadTime], vel[lastQuadTime], dt_levelSet);
         }
       }
       if(iter == 0) {
@@ -337,6 +368,9 @@ int main(int argc, char** argv )
     CutMesh Kh_i(Kh, interface);
     CutSpace Wh(Kh_i, Vh);
     CutSpace Ph(Kh_i, Lh);
+    CutMesh Kh_0(Kh);
+    Kh_0.createSurfaceMesh(interface);
+    CutSpace Sh(Kh_0, Lh);
     if(iter == 0) {
       std::cout << " ------------------------------------" << std::endl;
       std::cout << " Cut Mesh " << std::endl;
@@ -347,17 +381,11 @@ int main(int argc, char** argv )
       std::cout << " ------------------------------------" << std::endl;
       std::cout << " Cut Space for pressure " << std::endl;
       Ph.info();
-      std::cout << " Time building cut Mesh/Space : \t" << MPIcf::Wtime() - t0_cmesh << std::endl;
+      std::cout << " ------------------------------------" << std::endl;
+      std::cout << " Surface Space for surfactant " << std::endl;
+      Sh.info();
+      std::cout << " TIME BUILDING CUT MESH/SPACE : \t" << MPIcf::Wtime() - t0_cmesh << std::endl;
     }
-
-
-
-
-    //     // Create the Active Cut Mesh for insoluble surfactant
-    //     Mesh2 cutThTime(interface);             // surface mesh
-    //     FESpace2 cutWh(cutThTime, interface, DataFE<Mesh2>::P1);   // FE for surfactant
-    //     cutWh.backSpace = &Lh;  // svae backSpace to save solution
-    //
 
     // DEFINE TEST FUNCTIONS
     // ----------------------------------------------
@@ -365,16 +393,16 @@ int main(int argc, char** argv )
     FunTest du(Wh,2), dp(Ph,1), v(Wh,2), q(Ph,1), dp1(Wh,1,0,0);
     FunTest Eun = (Eps(du)*n);
     FunTest D2nu = grad(grad(du)*n)*n, D2nv = grad(grad(v)*n)*n;
-    // FunTest ds(cutWh,1), r(cutWh,1);
+    FunTest ds(Sh,1), r(Sh,1);
 
     // DEFINE THE PROBLEM ON THE CORRECT SPACES
     // ----------------------------------------------
     stokes.initSpace(Wh, In);
     stokes.add(Ph, In);
-    //     stokes.add(cutWh, In);
+    stokes.add(Sh, In);
+
     if(iter == 0) {
       std::cout << " ------------------------------------" << std::endl;
-      // std::cout << " Set the problem : " << std::endl;
       std::cout << " Problem's DOF : \t" << stokes.get_nb_dof() << std::endl;
     }
 
@@ -390,34 +418,26 @@ int main(int argc, char** argv )
     Rn data_all(data_init);
 
     int idxp0 = Wh.NbDoF()*In.NbDoF();
-
+    int idxs0 = idxp0 + Ph.NbDoF()*In.NbDoF();
     KN_<double> data_uh0(data_init(SubArray(Wh.NbDoF(),0)));
-    KN_<double> data_uh(data_all(SubArray(Wh.NbDoF(),0)));
-    KN_<double> data_ph(data_all(SubArray(Ph.NbDoF(),idxp0)));
+    KN_<double> data_sh0(data_init(SubArray(Sh.NbDoF(),idxs0)));
+    KN_<double> data_uh(data_all(SubArray(Wh.NbDoF()*In.NbDoF(),0)));
+    KN_<double> data_ph(data_all(SubArray(Ph.NbDoF()*In.NbDoF(),idxp0)));
+    KN_<double> data_sh(data_all(SubArray(Sh.NbDoF()*In.NbDoF(),idxs0)));
 
     Fun_h uh(Wh, In, data_uh);
     Fun_h ph(Ph, In, data_ph);
+    Fun_h sh(Sh, In, data_sh);
     Fun_h u0(Wh, data_uh0);
+    Fun_h s0(Sh, data_sh0);
 
-    //     // Initial solution
-    //     Fun_h u0(Wh, datau0);
-    //     KN_<double> datauu(datau0(SubArray(Wh.NbDoF(),0)));
-    //     KN_<double> datas0(datau0(SubArray(cutWh.NbDoF(),n0)));
+
     if(iter == 0) {
       interpolate(Wh, data_uh0, fun_boundary);
-      //   interpolate(cutWh, datas0, fun_init_surfactant);
+      interpolate(Sh, data_sh0, fun_init_surfactant);
       std::cout << " Time initialization : \t" << MPIcf::Wtime() - t0_init_sol << std::endl;
     }
 
-
-    //     Fun_h u0s(cutWh, datas0);
-    //
-    //
-    //     // Set solution
-    //     KN_<double> datas_i(data_uh(SubArray(cutWh.NbDoF()*In.NbDoF(),n0)));
-    //     Fun_h uh(Wh, In, data_uh);
-    //     Fun_h us(cutWh, In, datas_i);
-    //
     // NEWTON ITERATION
     // ----------------------------------------------
     int iterNewton  = 0;
@@ -427,7 +447,7 @@ int main(int argc, char** argv )
       std::cout << " START NEWTON ITERATION " << std::endl;
     }
     while(1) {
-      double tt0 = CPUtime();
+      double tt0 = MPIcf::Wtime();
       if(iterNewton == 0){
         stokes.addBilinear(
           innerProduct(dt(du), rho*v)
@@ -436,21 +456,12 @@ int main(int argc, char** argv )
           , Kh_i
           , In
         );
-        // std::cout << stokes.openmp_mat_[0].size() << std::endl;
-        // // matlab::Export(stokes.openmp_mat_[0], "mat0.dat");
-        // double t0_gather = MPIcf::Wtime();
-
-        // stokes.gather_map();
-        // // matlab::Export(stokes.mat_, "mat1.dat");
-        // if(iter ==0) {std::cout << " Time gather maps : \t" << MPIcf::Wtime()-t0_gather << std::endl;}
-        // return 0;
-
         stokes.addBilinear(
-          innerProduct(jump(du), -2*mu*average(Eps(v)*n, 0.5,0.5))
-          + innerProduct(-2*mu*average(Eps(du)*n, 0.5,0.5), jump(v))
+          innerProduct(jump(du), -2*mu*average(Eps(v)*n, kappa))
+          + innerProduct(-2*mu*average(Eps(du)*n, kappa), jump(v))
           + innerProduct(lambdaG*jump(du), jump(v))
-          + innerProduct(average(dp, 0.5,0.5), jump(v.t()*n))
-          - innerProduct(jump(du.t()*n), average(q, 0.5,0.5))
+          + innerProduct(average(dp, kappa), jump(v.t()*n))
+          - innerProduct(jump(du.t()*n), average(q, kappa))
           , interface
           , In
         );
@@ -465,78 +476,71 @@ int main(int argc, char** argv )
           , In
           // , dirichlet
         );
-        //         // stokes.addBilinearFormBorder(
-        //         //   innerProduct(lambdaB*du.t()*n,v.t()*n)
-        //         //   + innerProduct(dp, v.t()*n)
-        //         //   - innerProduct(du.t()*n, q)
-        //         //   - innerProduct(2.*mu*Eun.t()*n, v.t()*n)
-        //         //   - innerProduct(du.t()*n, 2.*mu*Eun.t()*n)
-        //         //   , In
-        //         //   , neumann
-        //         // );
-        //
-        //
-        // stokes.addBilinear(
-        //   - innerProduct(ds, dt(r))
-        //   + innerProduct(epsilon_surfactant*gradS(ds), gradS(r))
-        //   , interface
-        //   , In
-        // );
+
+
+        stokes.addBilinear(
+          - innerProduct(ds, dt(r))
+          + innerProduct(epsilon_surfactant*gradS(ds), gradS(r))
+          , interface
+          , In
+        );
+
+
 
         double h3 = pow(mesh_size,3);
         stokes.addFaceStabilization(
-          innerProduct(1e-2*hh*jump(grad(du)*n), mu*jump(grad(v)*n))
-          + innerProduct(1e-2*h3*jump(D2nu)      , mu*jump(D2nv))
-          + innerProduct(1e-2*h3*jump(grad(dp)*n), invmu*jump(grad(q)*n))
+          innerProduct(1e-1*hh*jump(grad(du)*n), mu*jump(grad(v)*n))
+          + innerProduct(1e-1*h3*jump(D2nu)      , mu*jump(D2nv))
+          + innerProduct(1e-1*h3*jump(grad(dp)*n), invmu*jump(grad(q)*n))
           , Kh_i
           , In
         );
 
-        //         stokes.addEdgeIntegral(
-        //           innerProduct(1e-2*h*jump(grad(ds).t()*n), jump(grad(r).t()*n))
-        //           ,In
-        //         );
+        stokes.addFaceStabilization(
+          innerProduct(1e0*jump(grad(ds)*n), jump(grad(r)*n))
+          , Kh_0
+          , In
+        );
         //         // if stab interface, can have h in both stabilization
-        //         stokes.addBilinear(
-        //           innerProduct(1e-2*h*grad(ds).t()*n, grad(r).t()*n)
-        //           , interface
-        //           , In
-        //         );
+        // stokes.addBilinear(
+        //   innerProduct(1e-2*hh*grad(ds)*n, grad(r)*n)
+        //   , interface
+        //   , In
+        // );
 
         // impose initial condition
         stokes.addBilinear(
           innerProduct(rho*du,v)
           , Kh_i
         );
-        //         double cc = 1./In.T.mesure()*6.;
-        //         stokes.addBilinear(
-        //           innerProduct(cc*ds, r)
-        //           , interface
-        //           , lastQuadTime, In
-        //         );
-        // stokes.addLagrangeMultiplier(
-        //   innerProduct(1.,dp1), 0.
-        //   , Kh_i
-        //   , In
-        // );
-        // stokes.addLagrangeMultiplier(
-        //   innerProduct(1.,dp1), 0.
-        //   , Kh_i
-        //   // , 0
-        //   // , In
-        // );
-        //
+        stokes.addBilinear(
+          innerProduct(ds, r)
+          , *interface(last_quad_time)
+          , In
+          , last_quad_time
+        );
+
+
       }
+
+
       for(int i=0;i<nb_quad_time;++i) {      // computation of the curvature
-        if(i >0) globalVariable::verbose = 0;
+        if(i >0 || iterNewton > 0) globalVariable::verbose = 0;
         CutMesh cutTh(Kh);
         cutTh.createSurfaceMesh(*interface[i]);
         CutSpace cutVh(cutTh, Vh1);
         //   // Mapping2 mapping(cutVh, ls_k[i]);
         //
         Curvature<Mesh> curvature(cutVh, interface[i]);
+
+        auto tq = qTime(i);
+        double tid = (double)In.map(tq);
+        ExpressionLinearSurfaceTension<Mesh> sigmaW(sh, sigma0, beta, tid);
+
         Rn data_H(cutVh.get_nb_dof());
-        data_H = curvature.solve();
+        data_H = curvature.solve(sigmaW);
+        // data_H = curvature.solve();
+
         //, mapping);
 
         Fun_h H(cutVh, data_H);
@@ -545,62 +549,43 @@ int main(int argc, char** argv )
         ExpressionFunFEM<Mesh2> Hy(H,1,op_id);
         FunTest vx(Wh,1,0), vy(Wh,1,1);
 
-        // if(iterNewton == 0) {
-        //   // sigma(w) = 24,5(1 - Beta*w)
-        //   // -(sigma(w)k , <v.n>) = -(s0*Bw, <v.n>)
-        //   // +(dSsigma(w) , <v> ) =
-        //   stokes.addBilinear(
-        //       innerProduct(Kx*ds    , average2(vx))*beta*sigma0
-        //     + innerProduct(Ky*ds    , average2(vy))*beta*sigma0
-        //     + innerProduct(gradS(ds), average2(v) )*beta*sigma0
-        //     , interface
-        //     ,i , In
-        //   );
-        // }
         stokes.addLinear(
-          - innerProduct(Hx , average(vx, 0.5, 0.5))*sigma0
-          - innerProduct(Hy , average(vy, 0.5, 0.5))*sigma0
+          - innerProduct(Hx , average(vx, kappa2))
+          - innerProduct(Hy , average(vy, kappa2))
           , interface
           , In , i
         );
-        // if(iter%frequency_plotting == 0 && i == 2){
-        //   //   Fun_h solMC(cutVh, curvature.rhs);
-        //   //   Paraview2 writerLS(cutVh, pathOutpuFigure+"curvature_"+to_string(iterfig)+".vtk");
-        //   //   writerLS.add(solMC, "meanCurvature", 0, 2);
-        //   //   writerLS.add(ls[0], "levelSet", 0, 1);
-        //   // }
-        //   Paraview<Mesh> writerS(cutTh, "shearExampleCurvature_"+to_string(ifig)+".vtk");
-        //   writerS.add(ls[i], "levelSet", 0, 1);
-        //   writerS.add(H,"meanCurvature", 0, 2);
-        // }
-
+        if(i == 0){
+          Paraview<Mesh> writerS(cutTh, "shearExampleCurvature_"+to_string(ifig)+".vtk");
+          writerS.add(ls[i], "levelSet", 0, 1);
+          writerS.add(H,"meanCurvature", 0, 2);
+        }
 
       }
       if(iter == 0 && iterNewton == 0) globalVariable::verbose = 1;
 
-      if(iter == 0) {
-        std::cout << " TIME ASSEMBLY MATRIX \t" << CPUtime() - tt0 << std::endl;
+      if(iter == 0 && iterNewton == 0) {
+        std::cout << " TIME ASSEMBLY MATRIX \t" << MPIcf::Wtime() - tt0 << std::endl;
       }
       /*
       CONSTRUCTION LINEAR PART
       */
-      tt0 = CPUtime();
-      // stokes.addLinear(
-      //   -innerProduct(fh.expression(2),rho*v)
-      //   , Kh_i
-      //   , In
-      // );
-      // impose initial condition
+      tt0 = MPIcf::Wtime();
+      stokes.addLinear(
+        -innerProduct(fh.expression(2),rho*v)
+        , Kh_i
+        , In
+      );
       stokes.addLinear(
         -innerProduct(u0.expression(2),rho*v)
         , Kh_i
       );
-      // double cc = 1./In.T.mesure()*6.;
-      // stokes.addLinear (
-      //   -innerProduct(u0s.expression(), cc*r)
-      //   , interface
-      //   , 0, In
-      // );
+      stokes.addLinear (
+        -innerProduct(s0.expression(), r)
+        , *interface(0)
+        , In
+        , 0
+      );
 
       stokes.addLinear(
         - innerProduct(gh.expression(2),lambdaB*v)
@@ -609,66 +594,60 @@ int main(int argc, char** argv )
         , Kh_i
         , INTEGRAL_BOUNDARY
         , In
-
         // , dirichlet
       );
-      if(iter == 0) {
-        std::cout << " TIME ASSEMBLY RHS \t" << CPUtime() - tt0 << std::endl;
+      if(iter == 0 && iterNewton == 0) {
+        std::cout << " TIME ASSEMBLY RHS \t" << MPIcf::Wtime() - tt0 << std::endl;
       }
-      // std::cout << data_all.size() << "\t" << stokes.get_nb_dof() << std::endl;
 
+      stokes.gather_map();
       stokes.addMatMul(data_all);
-      // std::cout << " Time  A*u0 \t\t" << CPUtime() - tt0 << std::endl;
-      tt0 = CPUtime();
-      // stokes.rhs_ += stokes.mat_ * data_all;
-      //
-      if(iter == 0) {
-        std::cout << " TIME MATRIX MULTIPLICATION \t" << CPUtime() - tt0 << std::endl;
+      tt0 = MPIcf::Wtime();
+      if(iter == 0 && iterNewton == 0) {
+        std::cout << " TIME MATRIX MULTIPLICATION \t" << MPIcf::Wtime() - tt0 << std::endl;
       }
-      tt0 = CPUtime();
+      tt0 = MPIcf::Wtime();
+
 
 
       /*
       CONSTRUCTION NON LINEAR PART
       */
       stokes.set_map(mat_NL);
-      mat_NL = stokes.mat_;
+      mat_NL[0] = stokes.mat_[0];
 
-      //       tt0 = CPUtime();
-      //       FunTest du1(Wh,1,0), du2(Wh,1,1), v1(Wh,1,0), v2(Wh,1,1);
-      //       ExpressionFunFEM<Mesh2> u1(uh,0,op_id,0), u2(uh,1,op_id,0);
-      //
-      //       ExpressionFunFEM<Mesh2> s(us,0,op_id);
-      //
-      //       stokes.addBilinear(
-      //         innerProduct(du1*dx(u1) + du2*dy(u1), rho*v1)
-      //         + innerProduct(du1*dx(u2) + du2*dy(u2), rho*v2)
-      //         + innerProduct(u1*dx(du1) + u2*dy(du1), rho*v1)
-      //         + innerProduct(u1*dx(du2) + u2*dy(du2), rho*v2)
-      //         ,In
-      //       );
-      //       stokes.addLinear(
-      //           innerProduct(u1*dx(u1) + u2*dy(u1), rho*v1)
-      //         + innerProduct(u1*dx(u2) + u2*dy(u2), rho*v2)
-      //         , In
-      //       );
-      //
-      //       stokes.addBilinear(
-      //           - innerProduct(ds*u1 , dx(r)) - innerProduct(ds*u2 , dy(r))
-      //           - innerProduct(s*du , grad(r))
-      //       , interface
-      //           , In
-      //       );
-      //       stokes.addLinear(
-      //           - innerProduct(s*u1 , dx(r))
-      //           - innerProduct(s*u2 , dy(r))
-      //       , interface
-      //         , In
-      //       );
-      //
-      //       std::cout << " Time assembly NL \t" << CPUtime() - tt0 << std::endl;
-      //       tt0 = CPUtime();
+      FunTest du1(Wh,1,0), du2(Wh,1,1), v1(Wh,1,0), v2(Wh,1,1);
+      ExpressionFunFEM<Mesh2> ux(uh,0,op_id,op_id), uy(uh,1,op_id,op_id);
+      ExpressionFunFEM<Mesh2> s(sh,0,op_id,op_id);
 
+      stokes.addBilinear(
+        innerProduct(du1*dx(ux) + du2*dy(ux), rho*v1)
+        + innerProduct(du1*dx(uy) + du2*dy(uy), rho*v2)
+        + innerProduct(ux*dx(du1) + uy*dy(du1), rho*v1)
+        + innerProduct(ux*dx(du2) + uy*dy(du2), rho*v2)
+        , Kh_i
+        ,In
+      );
+      stokes.addLinear(
+        innerProduct(ux*dx(ux) + uy*dy(ux), rho*v1)
+        + innerProduct(ux*dx(uy) + uy*dy(uy), rho*v2)
+        , Kh_i
+        , In
+      );
+
+      stokes.addBilinear(
+        - innerProduct(ds*average(ux) , dx(r))
+        - innerProduct(ds*average(uy) , dy(r))
+        - innerProduct(s*average(du,0.5,0.5) , grad(r))
+        , interface
+        , In
+      );
+      stokes.addLinear(
+        - innerProduct(s, dx(r)*average(ux))
+        - innerProduct(s, dy(r)*average(uy))
+        , interface
+        , In
+      );
       stokes.addLagrangeMultiplier(
         innerProduct(1.,dp1), 0.
         , Kh_i
@@ -681,42 +660,36 @@ int main(int argc, char** argv )
       //   // , In
       // );
 
-      //       // stokes.addLagrangeMultiplier(
-      //       //   innerProduct(1.,dp1), 0.
-      //       //   , 1
-      //       // );
-      //       // stokes.addLagrangeMultiplier(
-      //       //   innerProduct(1.,dp1), 0.
-      //       //   , 2
-      //       // );
+      if(iter == 0 && iterNewton == 0) {
+        std::cout << " ASSEMBLY NON LINEAR \t" << MPIcf::Wtime() - tt0 << std::endl;
+      }
+      tt0 = MPIcf::Wtime();
 
-      tt0 = CPUtime();
-
-      // matlab::Export(stokes.mat_, "matt_"+to_string(iterNewton)+".dat");
-      // matlab::Export(mat_NL     , "mat_"+to_string(iterNewton)+".dat");
-      // matlab::Export(stokes.rhs_, "rhs_"+to_string(iterNewton)+".dat");
-
+      // gather(mat_NL);
+      // matlab::Export(mat_NL[0], "mat_1.dat");
+      // return 0;
       stokes.solve(mat_NL, stokes.rhs_);
 
-      if(iter == 0) {
-        std::cout << " TIME SOLVER \t" << CPUtime() - tt0 << std::endl;
+
+
+      if(iter == 0 && iterNewton == 0) {
+        std::cout << " TIME SOLVER \t" << MPIcf::Wtime() - tt0 << std::endl;
       }
 
       KN_<double> dwu(stokes.rhs_(SubArray(Wh.NbDoF()*In.NbDoF(), 0)));
       KN_<double> dwp(stokes.rhs_(SubArray(Ph.NbDoF()*In.NbDoF(), idxp0)));
-      // KN_<double> dws(stokes.rhs(SubArray(cutWh.NbDoF()*In.NbDoF(),n0)));
+      KN_<double> dws(stokes.rhs_(SubArray(Sh.NbDoF()*In.NbDoF(), idxs0)));
       double dist  = dwu.l1()/dwu.size();
-      //       double dists = dws.l1()/dws.size();
+      double dists = dws.l1()/dws.size();
       if(iter == 0){
-        std::cout << " dwu\t" << dist << std::endl;
+        std::cout << " Iterartion error || du ||_infty = " << dist << std::endl;
+        std::cout << " Iterartion error || ds ||_infty = " << dists << std::endl;
       }
       else {
         std::cout << "\r";
-        std::cout << " ITERATION \t : \t" << iter+1 << " / " << GTime::total_number_iteration << " \t Error : " << dist << std::endl;
+        std::cout << " ITERATION \t : \t" << iter+1 << " / " << GTime::total_number_iteration << " \t Error : " << max(dist, dists);
         std::cout.flush();
       }
-      //       std::cout << " dws\t" << dists << std::endl;
-      //
       KN_<double> dw(stokes.rhs_(SubArray(stokes.get_nb_dof(), 0)));
       data_all -= dw;
       // data_all = dw;
@@ -726,16 +699,16 @@ int main(int argc, char** argv )
 
       iterNewton+=1;
 
-      if(iterNewton == 2 || fabs(dist) < 1e-13) {
+      if(iterNewton == 10 || max(dist, dists) < 1e-10) {
         // if(iterNewton == 5 || max(dist, dists) < 1e-10  ) {
         stokes.saveSolution(data_all);
-        stokes.mat_.clear();
+        stokes.cleanBuildInMatrix();
         stokes.set_map();
-        // stokes.cleanMatrix();
+
         if(iter == 0) {
           std::cout << " TIME NEWTON ITERATION : \t" << MPIcf::Wtime()-t0_newton << std::endl;
         }
-        // return 0;
+
         break;
       }
     }
@@ -795,12 +768,22 @@ int main(int argc, char** argv )
     //  -----------------------------------------------------
     if(MPIcf::IamMaster() && (iter%frequency_plotting == 0 || iter+1 == GTime::total_number_iteration)) {
 
-      std::string filename = "shearExample_"+to_string(ifig)+".vtk";
-      if(iter == 0){ std::cout << " Plotting -> " << filename << std::endl;}
-      Paraview<Mesh> writer(Kh_i, filename);
-      writer.add(ls[0],"levelSet", 0, 1);
-
-
+      {
+        std::string filename = "shearExample_"+to_string(ifig)+".vtk";
+        if(iter == 0){ std::cout << " Plotting -> " << filename << std::endl;}
+        Paraview<Mesh> writer(Kh_i, filename);
+        writer.add(ls[0],"levelSet", 0, 1);
+        writer.add(uh,"velocity", 0, 2);
+        writer.add(ph,"pressure", 0, 1);
+      }
+      {
+        std::string filename = "shearExampleSurfactant_"+to_string(ifig)+".vtk";
+        if(iter == 0){ std::cout << " Plotting -> " << filename << std::endl;}
+        Paraview<Mesh> writer(Kh_0, filename);
+        writer.add(ls[0],"levelSet_0", 0, 1);
+        writer.add(ls[2],"levelSet_2", 0, 1);
+        writer.add(sh,"surfactant_0", 0, 1);
+      }
       //     if(iter%frequencyPlottingTheSolution == 0 && writeVTKFiles && MPIcf::IamMaster()){
       //       std::cout << " Plotting " << std::endl;
       //
@@ -810,8 +793,7 @@ int main(int argc, char** argv )
 
       // Fun_h uh(Wh, solv);
       // Paraview2 writerr(Wh, ls[0], pathOutpuFigure+"navierStokes_"+to_string(iterfig)+".vtk");
-      writer.add(uh,"velocity", 0, 2);
-      writer.add(ph,"pressure", 0, 1);
+
       // }
       // if(saveSurfactantVTK) {
       //
