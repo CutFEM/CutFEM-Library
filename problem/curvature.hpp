@@ -43,14 +43,7 @@ public:
 
     CutFEM<Mesh2> problem(Vh);
     FunTest H(Vh, D), v(Vh,D);
-
-    // TestFunction<Rd::d> gradSu = gradS(-1*uu);
     Normal n;
-    // TestFunction<Rd::d> gradun = grad(uu)*n;
-    // double h = (*Vh)[0].T.lenEdge(0);
-    // int deg = ((*Vh)[0].NbNode() > Rd::d+1) ? 2 : 1;
-    // Projection Pg;
-    //
     Rnm Id(D,D); Id = 0.;
     for(int i=0;i<D;++i) Id(i,i) = 1.;
     //
@@ -65,6 +58,47 @@ public:
     // l(v)_Omega
     problem.addLinear(
       -contractProduct(Id,gradS(v))
+      , interface
+      // , {}
+      // , mapping
+    );
+    //
+    // ListItemVF<Rd::d> Sh = (jump(gradun),jump(gradun))*1e-2;
+    // this->addEdgeIntegral(Sh);
+    problem.addBilinear(
+      (jump(grad(H)*n),jump(grad(v)*n))*1e-2
+      , Kh
+      , INTEGRAL_INNER_FACET
+    );
+
+
+    // if(deg == 2) {
+    //   TestFunction<Rd::d> grad2un = grad(gradun)*n;
+    //   this->addEdgeIntegral(innerProduct(1e-2*h*h*jump(grad2un), jump(grad2un)));
+    // }
+    problem.solve();
+    return problem.rhs_;
+  }
+
+  Rn solve( const ExpressionVirtual& w) {
+
+    CutFEM<Mesh2> problem(Vh);
+    FunTest H(Vh, D), v(Vh,D);
+    Normal n;
+    Rnm Id(D,D); Id = 0.;
+    for(int i=0;i<D;++i) Id(i,i) = 1.;
+    //
+    // //a(u,v)_Gamma
+    // double t0 = CPUtime();
+    problem.addBilinear(
+      (H,v) //+ (gradun,gradun)*1e-2
+      , interface
+      // , {}
+      // , mapping
+    );
+    // l(v)_Omega
+    problem.addLinear(
+      -contractProduct(Id,w*gradS(v))
       , interface
       // , {}
       // , mapping
