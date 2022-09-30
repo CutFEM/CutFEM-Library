@@ -57,18 +57,18 @@ ExpressionNormal3 operator*(const FunFEM<Mesh3>& f1, const Normal& n){
   return ExpressionNormal3(f1);
 }
 
-ExpressionAverage average(const ExpressionVirtual & f1, const double kk1, const double kk2){
-  return ExpressionAverage(f1,kk1,kk2);
-}
-ExpressionAverage jump(const ExpressionVirtual & f1, const double kk1, const double kk2){
-  return ExpressionAverage(f1,1,-1);
-}
-ExpressionAverage operator* (double c, const ExpressionAverage& fh){
-  return ExpressionAverage(fh.fun1,c*fh.k1, c*fh.k2);
-}
-ExpressionAverage operator* (const ExpressionAverage& fh, double c){
-  return ExpressionAverage(fh.fun1,c*fh.k1, c*fh.k2);
-}
+// ExpressionAverage average(const ExpressionVirtual & f1, const double kk1, const double kk2){
+//   return ExpressionAverage(f1,kk1,kk2);
+// }
+// ExpressionAverage jump(const ExpressionVirtual & f1, const double kk1, const double kk2){
+//   return ExpressionAverage(f1,1,-1);
+// }
+// ExpressionAverage operator* (double c, const ExpressionAverage& fh){
+//   return ExpressionAverage(fh.fun1,c*fh.k1, c*fh.k2);
+// }
+// ExpressionAverage operator* (const ExpressionAverage& fh, double c){
+//   return ExpressionAverage(fh.fun1,c*fh.k1, c*fh.k2);
+// }
 
 ExpressionBurgerFlux burgerFlux(const ExpressionVirtual & f1) {
   return ExpressionBurgerFlux(f1);

@@ -1,6 +1,7 @@
 #ifndef _EXPRESSION_HPP
 #define _EXPRESSION_HPP
 #include "FESpace.hpp"
+#include <cmath>
 #include <list>
 
 struct Normal_Component {
@@ -593,6 +594,8 @@ public:
   }
   ~ExpressionSum(){}
 };
+
+
 ExpressionSum operator+(const ExpressionVirtual& f1, const ExpressionVirtual& f2);
 
 class ExpressionDif : public ExpressionVirtual {
@@ -1016,22 +1019,58 @@ public:
 };
 ExpressionDivS3 divS(const FunFEM<Mesh3>& f1);
 
-
-class ExpressionAverage {
+template<typename M>
+class ExpressionAverage : public ExpressionVirtual{
   public:
-  const ExpressionVirtual & fun1;
+  const ExpressionFunFEM<M> fun1;
   const R k1, k2;
 
-  ExpressionAverage(const ExpressionVirtual & fh1, double kk1, double kk2)
-  : fun1(fh1), k1(kk1), k2(kk2){
+  ExpressionAverage(const ExpressionFunFEM<M>& fh, double kk1, double kk2)
+  : fun1(fh.fun,fh.cu, fh.op, fh.opt, -1), k1(kk1), k2(kk2){
+  }
+
+  R operator()(long i) const {assert(0 && " cannot use this "); return k1*fun1(i);}
+
+  R eval(const int k, const R* x, const R* normal)const  {
+    assert(0 && " need to be evaluated on backmesh");
+    return fun1.eval(k,x,normal) + fun1.eval(k,x,normal);
+  }
+  R eval(const int k, const R* x, const R t, const R* normal)const  {
+    assert(0 && " need to be evaluated on backmesh");
+    return fun1.eval(k,x,t,normal) + fun1.eval(k,x,t,normal);
+  }
+
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R* normal)const  {
+    return k1*fun1.evalOnBackMesh(k,0,x,normal) + k2*fun1.evalOnBackMesh(k,1,x,normal);
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    return k1*fun1.evalOnBackMesh(k,0,x,t,normal) + k2*fun1.evalOnBackMesh(k,1,x,t,normal);
+  }
+  int idxElementFromBackMesh(int kb, int dd=0) const {
+    return fun1.idxElementFromBackMesh(kb, dd);
   }
 
   ~ExpressionAverage(){}
 };
-ExpressionAverage average(const ExpressionVirtual & fh1, const double kk1=0.5, const double kk2=0.5);
-ExpressionAverage jump(const ExpressionVirtual & fh1, const double kk1=1, const double kk2=-1);
-ExpressionAverage operator* (double c, const ExpressionAverage& fh);
-ExpressionAverage operator* ( const ExpressionAverage& fh, double c);
+
+
+
+template<typename M>
+ExpressionAverage<M> average(const ExpressionFunFEM<M> & fh1, const double kk1=0.5, const double kk2=0.5) {
+  return ExpressionAverage<M>(fh1,kk1,kk2);
+}
+template<typename M>
+ExpressionAverage<M> jump(const ExpressionFunFEM<M> & fh1, const double kk1=1, const double kk2=-1){
+  return ExpressionAverage<M>(fh1,1,-1);
+}
+template<typename M>
+ExpressionAverage<M> operator* (double c, const ExpressionAverage<M>& fh){
+  return ExpressionAverage<M>(fh.fun1,c*fh.k1, c*fh.k2);
+}
+template<typename M>
+ExpressionAverage<M> operator* ( const ExpressionAverage<M>& fh, double c){
+  return ExpressionAverage<M>(fh.fun1,c*fh.k1, c*fh.k2);
+}
 
 
 template<typename M>
@@ -1123,37 +1162,78 @@ ExpressionBurgerFlux burgerFlux(const ExpressionVirtual & f1);
 ExpressionNormalBurgerFlux burgerFlux(const ExpressionVirtual & f1, const Normal& n ) ;
 
 
-// class ExpressionNormalBurgerFlux : public ExpressionVirtual {
-//   const ExpressionVirtual & fun1;
-// public:
-//   ExpressionNormalBurgerFlux(const ExpressionVirtual & fh1)
-//   : fun1(fh1) {
-//   }
-//
-//   R operator()(long i) const {return fabs(fun1(i));}
-//
-//   R eval(const int k, const R* x, const R* normal)const  {
-//     double val = fun1.eval(k,x, normal)
-//     return 0.5*val*val;
-//   }
-//   R eval(const int k, const R* x, const R t, const R* normal)const  {
-//     double val = fun1.eval(k,x,t, normal);
-//     return 0.5*val*val;
-//   }
-//
-//   R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
-//     double val = fun1.evalOnBackMesh(k,dom,x,normal);
-//     return 0.5*val*val;
-//   }
-//   R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
-//     double val = fun1.evalOnBackMesh(k,dom,x,t,normal);
-//     return 0.5*val*val;
-//   }
-//   int idxElementFromBackMesh(int kb, int dd=0) const {
-//     return fun1.idxElementFromBackMesh(kb, dd);
-//   }
-//   ~ExpressionNormalBurgerFlux(){}
-// };
+template<typename M>
+class ExpressionLinearSurfaceTension : public ExpressionVirtual {
+  const FunFEM<M> & fun;
+  const double sigma0 ;
+  const double beta;
+  const double tid;
+
+public:
+  ExpressionLinearSurfaceTension(const FunFEM<M>& fh, double ssigma0, double bbeta, double ttid)
+  : fun(fh), sigma0(ssigma0), beta(bbeta), tid(ttid) {}
+
+  R operator()(long i) const {return fabs(fun(i));}
+
+  R eval(const int k, const R* x, const R* normal)const  {
+    assert(0);
+    return 0.;
+  }
+  R eval(const int k, const R* x, const R t, const R* normal)const  {
+    assert(0);
+    return 0.;
+  }
+
+  R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
+    double val = fun.evalOnBackMesh(k,dom,x,tid,0,op_id, op_id);
+    return sigma0*(1 - beta*val);
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    double val = fun.evalOnBackMesh(k,dom,x,tid,0,op_id, op_id);
+    return sigma0*(1 - beta*val);
+  }
+  int idxElementFromBackMesh(int kb, int dd=0) const {
+    return fun.idxElementFromBackMesh(kb, dd);
+  }
+  ~ExpressionLinearSurfaceTension(){}
+};
+template<typename M>
+class ExpressionNonLinearSurfaceTension : public ExpressionVirtual {
+  const FunFEM<M> & fun;
+  const double sigma0 ;
+  const double beta;
+  const double tid;
+
+public:
+  ExpressionNonLinearSurfaceTension(const FunFEM<M>& fh, double ssigma0, double bbeta, double ttid)
+  : fun(fh), sigma0(ssigma0), beta(bbeta), tid(ttid) {}
+
+  R operator()(long i) const {return fabs(fun(i));}
+
+  R eval(const int k, const R* x, const R* normal)const  {
+    assert(0);
+    return 0.;
+  }
+  R eval(const int k, const R* x, const R t, const R* normal)const  {
+    assert(0);
+    return 0.;
+  }
+
+  R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
+    double val = fun.evalOnBackMesh(k,dom,x,tid,0,op_id, op_id);
+    return sigma0*(1 + beta*std::log(1-val));
+  }
+  R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
+    double val = fun.evalOnBackMesh(k,dom,x,tid,0,op_id, op_id);
+    return sigma0*(1 + beta*std::log(1-val));
+  }
+  int idxElementFromBackMesh(int kb, int dd=0) const {
+    return fun.idxElementFromBackMesh(kb, dd);
+  }
+  ~ExpressionNonLinearSurfaceTension(){}
+};
+
+
 
 
 #include "expression.tpp"
