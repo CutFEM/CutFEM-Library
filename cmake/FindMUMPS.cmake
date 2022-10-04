@@ -32,11 +32,14 @@ find_path (MUMPS_INCLUDE_DIR
 
 find_path(MUMPS_LIBRARY_DIR
   NAMES libmumps_common.dylib libdmumps.dylib libpord.dylib
+#  NAMES libmumps_common.a libdmumps.a libpord.a
+
   PATHS
   /usr/local/Cellar/brewsci-mumps/5.2.1/lib
   /opt/MUMPS/lib
   /usr/local/MUMPS/lib
   /usr/local/lib
+  /usr/lib/x86_64-linux-gnu
   /usr/lib
   ~/lib/lib)
 endif()
@@ -74,12 +77,14 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
   find_library(SCOTCH_scotch_LIBRARY
     NAMES scotch scotch-6
     PATHS /usr/lib
-          /usr/local/Cellar/brewsci-scotch/6.0.4/lib          
+          /usr/lib/x86_64-linux-gnu
+          /usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
 
   find_library(SCOTCH_scotcherr_LIBRARY
     NAMES scotcherr scotcherr-6
     PATHS /usr/lib
+          /usr/lib/x86_64-linux-gnu
           /usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
 

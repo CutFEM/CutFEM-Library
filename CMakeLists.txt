@@ -19,6 +19,9 @@ option(USE_MUMPS "Found the MUMPS library" ON)
 
 if(USE_MPI)
   set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.1_2/bin/mpicxx")
+
+#  For aitken
+#  set(CMAKE_CXX_COMPILER "/usr/bin/mpicxx")
 endif()
 ## ##############################
 ## Configuration
@@ -29,6 +32,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w -fopenmp -D_Float128=__float128")
+
+#  For aitken
+#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w -fopenmp -D_Float128=__float128 -fpermissive")
+
 
 message( " cxx compiler ${CMAKE_CXX_COMPILER}")
 
