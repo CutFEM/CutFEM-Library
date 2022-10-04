@@ -57,6 +57,40 @@ namespace gnuplot {
     plot.close();
   }
 
+  void save(const Interface<Mesh2> & Gh,  std::string filename = "Gh.dat") {
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    for(int k=0; k<Gh.nbElement();++k) {
+      plot << Gh(k,0) << std::endl;
+      plot << Gh(k,1) << std::endl;
+      plot << std::endl;
+      plot << std::endl;
+    }
+
+    plot.close();
+  }
+  void save(const Interface<Mesh2> & Gh,const Mapping2& mapping,   std::string filename = "Gh.dat") {
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = 2;
+    const int accu = 10;
+
+    for(int k=0; k<Gh.nbElement();++k) {
+      const int kb = Gh.idxElementOfFace(k);                // on the back Mesh
+      for(int i=0;i<accu+1;++i) {
+        R2 P(Gh(k,0)*(double)i/accu + (1 - (double)i/accu)*Gh(k,1));
+
+        plot << mapping.map(kb, P) << std::endl;
+      }
+      plot << std::endl;
+      plot << std::endl;
+    }
+    plot.close();
+  }
+
+
 
 
   // void save(const Mesh2 & Th, const Fracture& fracture, std::string filename = "Th_fractured.dat") {
@@ -194,34 +228,6 @@ namespace gnuplot {
   //   plot.close();
   //
   // }
-
-  // void exportInterface(const Interface2 & Gh, const Mapping2& mapping,
-  // 		       std::string filename = "Gh.dat") {
-
-  //   std::ofstream plot;
-  //   plot.open(filename.c_str(), std::ofstream::out);
-  //   const int nve = 2;
-  //   const int accu = 10;
-
-  //   for(int k=0; k<Gh.nbElement();++k) {
-
-  //     const int kb = Gh.idxElementOfFace(k);                // on the back Mesh
-  //     const int kl = mapping.Vh.idxInLocMesh(kb);           // on mapping Mesh
-  //     const typename Mapping2::FElement & FK(mapping.Vh[k]);
-
-  //     for(int i=0;i<accu+1;++i) {
-  // 	R2 P(Gh(k,0)*(double)i/accu + (1 - (double)i/accu)*Gh(k,1));
-  // 	  plot << mapping.deformNode(FK, P) << std::endl;
-
-  //     }
-  //     plot << std::endl;
-  //     plot << std::endl;
-  //   }
-  //   plot.close();
-
-
-  // }
-
 
 
   //

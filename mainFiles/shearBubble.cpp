@@ -21,7 +21,10 @@ The example is a bubble in a shear flow.
 #include "global.hpp"
 #include "levelSet.hpp"
 #include "curvature.hpp"
+#include "projection.hpp"
+#include "mapping.hpp"
 #include "../num/matlab.hpp"
+#include "../num/gnuplot.hpp"
 // #include "curvature.hpp"
 // #include "reinitialization.hpp"
 // #include "../time_stuff.hpp"
@@ -118,6 +121,7 @@ int main(int argc, char** argv )
   int nx = 50;
   int ny = 20;
   Mesh Kh(nx, ny, -5., -2., 10., 4.);
+
   double mesh_size = (10./(nx-1));
 
 
@@ -202,7 +206,8 @@ int main(int argc, char** argv )
   // ---------------------------------------------
   Lagrange2 FEu(2);
   Space Vh(Kh, FEu);
-  Space Lh(Kh, DataFE<Mesh>::P1);
+  Space Lh  (Kh, DataFE<Mesh>::P1);
+  Space Lh_k(Kh, DataFE<Mesh>::P2);
   Lagrange2 FEcurv(1);
   Space Vh1(Kh, FEcurv);
 
@@ -262,22 +267,15 @@ int main(int argc, char** argv )
   std::cout << " ------------------------------------" << std::endl;
   std::cout << " Create interface and levelSet " << std::endl;
   TimeInterface<Mesh> interface(qTime);
-  // FESpace2 Lh  (Th, DataFE<Mesh2>::P1);
-  //   FESpace2 Lh_k(Th, DataFE<Mesh2>::P1);
   double dt_levelSet = dT/(nb_quad_time-1);
   vector<Fun_h> ls_k(nb_quad_time), ls(nb_quad_time);
-  //   for(int i=0;i<nbTime;++i) ls_k[i].init(Lh_k, fun_levelSet);
+  for(int i=0;i<nb_quad_time;++i) ls_k[i].init(Lh_k, fun_levelSet);
   for(int i=0;i<nb_quad_time;++i) ls[i].init(Lh, fun_levelSet);
 
-  // vector<Rn> H(nb_quad_time);
 
   //   projection(ls_k[0], ls[nbTime-1]);
-  //
-  //   LevelSet2 levelSet(Lh_k);
   //   levelSet.setStrongBC({2,4});
 
-  //
-  //
   //   CReinitialization<Mesh> reinitialization;
   //   reinitialization.number_iteration = 4;
   //   reinitialization.epsilon_diffusion = 1e-3;
@@ -292,19 +290,15 @@ int main(int argc, char** argv )
 
 
 
-
-  //   double initialConcentrationSurfactant;
-
-
   //   list<int> dirichlet = {1,2,3,4,20,40};
-  //
+
+
   // INTERPOLATE RHS AND BOUNDARY CONDITION
   // ----------------------------------------------
   std::cout << " ------------------------------------" << std::endl;
   std::cout << " Interpolate boundary and rhs " << std::endl;
   Fun_h fh(Vh, fun_rhs);
   Fun_h gh(Vh, fun_boundary);
-
 
 
   std::cout << " ------------------------------------" << std::endl;
@@ -335,12 +329,12 @@ int main(int argc, char** argv )
       double t0 = MPIcf::Wtime();
       globalVariable::verbose = 0;
 
-      // ls_k.begin()->swap(ls_k[lastQuadTime]);
-      ls.begin()->swap(ls[last_quad_time]);
+      ls_k.begin()->swap(ls_k[last_quad_time]);
+      // ls.begin()->swap(ls[last_quad_time]);
 
       for(int i=0;i<nb_quad_time;++i) {
 
-        // projection(ls_k[i], ls[i]);
+        projection(ls_k[i], ls[i]);
 
         // here we want to reinitializa the levelSet.
         // !!! WE CANNOT DO ON THE FIRST LEVELSET BECAUSE IT HAS TO MATCH THE LAST STEP
@@ -352,7 +346,7 @@ int main(int argc, char** argv )
 
         interface.init(i,Kh,ls[i]);
         if(i<nb_quad_time-1) {
-          LevelSet::move(ls[i], vel[last_quad_time], vel[last_quad_time], dt_levelSet, ls[i+1]);
+          LevelSet::move(ls_k[i], vel[last_quad_time], vel[last_quad_time], dt_levelSet, ls_k[i+1]);
         }
       }
       if(iter == 0) {
@@ -526,11 +520,12 @@ int main(int argc, char** argv )
 
       for(int i=0;i<nb_quad_time;++i) {      // computation of the curvature
         if(i >0 || iterNewton > 0) globalVariable::verbose = 0;
+
         CutMesh cutTh(Kh);
         cutTh.createSurfaceMesh(*interface[i]);
-        CutSpace cutVh(cutTh, Vh1);
-        //   // Mapping2 mapping(cutVh, ls_k[i]);
-        //
+        CutSpace cutVh(cutTh, Vh);
+
+        Mapping2 mapping(cutVh, ls_k[i], ls[i]);
         Curvature<Mesh> curvature(cutVh, interface[i]);
 
         auto tq = qTime(i);
@@ -538,10 +533,8 @@ int main(int argc, char** argv )
         ExpressionLinearSurfaceTension<Mesh> sigmaW(sh, sigma0, beta, tid);
 
         Rn data_H(cutVh.get_nb_dof());
-        data_H = curvature.solve(sigmaW);
-        // data_H = curvature.solve();
-
-        //, mapping);
+        data_H = curvature.solve(sigmaW, mapping);
+        // data_H = curvature.solve(mapping);
 
         Fun_h H(cutVh, data_H);
 
@@ -560,7 +553,7 @@ int main(int argc, char** argv )
           writerS.add(ls[i], "levelSet", 0, 1);
           writerS.add(H,"meanCurvature", 0, 2);
         }
-
+        // return 0;
       }
       if(iter == 0 && iterNewton == 0) globalVariable::verbose = 1;
 
@@ -594,7 +587,6 @@ int main(int argc, char** argv )
         , Kh_i
         , INTEGRAL_BOUNDARY
         , In
-        // , dirichlet
       );
       if(iter == 0 && iterNewton == 0) {
         std::cout << " TIME ASSEMBLY RHS \t" << MPIcf::Wtime() - tt0 << std::endl;
@@ -607,7 +599,6 @@ int main(int argc, char** argv )
         std::cout << " TIME MATRIX MULTIPLICATION \t" << MPIcf::Wtime() - tt0 << std::endl;
       }
       tt0 = MPIcf::Wtime();
-
 
 
       /*
@@ -692,15 +683,12 @@ int main(int argc, char** argv )
       }
       KN_<double> dw(stokes.rhs_(SubArray(stokes.get_nb_dof(), 0)));
       data_all -= dw;
-      // data_all = dw;
 
-      // Size has been changed by the lagrange multiplier
       stokes.rhs_.resize(stokes.get_nb_dof()); stokes.rhs_ = 0.0;
 
       iterNewton+=1;
 
       if(iterNewton == 10 || max(dist, dists) < 1e-10) {
-        // if(iterNewton == 5 || max(dist, dists) < 1e-10  ) {
         stokes.saveSolution(data_all);
         stokes.cleanBuildInMatrix();
         stokes.set_map();
