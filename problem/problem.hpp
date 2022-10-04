@@ -21,6 +21,7 @@
 #include "../util/util.hpp"
 #include "../util/cputime.h"
 #include "itemVF.hpp"
+#include "mapping.hpp"
 #include "../solver/solver.hpp"
 #include "omp.h"
 

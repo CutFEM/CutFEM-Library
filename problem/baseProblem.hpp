@@ -126,6 +126,11 @@ public:
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {});
   void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time, int itq);
 
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,const Mapping<Mesh>&, list<int> label = {});
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,const Mapping<Mesh>&, list<int> label = {});
+  void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time, int itq,const Mapping<Mesh>&);
+
+
   // integral for Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const Mesh& Th);
   void addLagrangeContribution(const ListItemVF<Rd::d>& VF, const int k,const TimeSlab* In, int itq, double cst_time);

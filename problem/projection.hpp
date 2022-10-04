@@ -10,48 +10,50 @@
   apply L2 projection to a vector
 - uh is the projected vector
  */
-template<typename M>
-void projection(FunFEM<M> & fh, FunFEM<M> & ph){
-	typedef typename M::Rd Rd;
+template<typename Mesh>
+void projection(FunFEM<Mesh> & fh, FunFEM<Mesh> & ph){
+	typedef typename Mesh::Rd Rd;
 	typedef TestFunction<Rd::d> FunTest;
-	typedef GFESpace<M> FESpace;
+	typedef GFESpace<Mesh> FESpace;
+
 	const FESpace& Fh(*fh.Vh);
 	const FESpace& Vh(*ph.Vh);
+	const Mesh& Th(Fh.Th);
 	assert(&Fh.Th == &Vh.Th);
 
-	FEM<M> projection(Vh);
+	FEM<Mesh> projection(Vh);
 
 	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
-	projection.addBilinear(innerProduct(u,v));
-	projection.addLinear(innerProduct(fh.expression(),v));
+	projection.addBilinear(innerProduct(u,v), Th);
+	projection.addLinear(innerProduct(fh.expression(),v), Th);
 	projection.solve();
-	ph.v = projection.rhs;
+	ph.v = projection.rhs_;
 }
 
 /*
   projection on FEM in Time
  */
-template<typename M>
-void projection(FunFEM<M> & fh, FunFEM<M> & ph, const TimeSlab& In){
-	typedef typename M::Rd Rd;
-	typedef TestFunction<Rd::d> FunTest;
-	typedef GFESpace<M> FESpace;
-
-	const FESpace& Fh(*fh.Vh);
-	const FESpace& Vh(*ph.Vh);
-
-	assert(&Fh.Th == &Vh.Th);
-
-	FEM<M> projection(Vh, In.Vh);
-	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
-
-	projection.addBilinear(innerProduct(u,v), In);
-	projection.addLinear(innerProduct(fh.expression(),v), In);
-
-	projection.solve();
-	ph.v = projection.rhs;
-}
-
+// template<typename M>
+// void projection(FunFEM<M> & fh, FunFEM<M> & ph, const TimeSlab& In){
+// 	typedef typename M::Rd Rd;
+// 	typedef TestFunction<Rd::d> FunTest;
+// 	typedef GFESpace<M> FESpace;
+//
+// 	const FESpace& Fh(*fh.Vh);
+// 	const FESpace& Vh(*ph.Vh);
+//
+// 	assert(&Fh.Th == &Vh.Th);
+//
+// 	FEM<M> projection(Vh, In.Vh);
+// 	FunTest u(Vh, Vh.N), v(Vh, Vh.N);
+//
+// 	projection.addBilinear(innerProduct(u,v), In);
+// 	projection.addLinear(innerProduct(fh.expression(),v), In);
+//
+// 	projection.solve();
+// 	ph.v = projection.rhs_;
+// }
+//
 
 
 

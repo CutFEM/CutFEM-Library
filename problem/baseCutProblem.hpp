@@ -73,6 +73,10 @@ public:
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const TimeSlab& In, int itq, list<int> label = {}) {return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);}
   // void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double cst_time);
 
+  void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,const Mapping<Mesh>& mapping, list<int> label = {}) {return BaseFEM<Mesh>::addBilinear(VF, gamma, mapping, label);}
+  void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma,const Mapping<Mesh>& mapping,list<int> label = {}) {return BaseFEM<Mesh>::addLinear(VF, gamma, mapping, label);}
+
+
   // integral on inner Ridge / intersction with interface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const CRidge& innerRidge,list<int> label = {});
   void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, list<int> label = {});

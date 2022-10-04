@@ -1,102 +1,101 @@
-#include "GenericMapping.hpp"
+// #include "GenericMapping.hpp"
 
 
-R Mapping2::errorInfty(const Interface2& interface, R (*fun)(const R2, int i)) {
-
-  std::ofstream plot1;
-  std::ofstream plot2;
-  // plot1.open("initPT.dat", std::ofstream::out);
-  plot2.open("defPTP3.dat", std::ofstream::out);
-
-  typedef typename FElement::RdHatBord RdHatBord;
-  Fun_h deform(*Vh, deformation_);
-  R errMax = 0;
-
-  const int numberOfPoint = 10;
-  R deltaX = 1.0/ numberOfPoint;
-
-  for(int iface=0;iface<interface.nbElement();++iface) {
-    const typename Interface::FaceIdx& face = interface[iface];
-    int k = interface.idxElementOfFace(iface);
-    if(interface.backMesh != &(Vh->Th)) k = Vh->idxElementFromBackMesh(k);
-
-    for(int i = 0; i < numberOfPoint; ++i) {
-      RdHatBord ip = i*deltaX;
-      Rd mip = interface.mapToFace(face, ip);
-      Rd defPt;
-      for(int c=0;c<Rd::d;++c) defPt[c] = mip[c] + deform.eval(k,mip,c, op_id);
-      const R val = fabs(fun(defPt,0));
-      errMax = std::max(errMax, val );
-      plot1 << mip << std::endl;
-      plot2 << defPt<< std::endl;
-     }
-     // std::cout << interface.mapToFace(face, ip) << "\t" << dd << "\t" << fabs(fun(interface.mapToFace(face, ip),0)) << "\n";
-     // std::cout << mip << "\t" << fabs(fun(mip,0))  << std::endl ;
-     // std::cout << defPt << "\t" << val << std::endl << std::endl << std::endl;
-
-  }
-
-  R err = errMax;
-  std::cout << " Error L_infty = " << err << std::endl;
-  return err;
-}
-
-
-
-
-class IdMapping2 : public GenericMapping<Mesh2> {
-  typedef GenericMapping<Mesh2> Mapping;
- public :
- IdMapping2() : Mapping() { }
-
- virtual int idxElementFromBackMesh(int kb) const {
-   return kb;
- }
- virtual void computeInverseJacobian(int k, Rd mip, KNM_<double>& invJ) const {
-   for(int i=0;i<Rd::d;++i){
-     for(int j=0;j<Rd::d;++j){
-       invJ(i,j) = (i==j);
-     }
-   }
- }
-
- virtual void transform(KNMK_<double>& bf, const KNM_<double>& invJ) const {}
-
- virtual Rd transform(const int k, const Rd x) const { return x;}
-
-};
-
-class IdMapping3 : public GenericMapping<Mesh3> {
-  typedef GenericMapping<Mesh3> Mapping;
- public :
- IdMapping3() : Mapping() { }
-
- virtual int idxElementFromBackMesh(int kb) const {
-   return kb;
- }
- virtual void computeInverseJacobian(int k, Rd mip, KNM_<double>& invJ) const {
-   for(int i=0;i<Rd::d;++i){
-     for(int j=0;j<Rd::d;++j){
-       invJ(i,j) = (i==j);
-     }
-   }
- }
-
- virtual void transform(KNMK_<double>& bf, const KNM_<double>& invJ) const {}
-
- virtual Rd transform(const int k, const Rd x) const { return x;}
-
-};
+// R Mapping2::errorInfty(const Interface2& interface, R (*fun)(const R2, int i)) {
+//
+//   std::ofstream plot1;
+//   std::ofstream plot2;
+//   // plot1.open("initPT.dat", std::ofstream::out);
+//   plot2.open("defPTP3.dat", std::ofstream::out);
+//
+//   typedef typename FElement::RdHatBord RdHatBord;
+//   Fun_h deform(*Vh, deformation_);
+//   R errMax = 0;
+//
+//   const int numberOfPoint = 10;
+//   R deltaX = 1.0/ numberOfPoint;
+//
+//   for(int iface=0;iface<interface.nbElement();++iface) {
+//     const typename Interface::FaceIdx& face = interface[iface];
+//     int k = interface.idxElementOfFace(iface);
+//     if(interface.backMesh != &(Vh->Th)) k = Vh->idxElementFromBackMesh(k);
+//
+//     for(int i = 0; i < numberOfPoint; ++i) {
+//       RdHatBord ip = i*deltaX;
+//       Rd mip = interface.mapToFace(face, ip);
+//       Rd defPt;
+//       for(int c=0;c<Rd::d;++c) defPt[c] = mip[c] + deform.eval(k,mip,c, op_id);
+//       const R val = fabs(fun(defPt,0));
+//       errMax = std::max(errMax, val );
+//       plot1 << mip << std::endl;
+//       plot2 << defPt<< std::endl;
+//      }
+//      // std::cout << interface.mapToFace(face, ip) << "\t" << dd << "\t" << fabs(fun(interface.mapToFace(face, ip),0)) << "\n";
+//      // std::cout << mip << "\t" << fabs(fun(mip,0))  << std::endl ;
+//      // std::cout << defPt << "\t" << val << std::endl << std::endl << std::endl;
+//
+//   }
+//
+//   R err = errMax;
+//   std::cout << " Error L_infty = " << err << std::endl;
+//   return err;
+// }
+//
+//
 
 
-
-static IdMapping2 IdMapping_2d;
-static IdMapping3 IdMapping_3d;
-GenericMapping<Mesh2> & IdMapping2d(IdMapping_2d);
-GenericMapping<Mesh3> & IdMapping3d(IdMapping_3d);
-template<> GenericMapping<Mesh2> & DataMapping<Mesh2>::Id = IdMapping_2d;
-template<> GenericMapping<Mesh3> & DataMapping<Mesh3>::Id = IdMapping_3d;
-
+// class IdMapping2 : public GenericMapping<Mesh2> {
+//   typedef GenericMapping<Mesh2> Mapping;
+//  public :
+//  IdMapping2() : Mapping() { }
+//
+//  virtual int idxElementFromBackMesh(int kb) const {
+//    return kb;
+//  }
+//  virtual void computeInverseJacobian(int k, Rd mip, KNM_<double>& invJ) const {
+//    for(int i=0;i<Rd::d;++i){
+//      for(int j=0;j<Rd::d;++j){
+//        invJ(i,j) = (i==j);
+//      }
+//    }
+//  }
+//
+//  virtual void transform(KNMK_<double>& bf, const KNM_<double>& invJ) const {}
+//
+//  virtual Rd transform(const int k, const Rd x) const { return x;}
+//
+// };
+// class IdMapping3 : public GenericMapping<Mesh3> {
+//   typedef GenericMapping<Mesh3> Mapping;
+//  public :
+//  IdMapping3() : Mapping() { }
+//
+//  virtual int idxElementFromBackMesh(int kb) const {
+//    return kb;
+//  }
+//  virtual void computeInverseJacobian(int k, Rd mip, KNM_<double>& invJ) const {
+//    for(int i=0;i<Rd::d;++i){
+//      for(int j=0;j<Rd::d;++j){
+//        invJ(i,j) = (i==j);
+//      }
+//    }
+//  }
+//
+//  virtual void transform(KNMK_<double>& bf, const KNM_<double>& invJ) const {}
+//
+//  virtual Rd transform(const int k, const Rd x) const { return x;}
+//
+// };
+//
+//
+//
+// static IdMapping2 IdMapping_2d;
+// static IdMapping3 IdMapping_3d;
+// GenericMapping<Mesh2> & IdMapping2d(IdMapping_2d);
+// GenericMapping<Mesh3> & IdMapping3d(IdMapping_3d);
+// template<> GenericMapping<Mesh2> & DataMapping<Mesh2>::Id = IdMapping_2d;
+// template<> GenericMapping<Mesh3> & DataMapping<Mesh3>::Id = IdMapping_3d;
+//
 
 
 
