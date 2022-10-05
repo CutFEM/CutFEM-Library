@@ -21,8 +21,8 @@
 // #define DARCY_FEM_3D
 // #define DARCY_EXAMPLE_SCOTTI
 // #define DARCY_ARTIFICIAL_INTERFACE_3D
-#define DARCY_EXAMPLE_FICTITIOUS_3D
-// #define DARCY_EXAMPLE_SCOTTI_3D
+// #define DARCY_EXAMPLE_FICTITIOUS_3D
+#define DARCY_EXAMPLE_SCOTTI_3D
 
 // #define DARCY_EXAMPLE_ALL_BOUNDARY
 // #define DARCY_EXAMPLE_PUPPI
@@ -2745,9 +2745,9 @@ R fun_force(const R3 P, int compInd) {
 R fun_div(const R3 P, int compInd, int dom) {// is also exact divergence
   R radius2 = interfaceRad*interfaceRad;
   if (dom==0) // r2>radius2
-  return -2./radius2;
+  return -3./radius2;
   else
-  return -4./radius2;
+  return -6./radius2;
 }
 R fun_exact_u(const R3 P, int compInd, int dom) {
   Diff<R,3> X(P.x,0), Y(P.y,1), Z(P.z,2);
@@ -2785,14 +2785,20 @@ int main(int argc, char** argv ) {
 
 
   MPIcf cfMPI(argc,argv);
-  const double cpubegin = CPUtime();
+  int thread_count_tmp = 1;
+  cout << "Threads: ";
+  cin >> thread_count_tmp;
+  MPIcf::Bcast(thread_count_tmp, MPIcf::Master(), 1);
+  const int thread_count = thread_count_tmp;
+  omp_set_num_threads(thread_count);
+  const double cpubegin = MPIcf::Wtime();
 
-  int nx = 10;
+  int nx = 11;
 
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters = 3;
+  int iters = 4;
 
   for(int i=0;i<iters;++i) {
     Mesh Kh(nx, nx, nx, 0., 0., 0., 1., 1.,1.);
@@ -2818,7 +2824,7 @@ int main(int argc, char** argv ) {
     Ph.info();
 
 
-    CutFEM<Mesh> darcy(Wh); darcy.add(Ph);
+    CutFEM<Mesh> darcy(Wh, thread_count); darcy.add(Ph);
     const R h_i = 1./(nx-1);
     const R invh = 1./h_i;
     // MacroElement<Mesh> macro(Kh_i, 0.25);
@@ -2920,25 +2926,25 @@ int main(int argc, char** argv ) {
 
 
     // [PLOTTING]
-    if(MPIcf::IamMaster()){
-      Fun_h solh(Wh, fun_exact_u);
-      Fun_h solph(Ph, fun_exact_p);
-
-      // solh.v -= uh.v;
-      // solh.v.map(fabs);
-      Fun_h divSolh(Ph, fun_div);
-      ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
-
-      // Paraview<Mesh> writer(Kh_i, "darcyRT2_"+to_string(i)+".vtk");
-      Paraview<Mesh> writer(Kh_i, "darcyScottiu3D_"+to_string(i)+".vtk");
-
-      writer.add(uh, "velocity" , 0, 3);
-      writer.add(solh, "velocityExact" , 0, 3);
-      writer.add(ph, "pressure" , 0, 1);
-      writer.add(solph, "pressureExact" , 0, 1);
-      writer.add(femSol_0dx+femSol_1dy, "divergence");
-      writer.add(fabs((femSol_0dx+femSol_1dy+femSol_1dz)-femDiv), "divergenceError");
-    }
+    // if(MPIcf::IamMaster()){
+    //   Fun_h solh(Wh, fun_exact_u);
+    //   Fun_h solph(Ph, fun_exact_p);
+    //
+    //   // solh.v -= uh.v;
+    //   // solh.v.map(fabs);
+    //   Fun_h divSolh(Ph, fun_div);
+    //   ExpressionFunFEM<Mesh> femDiv(divSolh, 0, op_id);
+    //
+    //   // Paraview<Mesh> writer(Kh_i, "darcyRT2_"+to_string(i)+".vtk");
+    //   Paraview<Mesh> writer(Kh_i, "darcyScottiu3D_"+to_string(i)+".vtk");
+    //
+    //   writer.add(uh, "velocity" , 0, 3);
+    //   writer.add(solh, "velocityExact" , 0, 3);
+    //   writer.add(ph, "pressure" , 0, 1);
+    //   writer.add(solph, "pressureExact" , 0, 1);
+    //   writer.add(femSol_0dx+femSol_1dy, "divergence");
+    //   writer.add(fabs((femSol_0dx+femSol_1dy+femSol_1dz)-femDiv), "divergenceError");
+    // }
 
     pPrint.push_back(errP);
     uPrint.push_back(errU);

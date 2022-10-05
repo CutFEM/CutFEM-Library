@@ -1076,7 +1076,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M
 template<typename M>
 void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th) {
   assert(!VF.isRHS());
-  progress bar("Add Face Stabilization CutMesh", Th.last_element());
+  progress bar("Add Face Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
 
   for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
     bar += Th.next_element();

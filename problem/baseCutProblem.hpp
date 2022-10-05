@@ -130,12 +130,14 @@ public:
   CutFEM(const FESpace& vh        , int np, const ProblemOption& option = defaultProblemOption) : BaseCutFEM<Mesh>(vh, option, np), Solver(option) {}
   void solve() {
     double tt0 = MPIcf::Wtime();
+    gather(this->mat_);
     Solver::solve(this->mat_[0], this->rhs_);
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
   void solve(string solverName) {
     double tt0 = MPIcf::Wtime();
     this->solver_name_ = solverName;
+    gather(this->mat_);
     Solver::solve(this->mat_[0], this->rhs_);
     if(this->verbose_>0)std::cout << " Real Time Solver \t \t " << MPIcf::Wtime() - tt0 << std::endl;
   }
