@@ -479,11 +479,9 @@ int main(int argc, char** argv )
           , In
         );
 
-
-
         double h3 = pow(mesh_size,3);
         stokes.addFaceStabilization(
-          innerProduct(1e-1*hh*jump(grad(du)*n), mu*jump(grad(v)*n))
+            innerProduct(1e-1*hh*jump(grad(du)*n), mu*jump(grad(v)*n))
           + innerProduct(1e-1*h3*jump(D2nu)      , mu*jump(D2nv))
           + innerProduct(1e-1*h3*jump(grad(dp)*n), invmu*jump(grad(q)*n))
           , Kh_i
@@ -495,7 +493,7 @@ int main(int argc, char** argv )
           , Kh_0
           , In
         );
-        //         // if stab interface, can have h in both stabilization
+        // if stab interface, can have h in both stabilization
         // stokes.addBilinear(
         //   innerProduct(1e-2*hh*grad(ds)*n, grad(r)*n)
         //   , interface
@@ -533,14 +531,24 @@ int main(int argc, char** argv )
         ExpressionLinearSurfaceTension<Mesh> sigmaW(sh, sigma0, beta, tid);
 
         Rn data_H(cutVh.get_nb_dof());
-        data_H = curvature.solve(sigmaW, mapping);
-        // data_H = curvature.solve(mapping);
+        // data_H = curvature.solve(sigmaW, mapping);
+        data_H = curvature.solve(mapping);
 
         Fun_h H(cutVh, data_H);
 
         ExpressionFunFEM<Mesh2> Hx(H,0,op_id);
         ExpressionFunFEM<Mesh2> Hy(H,1,op_id);
         FunTest vx(Wh,1,0), vy(Wh,1,1);
+
+        if(iterNewton == 0) {
+          stokes.addBilinear(
+              innerProduct(Hx*ds    , average2(vx, kappa2))*beta*sigma0
+            + innerProduct(Hy*ds    , average2(vy, kappa2))*beta*sigma0
+            + innerProduct(gradS(ds), average2(v , kappa2))*beta*sigma0
+            , interface
+            ,i , In
+          );
+        }
 
         stokes.addLinear(
           - innerProduct(Hx , average(vx, kappa2))

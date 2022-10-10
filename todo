@@ -82,3 +82,4 @@ DONE ** 63) add domain_id in itemVF and fixe onDomain in the integration functio
 69) template the ExpressionVirtual to get the Space. Need it to give it to itemVF when
 having (fh, [v]) is fh is define on a different mesh/space as v. Right now fespaceU point
 to the space of v. Bug! The fix is realy bad right now. Check getIdxFromBackMesh in CutMEsh class.
+DONE ** 70) build an access struct in DA to get val when Diff of Diff

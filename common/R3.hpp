@@ -62,9 +62,9 @@ public:
   friend R det( R3 A, R3 B,  R3 C)
   {
     R  s=1.;
-    if(abs(A.x)<abs(B.x)) Exchange(A,B),s = -s;
-    if(abs(A.x)<abs(C.x)) Exchange(A,C),s = -s;
-    if(abs(A.x)>1e-50)
+    if(fabs(A.x)<fabs(B.x)) Exchange(A,B),s = -s;
+    if(fabs(A.x)<fabs(C.x)) Exchange(A,C),s = -s;
+    if(fabs(A.x)>1e-50)
       {
 	s *= A.x;
 	A.y /= A.x; A.z /= A.x;
