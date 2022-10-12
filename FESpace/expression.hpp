@@ -129,6 +129,7 @@ public:
       interpolate(*Vh,*In, this->v, f);
     }
 
+    // FIXME: Not working properly over two domains
     FunFEM(const FESpace& vh, const TimeSlab& in, R (*f)(const Rd, int i, int d, R tt) )
           : FunFEMVirtual (vh.NbDoF()*in.NbDoF()),
           alloc(true), Vh(&vh), In(&in),

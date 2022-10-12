@@ -68,94 +68,259 @@ struct SmallElement {
 };
 
 class GMacro {
-  public :
+    public :
 
-  const int small=-1 ;
-  const int good = 0, extension = 1, exhaust = 2;
+    const int small = -1;
+    const int good = 0, extension = 1, exhaust = 2;
 
 
-  map<int, MElement>     macro_element;   // idx_root -> idx_macroElement
-  map<int, SmallElement> small_element;  // idx_element -> idx_small_element
-  double tol;
+    map<int, MElement>     macro_element;   // idx_root -> idx_macroElement
+    map<int, SmallElement> small_element;  // idx_element -> idx_small_element
+    double tol;
 
-  GMacro() {}
+    GMacro() {}
 
-  int getIndexRootElement(int k) const {
-    auto it = small_element.find(k);
-    if(it == small_element.end()){
-      return k;
-    }else {
-      return it->second.index_root;
+    int getIndexRootElement(int k) const {
+        auto it = small_element.find(k);
+        if(it == small_element.end()){
+          return k;
+        }else {
+          return it->second.index_root;
+        }
     }
-  }
-  const SmallElement& getSmallElement(int k) const {
-    auto it = small_element.find(k);
-    assert(it != small_element.end());
-    return it->second;
-  }
-  int nb_macro_element() const { return macro_element.size();}
+    
+    const SmallElement& getSmallElement(int k) const {
+        auto it = small_element.find(k);
+        assert(it != small_element.end());
+        return it->second;
+    }
+    
+    int nb_macro_element() const { return macro_element.size();}
 
-  bool isRootFat(int k) const { return (macro_element.find(k) != macro_element.end());}
-  bool isSmall(int k) const { return (small_element.find(k) != small_element.end());}
+    bool isRootFat(int k) const { return (macro_element.find(k) != macro_element.end());}
+    bool isSmall(int k) const { return (small_element.find(k) != small_element.end());}
 
 
 };
 
 
-
 template<typename Mesh>
 class MacroElementSurface : public GMacro {
-  // typedef typename Interface2::FaceIdx Face;
-public:
-  const Interface<Mesh>& interface;
 
-  MacroElementSurface(const Interface<Mesh>& , const double) ;
-  void findSmallElement() ;
-  void findRootElement()  ;
-  int checkDirection(const int, const int, int&);
+public:
+    const Interface<Mesh>& interface;
+
+    MacroElementSurface(const Interface<Mesh>& , const double) ;
+    void findSmallElement() ;
+    void findRootElement()  ;
+    int checkDirection(const int, const int, int&);
 };
 
 template<typename Mesh>
 class MacroElement : public GMacro {
 public:
 
-  const ActiveMesh<Mesh>& Th_;
-  R tol_;
-  int nb_element_0, nb_element_1;
+    const ActiveMesh<Mesh>& Th_;
+    R tol_;
+    int nb_element_0, nb_element_1;
 
-  MacroElement(const ActiveMesh<Mesh>& th, const double C);
-  double get_area(int k) const {
-    if( isSmall(k)){
-      return getSmallElement(k).area;
+    MacroElement(const ActiveMesh<Mesh>& th, const double C);
+
+    double get_area(int k) const {
+        if( isSmall(k)){
+          return getSmallElement(k).area;
+        }
+        else if ( isRootFat(k)){
+          const auto it (macro_element.find(k));
+          return it->second.area_root_;
+        }
+        else assert(0);
     }
-    else if ( isRootFat(k)){
-      const auto it (macro_element.find(k));
-      return it->second.area_root_;
-    }
-    else assert(0);
-  }
+
 private:
-  void findSmallElement();
-  void createMacroElement();
-  void createMacroElementInside();
-  void findPathToInside(int,std::vector<std::pair<int,int>>&);
-  friend class Extension;
+    void findSmallElement();
+    void createMacroElement();
+    void createMacroElementInside();
+    void findPathToInside(int,std::vector<std::pair<int,int>>&);
+    friend class Extension;
 };
 
 template<typename Mesh>
-MacroElement<Mesh>::MacroElement(const ActiveMesh<Mesh>& th, const double C) : Th_(th){
-  double h = Th_[0].lenEdge(0);
-  double meas = Th_[0].mesure();
-  nb_element_0 = 0;
-  nb_element_1 = 0;
-  tol = C  * meas;
+class TimeMacroElement : public GMacro {
 
-  // std::cout << "constant \t" << C << "\t tolerance \t" << tol << std::endl;
-  findSmallElement();
-  std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
-  std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
-  createMacroElement();
-  // createMacroElementInside();
+public:
+
+    const ActiveMesh<Mesh>& Th;
+    R tol;
+    int nb_element_0, nb_element_1;
+
+    TimeMacroElement(const ActiveMesh<Mesh>& Th_, const QuadratureFormular1d& qTime_, const double C_);
+
+    double get_area(int k) const {
+        if( isSmall(k)){
+          return getSmallElement(k).area;
+        }
+        else if ( isRootFat(k)){
+          const auto it (macro_element.find(k));
+          return it->second.area_root_;
+        }
+        else assert(0);
+    }
+
+private:
+    const QuadratureFormular1d& qTime;
+    void findSmallElement();
+    void createMacroElement();
+
+};
+
+template<typename Mesh>
+TimeMacroElement<Mesh>::TimeMacroElement(const ActiveMesh<Mesh>& Th_, const QuadratureFormular1d& qTime_, const double C_) : Th(Th_), qTime(qTime_) {
+    
+    double h = Th[0].lenEdge(1);        // catheter of triangle
+    double measure = Th[0].mesure();    // measure = h^2/2
+
+    nb_element_0 = 0;
+    nb_element_1 = 0;
+    tol = 2 * C_ * measure;
+
+    std::cout << "tolerance \t" << tol << std::endl;
+    findSmallElement();
+    std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
+    std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
+    createMacroElement();
+    std::cout << " Macro element created" << std::endl;
+
+}
+
+template<typename Mesh>
+void TimeMacroElement<Mesh>::findSmallElement() {
+    
+    // Iterate over all elements in the active mesh (over the whole time-slab)
+
+    for (int k=0; k<Th.get_nb_element(); k+= 1) {
+
+        if(!Th.isStabilizeElement(k)) continue;   // if the element is not cut or if it doesn't change domain it doesn't need stabilization
+        
+        const typename Mesh::Element& K(Th[k]);
+
+        const int domain = Th.get_domain_element(k);
+        
+        // Iterate over the quadrature points in the time-slab In
+
+        for (int itq=0; itq<qTime.n; ++itq) {
+
+            Cut_Part<typename Mesh::Element> cutK(Th.get_cut_part(k, itq));
+            double areaCut = cutK.measure();
+
+            if (areaCut < tol || Th.isInactive(k, itq)) {
+            //if (areaCut < tol) {
+                // if (Th.isInactive(k, itq)) {
+                //   std::cout << "area cut" << areaCut << std::endl;
+                // }
+                small_element[k] = SmallElement(k);
+                small_element[k].area = areaCut;
+                if (domain == 0) nb_element_0++;
+                else nb_element_1++; 
+            }
+        }
+    }
+}
+
+
+template<typename Mesh>
+void TimeMacroElement<Mesh>::createMacroElement() {
+
+    vector<std::pair<int,int>> idx_small_K_temp(small_element.size());
+    vector<int> small_or_fat_K(Th.get_nb_element());
+    vector<std::pair<int,int>> big_element_found;
+
+
+    for(int i=0;i<small_or_fat_K.size();++i) small_or_fat_K[i] = i;
+    int ii = 0;
+    for(auto it=small_element.begin(); it!= small_element.end();++it) {
+        idx_small_K_temp[ii++] = std::make_pair(it->second.index, it->first);;
+        small_or_fat_K[it->second.index] = small;
+    }
+    int pos = 0;
+    while (idx_small_K_temp.size() > 0) {
+        int nb_of_small_K_left = idx_small_K_temp.size();
+        pos += 1;
+        big_element_found.clear();
+        for (int i=nb_of_small_K_left-1;i>=0;--i) {
+            // LOOP OVER SMALL ELEMENTS LEFT
+
+            int k = idx_small_K_temp[i].first;
+            int idx_Ks = idx_small_K_temp[i].second;
+            SmallElement& Ks(small_element[idx_Ks]);
+
+            // lLOOP OVER FACES
+            for(int ifac = 0; ifac < 3; ++ifac) {
+
+                int ifacn = ifac;
+                int kn = Th.ElementAdj(k, ifacn);
+                if(kn ==-1) continue;
+
+                if((small_or_fat_K[kn] == small)) continue;
+
+                //set position of the small element
+                Ks.setChainPosition(pos);
+                Ks.setRoot(small_or_fat_K[kn]);
+                big_element_found.push_back(make_pair(k, kn));
+
+                // find the correonding macro element
+                int root_id = small_or_fat_K[kn];
+                auto it = macro_element.find(root_id);
+                //for unique edge
+                int ie = (k < kn)? ifac : ifacn;
+                int kk = (k < kn)?k: kn;
+
+                if (it != macro_element.end()) { // already exist
+                    it->second.add(k, std::make_pair(kk,ie), Ks.area);
+                }
+                else {
+
+                    const Cut_Part<typename Mesh::Element> cutK(Th.get_cut_part(root_id,0));
+                    double areaCut = cutK.measure();
+
+                    macro_element[root_id] = MElement(root_id, areaCut);
+                    macro_element[root_id].add(k, std::make_pair(kk, ie), Ks.area);
+
+                }
+
+                // remove small element from the list
+                idx_small_K_temp.erase(idx_small_K_temp.begin()+i);
+                break;
+            }
+        }
+
+        for(int j=0;j<big_element_found.size();++j) {
+            int k = big_element_found[j].first;
+            int kn = big_element_found[j].second;
+            small_or_fat_K[k] = small_or_fat_K[kn];
+
+        }
+    }
+}
+
+
+
+
+
+template<typename Mesh>
+MacroElement<Mesh>::MacroElement(const ActiveMesh<Mesh>& th, const double C) : Th_(th){
+    double h = Th_[0].lenEdge(0);
+    double meas = Th_[0].mesure();
+    nb_element_0 = 0;
+    nb_element_1 = 0;
+    tol = C  * meas;
+
+    // std::cout << "constant \t" << C << "\t tolerance \t" << tol << std::endl;
+    findSmallElement();
+    std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
+    std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
+    createMacroElement();
+    // createMacroElementInside();
 }
 
 template<typename Mesh>
@@ -166,13 +331,14 @@ void MacroElement<Mesh>::findSmallElement() {
     const typename Mesh::Element& K(Th_[k]);
 
     const Cut_Part<typename Mesh::Element> cutK(Th_.get_cut_part(k,0));
-    const int domain = Th_.get_domain_element(k);
+    const int domain = Th_.get_domain_element(k);    
     double areaCut = cutK.measure();
 
     if(areaCut < tol) {
-      small_element[k] = SmallElement(k);
-      small_element[k].area = areaCut;
-      if(domain == 0) { nb_element_0++;}else{ nb_element_1++;}
+        small_element[k] = SmallElement(k);
+        small_element[k].area = areaCut;
+        if (domain == 0) { nb_element_0++;}
+        else { nb_element_1++;}
     }
   }
 }
@@ -278,6 +444,7 @@ void MacroElementSurface<Mesh>::findSmallElement() {
     small_element[iface].area = meas;
   }
 }
+
 template<typename Mesh>
 void MacroElementSurface<Mesh>::findRootElement(){
   const Mesh& Th(*interface.backMesh);

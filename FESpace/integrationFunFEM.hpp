@@ -642,6 +642,51 @@ double integral(FunFEM<M>& fh, const TimeSlab& In, const TimeInterface<M>& gamma
 }
 
 
+template<typename M>
+double integral(const ExpressionVirtual& fh, const TimeSlab& In, const TimeInterface<M>& gamma, int cu) {
+
+    typedef M Mesh;
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QFB QFB;
+    typedef typename FElement::Rd Rd;
+    typedef typename QFB::QuadraturePoint QuadraturePoint;
+
+
+    const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
+    double val = 0.;
+
+    for(int it = 0; it<gamma.size(); ++it){
+      const Interface<M>& interface(*gamma(it));
+      const QuadratureFormular1d& qTime( gamma.get_quadrature_time());
+      GQuadraturePoint<R1> tq((qTime)[it]);
+      const double t = In.mapToPhysicalElement(tq);
+
+
+      for(int iface=interface.first_element(); iface<interface.last_element(); iface+=interface.next_element()) {
+        
+        Rd normal = interface.normal(iface);
+        const int kb = interface.idxElementOfFace(iface);   // idx on backMesh
+        const R meas = interface.measure(iface);
+
+        for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+
+          QuadraturePoint ip(qfb[ipq]); // integration point
+          const Rd mip = interface.mapToPhysicalFace(iface,(typename FElement::RdHatBord)ip);
+          const R Cint = meas * ip.getWeight() * In.T.mesure()* tq.a ;
+          val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, normal);
+
+        }
+      }
+    }
+    double val_receive = 0;
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+
+    return val_receive;
+}
+
+
+
 #include "normsFunFEM.hpp"
 
 

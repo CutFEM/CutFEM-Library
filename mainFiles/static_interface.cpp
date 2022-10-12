@@ -47,7 +47,7 @@ namespace Frachon1 {
     double c0 = 0.5;
 
     R fun_levelSet(const R2 P, const int i, double t) {
-        return -P.x - P.y + c0;
+        return -P.x - P.y + c0 + Epsilon;
     }
 
     R fun_levelSet(const R2 P, const int i) {
@@ -144,12 +144,13 @@ typedef FunFEM<Mesh2> Fun_h;
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define dg
 // Set numerical example (options: "frachon1", "flower", "example1")
-#define frachon2
+#define frachon1
 // Set scheme for the dg method (options: "conservative", "classical")
 #define conservative
 // Set stabilization method (options: "fullstab", "macro") 
-#define fullstab       
+#define fullstab   
 
+#define use_n
 
 
 #ifdef frachon1
@@ -161,10 +162,11 @@ typedef FunFEM<Mesh2> Fun_h;
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
-    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
-    int nx = 20, ny = 20;       // starting mesh size
+    const size_t iterations = 4;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
+    int nx = 10, ny = 10;       // starting mesh size
+    double h = 0.125;             // starting mesh size
     const double lx = 2., ly = 2.;    // domain length
-
+    
 #ifdef frachon1    
     // Paths to store data
     const std::string pathOutputFolder = "../outputFiles/SpaceTimeCoupled/Frachon1/data/";
@@ -174,10 +176,10 @@ int main(int argc, char** argv) {
     const std::string pathOutputFolder = "../outputFiles/SpaceTimeCoupled/Frachon2/data/";
     const std::string pathOutputFigures = "../outputFiles/SpaceTimeCoupled/Frachon2/paraview/";
 #endif
-
+    
     // Initialize MPI
     MPIcf cfMPI(argc,argv);
-
+    
     // Create directory if not already existent
     if (MPIcf::IamMaster()) {
         std::experimental::filesystem::create_directories(pathOutputFolder);
@@ -190,9 +192,17 @@ int main(int argc, char** argv) {
     // Arrays to hold data
     std::array<double, iterations> errorsBulk;          // array to hold bulk errors
     std::array<double, iterations> hs;                  // array to hold mesh sizes
+    std::array<double, iterations> dts;
+
 
     // Iterate over mesh sizes
     for (int j=0; j<iterations; ++j) {
+        
+        #ifdef use_h
+        nx = (int)(lx/h)+1, ny = (int)(ly/h)+1;
+        #elif defined(use_n)
+        h = lx/(nx-1);
+        #endif
 
         // Define background mesh
         Mesh Th(nx, ny, -1., -1., lx, ly);
@@ -200,14 +210,13 @@ int main(int argc, char** argv) {
     //// Parameters
         
         // Mesh size
-        double h = lx/(nx-1);
-        hs.at(j) = h;
         int divisionMeshSize = 2*3*sqrt(10);
-        //int divisionMeshSize = 2;
+        double dT = h/divisionMeshSize;
+        hs.at(j) = h;
+        dts.at(j) = dT;
 
         // Time
-        double dT = h / 3 / sqrt(10) * 0.5; //h/divisionMeshSize; // Time step size
-        double tfinal = .4;            // Final time
+        double tfinal = 1.;            // Final time
         GTime::total_number_iteration = (int)(tfinal/dT);
         dT = tfinal / GTime::total_number_iteration;
         GTime::time_step = dT;
@@ -234,9 +243,9 @@ int main(int argc, char** argv) {
         CutFEMParameter lambdaE(3, 2);  //  ||beta||_inf in Omega_1/Omega_2
 
         // DG stabilization parameters
-        double tau20 = 5e-2, tau21 = 5e-2;      // bulk
+        double tau20 = 5e-1, tau21 = 5e-1;      // bulk
 
-
+        
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace2 Vh2(Th, DataFE<Mesh>::P2);        // higher order space for interpolation
         FESpace2 Vh(Th, DataFE<Mesh>::P1dc);        // discontinuous basis functions
@@ -286,20 +295,31 @@ int main(int argc, char** argv) {
             std::cout << " ------------------------------------------------------------- " << std::endl;
             std::cout << " Iteration \t : \t" << iter + 1 << "/" << GTime::total_number_iteration << std::endl;
             std::cout << " Time      \t : \t" << GTime::current_time() << std::endl;
-    
+            
+            ls.begin()->swap(ls[nbTime - 1]);
+            
+            // computation of the interface in each of the three quadrature points
+            for (int i = 0; i < nbTime; ++i) {
+
+                R tt = In.Pt(R1(qTime(i).x));
+                ls[i].init(Lh, fun_levelSet, tt);
+
+                // FIXME: This version of the code has a memory leak (it doesn't delete the interface pointers)
+                interface.init(i, Th, ls[i]);
+                
+            }
+            
             ActiveMesh<Mesh> Khi(Th, interface);
-            
-            // Velocity field
-
-            
+        
             CutSpace Wh(Khi, Vh);
+            
+            convdiff.initSpace(Wh, In);
 
+            // Velocity field
             Lagrange2 FEvelocity(0);
             FESpace2 VelocitySpace(Th, FEvelocity);
             CutSpace VelSpace(Khi, VelocitySpace);
             Fun_h vel(VelSpace, fun_velocity);
-
-            convdiff.initSpace(Wh, In);
 
             Normal n;
 
@@ -350,7 +370,7 @@ int main(int argc, char** argv) {
 
 
         #elif defined(conservative)
-
+            
             // Bulk terms
             convdiff.addBilinear(
                 - innerProduct(u, dt(v))
@@ -377,11 +397,10 @@ int main(int argc, char** argv) {
             );
         #endif
 
-        
+            
             // Inner edges bulk convection
             convdiff.addBilinear(
                 + innerProduct(average((vel*n)*u), jump(v))         
-                //+ innerProduct(0.5*lambdaE*jump(u), jump(v))  
                 + innerProduct(0.5*fabs(vel*n)*jump(u), jump(v))  
                 , Khi
                 , INTEGRAL_INNER_EDGE_2D                 
@@ -396,14 +415,16 @@ int main(int argc, char** argv) {
                 , In
             );
 
+            
             convdiff.addBilinear(
                 + innerProduct((vel*n)*u, v)
                 , Khi
                 , INTEGRAL_BOUNDARY
                 , In
                 , {2, 3}          
-            );
+            );  
             
+           
             // convdiff.addBilinear(
             //     + innerProduct((vel*n)*u, 0.5*v) 
             //     + innerProduct(0.5*fabs(vel*n)*u, v)  
@@ -422,6 +443,8 @@ int main(int argc, char** argv) {
             //     , (std::list<int>){1,4}          // 1 - bottom, 4 - left
             // );
 
+            // NOTE: Below is equivalent to the above two when using upwind flux
+
             convdiff.addLinear(
                 - innerProduct(g.expression(), (vel*n)*v) 
                 , Khi
@@ -432,12 +455,31 @@ int main(int argc, char** argv) {
             
             // Stabilization
         #ifdef macro    
-            TimeMacroElement TimeMacro(Wh, In, qTime, 0.125);
+            TimeMacroElement<Mesh> TimeMacro(Khi, qTime, 0.125);
+
+            if (iterations == 1) {
+                Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" + to_string(iter+1) + ".vtk");
+                writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
+                writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
+                writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);  
+
+                // domain = 0, 
+
+                writerMacro.writeFaceStab(Khi, 0, pathOutputFigures + "FullStabilization" + to_string(iter+1) + ".vtk");
+                writerMacro.writeActiveMesh(Khi, pathOutputFigures + "ActiveMesh" + to_string(iter+1) + ".vtk");
+                writerMacro.writeMacroElement(TimeMacro, 0, pathOutputFigures + "macro_dom0_" + to_string(iter+1) + ".vtk");
+                writerMacro.writeMacroInnerEdge(TimeMacro, 0, pathOutputFigures + "macro_inner_edge_dom0_" + to_string(iter+1) + ".vtk");
+                writerMacro.writeMacroOutterEdge(TimeMacro, 0, pathOutputFigures + "macro_outer_edge_dom0_" + to_string(iter+1) + ".vtk");
+                writerMacro.writeMacroElement(TimeMacro, 1, pathOutputFigures + "macro_dom1_" + to_string(iter+1) + ".vtk");
+                writerMacro.writeMacroInnerEdge(TimeMacro, 1, pathOutputFigures + "macro_inner_edge_dom1_" + to_string(iter+1) + ".vtk");
+                writerMacro.writeMacroOutterEdge(TimeMacro, 1, pathOutputFigures + "macro_outer_edge_dom1_" + to_string(iter+1) + ".vtk");
+            }
             
             // Stabilization of the bulk 
             convdiff.addFaceStabilization(
-                + innerProduct(1./h*tau20*jump(u), jump(v))
-                + innerProduct(h*tau21*jump(grad(u)), jump(grad(v)))
+                + innerProduct(tau20*jump(u), jump(v))
+                + innerProduct(h*h*tau21*jump(grad(u)), jump(grad(v)))
+                , Khi
                 , In
                 , TimeMacro
             );
@@ -485,7 +527,8 @@ int main(int argc, char** argv) {
                         << (q_1 - qp_1) << ","
                         << inflow << ","
                         << outflow << ","
-                        << ((q_1 - qp_1) + inflow + outflow) << std::endl;
+                        << ((q_1 - qp_1) + inflow + outflow)
+                        << std::endl;
 
                 qp_1 = q_1;
                 
@@ -510,14 +553,19 @@ int main(int argc, char** argv) {
                 writer.add(ls[0], "levelSet", 0, 1);
             }
 
+            if (iterations > 1 && iter == GTime::total_number_iteration-1) outputData << h << "," << dT << "," << errBulk << std::endl;
 
             iter++;
 
         }
 
         // Refine mesh
+        #ifdef use_n
         nx *= 2;
         ny *= 2; 
+        #elif defined(use_h)
+        h *= 0.5;
+        #endif
 
     }
 
@@ -537,6 +585,17 @@ int main(int argc, char** argv) {
     for (int i=0; i<iterations; i++) {
 
         std::cout << hs.at(i);
+        if (i < iterations-1) {
+            std::cout << ", ";
+        }
+
+    }
+    std::cout << "]" << std::endl;
+
+    std::cout << "dT = [";
+    for (int i=0; i<iterations; i++) {
+
+        std::cout << dts.at(i);
         if (i < iterations-1) {
             std::cout << ", ";
         }

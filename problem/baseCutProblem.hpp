@@ -86,9 +86,10 @@ public:
 
   // Face stabilization
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&);
-  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&,const TimeSlab& In);
-  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&,const TimeSlab& In, int itq);
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const TimeSlab& In);
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const TimeSlab& In, int itq);
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const MacroElement<Mesh>& );
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const TimeSlab& In, const TimeMacroElement<Mesh>&);
 
   // Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&);

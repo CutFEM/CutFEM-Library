@@ -1035,38 +1035,39 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutM
 
 template<typename M>
 void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In) {
-  for(int itq=0;itq<this->get_nb_quad_point_time();++itq) {
-    addFaceStabilization(VF, Th, In, itq);
-  }
+    for(int itq=0;itq<this->get_nb_quad_point_time();++itq) {
+        addFaceStabilization(VF, Th, In, itq);
+    }
 }
+
 
 template<typename M>
 void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, int itq) {
-  assert(!VF.isRHS());
-  auto tq = this->get_quadrature_time(itq);
-  double tid = In.map(tq);
+    assert(!VF.isRHS());
+    auto tq = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
 
-  KNMK<double> basisFunTime(In.NbDoF(),1,op_dz+1);
-  RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
-  In.BF(tq.x, bf_time);                  // compute time basic funtions
-  double cst_time = tq.a*In.get_measure();
+    KNMK<double> basisFunTime(In.NbDoF(),1,op_dz+1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
+    In.BF(tq.x, bf_time);                  // compute time basic funtions
+    double cst_time = tq.a*In.get_measure();
 
-  for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
-    if(!Th.isStabilizeElement(k)) continue;
-    for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+        if(!Th.isStabilizeElement(k)) continue;
+        for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
 
-      int jfac = ifac;
-      int kn = Th.ElementAdj(k, jfac);
-      // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
-      if(kn < k) continue;
+            int jfac = ifac;
+            int kn = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if(kn < k) continue;
 
-      std::pair<int,int> e1 = std::make_pair(k,ifac);
-      std::pair<int,int> e2 = std::make_pair(kn,jfac);
-      BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+            std::pair<int,int> e1 = std::make_pair(k,ifac);
+            std::pair<int,int> e2 = std::make_pair(kn,jfac);
+            BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
 
+          }
+          this->addLocalContribution();
     }
-    this->addLocalContribution();
-  }
 }
 
 template<typename M>
@@ -1089,6 +1090,40 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutM
   }
 }
 
+template<typename M>
+void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh& Th, const TimeSlab& In, const TimeMacroElement<M>& macro) {
+    
+    for(int itq=0;itq<this->get_nb_quad_point_time();++itq) {
+        
+        assert(!VF.isRHS());
+        auto tq = this->get_quadrature_time(itq);
+        double tid = In.map(tq);
+
+        KNMK<double> basisFunTime(In.NbDoF(),1,op_dz+1);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(),1,op_dz);
+        In.BF(tq.x, bf_time);                  // compute time basic funtions
+        double cst_time = tq.a*In.get_measure();
+
+        for(auto me=macro.macro_element.begin(); me!=macro.macro_element.end();++me) {
+            
+            for(auto it=me->second.inner_edge.begin(); it!=me->second.inner_edge.end();++it){
+                int k = it->first;
+                int ifac = it->second;
+                int jfac = ifac;
+                int kn = Th.ElementAdj(k, jfac);
+
+                if (kn == -1) continue;   // element outside of domain ? answer: already do this in createMacroElement
+                if (kn < k) continue;   // FIXME: Should I be here?
+
+                std::pair<int,int> e1 = std::make_pair(k,ifac);
+                std::pair<int,int> e2 = std::make_pair(kn,jfac);
+
+                BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+            }
+            this->addLocalContribution();
+        }
+    }
+}
 
 
 // LAGRANGE MULTIPLIER

@@ -287,86 +287,86 @@ void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d>& VF, const Mesh& Th, const
 template<typename M>
 void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d>& VF, const std::pair<int,int>& e1, const std::pair<int,int>& e2, const TimeSlab* In, int itq, double cst_time ) {
 
-  typedef typename FElement::RdHatBord RdHatBord;
+    typedef typename FElement::RdHatBord RdHatBord;
 
-  // CHECK IF IT IS FOR RHS OR MATRIX
-  // CONVENTION ki < kj
-  bool to_rhs = VF.isRHS();
-  int ki = e1.first, ifac = e1.second;
-  int kj = e2.first, jfac = e2.second;
-  // Compute parameter coonected to the mesh.
-  // on can take the one from the first test function
-  const FESpace& Vh(*VF[0].fespaceV);
-  const FElement& FKi(Vh[ki]);
-  const FElement& FKj(Vh[kj]);
-  const Element & Ki(FKi.T);
-  const Element & Kj(FKj.T);
-  double measK= Ki.measure() + Kj.measure();
-  double meas = Ki.mesureBord(ifac);
-  double h    = 0.5*(Ki.get_h() + Kj.get_h());
-  int domain  = FKi.get_domain();
-  Rd normal   = Ki.N(ifac);
+    // CHECK IF IT IS FOR RHS OR MATRIX
+    // CONVENTION ki < kj
+    bool to_rhs = VF.isRHS();
+    int ki = e1.first, ifac = e1.second;
+    int kj = e2.first, jfac = e2.second;
+    // Compute parameter coonected to the mesh.
+    // on can take the one from the first test function
+    const FESpace& Vh(*VF[0].fespaceV);
+    const FElement& FKi(Vh[ki]);
+    const FElement& FKj(Vh[kj]);
+    const Element & Ki(FKi.T);
+    const Element & Kj(FKj.T);
+    double measK= Ki.measure() + Kj.measure();
+    double meas = Ki.mesureBord(ifac);
+    double h    = 0.5*(Ki.get_h() + Kj.get_h());
+    int domain  = FKi.get_domain();
+    Rd normal   = Ki.N(ifac);
 
-  // GET THE QUADRATURE RULE
-  const QFB& qfb(this->get_quadrature_formular_dK());
+    // GET THE QUADRATURE RULE
+    const QFB& qfb(this->get_quadrature_formular_dK());
 
-  auto tq = this->get_quadrature_time(itq);
-  double tid = (In)? (double)In->map(tq) : 0.;
+    auto tq = this->get_quadrature_time(itq);
+    double tid = (In)? (double)In->map(tq) : 0.;
 
-  // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
-  for(int l=0; l<VF.size();++l) {
-    // if(!VF[l].on(domain)) continue;
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for(int l=0; l<VF.size();++l) {
+        // if(!VF[l].on(domain)) continue;
 
-    // FINTE ELEMENT SPACES && ELEMENTS
-    const FESpace& Vhv(VF.get_spaceV(l));
-    const FESpace& Vhu(VF.get_spaceU(l));
-    assert(Vhv.get_nb_element() == Vhu.get_nb_element());
-    const int kv = VF[l].onWhatElementIsTestFunction(ki,kj);
-    const int ku = VF[l].onWhatElementIsTrialFunction(ki,kj);
+        // FINTE ELEMENT SPACES && ELEMENTS
+        const FESpace& Vhv(VF.get_spaceV(l));
+        const FESpace& Vhu(VF.get_spaceU(l));
+        assert(Vhv.get_nb_element() == Vhu.get_nb_element());
+        const int kv = VF[l].onWhatElementIsTestFunction(ki,kj);
+        const int ku = VF[l].onWhatElementIsTrialFunction(ki,kj);
 
-    int kbv = Vhv.idxElementInBackMesh(kv);
-    int kbu = Vhu.idxElementInBackMesh(ku);
+        int kbv = Vhv.idxElementInBackMesh(kv);
+        int kbu = Vhu.idxElementInBackMesh(ku);
 
-    const FElement& FKu(Vhu[ku]);
-    const FElement& FKv(Vhv[kv]);
-    this->initIndex(FKu, FKv);
+        const FElement& FKu(Vhu[ku]);
+        const FElement& FKv(Vhv[kv]);
+        this->initIndex(FKu, FKv);
 
-    // BF MEMORY MANAGEMENT -
-    bool same = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
-    int lastop = getLastop(VF[l].du, VF[l].dv);
-    RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop);
-    RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
-    What_d Fop = Fwhatd(lastop);
+        // BF MEMORY MANAGEMENT -
+        bool same = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+        RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop);
+        RNMK_ fu(this->databf_+ (same ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop);
+        What_d Fop = Fwhatd(lastop);
 
-    // COMPUTE COEFFICIENT
-    double coef = VF[l].computeCoefElement(h,meas,measK,measK,domain) ;
-    coef *= VF[l].computeCoefFromNormal(normal);
+        // COMPUTE COEFFICIENT
+        double coef = VF[l].computeCoefElement(h,meas,measK,measK,domain) ;
+        coef *= VF[l].computeCoefFromNormal(normal);
 
-    // LOOP OVER QUADRATURE IN SPACE
-    for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
-      typename QFB::QuadraturePoint ip(qfb[ipq]);
-      const Rd ip_edge = Ki.mapToReferenceElement((RdHatBord)ip, ifac);
-      const Rd mip = Ki.mapToPhysicalElement(ip_edge);
-      double Cint = meas * ip.getWeight() * cst_time;
+        // LOOP OVER QUADRATURE IN SPACE
+        for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+            typename QFB::QuadraturePoint ip(qfb[ipq]);
+            const Rd ip_edge = Ki.mapToReferenceElement((RdHatBord)ip, ifac);
+            const Rd mip = Ki.mapToPhysicalElement(ip_edge);
+            double Cint = meas * ip.getWeight() * cst_time;
 
-      // EVALUATE THE BASIS FUNCTIONS
-      FKv.BF(Fop,FKv.T.mapToReferenceElement(mip), fv);
-      if(!same) FKu.BF(Fop,FKu.T.mapToReferenceElement(mip), fu);
+            // EVALUATE THE BASIS FUNCTIONS
+            FKv.BF(Fop,FKv.T.mapToReferenceElement(mip), fv);
+            if(!same) FKu.BF(Fop,FKu.T.mapToReferenceElement(mip), fu);
 
-      Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domain,domain), mip, tid, normal);
-      Cint *= coef * VF[l].c;
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu,kbv), std::make_pair(domain,domain), mip, tid, normal);
+            Cint *= coef * VF[l].c;
 
 
-      if( In ){
-        if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, Cint);
-        else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
-      }
-      else {
-        if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
-        else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
-      }
+            if( In ){
+              if(VF.isRHS()) this->addToRHS(   VF[l], *In, FKv, fv, Cint);
+              else           this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            }
+            else {
+              if(VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
+              else           this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
     }
-  }
 }
 
 

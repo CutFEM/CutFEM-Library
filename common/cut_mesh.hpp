@@ -110,297 +110,308 @@ template<typename Mesh>
 class ActiveMesh {
 
 public:
-  typedef typename Mesh::Element Element;
-  typedef typename Element::Face Face;
-  typedef typename Mesh::Rd Rd;
-  typedef typename Mesh::BorderElement BorderElement;
-  typedef typename Element::RdHat RdHat;// for parametrization
-  typedef SortArray<int, 2> pairIndex;
-  static const int nea=Element::nea; //  numbering of adj (4 in Tet,  3 in Tria, 2 in seg)
-  static const int nva=Element::nva; //  numbering of vertex in Adj hyperface
+    typedef typename Mesh::Element Element;
+    typedef typename Element::Face Face;
+    typedef typename Mesh::Rd Rd;
+    typedef typename Mesh::BorderElement BorderElement;
+    typedef typename Element::RdHat RdHat;// for parametrization
+    typedef SortArray<int, 2> pairIndex;
+    static const int nea=Element::nea; //  numbering of adj (4 in Tet,  3 in Tria, 2 in seg)
+    static const int nva=Element::nva; //  numbering of vertex in Adj hyperface
 
-  const Mesh& Th;
+    const Mesh& Th;
 
-  std::vector<std::vector<int>> idx_in_background_mesh_;   // [domain][idxK_cutMesh] -> idxK_backMesh
-  std::vector<std::map<int,int>>  idx_from_background_mesh_; // [domain](idxK_backMesh) -> idxK_cutMesh
-  std::vector<std::map<std::pair<int,int>, std::vector<std::pair<const Interface<Mesh>*, int>>>> interface_id_; // [time_quad](domain_id, idx_k) -> [n_interface](interface, sign)
-  std::vector<int> idx_element_domain;
+    std::vector<std::vector<int>> idx_in_background_mesh_;   // [domain][idxK_cutMesh] -> idxK_backMesh
+    std::vector<std::map<int,int>>  idx_from_background_mesh_; // [domain](idxK_backMesh) -> idxK_cutMesh
+    std::vector<std::map<std::pair<int,int>, std::vector<std::pair<const Interface<Mesh>*, int>>>> interface_id_; // [time_quad](domain_id, idx_k) -> [n_interface](interface, sign)
+    std::vector<int> idx_element_domain;
 
-
-  // For time problem
-  int nb_quadrature_time_;
-  // map des elements that are not always in the active mesh
-  std::vector<std::vector<std::map<int, bool>>> in_active_mesh_; // [dom][itq][idx_element] -> true/false
+    // For time problem
+    int nb_quadrature_time_;
+    // map des elements that are not always in the active mesh
+    std::vector<std::vector<std::map<int, bool>>> in_active_mesh_; // [dom][itq][idx_element] -> true/false
 
 public:
-  // Create a CutMesh without cut on the backMesh
-  // Usefull if wanna add sub domains
-  ActiveMesh(const Mesh& th) : Th(th) {
-    idx_in_background_mesh_.reserve(10);
-    idx_from_background_mesh_.reserve(10);
-    idx_in_background_mesh_.resize(1);
-    idx_from_background_mesh_.resize(1);
-    idx_in_background_mesh_[0].resize(Th.nt);
-    interface_id_.resize(5);
-    nb_quadrature_time_ = 1;
-    for(int k = 0; k < Th.nt; ++k) {
-      idx_in_background_mesh_[0][k] = k;
-      idx_from_background_mesh_[0][k] = k;
+    // Create a CutMesh without cut on the backMesh
+    // Usefull if wanna add sub domains
+    ActiveMesh(const Mesh& th) : Th(th) {
+        idx_in_background_mesh_.reserve(10);
+        idx_from_background_mesh_.reserve(10);
+        idx_in_background_mesh_.resize(1);
+        idx_from_background_mesh_.resize(1);
+        idx_in_background_mesh_[0].resize(Th.nt);
+        interface_id_.resize(5);
+        nb_quadrature_time_ = 1;
+        for(int k = 0; k < Th.nt; ++k) {
+          idx_in_background_mesh_[0][k] = k;
+          idx_from_background_mesh_[0][k] = k;
+        }
+        idx_element_domain.push_back(0);
+        idx_element_domain.push_back(Th.nt);
+        in_active_mesh_.resize(10);
+        for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
     }
-    idx_element_domain.push_back(0);
-    idx_element_domain.push_back(Th.nt);
-    in_active_mesh_.resize(10);
-    for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
-  }
-  // Give the background mesh and a sign Function defined on the mesh nodes
-  // Will create 2 subdomains
-  ActiveMesh(const Mesh& th, const Interface<Mesh>& interface) :  Th(th) {
-    idx_in_background_mesh_.reserve(10);
-    idx_from_background_mesh_.reserve(10);
-    idx_in_background_mesh_.resize(2);
-    idx_from_background_mesh_.resize(2);
-    interface_id_.resize(1);
-    nb_quadrature_time_ = 1;
-    this->init(interface);
-  }
+    
+    // Give the background mesh and a sign Function defined on the mesh nodes
+    // Will create 2 subdomains
+    ActiveMesh(const Mesh& th, const Interface<Mesh>& interface) :  Th(th) {
+        idx_in_background_mesh_.reserve(10);
+        idx_from_background_mesh_.reserve(10);
+        idx_in_background_mesh_.resize(2);
+        idx_from_background_mesh_.resize(2);
+        interface_id_.resize(1);
+        nb_quadrature_time_ = 1;
+        this->init(interface);
+    }
 
-  ActiveMesh(const Mesh& th, const TimeInterface<Mesh>& interface) :  Th(th) {
-    idx_in_background_mesh_.reserve(10);
-    idx_from_background_mesh_.reserve(10);
-    idx_in_background_mesh_.resize(2);
-    idx_from_background_mesh_.resize(2);
-    nb_quadrature_time_ = interface.size();
-    interface_id_.resize(nb_quadrature_time_);
-    in_active_mesh_.resize(10);   // Added to avoid stack overflow error
-    for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
-    this->init(interface);
-  }
+    ActiveMesh(const Mesh& th, const TimeInterface<Mesh>& interface) :  Th(th) {
+        idx_in_background_mesh_.reserve(10);
+        idx_from_background_mesh_.reserve(10);
+        idx_in_background_mesh_.resize(2);
+        idx_from_background_mesh_.resize(2);
+        nb_quadrature_time_ = interface.size();
+        interface_id_.resize(nb_quadrature_time_);
+        in_active_mesh_.resize(10);   // Added to avoid stack overflow error
+        for(int i=0;i<10;++i) in_active_mesh_[i].resize(nb_quadrature_time_);
+        this->init(interface);
+    }
 
-  void truncate(const Interface<Mesh>& interface, int sign_domain);
-  void truncate(const TimeInterface<Mesh>& interface, int sign_domain);
-  void add(const Interface<Mesh>& interface, int sign_domain);
-  void createSurfaceMesh(const Interface<Mesh>& interface);
-  void createSurfaceMesh(const TimeInterface<Mesh>& interface);
+    void truncate(const Interface<Mesh>& interface, int sign_domain);
+    void truncate(const TimeInterface<Mesh>& interface, int sign_domain);
+    void add(const Interface<Mesh>& interface, int sign_domain);
+    void createSurfaceMesh(const Interface<Mesh>& interface);
+    void createSurfaceMesh(const TimeInterface<Mesh>& interface);
+
 private:
-  void init(const Interface<Mesh>& interface);
-  void init(const TimeInterface<Mesh>& interface);
-  bool check_exist(int k, int dom) const {
-    const auto it = idx_from_background_mesh_[dom].find(k);
-    if(it == idx_from_background_mesh_[dom].end()) return false;
-    else return true;
-  }
-  int idxK_begin(int i) const {return this->idx_element_domain[i];}
-  int idxK_in_domain(int k, int i) const {
-    return k - this->idx_element_domain[i];
-  }
-  Physical_Partition<Element> build_local_partition(const int k, int t=0) const ;
-  Physical_Partition<Face> build_local_partition(Face& face, const int k, int ifac, int t=0) const ;
+    void init(const Interface<Mesh>& interface);
+    void init(const TimeInterface<Mesh>& interface);
+    bool check_exist(int k, int dom) const {
+        const auto it = idx_from_background_mesh_[dom].find(k);
+        if(it == idx_from_background_mesh_[dom].end()) return false;
+        else return true;
+    }
+    int idxK_begin(int i) const {return this->idx_element_domain[i];}
+    int idxK_in_domain(int k, int i) const {
+        return k - this->idx_element_domain[i];
+    }
+    
+    Physical_Partition<Element> build_local_partition(const int k, int t=0) const ;
+    Physical_Partition<Face> build_local_partition(Face& face, const int k, int ifac, int t=0) const ;
+
 public:
-  DataFENodeDF BuildDFNumbering(int ndfv,int ndfe,int ndff,int ndft, int nndv,int nnde,int nndf,int nndt, int N=1, const PeriodicBC* PPeriod = nullptr) const {
+    DataFENodeDF BuildDFNumbering(int ndfv,int ndfe,int ndff,int ndft,int nndv,int nnde,int nndf,int nndt, int N=1, const PeriodicBC* PPeriod = nullptr) const {
         assert(0);
         return Th.BuildDFNumbering(ndfv,ndfe,ndff,ndft,nndv,nnde,nndf,nndt,N,PPeriod);
+    }
+
+    int nbElmts() const {return get_nb_element();}
+    int NbElement() const {return get_nb_element();}
+
+    int nbBrdElmts() const {return Th.nbe;}
+    int nbVertices() const {return Th.nv;}
+
+    const Element & operator[](int i) const {
+
+      int k = idxElementInBackMesh(i);
+      return Th[k];
+    }
+    const BorderElement& be(int i) const {return Th.be(i);}
+
+    int get_nb_domain() const {return idx_in_background_mesh_.size();}
+    int get_nb_element(int i) const {
+      assert(i>=0 && i<this->get_nb_domain());
+      return idx_in_background_mesh_[i].size();
+    }
+    int get_nb_element() const {
+      int s = 0;
+      for(int i=0;i<this->get_nb_domain();++i) {
+        s+= get_nb_element(i);
       }
-
-  int nbElmts() const {return get_nb_element();}
-  int NbElement() const {return get_nb_element();}
-
-  int nbBrdElmts() const {return Th.nbe;}
-  int nbVertices() const {return Th.nv;}
-
-  const Element & operator[](int i) const {
-    int k = idxElementInBackMesh(i);
-    return Th[k];
-  }
-  const BorderElement& be(int i) const {return Th.be(i);}
-
-  int get_nb_domain() const {return idx_in_background_mesh_.size();}
-  int get_nb_element(int i) const {
-    assert(i>=0 && i<this->get_nb_domain());
-    return idx_in_background_mesh_[i].size();
-  }
-  int get_nb_element() const {
-    int s = 0;
-    for(int i=0;i<this->get_nb_domain();++i) {
-      s+= get_nb_element(i);
+      return s;
     }
-    return s;
-  }
-  int get_domain_element(const int k) const {
-    for(int i=0;i<this->get_nb_domain();++i) {
-      if(k<idx_element_domain[i+1]) {return i;}
-    }
-    assert(0);
-  }
-
-
-  bool isCut(int k, int t) const {
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    return (it != interface_id_[t].end());
-  }
-  bool isCutFace(int k, int ifac, int t) const {
-    if(!isCut(k,t)) return false;
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    assert(it != interface_id_[t].end());
-    int s = it->second.at(0).second;  // 0 because no multi cut
-    if(s == 0) return false; // means surface mesh
-    int kb = this->idxElementInBackMesh(k);
-    return it->second.at(0).first->isCutFace(kb,ifac);
-  }
-  bool isStabilizeElement(int k) const {
-    // is cut or not always active
-    for(int i=0;i<nb_quadrature_time_;++i){
-      if(this->isCut(k,i) || this->isInactive(k,i)) return true;
-    }
-    return false;
-  }
-  bool isInactive(int k, int t) const {
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = in_active_mesh_[domain][t].find(kloc);
-    if(it == in_active_mesh_[domain][t].end()) return false;
-    return true;
-  }
-  const Interface<Mesh>& get_interface(int k, int t) const {
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    assert(it != interface_id_[t].end());
-    return *(it->second.at(0).first);
-  }
-  Partition<Element> get_partition(int k, int t) const {
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    assert(it != interface_id_[t].end());
-    int kb = this->idxElementInBackMesh(k);
-    return it->second.at(0).first->get_partition(kb);
-  }
-  int get_sign_cut(int k, int t) const {
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    assert(it != interface_id_[t].end());
-    return it->second.at(0).second;
-  }
-  Cut_Part<Element> get_cut_part(int k, int t) const {
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    // if not cut build a partition that consider full element
-    if(it == interface_id_[t].end()) {
-      return Cut_Part<Element>(Partition<Element>((*this)[k]), -1);
-    }
-    int kb = this->idxElementInBackMesh(k);
-    if(it->second.size() == 1)
-    return Cut_Part<Element>(it->second.at(0).first->get_partition(kb), it->second.at(0).second);
-    else
-    return Cut_Part<Element>(this->build_local_partition(k), 0);
-  }
-  Cut_Part<typename Element::Face> get_cut_face(Face& face, int k, int ifac, int t) const {
-
-    // BUILD THE FACE
-    // In the class mesh the inner faces are not built
-    int kb = this->idxElementInBackMesh(k);
-    int iv[Face::nv];
-    for(int i=0;i<Face::nv;++i) iv[i] = Th(kb, Element::nvhyperFace[ifac][i]);
-    face.set(Th.vertices, iv, 0);
-
-    // GET THE INTERFACE
-    int domain = get_domain_element(k);
-    int kloc = idxK_in_domain(k, domain);
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
-    assert(it != interface_id_[t].end());
-
-    if(it->second.size() == 1)
-    return Cut_Part<Face>(it->second.at(0).first->get_partition_face(face,kb,ifac), it->second.at(0).second);
-    else
-    return Cut_Part<Face>(this->build_local_partition(face, k, ifac), 0);
-  }
-
-  vector<int> idxAllElementFromBackMesh(int k, int d) const {
-    std::vector<int> idx(0);
-    if(d!=-1) {
-      int ret = idxElementFromBackMesh(k,  d);
-      assert(ret != -1);idx.push_back(ret);
-      return idx;
+    int get_domain_element(const int k) const {
+      for(int i=0;i<this->get_nb_domain();++i) {
+        if(k<idx_element_domain[i+1]) {return i;}
       }
-    for(int i=0;i<get_nb_domain();++i) {
-      int ret = idxElementFromBackMesh(k,  i);
-      if(ret != -1) idx.push_back(ret);
+      assert(0);
     }
-    assert(idx.size()>0 && idx.size() < 3);
-    return idx;
-  }
 
-  vector<int> getAllDomainId(int k) const {
-    std::vector<int> idx(0);
-    for(int i=0;i<get_nb_domain();++i) {
-      int ret = idxElementFromBackMesh(k,  i);
-      if(ret != -1) idx.push_back(i);
+    bool isCut(int k, int t) const {
+      int domain = get_domain_element(k);
+      int kloc = idxK_in_domain(k, domain);
+      auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+      return (it != interface_id_[t].end());
     }
-    assert(idx.size()>0 && idx.size() < 3);
-    return idx;
-  }
-
-  int idxElementFromBackMesh(int k) const {
-    assert(0);
-    return -1;
-  }
-  int idxElementFromBackMesh(int k, int i) const {
-    if(i==-1) assert(0);
-    auto it = idx_from_background_mesh_[i].find(k);
-    if(it ==  idx_from_background_mesh_[i].end()) return -1;
-    return idxK_begin(i) + it->second;
-  }
-
-  int idxElementInBackMesh(const int k) const {
-    int i = this->get_domain_element(k);
-    int l = idxK_in_domain(k,i);
-    return idx_in_background_mesh_[i][l];
-  }
-  int idxElementInBackMesh(const int k,int i) const {
-    int l = idxK_in_domain(k,i);
-    return idx_in_background_mesh_[i][l];
-  }
-  int ElementAdj(const int k,int &j) const {
-    int domain = get_domain_element(k);
-    int kb  = this->idxElementInBackMesh(k);
-    int kbn = this->Th.ElementAdj(kb,j);
-    if(kbn == -1) return -1;
-
-    return this->idxElementFromBackMesh(kbn, domain);
-  }
-
-  void info() const {
-    std::cout << " ------------------------------- " << std::endl;
-    std::cout << " Cut Mesh has  \t" << get_nb_domain() << " domains" << std::endl;
-    for(int i=0;i<get_nb_domain();++i) {
-      std::cout << " nb elements in \t" << i << " => " << this->get_nb_element(i) << std::endl;
+    
+    bool isCutFace(int k, int ifac, int t) const {
+      if(!isCut(k,t)) return false;
+      int domain = get_domain_element(k);
+      int kloc = idxK_in_domain(k, domain);
+      auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+      assert(it != interface_id_[t].end());
+      int s = it->second.at(0).second;  // 0 because no multi cut
+      if(s == 0) return false; // means surface mesh
+      int kb = this->idxElementInBackMesh(k);
+      return it->second.at(0).first->isCutFace(kb,ifac);
     }
-    std::cout << " nb elements in total => \t" << this->get_nb_element() << std::endl;
-  }
 
-  #ifdef USE_MPI
-  virtual int first_element() const { return MPIcf::first_element(this->get_nb_element());}
-  virtual int next_element() const {  return MPIcf::next_element(this->get_nb_element());}
-  virtual int last_element() const {  return MPIcf::last_element(this->get_nb_element());}
+    bool isStabilizeElement(int k) const {
+      // is cut or not always active
+      for(int i=0;i<nb_quadrature_time_;++i){
+        if(this->isCut(k,i) || this->isInactive(k,i)) return true;
+      }
+      return false;
+    }
 
-  virtual int first_boundary_element() const { return MPIcf::my_rank();}
-  virtual int next_boundary_element() const { return MPIcf::size();}
-  virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
-  #else
-  virtual int first_element() const { return 0;}
-  virtual int next_element() const {return 1;}
-  virtual int last_element() const { return this->get_nb_element();}
+    bool isInactive(int k, int t) const {
+      int domain = get_domain_element(k);
+      int kloc = idxK_in_domain(k, domain);
+      auto it = in_active_mesh_[domain][t].find(kloc);
+      if(it == in_active_mesh_[domain][t].end()) return false;
+      return true;
+    }
 
-  virtual int first_boundary_element() const { return 0;}
-  virtual int next_boundary_element() const { return 1;}
-  virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
-  #endif
+    const Interface<Mesh>& get_interface(int k, int t) const {
+      int domain = get_domain_element(k);
+      int kloc = idxK_in_domain(k, domain);
+      auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+      assert(it != interface_id_[t].end());
+      return *(it->second.at(0).first);
+    }
+
+    Partition<Element> get_partition(int k, int t) const {
+      int domain = get_domain_element(k);
+      int kloc = idxK_in_domain(k, domain);
+      auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+      assert(it != interface_id_[t].end());
+      int kb = this->idxElementInBackMesh(k);
+      return it->second.at(0).first->get_partition(kb);
+    }
+
+    int get_sign_cut(int k, int t) const {
+      int domain = get_domain_element(k);
+      int kloc = idxK_in_domain(k, domain);
+      auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+      assert(it != interface_id_[t].end());
+      return it->second.at(0).second;
+    }
+
+    Cut_Part<Element> get_cut_part(int k, int t) const {
+      int domain = get_domain_element(k);
+      int kloc = idxK_in_domain(k, domain);
+      auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+      // if not cut build a partition that consider full element
+      if(it == interface_id_[t].end()) {
+        return Cut_Part<Element>(Partition<Element>((*this)[k]), -1);
+      }
+      int kb = this->idxElementInBackMesh(k);
+      if(it->second.size() == 1)
+      return Cut_Part<Element>(it->second.at(0).first->get_partition(kb), it->second.at(0).second);
+      else
+      return Cut_Part<Element>(this->build_local_partition(k), 0);
+    }
+
+    Cut_Part<typename Element::Face> get_cut_face(Face& face, int k, int ifac, int t) const {
+
+        // BUILD THE FACE
+        // In the class mesh the inner faces are not built
+        int kb = this->idxElementInBackMesh(k);
+        int iv[Face::nv];
+        for(int i=0;i<Face::nv;++i) iv[i] = Th(kb, Element::nvhyperFace[ifac][i]);
+        face.set(Th.vertices, iv, 0);
+
+        // GET THE INTERFACE
+        int domain = get_domain_element(k);
+        int kloc = idxK_in_domain(k, domain);
+        auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+        assert(it != interface_id_[t].end());
+
+        if(it->second.size() == 1)
+        return Cut_Part<Face>(it->second.at(0).first->get_partition_face(face,kb,ifac), it->second.at(0).second);
+        else
+        return Cut_Part<Face>(this->build_local_partition(face, k, ifac), 0);
+    }
+
+    vector<int> idxAllElementFromBackMesh(int k, int d) const {
+        std::vector<int> idx(0);
+        if(d!=-1) {
+          int ret = idxElementFromBackMesh(k,  d);
+          assert(ret != -1);idx.push_back(ret);
+          return idx;
+          }
+        for(int i=0;i<get_nb_domain();++i) {
+          int ret = idxElementFromBackMesh(k,  i);
+          if(ret != -1) idx.push_back(ret);
+        }
+        assert(idx.size()>0 && idx.size() < 3);
+        return idx;
+    }
+
+    vector<int> getAllDomainId(int k) const {
+        std::vector<int> idx(0);
+        for(int i=0;i<get_nb_domain();++i) {
+          int ret = idxElementFromBackMesh(k,  i);
+          if(ret != -1) idx.push_back(i);
+        }
+        assert(idx.size()>0 && idx.size() < 3);
+        return idx;
+    }
+
+    int idxElementFromBackMesh(int k) const {
+        assert(0);
+        return -1;
+    }
+    int idxElementFromBackMesh(int k, int i) const {
+        if(i==-1) assert(0);
+        auto it = idx_from_background_mesh_[i].find(k);
+        if(it ==  idx_from_background_mesh_[i].end()) return -1;
+        return idxK_begin(i) + it->second;
+    }
+
+    int idxElementInBackMesh(const int k) const {
+      int i = this->get_domain_element(k);
+      int l = idxK_in_domain(k,i);
+      return idx_in_background_mesh_[i][l];
+    }
+    int idxElementInBackMesh(const int k,int i) const {
+      int l = idxK_in_domain(k,i);
+      return idx_in_background_mesh_[i][l];
+    }
+    int ElementAdj(const int k,int &j) const {
+      int domain = get_domain_element(k);
+      int kb  = this->idxElementInBackMesh(k);
+      int kbn = this->Th.ElementAdj(kb,j);
+      if(kbn == -1) return -1;
+
+      return this->idxElementFromBackMesh(kbn, domain);
+    }
+
+    void info() const {
+      std::cout << " ------------------------------- " << std::endl;
+      std::cout << " Cut Mesh has  \t" << get_nb_domain() << " domains" << std::endl;
+      for(int i=0;i<get_nb_domain();++i) {
+        std::cout << " nb elements in \t" << i << " => " << this->get_nb_element(i) << std::endl;
+      }
+      std::cout << " nb elements in total => \t" << this->get_nb_element() << std::endl;
+    }
+
+    #ifdef USE_MPI
+    virtual int first_element() const { return MPIcf::first_element(this->get_nb_element());}
+    virtual int next_element() const {  return MPIcf::next_element(this->get_nb_element());}
+    virtual int last_element() const {  return MPIcf::last_element(this->get_nb_element());}
+
+    virtual int first_boundary_element() const { return MPIcf::my_rank();}
+    virtual int next_boundary_element() const { return MPIcf::size();}
+    virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
+    #else
+    virtual int first_element() const { return 0;}
+    virtual int next_element() const {return 1;}
+    virtual int last_element() const { return this->get_nb_element();}
+
+    virtual int first_boundary_element() const { return 0;}
+    virtual int next_boundary_element() const { return 1;}
+    virtual int last_boundary_element() const {return this->Th.nbBrdElmts();}
+    #endif
 
 
 
