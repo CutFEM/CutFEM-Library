@@ -351,7 +351,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Set scheme for the dg method (options: "classical", "conservative". Irrelevant if "cg" is defined instead of "dg")
 #define classical  
 // Set stabilization method (options: "fullstab", "macro") 
-#define macro     
+#define fullstab     
 // Decide whether to solve for level set function, or to use exact (options: "levelsetsolve", "levelsetexact")
 #define levelsetexact
 // Solve on Omega_1 (options: "omega1" or anything else to solve on Omega 2)
@@ -377,10 +377,10 @@ typedef FunFEM<Mesh2> Fun_h;
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
-    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
-    int nx = 160, ny = 160;       // starting mesh size
+    const size_t iterations = 5;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
+    int nx = 15, ny = 15;       // starting mesh size
     //int nx = 25, ny = 25;       // starting mesh size
-    double h = 0.00625;             // starting mesh size
+    double h = 0.1;             // starting mesh size
 
 #ifdef example1
     // Paths to store data
@@ -763,6 +763,7 @@ int main(int argc, char** argv) {
                 writerMacro.writeMacroElement(TimeMacro, 0, pathOutputFigures + "macro" + to_string(iter+1) + ".vtk");
                 writerMacro.writeMacroInnerEdge(TimeMacro, 0, pathOutputFigures + "macro_inner_edge" + to_string(iter+1) + ".vtk");
                 writerMacro.writeMacroOutterEdge(TimeMacro, 0, pathOutputFigures + "macro_outer_edge" + to_string(iter+1) + ".vtk");
+                writerMacro.writeSmallElements(TimeMacro, 0, pathOutputFigures + "small_element" + to_string(iter+1) + ".vtk");
             }
             
             // Stabilization of the bulk 

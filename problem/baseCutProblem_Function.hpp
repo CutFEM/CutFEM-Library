@@ -1112,9 +1112,6 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutM
                 int jfac = ifac;
                 int kn = Th.ElementAdj(k, jfac);
 
-                if (kn == -1) continue;   // element outside of domain ? answer: already do this in createMacroElement
-                if (kn < k) continue;   // FIXME: Should I be here?
-
                 std::pair<int,int> e1 = std::make_pair(k,ifac);
                 std::pair<int,int> e2 = std::make_pair(kn,jfac);
 

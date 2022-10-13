@@ -778,6 +778,37 @@ public:
 
         }
         
+        void buildSmallElements(const TimeMacroElement<M>& macro,int dom) {
+          const ActiveMesh<Mesh>& cutTh(macro.Th);
+          ntCut_ = 0;
+          ntNotcut_ = 0;
+          nv_ = 0;
+          int size0 = cutTh.NbElement();
+          clearAndResize(size0);
+
+          std::vector<Rd> list_node;
+          int kk = 0;
+          for(int k=0; k<cutTh.NbElement(); ++k) {
+            int domain = cutTh.get_domain_element(k);
+            int kb = cutTh.idxElementInBackMesh(k);
+
+            if(domain != dom) continue;
+            if(!macro.isSmall(k)) continue;
+            check_and_resize_array(kk);
+
+            idx_in_Vh[kk] = std::make_pair(kb,domain);
+            num_cell[kk] = make_pair(nvCell_, numCell_);
+            for(int i=0;i<nvCell_;++i) {
+              mesh_node[kk].push_back(cutTh[k][i]);
+            }
+            nv_+= nvCell_;
+            ntNotcut_++;
+            kk++;
+
+
+          }
+
+        }
 
         bool isCut(int k) const {
           element_status.find(k);
@@ -905,6 +936,12 @@ public:
     void writeNonStabMesh(const TimeMacroElement<M>& macro, int dom, std::string name) {
       outFile_ = name;
       mesh_data.buildMeshNoStab(macro, dom);
+      this->writeFileMesh();
+      this->writeFileCell();
+    }
+    void writeSmallElements(const TimeMacroElement<M>& macro, int dom, std::string name) {
+      outFile_ = name;
+      mesh_data.buildSmallElements(macro, dom);
       this->writeFileMesh();
       this->writeFileCell();
     }

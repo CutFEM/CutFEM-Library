@@ -102,7 +102,7 @@ namespace matlab {
 
 
 
-  template<class Mesh>
+template<class Mesh>
 void Export(const Mesh& mesh) {
     std::ofstream plot;
     plot.open("nodes.dat", std::ofstream::out);

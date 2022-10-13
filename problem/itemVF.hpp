@@ -653,67 +653,67 @@ ListItemVF<d> operator,(const ExpressionVirtual& fh, const TestFunction<d>& F) {
   return item;
 }
 
-template <int d>
-ListItemVF<d> operator,(const ExpressionAverage& fh, const TestFunction<d>& F) {
-  int l = 0;
-  for(int i=0;i<F.A.N();++i) {
-    for(int j=0;j<F.A.M();++j) {
-      l += F.A(i,j)->size() ;
-    }
-  }
-  l *= 2;
+// template <int d>
+// ListItemVF<d> operator,(const ExpressionAverage& fh, const TestFunction<d>& F) {
+//   int l = 0;
+//   for(int i=0;i<F.A.N();++i) {
+//     for(int j=0;j<F.A.M();++j) {
+//       l += F.A(i,j)->size() ;
+//     }
+//   }
+//   l *= 2;
 
-  ListItemVF<d> item(l);
-  int k=0, kloc=0;
-  for(int i=0;i<F.A.N();++i){
-    for(int j=0;j<F.A.M();++j){
-      for(int ui=0;ui<F.A(i,j)->size();++ui) {
-        const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c*fh.k1,0,-1,v.cu,v.du,0,v.ar_nu);
-        item(k).face_sideU_ = 0;
-        item(k).face_sideV_ = v.face_side_;
-        item(k).domainU_id_ = v.domain_id_;
-        item(k).domainV_id_ = v.domain_id_,
-        item(k).coefv = v.coefu;
-        item(k).dtu = 0;
-        item(k).dtv = v.dtu;
-        item(k).expru = &fh.fun1;
-        item(k).exprv = v.expru;
-        item(k).fespaceV = v.fespace;
-        item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+//   ListItemVF<d> item(l);
+//   int k=0, kloc=0;
+//   for(int i=0;i<F.A.N();++i){
+//     for(int j=0;j<F.A.M();++j){
+//       for(int ui=0;ui<F.A(i,j)->size();++ui) {
+//         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
+//         item(k) = ItemVF<d>( v.c*fh.k1,0,-1,v.cu,v.du,0,v.ar_nu);
+//         item(k).face_sideU_ = 0;
+//         item(k).face_sideV_ = v.face_side_;
+//         item(k).domainU_id_ = v.domain_id_;
+//         item(k).domainV_id_ = v.domain_id_,
+//         item(k).coefv = v.coefu;
+//         item(k).dtu = 0;
+//         item(k).dtv = v.dtu;
+//         item(k).expru = &fh.fun1;
+//         item(k).exprv = v.expru;
+//         item(k).fespaceV = v.fespace;
+//         item(k).varFormType_ = VarFormType::VF_MONOSPACE;
 
-        k++;
-      }
-    }
-  }
+//         k++;
+//       }
+//     }
+//   }
 
-  for(int i=0;i<F.A.N();++i){
-    for(int j=0;j<F.A.M();++j){
-      for(int ui=0;ui<F.A(i,j)->size();++ui) {
-        const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-        item(k) = ItemVF<d>( v.c*fh.k2,0,-1,v.cu,v.du,0,v.ar_nu);
-        item(k).face_sideU_ = 1;
-        item(k).face_sideV_ = v.face_side_;
-        item(k).domainU_id_ = v.domain_id_;
-        item(k).domainV_id_ = v.domain_id_,
-        item(k).coefv = v.coefu;
-        item(k).dtu = 0;
-        item(k).dtv = v.dtu;
-        item(k).expru = &fh.fun1;
-        item(k).exprv = v.expru;
-        item(k).fespaceV = v.fespace;
-        item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+//   for(int i=0;i<F.A.N();++i){
+//     for(int j=0;j<F.A.M();++j){
+//       for(int ui=0;ui<F.A(i,j)->size();++ui) {
+//         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
+//         item(k) = ItemVF<d>( v.c*fh.k2,0,-1,v.cu,v.du,0,v.ar_nu);
+//         item(k).face_sideU_ = 1;
+//         item(k).face_sideV_ = v.face_side_;
+//         item(k).domainU_id_ = v.domain_id_;
+//         item(k).domainV_id_ = v.domain_id_,
+//         item(k).coefv = v.coefu;
+//         item(k).dtu = 0;
+//         item(k).dtv = v.dtu;
+//         item(k).expru = &fh.fun1;
+//         item(k).exprv = v.expru;
+//         item(k).fespaceV = v.fespace;
+//         item(k).varFormType_ = VarFormType::VF_MONOSPACE;
 
-        k++;
-      }
-    }
-  }
+//         k++;
+//       }
+//     }
+//   }
 
-  item.reduce();
-  item.setVarFormType();
+//   item.reduce();
+//   item.setVarFormType();
 
-  return item;
-}
+//   return item;
+// }
 
 template <int d>
 ListItemVF<d> operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>*> fh, const TestFunction<d>& F) {
