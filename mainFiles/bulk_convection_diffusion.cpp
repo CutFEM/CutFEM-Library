@@ -40,7 +40,7 @@
 
 // Numerical examples
 
-namespace Example1 {
+namespace Example1_Convection_Dominated {
     /* This works for running Test – i.e. a pure bulk problem on Omega_2. */
 
     // Level-set function
@@ -111,7 +111,7 @@ namespace Example1 {
 }
 
 
-namespace Example2 {
+namespace Example1 {
     
     // Same as example 1 but with diffusion coefficient 1
 
@@ -299,35 +299,70 @@ namespace Lehrenfeld {
     R fun_rhsBulk(const R2 P, const int i, const R t) {
         R x = P.x, y = P.y;
 
-        // return M_PI*cos(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     + (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)))/
-        //     sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)
-        //     + (M_PI*M_PI*sin(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     *(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     + (M_PI*M_PI*sin(M_PI*t)*cos(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     *(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))
-        //     /(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     + (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     *(8*t*t*y*y + 4*t*(x + t*(y*y - 1)) + 2))
-        //     /(2*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     - (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     *(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)
-        //     *sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     - (M_PI*sin(M_PI*t)*sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))
-        //     *(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))
-        //     /(4*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)*sqrt((x + t*(y*y - 1))
-        //     *(x + t*(y*y - 1)) + y*y)) - (M_PI*sin(M_PI*t)
-        //     *sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(x + t*(y*y - 1)))
-        //     /sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y) + (M_PI*sin(M_PI*t)
-        //     *sin(M_PI*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(2*x + 2*t*(y*y - 1)))
-        //     /(2*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y));
-
         return M_PI*cos(M_PI*t)*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)) + 2*M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)) + M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(8*t*t*y*y + 4*t*(x + t*(y*y - 1)) + 2) + M_PI*M_PI*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*sin(M_PI*t)*(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)) + M_PI*M_PI*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*sin(M_PI*t)*(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))) + M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(2*x + 2*t*(y*y - 1)) - 2*M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(x + t*(y*y - 1));
 
     }
     
 }
 
+
+namespace Lehrenfeld_Convection_Dominated {
+
+    // Level-set function
+    double fun_levelSet(const R2 P, const int i, const R t) {
+        double r0 = 1. + Epsilon;
+        double x = P.x, y = P.y;
+
+        return -(sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y) - r0);
+    }
+
+    // Level-set function initial
+    double fun_levelSet(const R2 P, const int i) {
+        double r0 = 1. + Epsilon;
+        return -(sqrt(P.x*P.x + P.y*P.y) - r0);
+    }
+
+    // The rhs Neumann boundary condition
+    R fun_neumann_Gamma(const R2 P, const int i, const R t) {
+        R x = P.x, y = P.y;
+    
+        return 0.;
+        
+    }
+
+    // Velocity field
+    R fun_velocity(const R2 P, const int i) {
+        if (i == 0) return 1-P.y*P.y;
+        else return 0.;
+    }
+
+    // Initial solution bulk
+    R fun_uBulkInit(const R2 P, const int i) {
+        return 0.;
+    }
+
+    // Exact solution bulk
+    R fun_uBulk(const R2 P, const int i, const R t) {
+        double r0 = 1., x = P.x, y = P.y;
+        //return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/r0)*sin(M_PI*t);
+        return cos(M_PI*((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/(r0*r0))*sin(M_PI*t);
+    }
+
+    R fun_uBulkD(const R2 P, const int i, const int d, const R t) {
+        double r0 = 1., x = P.x, y = P.y;
+        //return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/r0)*sin(M_PI*t);
+        return cos(M_PI*((x - (1-y*y)*t)*(x - (1-y*y)*t) + y*y)/(r0*r0))*sin(M_PI*t);
+    }
+
+    // RHS fB bulk
+    R fun_rhsBulk(const R2 P, const int i, const R t) {
+        R x = P.x, y = P.y;
+
+        return M_PI*cos(M_PI*t)*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)) + (M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)))/50 + (M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(8*t*t*y*y + 4*t*(x + t*(y*y - 1)) + 2))/100 + (M_PI*M_PI*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*sin(M_PI*t)*(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/100 + (M_PI*M_PI*cos(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*sin(M_PI*t)*(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))/100 + M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(2*x + 2*t*(y*y - 1)) - 2*M_PI*sin(M_PI*t)*sin(M_PI*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(y*y - 1)*(x + t*(y*y - 1));
+
+    }
+    
+}
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -345,13 +380,15 @@ typedef FunFEM<Mesh2> Fun_h;
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define dg
 // Set numerical example (options: "example1", "lehrenfeld")
-#define example1
+#define lehrenfeld
+// Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
+#define convection_dominated
 // Set boundary condition type on Omega 2 (options: "dirichlet", "neumann" – note: neumann only works combined with example1)
 #define neumann
 // Set scheme for the dg method (options: "classical", "conservative". Irrelevant if "cg" is defined instead of "dg")
-#define classical  
+#define conservative  
 // Set stabilization method (options: "fullstab", "macro") 
-#define fullstab     
+#define macro     
 // Decide whether to solve for level set function, or to use exact (options: "levelsetsolve", "levelsetexact")
 #define levelsetexact
 // Solve on Omega_1 (options: "omega1" or anything else to solve on Omega 2)
@@ -366,21 +403,27 @@ typedef FunFEM<Mesh2> Fun_h;
     #ifdef omega1
         using namespace Example1_Omega1;
     #else
-        using namespace Example1;   // on Omega 2
+        #ifdef convection_dominated
+        using namespace Example1_Convection_Dominated;   // on Omega 2
+        #else
+        using namespace Example1;
+        #endif
     #endif
-#elif defined(example2)
-    using namespace Example2;
 #elif defined(lehrenfeld)
+    #ifdef convection_dominated
+    using namespace Lehrenfeld_Convection_Dominated;
+    #else
     using namespace Lehrenfeld;     // on Omega 2
+    #endif
 #endif
 
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
-    const size_t iterations = 5;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
+    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
     int nx = 15, ny = 15;       // starting mesh size
     //int nx = 25, ny = 25;       // starting mesh size
-    double h = 0.1;             // starting mesh size
+    double h = 0.00625;             // starting mesh size
 
 #ifdef example1
     // Paths to store data
@@ -445,14 +488,15 @@ int main(int argc, char** argv) {
     #endif
 
         int divisionMeshSize = 3;
+        //int divisionMeshSize = 2*3*pi;
         //int divisionMeshSize = 18;
 
         double dT = h/divisionMeshSize;
         //double dT = 3*h;
         
         //// Parameters
-        
         double tfinal = .25;            // Final time
+        
         GTime::total_number_iteration = (int)(tfinal/dT);
         dT = tfinal / GTime::total_number_iteration;
         GTime::time_step = dT;
@@ -474,17 +518,13 @@ int main(int argc, char** argv) {
         std::cout << "dT = " << dT << std::endl;
 
     
-    #if defined(lehrenfeld) 
-        double A2 = 1;
-        double kappaTilde2 = 1;
-        
-    #elif defined(example1)   // For Example 1
+ 
+        #ifdef convection_dominated
         double A2 = 0.01;
-        double kappaTilde2 = 1; 
-    #elif defined(example2)   // For Example 2 (with D=1)
+        #else 
         double A2 = 1;
-        double kappaTilde2 = 1; 
-    #endif
+        #endif
+        double kappaTilde2 = 1;
 
         // Constants for penalty terms
         double tau_a2 = 500;        // diffusion penalty scaling
@@ -750,7 +790,7 @@ int main(int argc, char** argv) {
         #ifdef macro    
             TimeMacroElement<Mesh> TimeMacro(Kh2, qTime, 0.125);
 
-            if (iterations == 1) {
+            if (iterations == 1 && h > 0.01) {
                 Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" + to_string(iter+1) + ".vtk");
                 writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
                 writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);

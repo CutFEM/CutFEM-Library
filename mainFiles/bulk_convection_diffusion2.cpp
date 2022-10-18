@@ -146,6 +146,37 @@ namespace Lehrenfeld_6_2 {
         return 0.;
         
     }
+}
+
+namespace Lehrenfeld_6_2_Convection_Dominated {
+
+    // Level-set function
+    R fun_levelSet(const R2 P, const int i, const R t) {
+        double r0 = .5 + Epsilon;
+        double x = P.x, y = P.y;
+        
+        //double rho(R x, R y, R t) return 1./M_PI*sin(2*M_PI*t);
+        //double r(R x, R y, R t) return sqrt((x-1./M_PI*sin(2*M_PI*t))*(x-1./M_PI*sin(2*M_PI*t)) + y*y);
+
+        return -(sqrt((x-1./M_PI*sin(2*M_PI*t))*(x-1./M_PI*sin(2*M_PI*t)) + y*y) - r0);
+    }
+
+    // Level-set function initial
+    R fun_levelSet(const R2 P, const int i) {
+        double r0 = .5 + Epsilon;
+        double x = P.x, y = P.y;
+        
+        return -(sqrt(x*x + y*y) - r0);
+    }
+
+    // The rhs Neumann boundary condition
+    R fun_neumann_Gamma(const R2 P, const int i, const R t) {
+        R x = P.x, y = P.y;
+    
+        return 0.;
+        
+    }
+
 
     // Velocity field
     R fun_velocity(const R2 P, const int i, const R t) {
@@ -176,8 +207,7 @@ namespace Lehrenfeld_6_2 {
     // RHS fB bulk
     R fun_rhsBulk(const R2 P, const int i, const R t) {
         R x = P.x, y = P.y;
-        return 3.1415927*cos(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 50.265482*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 631.65468*y*y*sin(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 157.91367*sin(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(2.0*x - 0.63661977*sin(6.2831853*t))*(2.0*x - 0.63661977*sin(6.2831853*t)) - 25.132741*cos(6.2831853*t)*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(2.0*x - 0.63661977*sin(6.2831853*t)) + 50.265482*cos(6.2831853*t)*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(x - 0.31830989*sin(6.2831853*t));
-        //return 3.1415927*cos(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y))*cos(3.1415927*t) + (1.936156e-32*sin(3.1415927*t)*(3.2451855e+32*x*x*sin(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y)) + 3.2451855e+32*y*y*sin(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y)) + 3.2880604e+31*sin(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y))*sin(6.2831853*t)*sin(6.2831853*t) + 2.0390102e+33*cos(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y))*((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y)*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y) - 2.0659493e+32*x*sin(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y))*sin(6.2831853*t)))/((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y)*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y) - (6.2831853*sin(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y))*cos(6.2831853*t)*sin(3.1415927*t)*(2.0*x - 0.63661977*sin(6.2831853*t)))/sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y) + (12.566371*sin(6.2831853*sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y))*cos(6.2831853*t)*sin(3.1415927*t)*(x - 0.31830989*sin(6.2831853*t)))/sqrt((x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + y*y);
+        return 3.1415927*cos(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 0.50265482*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 6.3165468*y*y*sin(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y) + 1.5791367*sin(3.1415927*t)*cos(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(2.0*x - 0.63661977*sin(6.2831853*t))*(2.0*x - 0.63661977*sin(6.2831853*t)) - 25.132741*cos(6.2831853*t)*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(2.0*x - 0.63661977*sin(6.2831853*t)) + 50.265482*cos(6.2831853*t)*sin(3.1415927*t)*sin(12.566371*(x - 0.31830989*sin(6.2831853*t))*(x - 0.31830989*sin(6.2831853*t)) + 12.566371*y*y)*(x - 0.31830989*sin(6.2831853*t));
     }
 
 
@@ -272,10 +302,12 @@ typedef FunFEM<Mesh2> Fun_h;
 #define dg
 // Set numerical example (options: "lehrenfeld_6_2", "lehrenfeld_6_3")
 #define lehrenfeld_6_2
+
+#define convection_dominated
 // Set boundary condition type on Omega 2 (options: "dirichlet", "neumann" – note: neumann only works combined with example1)
 #define neumann
 // Set scheme for the dg method (options: "conservative", "classical" see thesis. Irrelevant if "cg" is defined instead of "dg")
-#define conservative  
+#define classical  
 // Set stabilization method (options: "fullstab", "macro") 
 #define fullstab       
 // Decide whether to solve for level set function, or to use exact (options: "levelsetsolve", "levelsetexact")
@@ -284,7 +316,11 @@ typedef FunFEM<Mesh2> Fun_h;
 #define use_h
 
 #if defined(lehrenfeld_6_2)
+    #ifdef convection_dominated
+    using namespace Lehrenfeld_6_2_Convection_Dominated;
+    #else
     using namespace Lehrenfeld_6_2;
+    #endif
 #elif defined(lehrenfeld_6_3)
     using namespace Lehrenfeld_6_3;
 #endif
@@ -292,9 +328,9 @@ typedef FunFEM<Mesh2> Fun_h;
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
-    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
+    const size_t iterations = 4;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
     int nx = 10, ny = 10;       // starting mesh size
-    double h = 0.01;             // starting mesh size
+    double h = 0.1;             // starting mesh size
 
 #if defined(lehrenfeld_6_2)
     // Paths to store data
@@ -367,13 +403,10 @@ int main(int argc, char** argv) {
         std::cout << "nx = " << ny << std::endl;
         std::cout << "dT = " << dT << std::endl;
 
-        #if defined(lehrenfeld_6_2) 
+        #ifdef convection_dominated
+            double A2 = 0.01;
+        #else 
             double A2 = 1;
-            double kappaTilde2 = 1;
-
-        #elif defined(lehrenfeld_6_3)
-            double A2 = 0.1;
-            double kappaTilde2 = 1;
         #endif
         
         // Constants for penalty terms
@@ -614,12 +647,13 @@ int main(int argc, char** argv) {
         // Stabilization
 
         #ifdef macro    
-            TimeMacroElement TimeMacro(Wh, In, qTime, 0.125);
+            TimeMacroElement<Mesh> TimeMacro(Kh2, qTime, 0.125);
 
             // Stabilization of the bulk 
             convdiff.addFaceStabilization(
                 + innerProduct(1./h*tau20*jump(u), jump(v))
                 + innerProduct(h*tau21*jump(grad(u)), jump(grad(v)))
+                , Kh2
                 , In
                 , TimeMacro
             );
