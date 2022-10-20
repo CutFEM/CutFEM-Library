@@ -917,6 +917,7 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh>& gh, const CutMesh& cutTh
 // On Ridges
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>& gamma, const CRidge& innerRidge, list<int> label) {
+
   assert(!VF.isRHS());
   bool all_label = (label.size() == 0);
 
@@ -932,6 +933,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const Interface<M>&
   }
 
 }
+
 template<typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<M>& gamma, const CRidge& innerRidge, const TimeSlab& In, list<int> label) {
   for(int itq=0;itq<this->get_nb_quad_point_time();++itq) {

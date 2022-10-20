@@ -76,11 +76,11 @@ public:
   // integral on inner Ridge / intersction with interface
   void addBilinear(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const CRidge& innerRidge,list<int> label = {});
   void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, list<int> label = {});
-  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, int itq,list<int> label = {});
+  void addBilinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, int itq, list<int> label = {});
 
   void addLinear  (const ListItemVF<Rd::d>& VF, const Interface<Mesh>& gamma, const CRidge& innerRidge,list<int> label = {});
   void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, list<int> label = {});
-  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, int itq,list<int> label = {});
+  void addLinear(const ListItemVF<Rd::d>& VF, const TimeInterface<Mesh>& gamma, const CRidge& innerRidge, const TimeSlab& In, int itq, list<int> label = {});
   void addInterfaceRidgeContribution(const ListItemVF<Rd::d>& VF, const Interface<Mesh>& interface, int ifac, const TimeSlab* In, int itq, double cst_time);
 
 

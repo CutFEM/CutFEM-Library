@@ -18,8 +18,10 @@ option(USE_MUMPS "Found the MUMPS library" ON)
 
 
 if(USE_MPI)
-  set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/open-mpi/4.1.4_1/bin/mpicxx")
+  #set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/open-mpi/4.1.4_1/bin/mpicxx")
   
+  # For eight/nine
+  set(CMAKE_CXX_COMPILER "/usr/bin/mpicxx")
 endif()
 ## ##############################
 ## Configuration
@@ -29,7 +31,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17 -DCHECK_KN -O3 -w -D_Float128=__float128")
+#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17 -DCHECK_KN -O3 -w -D_Float128=__float128")
+
+# For eight/nine
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w -fopenmp -D_Float128=__float128 -fpermissive")
 
 message( " cxx compiler ${CMAKE_CXX_COMPILER}")
 
@@ -49,6 +54,20 @@ list(APPEND EXTRA_LIBS solver)
 add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 
+
+set(EX_NAME surfactantDG)
+add_executable(${EX_NAME}  mainFiles/surfactantDG.cpp)
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+
+set(EX_NAME test)
+add_executable(${EX_NAME}  mainFiles/test.cpp)
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 
 set(EX_NAME bulkconvdiff2)
 add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion2.cpp)
