@@ -209,10 +209,9 @@ double solveCG_1(int i, const Mesh& Kh, int nx, double tfinal, double hi, double
         ,In, i
       );
     }
-    surfactant.addBilinear(
+    surfactant.addFaceStabilization(
       innerProduct(1e-2*jump(grad(s)*n), jump(grad(r)*n))
       , Kh0
-      , innerFacet
       , In
     );
 
@@ -277,484 +276,17 @@ double solveCG_1(int i, const Mesh& Kh, int nx, double tfinal, double hi, double
     //  -----------------------------------------------------
     //                     PLOTTING
     //  -----------------------------------------------------
-    // if(MPIcf::IamMaster() ) {
-    //     // KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
-    //     Fun_h sol(Wh, uh);
-    //
-    //     // Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
-    //     Paraview<Mesh> writer(Kh0, "surfactant_"+to_string(iter)+".vtk");
-    //
-    //     writer.add(sol , "surfactant", 0, 1);
-    //     writer.add(ls[0], "levelSet",  0, 1);
-    //     // writer.add(ls[2], "levelSet2", 0, 1);
-    //   }
-
-
-    // return 0.;
-    iter += 1;
-  }
-
-  return errL2;
-}
-double solveCG_2(int i, const Mesh& Kh, int nx, double tfinal, double hi, double dT) {
-  const int d = 2;
-  // typedef Mesh2 Mesh;
-  // typedef FESpace2 Space;
-  // typedef CutFESpace<Mesh> CutSpace;
-  // typedef TestFunction<2> FunTest;
-  // typedef FunFEM<Mesh2> Fun_h;
-
-  const double cpubegin = CPUtime();
-
-  double errL2 = 0.;
-
-  // BACKGROUND MESH
-  // Mesh Kh(nx, nx, -2, -2, 4., 4.);
-  Space Vh(Kh, DataFE<Mesh2>::P1);
-  double meshSize = hi;//(4./(nx-1));
-
-  // TIME PARAMETER
-  int divisionMeshsize = 4;
-  // double dT = 0.01;//meshSize/divisionMeshsize;
-  GTime::total_number_iteration = int(tfinal/dT);
-  dT = tfinal / GTime::total_number_iteration;
-  GTime::time_step = dT;
-  Mesh1 Qh(GTime::total_number_iteration+1, GTime::t0, GTime::final_time());
-  FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
-  const QuadratureFormular1d& qTime(*Lobatto(3));
-  const Uint nbTime = qTime.n;
-  const Uint ndfTime = Ih[0].NbDoF();
-  const Uint lastQuadTime = nbTime-1;
-
-
-
-  //  -----------------------------------------------------
-  //             Create files to save results
-  //  -----------------------------------------------------
-  // std::string pathOutpuFolder = "../../outputFiles/surfactant2/Ellipse/mesh"+meshstr+"/h"+to_string(divisionMeshsize)+"/";
-  // std::string pathOutpuFigure = "../../outputFiles/surfactant2/Ellipse/mesh"+meshstr+"/h"+to_string(divisionMeshsize)+"/paraview/";
-  // CoutFileAndScreen myCout(pathOutpuFolder+"output.txt");
-  // cout << " path to the output files : "+pathOutpuFolder << std::endl;
-  // cout << " path to the vtk files : "+pathOutpuFigure << std::endl;
-  std::ofstream outputData("dataDrop"+to_string(i)+".dat", std::ofstream::out);
-  // cout << " Creating the file \"dataDrop.dat\" to save data" << std::endl;
-  // cout << " Creating the file \"output.txt\" to save cout" << std::endl;
-
-
-  //CREATE SPACE AND VELOCITY FUNCTION
-  Lagrange2 FEvelocity(2);
-  Space VelVh  (Kh, FEvelocity);
-  vector<Fun_h> vel(nbTime);
-
-
-  // CREATE THE LEVELSET
-  Space Lh  (Kh, DataFE<Mesh2>::P1);
-  double dt_levelSet = dT/(nbTime-1);
-  vector<Fun_h> ls(nbTime);
-  for(int i=0;i<nbTime;++i) ls[i].init(Lh, fun_levelSet, 0.);
-  // LevelSet2 levelSet(Lh_k);
-
-  // TIME INTERFACE AT ALL QUADRATURE TIME
-  TimeInterface<Mesh> interface(qTime);
-
-  // INITIALIZE THE PROBLEM
-  CutFEM<Mesh2> surfactant(qTime);
-  const R epsilon_S = 1.;
-
-  int iter = 0, iterfig = 0;
-  double q_init0, q_init1, qp1;
-  while( iter < GTime::total_number_iteration ) {
-
-    GTime::current_iteration = iter;
-    const TimeSlab& In(Ih[iter]);
-
-    std::cout << " ITERATION \t : \t" << iter << " / " << GTime::total_number_iteration -1 << std::endl;
-    double tid = GTime::current_time();
-    // INITIALIZE LEVELSET, VELOCITY, INTERFACE
-    ls.begin()->swap(ls[nbTime-1]);
-    for(int i=0;i<nbTime;++i) {
-      R tt = In.Pt(R1(qTime(i).x));
-      ls[i].init(Lh, fun_levelSet, tt);
-      vel[i].init(VelVh, fun_velocity, tt);
-      interface.init(i,Kh,ls[i]);
-    }
-
-    // CREATE THE ACTIVE MESH AND CUT SPACE
-    ActiveMesh<Mesh> Kh0(Kh);
-    Kh0.createSurfaceMesh(interface);
-    CutSpace Wh(Kh0, Vh);
-
-    // INITIALIZE THE PROBLEM
-    Rn datau0;
-    surfactant.initSpace(Wh, In);
-    surfactant.initialSolution(datau0);
-    KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(),0)));
-    if(iter == 0)interpolate(Wh, datas0, fun_init_surfactant);
-    Rn uh(datau0);
-    Fun_h u0(Wh, datau0);
-
-    Normal n;
-    FunTest s(Wh,1), r(Wh,1);
-
-
-    std::cout << " Begin assembly " << std::endl;
-    double tt0 = MPIcf::Wtime();
-
-    surfactant.addBilinear(
-      -innerProduct(s, dt(r))
-      + innerProduct(epsilon_S*gradS(s), gradS(r))
-      , interface
-      , In
-    );
-
-    for(int i=0;i<nbTime;++i) {
-      ExpressionFunFEM<Mesh2> vx(vel[i],0,op_id);
-      ExpressionFunFEM<Mesh2> vy(vel[i],1,op_id);
-      surfactant.addBilinear(
-        - innerProduct(s, dx(r)*vx)
-        - innerProduct(s, dy(r)*vy)
-        , interface
-        , In
-        , i
-      );
-    }
-    // surfactant.addEdgeIntegral(
-    //   innerProduct(1e-2*jump(grad(s).t()*n), jump(grad(r).t()*n)),
-    //   In
-    // );
-
-
-    Fun_h funrhs (Wh, In, fun_rhs);
-    // Fun_h funrhsp(cutVh, In);
-    // projection(funrhs, funrhsp, In, interface ,0);
-    surfactant.addLinear (
-      innerProduct(funrhs.expression(), r)
-      , interface
-      , In
-    );
-    double intF   = integral(funrhs, In, interface, 0) ;
-    // intFnp = integralSurf(funrhs , In, qTime);
-
-    surfactant.addBilinear(
-      innerProduct(s, r)
-      , *interface(lastQuadTime)
-      , In
-      , lastQuadTime
-    );
-    surfactant.addLinear(
-      innerProduct(u0.expression(), r)
-      , *interface(0)
-      , In
-      , 0
-    );
-
-    // FunTest D2un = grad(grad(r)*n)*n;
-    surfactant.addBilinear(
-      innerProduct(1e-2*jump(grad(s)*n), jump(grad(r)*n))
-      , Kh0
-      , innerFacet
-      , In
-    );
-    // if stab interface, can have h in both stabilization
-    // surfactant.addBilinear(
-    //   innerProduct(1e-1*grad(s)*n, grad(r)*n)
-    //   , interface
-    //   , In
-    // );
-
-
-    // matlab::Export(surfactant.mat_, "matA.dat");
-    // surfactant.cleanMatrix();
-    surfactant.solve();
-
-    KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
-    uh = dw;
-    surfactant.saveSolution(uh);
-
-
-
-    Rn sol(Wh.get_nb_dof(), 0.);
-    sol += uh(SubArray(Wh.get_nb_dof(), 0));
-    sol += uh(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
-    Fun_h funuh_0(Wh, uh);
-    Fun_h funuh_1(Wh, sol);
-
-    //  -----------------------------------------------------
-    //                COMPUTE ERROR
-    //  -----------------------------------------------------
-    {
-      Fun_h funuh(Wh, sol);
-      errL2 =  L2normSurf(funuh_0, fun_sol_surfactant, interface(0), tid,0,1);
-      std::cout << " t_n -> || u-uex||_2 = " << errL2 << std::endl;
-
-      errL2 =  L2normSurf(funuh_1, fun_sol_surfactant, interface(nbTime-1), tid+dT,0,1);
-      std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << std::endl;
-    }
-    //  -----------------------------------------------------
-    // COMPUTATION OF THE CARACTERISTICS OF THE DROPS
-    //  -----------------------------------------------------
-    {
-      double q0 = integral(funuh_0, interface(0), 0);
-      double q1 = integral(funuh_1, interface(lastQuadTime), 0);
-      if(iter==0){
-        q_init0 = q0;
-        q_init1 = q1;
-        qp1     = q1;
-        q_init1 = integral(u0, interface(0), 0);
-      }
-
-      outputData << setprecision(10);
-      outputData << std::setw(10) << std::setfill(' ') << GTime::current_time()
-                 << std::setw(20) << std::setfill(' ') << q0
-                 << std::setw(20) << std::setfill(' ') << q1
-                 << std::setw(20) << std::setfill(' ') << intF
-                 << std::setw(20) << std::setfill(' ') << fabs(q1 - qp1 - intF)
-                 << std::endl;
-                 qp1 = q1;
-      }
-
-
-
-    //  -----------------------------------------------------
-    //                     PLOTTING
-    //  -----------------------------------------------------
-    // if(MPIcf::IamMaster() ) {
-    //     // KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
-    //     Fun_h sol(Wh, uh);
-    //
-    //     // Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
-    //     Paraview<Mesh> writer(Kh0, "surfactant_"+to_string(iter)+".vtk");
-    //
-    //     writer.add(sol , "surfactant", 0, 1);
-    //     writer.add(ls[0], "levelSet",  0, 1);
-    //     // writer.add(ls[2], "levelSet2", 0, 1);
-    //   }
-
-
-    // return 0.;
-    iter += 1;
-  }
-
-
-  outputData.close();
-  return errL2;
-}
-double solveDG_1(int i, const Mesh& Kh, int nx, double tfinal, double hi, double dT) {
-  const int d = 2;
-  // typedef Mesh2 Mesh;
-  // typedef FESpace2 Space;
-  // typedef CutFESpace<Mesh> CutSpace;
-  // typedef TestFunction<2> FunTest;
-  // typedef FunFEM<Mesh2> Fun_h;
-
-  const double cpubegin = CPUtime();
-
-  double errL2 = 0.;
-
-  // BACKGROUND MESH
-  // Mesh Kh(2*nx, nx, -2, -2, 8., 4.);
-  Space Vh(Kh, DataFE<Mesh2>::P1);
-  double meshSize = hi;//(4./(nx-1));
-  // double hi = meshSize;
-
-  // TIME PARAMETER
-  int divisionMeshsize = 4;
-  // double dT = hi/8;//meshSize/divisionMeshsize;
-  GTime::total_number_iteration = int(tfinal/dT);
-  dT = tfinal / GTime::total_number_iteration;
-  GTime::time_step = dT;
-  Mesh1 Qh(GTime::total_number_iteration+1, GTime::t0, GTime::final_time());
-  FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
-  const QuadratureFormular1d& qTime(*Lobatto(3));
-  const Uint nbTime = qTime.n;
-  const Uint ndfTime = Ih[0].NbDoF();
-  const Uint lastQuadTime = nbTime-1;
-
-
-  //CREATE SPACE AND VELOCITY FUNCTION
-  Lagrange2 FEvelocity(2);
-  Space VelVh  (Kh, FEvelocity);
-  vector<Fun_h> vel(nbTime);
-
-  // CREATE THE LEVELSET
-  Space Lh  (Kh, DataFE<Mesh2>::P1);
-  double dt_levelSet = dT/(nbTime-1);
-  vector<Fun_h> ls(nbTime);
-  for(int i=0;i<nbTime;++i) ls[i].init(Lh, fun_levelSet, 0.);
-  // LevelSet2 levelSet(Lh_k);
-
-  // TIME INTERFACE AT ALL QUADRATURE TIME
-  TimeInterface<Mesh> interface(qTime);
-
-  // INITIALIZE THE PROBLEM
-  CutFEM<Mesh2> surfactant(qTime);
-  const R epsilon_S = 1.;
-
-  int iter = 0, iterfig = 0;
-  while( iter < GTime::total_number_iteration ) {
-
-    GTime::current_iteration = iter;
-    const TimeSlab& In(Ih[iter]);
-
-    std::cout << " ITERATION \t : \t" << iter << " / " << GTime::total_number_iteration -1 << std::endl;
-    double tid = GTime::current_time();
-    // INITIALIZE LEVELSET, VELOCITY, INTERFACE
-    ls.begin()->swap(ls[nbTime-1]);
-    for(int i=0;i<nbTime;++i) {
-      R tt = In.Pt(R1(qTime(i).x));
-      ls[i].init(Lh, fun_levelSet, tt);
-      vel[i].init(VelVh, fun_velocity, tt);
-      interface.init(i,Kh,ls[i]);
-    }
-
-    // CREATE THE ACTIVE MESH AND CUT SPACE
-    ActiveMesh<Mesh> Kh0(Kh);
-    Kh0.createSurfaceMesh(interface);
-    CutSpace Wh(Kh0, Vh);
-
-    // INITIALIZE THE PROBLEM
-    Rn datau0;
-    surfactant.initSpace(Wh, In);
-    surfactant.initialSolution(datau0);
-    KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(),0)));
-    if(iter == 0)interpolate(Wh, datas0, fun_init_surfactant);
-    Rn uh(datau0);
-    Fun_h u0(Wh, datau0);
-
-    Normal n;
-    Conormal conormal;
-    FunTest s(Wh,1), r(Wh,1);
-
-
-    std::cout << " Begin assembly " << std::endl;
-    double tt0 = MPIcf::Wtime();
-
-    surfactant.addBilinear(
-      innerProduct(dt(s), r)
-      + innerProduct(epsilon_S*gradS(s), gradS(r))
-      , interface
-      , In
-    );
-
-
-    for(int i=0;i<nbTime;++i) {      // computation of the curvature
-      ExpressionFunFEM<Mesh2> vx(vel[i],0,op_id);
-      ExpressionFunFEM<Mesh2> vy(vel[i],1,op_id);
-      // Interior edges surface convective term
-      // surfactant.addBilinear(
-      //   - innerProduct(s, dx(r)*vx + dy(r)*vy)
-      //   //+ innerProduct(dx(s)*vx + dy(s)*vy, r)  // TEST
-      //   + innerProduct(s*dxS(vel[i]) + s*dyS(vel[i]), r)
-      //   , interface
-      //   , In , i
-      // );
-      // surfactant.addBilinear(
-      //   + innerProduct(average((vel[i] * conormal)*s, 0.5, -0.5), jump(r))
-      //   //+ innerProduct(average((vel.at(i) * t)*s, 1, 1), average(r)) // TEST
-      //   //- innerProduct(jump(s), average((vel.at(i) * t) * r, 0.5, -0.5))
-      //   //+ innerProduct(10 * jump((vel.at(i)*t)*s), jump(r))
-      //   + innerProduct(0*average(fabs(vel[i]*conormal)*s, 1, 1), jump(r))
-      //   , interface
-      //   , innerRidge
-      //   , In , i
-      // );
-      surfactant.addBilinear(
-        + innerProduct(dx(s)*vx + dy(s)*vy, r)*0.5
-        - innerProduct(s, dx(r)*vx + dy(r)*vy)*0.5
-        + innerProduct(s*dxS(vel[i]) + s*dyS(vel[i]), r)
-        , interface
-        , In , i
-      );
-
-      // "Variant 2"
-      surfactant.addBilinear(
-          + innerProduct(average((vel[i]*conormal)*s, 0.5, -0.5), jump(r))*0.5
-          - innerProduct(jump(s), average((vel[i]*conormal)*r, 0.5, -0.5))*0.5
-          + innerProduct(10*jump(s), jump(r))
-          //+ innerProduct(lambdaBSdiv*average((vel[i]*t)*s, 1, 1), average((vel[i]*t)*r, 1, 1))                  // (3.16)
-          , interface
-          , innerRidge
-          , In , i
-      );
-
-    }
-    surfactant.addBilinear(
-        // innerProduct(hi*jump(s), jump(s))
-      + innerProduct(1*jump(grad(s)*n), jump(grad(r)*n))
-      , Kh0
-      , innerFacet
-      , In
-    );
-    // surfactant.addBilinear(
-    //   innerProduct(hi*grad(s)*n, grad(r)*n)
-    //   , interface
-    //   , In
-    // );
-        surfactant.addBilinear(
-          innerProduct(s, r)
-          , *interface(0)
-          , In
-          , 0
-        );
-        surfactant.addLinear(
-          innerProduct(u0.expression(), r)
-          , *interface(0)
-          , In
-          , 0
-        );
-
-        Fun_h funrhs(Wh, In, fun_rhs);
-        // Fun_h funrhsp(cutVh, In);
-        // projection(funrhs, funrhsp, In, interface ,0);
-        surfactant.addLinear(
-          innerProduct(funrhs.expression(), r)
-          , interface
-          , In
-        );
-        // double  intF = integralSurf(funrhsp, In, interface) ;
-    //     intFnp = integralSurf(funrhs, In, qTime);
-    //
-    //
-    // matlab::Export(surfactant.mat_, "matA.dat");
-    // surfactant.cleanMatrix();
-    surfactant.solve();
-
-    KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
-    uh = dw;
-    surfactant.saveSolution(uh);
-    //
-
-
-
-    //  -----------------------------------------------------
-    //                COMPUTE ERROR
-    //  -----------------------------------------------------
-    {
-      Rn sol(Wh.get_nb_dof(), 0.);
-      sol += uh(SubArray(Wh.get_nb_dof(), 0));
-      Fun_h funuh(Wh, sol);
-      errL2 =  L2normSurf(funuh, fun_sol_surfactant, *interface(0), tid,0,1);
-      std::cout << " t_n -> || u-uex||_2 = " << errL2 << std::endl;
-
-      sol  += uh(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
-      errL2 =  L2normSurf(funuh, fun_sol_surfactant, *interface(nbTime-1), tid+dT,0,1);
-      std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << std::endl;
-    }
-
-
-
-    //  -----------------------------------------------------
-    //                     PLOTTING
-    //  -----------------------------------------------------
     if(MPIcf::IamMaster() ) {
-      // KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
-      Fun_h sol(Wh, uh);
-      Paraview<Mesh> writer(Kh0, "surfactant_"+to_string(iter)+".vtk");
+        // KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
+        Fun_h sol(Wh, uh);
 
-      writer.add(sol , "surfactant", 0, 1);
-      writer.add(ls[0], "levelSet",  0, 1);
-      // writer.add(ls[2], "levelSet2", 0, 1);
-    }
+        // Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
+        Paraview<Mesh> writer(Kh0, "surfactant_"+to_string(iter)+".vtk");
+
+        writer.add(sol , "surfactant", 0, 1);
+        writer.add(ls[0], "levelSet",  0, 1);
+        // writer.add(ls[2], "levelSet2", 0, 1);
+      }
 
 
     // return 0.;
@@ -763,19 +295,486 @@ double solveDG_1(int i, const Mesh& Kh, int nx, double tfinal, double hi, double
 
   return errL2;
 }
-
+// double solveCG_2(int i, const Mesh& Kh, int nx, double tfinal, double hi, double dT) {
+//   const int d = 2;
+//   // typedef Mesh2 Mesh;
+//   // typedef FESpace2 Space;
+//   // typedef CutFESpace<Mesh> CutSpace;
+//   // typedef TestFunction<2> FunTest;
+//   // typedef FunFEM<Mesh2> Fun_h;
+//
+//   const double cpubegin = CPUtime();
+//
+//   double errL2 = 0.;
+//
+//   // BACKGROUND MESH
+//   // Mesh Kh(nx, nx, -2, -2, 4., 4.);
+//   Space Vh(Kh, DataFE<Mesh2>::P1);
+//   double meshSize = hi;//(4./(nx-1));
+//
+//   // TIME PARAMETER
+//   int divisionMeshsize = 4;
+//   // double dT = 0.01;//meshSize/divisionMeshsize;
+//   GTime::total_number_iteration = int(tfinal/dT);
+//   dT = tfinal / GTime::total_number_iteration;
+//   GTime::time_step = dT;
+//   Mesh1 Qh(GTime::total_number_iteration+1, GTime::t0, GTime::final_time());
+//   FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+//   const QuadratureFormular1d& qTime(*Lobatto(3));
+//   const Uint nbTime = qTime.n;
+//   const Uint ndfTime = Ih[0].NbDoF();
+//   const Uint lastQuadTime = nbTime-1;
+//
+//
+//
+//   //  -----------------------------------------------------
+//   //             Create files to save results
+//   //  -----------------------------------------------------
+//   // std::string pathOutpuFolder = "../../outputFiles/surfactant2/Ellipse/mesh"+meshstr+"/h"+to_string(divisionMeshsize)+"/";
+//   // std::string pathOutpuFigure = "../../outputFiles/surfactant2/Ellipse/mesh"+meshstr+"/h"+to_string(divisionMeshsize)+"/paraview/";
+//   // CoutFileAndScreen myCout(pathOutpuFolder+"output.txt");
+//   // cout << " path to the output files : "+pathOutpuFolder << std::endl;
+//   // cout << " path to the vtk files : "+pathOutpuFigure << std::endl;
+//   std::ofstream outputData("dataDrop"+to_string(i)+".dat", std::ofstream::out);
+//   // cout << " Creating the file \"dataDrop.dat\" to save data" << std::endl;
+//   // cout << " Creating the file \"output.txt\" to save cout" << std::endl;
+//
+//
+//   //CREATE SPACE AND VELOCITY FUNCTION
+//   Lagrange2 FEvelocity(2);
+//   Space VelVh  (Kh, FEvelocity);
+//   vector<Fun_h> vel(nbTime);
+//
+//
+//   // CREATE THE LEVELSET
+//   Space Lh  (Kh, DataFE<Mesh2>::P1);
+//   double dt_levelSet = dT/(nbTime-1);
+//   vector<Fun_h> ls(nbTime);
+//   for(int i=0;i<nbTime;++i) ls[i].init(Lh, fun_levelSet, 0.);
+//   // LevelSet2 levelSet(Lh_k);
+//
+//   // TIME INTERFACE AT ALL QUADRATURE TIME
+//   TimeInterface<Mesh> interface(qTime);
+//
+//   // INITIALIZE THE PROBLEM
+//   CutFEM<Mesh2> surfactant(qTime);
+//   const R epsilon_S = 1.;
+//
+//   int iter = 0, iterfig = 0;
+//   double q_init0, q_init1, qp1;
+//   while( iter < GTime::total_number_iteration ) {
+//
+//     GTime::current_iteration = iter;
+//     const TimeSlab& In(Ih[iter]);
+//
+//     std::cout << " ITERATION \t : \t" << iter << " / " << GTime::total_number_iteration -1 << std::endl;
+//     double tid = GTime::current_time();
+//     // INITIALIZE LEVELSET, VELOCITY, INTERFACE
+//     ls.begin()->swap(ls[nbTime-1]);
+//     for(int i=0;i<nbTime;++i) {
+//       R tt = In.Pt(R1(qTime(i).x));
+//       ls[i].init(Lh, fun_levelSet, tt);
+//       vel[i].init(VelVh, fun_velocity, tt);
+//       interface.init(i,Kh,ls[i]);
+//     }
+//
+//     // CREATE THE ACTIVE MESH AND CUT SPACE
+//     ActiveMesh<Mesh> Kh0(Kh);
+//     Kh0.createSurfaceMesh(interface);
+//     CutSpace Wh(Kh0, Vh);
+//
+//     // INITIALIZE THE PROBLEM
+//     Rn datau0;
+//     surfactant.initSpace(Wh, In);
+//     surfactant.initialSolution(datau0);
+//     KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(),0)));
+//     if(iter == 0)interpolate(Wh, datas0, fun_init_surfactant);
+//     Rn uh(datau0);
+//     Fun_h u0(Wh, datau0);
+//
+//     Normal n;
+//     FunTest s(Wh,1), r(Wh,1);
+//
+//
+//     std::cout << " Begin assembly " << std::endl;
+//     double tt0 = MPIcf::Wtime();
+//
+//     surfactant.addBilinear(
+//       -innerProduct(s, dt(r))
+//       + innerProduct(epsilon_S*gradS(s), gradS(r))
+//       , interface
+//       , In
+//     );
+//
+//     for(int i=0;i<nbTime;++i) {
+//       ExpressionFunFEM<Mesh2> vx(vel[i],0,op_id);
+//       ExpressionFunFEM<Mesh2> vy(vel[i],1,op_id);
+//       surfactant.addBilinear(
+//         - innerProduct(s, dx(r)*vx)
+//         - innerProduct(s, dy(r)*vy)
+//         , interface
+//         , In
+//         , i
+//       );
+//     }
+//     // surfactant.addEdgeIntegral(
+//     //   innerProduct(1e-2*jump(grad(s).t()*n), jump(grad(r).t()*n)),
+//     //   In
+//     // );
+//
+//
+//     Fun_h funrhs (Wh, In, fun_rhs);
+//     // Fun_h funrhsp(cutVh, In);
+//     // projection(funrhs, funrhsp, In, interface ,0);
+//     surfactant.addLinear (
+//       innerProduct(funrhs.expression(), r)
+//       , interface
+//       , In
+//     );
+//     double intF   = integral(funrhs, In, interface, 0) ;
+//     // intFnp = integralSurf(funrhs , In, qTime);
+//
+//     surfactant.addBilinear(
+//       innerProduct(s, r)
+//       , *interface(lastQuadTime)
+//       , In
+//       , lastQuadTime
+//     );
+//     surfactant.addLinear(
+//       innerProduct(u0.expression(), r)
+//       , *interface(0)
+//       , In
+//       , 0
+//     );
+//
+//     // FunTest D2un = grad(grad(r)*n)*n;
+//     surfactant.addBilinear(
+//       innerProduct(1e-2*jump(grad(s)*n), jump(grad(r)*n))
+//       , Kh0
+//       , innerFacet
+//       , In
+//     );
+//     // if stab interface, can have h in both stabilization
+//     // surfactant.addBilinear(
+//     //   innerProduct(1e-1*grad(s)*n, grad(r)*n)
+//     //   , interface
+//     //   , In
+//     // );
+//
+//
+//     // matlab::Export(surfactant.mat_, "matA.dat");
+//     // surfactant.cleanMatrix();
+//     surfactant.solve();
+//
+//     KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
+//     uh = dw;
+//     surfactant.saveSolution(uh);
+//
+//
+//
+//     Rn sol(Wh.get_nb_dof(), 0.);
+//     sol += uh(SubArray(Wh.get_nb_dof(), 0));
+//     sol += uh(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+//     Fun_h funuh_0(Wh, uh);
+//     Fun_h funuh_1(Wh, sol);
+//
+//     //  -----------------------------------------------------
+//     //                COMPUTE ERROR
+//     //  -----------------------------------------------------
+//     {
+//       Fun_h funuh(Wh, sol);
+//       errL2 =  L2normSurf(funuh_0, fun_sol_surfactant, interface(0), tid,0,1);
+//       std::cout << " t_n -> || u-uex||_2 = " << errL2 << std::endl;
+//
+//       errL2 =  L2normSurf(funuh_1, fun_sol_surfactant, interface(nbTime-1), tid+dT,0,1);
+//       std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << std::endl;
+//     }
+//     //  -----------------------------------------------------
+//     // COMPUTATION OF THE CARACTERISTICS OF THE DROPS
+//     //  -----------------------------------------------------
+//     {
+//       double q0 = integral(funuh_0, interface(0), 0);
+//       double q1 = integral(funuh_1, interface(lastQuadTime), 0);
+//       if(iter==0){
+//         q_init0 = q0;
+//         q_init1 = q1;
+//         qp1     = q1;
+//         q_init1 = integral(u0, interface(0), 0);
+//       }
+//
+//       outputData << setprecision(10);
+//       outputData << std::setw(10) << std::setfill(' ') << GTime::current_time()
+//                  << std::setw(20) << std::setfill(' ') << q0
+//                  << std::setw(20) << std::setfill(' ') << q1
+//                  << std::setw(20) << std::setfill(' ') << intF
+//                  << std::setw(20) << std::setfill(' ') << fabs(q1 - qp1 - intF)
+//                  << std::endl;
+//                  qp1 = q1;
+//       }
+//
+//
+//
+//     //  -----------------------------------------------------
+//     //                     PLOTTING
+//     //  -----------------------------------------------------
+//     // if(MPIcf::IamMaster() ) {
+//     //     // KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
+//     //     Fun_h sol(Wh, uh);
+//     //
+//     //     // Paraview2 writer(cutVh, pathOutpuFigure+"surfactant_"+to_string(iterfig)+".vtk");
+//     //     Paraview<Mesh> writer(Kh0, "surfactant_"+to_string(iter)+".vtk");
+//     //
+//     //     writer.add(sol , "surfactant", 0, 1);
+//     //     writer.add(ls[0], "levelSet",  0, 1);
+//     //     // writer.add(ls[2], "levelSet2", 0, 1);
+//     //   }
+//
+//
+//     // return 0.;
+//     iter += 1;
+//   }
+//
+//
+//   outputData.close();
+//   return errL2;
+// }
+// double solveDG_1(int i, const Mesh& Kh, int nx, double tfinal, double hi, double dT) {
+//   const int d = 2;
+//   // typedef Mesh2 Mesh;
+//   // typedef FESpace2 Space;
+//   // typedef CutFESpace<Mesh> CutSpace;
+//   // typedef TestFunction<2> FunTest;
+//   // typedef FunFEM<Mesh2> Fun_h;
+//
+//   const double cpubegin = CPUtime();
+//
+//   double errL2 = 0.;
+//
+//   // BACKGROUND MESH
+//   // Mesh Kh(2*nx, nx, -2, -2, 8., 4.);
+//   Space Vh(Kh, DataFE<Mesh2>::P1);
+//   double meshSize = hi;//(4./(nx-1));
+//   // double hi = meshSize;
+//
+//   // TIME PARAMETER
+//   int divisionMeshsize = 4;
+//   // double dT = hi/8;//meshSize/divisionMeshsize;
+//   GTime::total_number_iteration = int(tfinal/dT);
+//   dT = tfinal / GTime::total_number_iteration;
+//   GTime::time_step = dT;
+//   Mesh1 Qh(GTime::total_number_iteration+1, GTime::t0, GTime::final_time());
+//   FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+//   const QuadratureFormular1d& qTime(*Lobatto(3));
+//   const Uint nbTime = qTime.n;
+//   const Uint ndfTime = Ih[0].NbDoF();
+//   const Uint lastQuadTime = nbTime-1;
+//
+//
+//   //CREATE SPACE AND VELOCITY FUNCTION
+//   Lagrange2 FEvelocity(2);
+//   Space VelVh  (Kh, FEvelocity);
+//   vector<Fun_h> vel(nbTime);
+//
+//   // CREATE THE LEVELSET
+//   Space Lh  (Kh, DataFE<Mesh2>::P1);
+//   double dt_levelSet = dT/(nbTime-1);
+//   vector<Fun_h> ls(nbTime);
+//   for(int i=0;i<nbTime;++i) ls[i].init(Lh, fun_levelSet, 0.);
+//   // LevelSet2 levelSet(Lh_k);
+//
+//   // TIME INTERFACE AT ALL QUADRATURE TIME
+//   TimeInterface<Mesh> interface(qTime);
+//
+//   // INITIALIZE THE PROBLEM
+//   CutFEM<Mesh2> surfactant(qTime);
+//   const R epsilon_S = 1.;
+//
+//   int iter = 0, iterfig = 0;
+//   while( iter < GTime::total_number_iteration ) {
+//
+//     GTime::current_iteration = iter;
+//     const TimeSlab& In(Ih[iter]);
+//
+//     std::cout << " ITERATION \t : \t" << iter << " / " << GTime::total_number_iteration -1 << std::endl;
+//     double tid = GTime::current_time();
+//     // INITIALIZE LEVELSET, VELOCITY, INTERFACE
+//     ls.begin()->swap(ls[nbTime-1]);
+//     for(int i=0;i<nbTime;++i) {
+//       R tt = In.Pt(R1(qTime(i).x));
+//       ls[i].init(Lh, fun_levelSet, tt);
+//       vel[i].init(VelVh, fun_velocity, tt);
+//       interface.init(i,Kh,ls[i]);
+//     }
+//
+//     // CREATE THE ACTIVE MESH AND CUT SPACE
+//     ActiveMesh<Mesh> Kh0(Kh);
+//     Kh0.createSurfaceMesh(interface);
+//     CutSpace Wh(Kh0, Vh);
+//
+//     // INITIALIZE THE PROBLEM
+//     Rn datau0;
+//     surfactant.initSpace(Wh, In);
+//     surfactant.initialSolution(datau0);
+//     KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(),0)));
+//     if(iter == 0)interpolate(Wh, datas0, fun_init_surfactant);
+//     Rn uh(datau0);
+//     Fun_h u0(Wh, datau0);
+//
+//     Normal n;
+//     Conormal conormal;
+//     FunTest s(Wh,1), r(Wh,1);
+//
+//
+//     std::cout << " Begin assembly " << std::endl;
+//     double tt0 = MPIcf::Wtime();
+//
+//     surfactant.addBilinear(
+//       innerProduct(dt(s), r)
+//       + innerProduct(epsilon_S*gradS(s), gradS(r))
+//       , interface
+//       , In
+//     );
+//
+//
+//     for(int i=0;i<nbTime;++i) {      // computation of the curvature
+//       ExpressionFunFEM<Mesh2> vx(vel[i],0,op_id);
+//       ExpressionFunFEM<Mesh2> vy(vel[i],1,op_id);
+//       // Interior edges surface convective term
+//       // surfactant.addBilinear(
+//       //   - innerProduct(s, dx(r)*vx + dy(r)*vy)
+//       //   //+ innerProduct(dx(s)*vx + dy(s)*vy, r)  // TEST
+//       //   + innerProduct(s*dxS(vel[i]) + s*dyS(vel[i]), r)
+//       //   , interface
+//       //   , In , i
+//       // );
+//       // surfactant.addBilinear(
+//       //   + innerProduct(average((vel[i] * conormal)*s, 0.5, -0.5), jump(r))
+//       //   //+ innerProduct(average((vel.at(i) * t)*s, 1, 1), average(r)) // TEST
+//       //   //- innerProduct(jump(s), average((vel.at(i) * t) * r, 0.5, -0.5))
+//       //   //+ innerProduct(10 * jump((vel.at(i)*t)*s), jump(r))
+//       //   + innerProduct(0*average(fabs(vel[i]*conormal)*s, 1, 1), jump(r))
+//       //   , interface
+//       //   , innerRidge
+//       //   , In , i
+//       // );
+//       surfactant.addBilinear(
+//         + innerProduct(dx(s)*vx + dy(s)*vy, r)*0.5
+//         - innerProduct(s, dx(r)*vx + dy(r)*vy)*0.5
+//         + innerProduct(s*dxS(vel[i]) + s*dyS(vel[i]), r)
+//         , interface
+//         , In , i
+//       );
+//
+//       // "Variant 2"
+//       surfactant.addBilinear(
+//           + innerProduct(average((vel[i]*conormal)*s, 0.5, -0.5), jump(r))*0.5
+//           - innerProduct(jump(s), average((vel[i]*conormal)*r, 0.5, -0.5))*0.5
+//           + innerProduct(10*jump(s), jump(r))
+//           //+ innerProduct(lambdaBSdiv*average((vel[i]*t)*s, 1, 1), average((vel[i]*t)*r, 1, 1))                  // (3.16)
+//           , interface
+//           , innerRidge
+//           , In , i
+//       );
+//
+//     }
+//     surfactant.addBilinear(
+//         // innerProduct(hi*jump(s), jump(s))
+//       + innerProduct(1*jump(grad(s)*n), jump(grad(r)*n))
+//       , Kh0
+//       , innerFacet
+//       , In
+//     );
+//     // surfactant.addBilinear(
+//     //   innerProduct(hi*grad(s)*n, grad(r)*n)
+//     //   , interface
+//     //   , In
+//     // );
+//         surfactant.addBilinear(
+//           innerProduct(s, r)
+//           , *interface(0)
+//           , In
+//           , 0
+//         );
+//         surfactant.addLinear(
+//           innerProduct(u0.expression(), r)
+//           , *interface(0)
+//           , In
+//           , 0
+//         );
+//
+//         Fun_h funrhs(Wh, In, fun_rhs);
+//         // Fun_h funrhsp(cutVh, In);
+//         // projection(funrhs, funrhsp, In, interface ,0);
+//         surfactant.addLinear(
+//           innerProduct(funrhs.expression(), r)
+//           , interface
+//           , In
+//         );
+//         // double  intF = integralSurf(funrhsp, In, interface) ;
+//     //     intFnp = integralSurf(funrhs, In, qTime);
+//     //
+//     //
+//     // matlab::Export(surfactant.mat_, "matA.dat");
+//     // surfactant.cleanMatrix();
+//     surfactant.solve();
+//
+//     KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
+//     uh = dw;
+//     surfactant.saveSolution(uh);
+//     //
+//
+//
+//
+//     //  -----------------------------------------------------
+//     //                COMPUTE ERROR
+//     //  -----------------------------------------------------
+//     {
+//       Rn sol(Wh.get_nb_dof(), 0.);
+//       sol += uh(SubArray(Wh.get_nb_dof(), 0));
+//       Fun_h funuh(Wh, sol);
+//       errL2 =  L2normSurf(funuh, fun_sol_surfactant, *interface(0), tid,0,1);
+//       std::cout << " t_n -> || u-uex||_2 = " << errL2 << std::endl;
+//
+//       sol  += uh(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+//       errL2 =  L2normSurf(funuh, fun_sol_surfactant, *interface(nbTime-1), tid+dT,0,1);
+//       std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << std::endl;
+//     }
+//
+//
+//
+//     //  -----------------------------------------------------
+//     //                     PLOTTING
+//     //  -----------------------------------------------------
+//     if(MPIcf::IamMaster() ) {
+//       // KN_<double> sols(uh(SubArray(cutVh.NbDoF(), 0)));
+//       Fun_h sol(Wh, uh);
+//       Paraview<Mesh> writer(Kh0, "surfactant_"+to_string(iter)+".vtk");
+//
+//       writer.add(sol , "surfactant", 0, 1);
+//       writer.add(ls[0], "levelSet",  0, 1);
+//       // writer.add(ls[2], "levelSet2", 0, 1);
+//     }
+//
+//
+//     // return 0.;
+//     iter += 1;
+//   }
+//
+//   return errL2;
+// }
+//
 
 int main(int argc, char** argv ) {
-
+  globalVariable::verbose = 0;
 
   MPIcf cfMPI(argc,argv);
   int nx = 20;
-  for(int iter=0; iter<4;++iter) {
+  for(int iter=0; iter<1;++iter) {
 
     Mesh Kh(nx, nx, -2, -2, 4., 4.);
     double h = 4./(nx-1);
     double dt = h/4;
-    double err = solveCG_1(iter, Kh, nx, 0.25, h, dt);
+    double err = solveCG_1(iter, Kh, nx, 3*dt, h, dt);
 
     nx = 2*nx-1;
   }

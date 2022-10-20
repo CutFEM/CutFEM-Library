@@ -1577,7 +1577,8 @@ std::cout << " Iteration computation time \t" << MPIcf::Wtime() - tt_iter << std
 
 
 R fun_levelSet(const R2 P, const int i) {
-  return P.y - 0.5*P.x - 1./4;
+  // return P.y - 0.5*P.x - 1./4;
+  return P.y + 0.5*P.x - 1./4;
 }
 R fun_initial (const R2 P, int elementComp, int domain) {
   return 1+0.5*sin(pi*(P.x+P.y));
@@ -1610,52 +1611,6 @@ R fun_solution(const R2 P, int elementComp, int domain, double t) {
 //   return sin(pi*(P.x+P.y - 4*t));
 // }
 
-// R fun_solution(const R2 P, int elementComp, int domain, double t) {
-//   double C = P.x+P.y;
-//   double x1 = C;//0;
-//   double x2 = x1-2*t*fun_scalar(x1);//4;
-//   double x0 = 0.5*(x1+x2);
-//   // double f1 = x1 + 2.*sin(pi*x1)*t - C;
-//   double f1 = x1 + 2.*fun_scalar(x1)*t - C;
-//   // std::cout << "x1 \t" << x1 << std::endl;
-//   if(fabs(f1) < 1e-10) {
-//     // return sin(pi*x1);
-//     return fun_scalar(x1);
-//   }
-//   // double f2 = x2 + 2.*sin(pi*x2)*t - C;
-//   double f2 = x2 + 2.*fun_scalar(x2)*t - C;
-//
-//   if(fabs(f2) < 1e-10) {
-//     return fun_scalar(x2);
-//     // return sin(pi*x2);
-//   }
-//   // std::cout << f1 << "\t" << x0 + 2.*fun_scalar(x0)*t - C << "\t" << f2 << std::endl;
-//   for(int i=0;i<=50;++i) {
-//     // double fa = x1 + 2.*sin(pi*x1)*t - C;
-//     // double fm = x0 + 2.*sin(pi*x0)*t - C;
-//     double fa = x1 + 2.*fun_scalar(x1)*t - C;
-//     double fm = x0 + 2.*fun_scalar(x0)*t - C;
-//
-//     // std::cout << fa << "\t" << fm << "\t" << x2 + 2.*fun_scalar(x2)*t - C << std::endl;
-//
-//     if(fa*fm < 0) x2 = x0;
-//     else          x1 = x0;
-//
-//     if(fabs(fm) < 1e-12) break;
-//     x0 = 0.5*(x1+x2);
-//
-//     if(i == 50) {
-//       std::cout << " f(x0) = " << fm << std::endl;
-//       std::cout << P << std::endl;
-//       // assert(0);
-//       std::cout << " Burger Newton not converged" << std::endl;
-//       getchar();
-//     }
-//   }
-//   // return sin(pi*x0);
-//
-//     return fun_scalar(x0);
-// }
 
 
 
@@ -1834,7 +1789,7 @@ int main(int argc, char** argv ) {
 
   // OUTPUT FILE
   // =====================================================
-  std::ofstream outputData("output_burgerCutFEM_nx80_P1.txt");
+  std::ofstream outputData("output_burgerCutFEM_nx40_P1.txt");
 
   // DEFINITION OF THE MESH and SPACE
   // =====================================================
