@@ -62,12 +62,12 @@ target_include_directories(${EX_NAME} PUBLIC
                         "${PROJECT_BINARY_DIR}"
                         ${EXTRA_INCLUDES})
 
-set(EX_NAME test)
-add_executable(${EX_NAME}  mainFiles/test.cpp)
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
+# set(EX_NAME test)
+# add_executable(${EX_NAME}  mainFiles/test.cpp)
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+# target_include_directories(${EX_NAME} PUBLIC
+#                         "${PROJECT_BINARY_DIR}"
+#                         ${EXTRA_INCLUDES})
 
 set(EX_NAME bulkconvdiff2)
 add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion2.cpp)
