@@ -380,13 +380,13 @@ typedef FunFEM<Mesh2> Fun_h;
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define dg
 // Set numerical example (options: "example1", "lehrenfeld")
-#define lehrenfeld
+#define example1
 // Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
 #define convection_dominated
 // Set boundary condition type on Omega 2 (options: "dirichlet", "neumann" – note: neumann only works combined with example1)
 #define neumann
 // Set scheme for the dg method (options: "classical", "conservative". Irrelevant if "cg" is defined instead of "dg")
-#define conservative  
+#define classical
 // Set stabilization method (options: "fullstab", "macro") 
 #define macro     
 // Decide whether to solve for level set function, or to use exact (options: "levelsetsolve", "levelsetexact")
@@ -397,7 +397,7 @@ typedef FunFEM<Mesh2> Fun_h;
 #define dirichlet1
 
 #define use_h
-
+#define use_t
 
 #ifdef example1
     #ifdef omega1
@@ -420,10 +420,11 @@ typedef FunFEM<Mesh2> Fun_h;
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
-    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
+    const size_t iterations = 5;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
     int nx = 15, ny = 15;       // starting mesh size
     //int nx = 25, ny = 25;       // starting mesh size
-    double h = 0.00625;             // starting mesh size
+    double h = 0.0125;             // starting mesh size
+    double dT = 0.25;
 
 #ifdef example1
     // Paths to store data
@@ -491,7 +492,7 @@ int main(int argc, char** argv) {
         //int divisionMeshSize = 2*3*pi;
         //int divisionMeshSize = 18;
 
-        double dT = h/divisionMeshSize;
+        //double dT = h/divisionMeshSize;
         //double dT = 3*h;
         
         //// Parameters
@@ -1064,7 +1065,9 @@ int main(int argc, char** argv) {
         // Refine mesh
         #ifdef use_n
         nx *= 2;
-        ny *= 2; 
+        ny *= 2;
+        #elif defined(use_t)
+        dT *= 0.5; 
         #elif defined(use_h)
         h *= 0.5;
         #endif

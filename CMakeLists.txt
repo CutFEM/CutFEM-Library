@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 
-set(CMAKE_C_COMPILER "/opt/homebrew/Cellar/gcc/12.2.0/bin/gcc-12")
-set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/gcc/12.2.0/bin/g++-12")
+#set(CMAKE_C_COMPILER "/opt/homebrew/Cellar/gcc/12.2.0/bin/gcc-12")
+#set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/gcc/12.2.0/bin/g++-12")
 
 project(CutFEM VERSION 1.0)
 
