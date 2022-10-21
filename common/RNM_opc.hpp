@@ -6,11 +6,10 @@ inline KN_<R>&  KN_<R>::operator oper (const_R a)  {
     for (long i=0;i<n;i++,l += step)
       *l oper a;
     return *this;
-  }
+}
 
 template<class R>
-inline    KNM_<R> & KNM_<R>::operator oper (const_R a)
-{
+inline    KNM_<R> & KNM_<R>::operator oper (const_R a)  {
   if(IsVector1() )
         KN_<R>::operator oper (a);
   else {
