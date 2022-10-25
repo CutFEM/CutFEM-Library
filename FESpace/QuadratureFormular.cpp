@@ -237,7 +237,7 @@ const R pLob_n3_1 = 2./3;
 
 const R Lob_n5_2 = 1.4472135954999579*0.5;
 const R Lob_n5_1 = (-0.4472135954999579+1)*0.5;
-const R pLob_n5_1 = 5./24;
+const R pLob_n5_1 = 5./12;
 const R pLob_n5_0 = 1./12;
 
 const R Lob_n7_1 = 0.172673164646011;
