@@ -48,7 +48,7 @@ list(APPEND EXTRA_LIBS solver)
 add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 #list(APPEND EXTRA_LIBS -lstdc++fs)
-list(APPEND EXTRA_LIBS -L/usr/local/opt/libomp/lib/libomp.dylib)
+list(APPEND EXTRA_LIBS /usr/local/opt/libomp/lib/libomp.dylib)
 list(APPEND EXTRA_INCLUDES /usr/local/opt/libomp/include)
 
 #

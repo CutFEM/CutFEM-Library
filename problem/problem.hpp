@@ -23,7 +23,7 @@
 #include "itemVF.hpp"
 #include "mapping.hpp"
 #include "../solver/solver.hpp"
-#include "omp.h"
+#include "/usr/local/opt/libomp/include/omp.h"
 
 
 
