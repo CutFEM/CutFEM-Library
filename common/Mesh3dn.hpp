@@ -18,7 +18,6 @@ public:
   Mesh3(int nx, int ny, int nz, R orx, R ory, R orz, R lx, R ly, R lz);
 
 private:
-  int load(const string & filename);
   void readmsh(ifstream & f);
 
 

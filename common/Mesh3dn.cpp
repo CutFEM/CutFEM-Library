@@ -13,20 +13,11 @@
 
 Mesh3::Mesh3(const string  filename)
 {
-  int ok=load(filename);
-  if(ok) {
-    std::cout << " could not load the file " << std::endl;
-    //   ifstream f(filename.c_str());
-    //   if(!f) {
-    //     cerr << "  --  Mesh3::Mesh3 Erreur openning " << filename<<endl;
-    //     ffassert(0);exit(1);}
-    //   if(verbosity>2)
-    //     cout << "  -- Mesh3:  Read On file \"" <<filename<<"\""<<  endl;
-    //   if(filename.rfind(".msh")==filename.length()-4)
-    //     readmsh(f);
-    //   else {
-    //     std::cout << " not a good format" << std::endl;
-    //   }
+  ifstream f(filename.c_str());
+  if(filename.rfind(".msh")==filename.length()-4)
+  readmsh(f);
+  else {
+    std::cout << " not a good format" << std::endl;
   }
 
   BuildBound();
@@ -44,118 +35,6 @@ Mesh3::Mesh3(const string  filename)
   << nv << " n Bord " << nbe << endl;
   ffassert(mes>=0); // add F. Hecht sep 2009.
 }
-
-
-
-int Mesh3::load(const string & filename) {
-
-  int ver,inm,dim;
-  int lf=filename.size()+20;
-
-  KN<char>  fileb(lf),filef(lf);
-  char * pfile;
-  strcpy(filef,filename.c_str());
-  strcpy(fileb,filef);
-  strcat(filef,".mesh");
-  strcat(fileb,".meshb");
-  //    int bin;
-  if( (inm=GmfOpenMesh(pfile=fileb, GmfRead,&ver,&dim)) ) {
-    //bin=true;
-    std::cout << " opening " << (char *) fileb << std::endl;
-  }
-  else if( (inm=GmfOpenMesh(pfile=filef, GmfRead,&ver,&dim)) ) {
-    //  bin=false;
-    std::cout << " opening " << (char *) fileb << std::endl;
-  }
-  else {
-    cerr << " Erreur ouverture file " << (char *) fileb
-    << " " << (char *) filef << endl;
-    return   1;
-  }
-  int nv,nt,neb;
-  nv = GmfStatKwd(inm,GmfVertices);
-  nt = GmfStatKwd(inm,GmfTetrahedra);
-  neb= GmfStatKwd(inm,GmfTriangles);
-  this->set(nv,nt,neb);
-  if(verbosity>1)
-  cout << "  -- Mesh3(load): "<<pfile <<", ver " << ver << ", d "<< dim
-  << ", nt " << nt << ", nv " << nv << " nbe:  = " << nbe << endl;
-  if(dim  != 3) {
-    cerr << "Err dim == " << dim << " !=3 " <<endl;
-    return 2; }
-    if( nv<=0 && (nt <0 || nbe <=0)  ) {
-      cerr << " missing data "<< endl;
-      return 3;
-    }
-
-    int iv[4],lab;
-    float cr[3];
-    // read vertices
-    GmfGotoKwd(inm,GmfVertices);
-    int mxlab=0;
-    int mnlab=0;
-    for(int i=0;i<nv;++i) {
-      if(ver<2) {
-        GmfGetLin(inm,GmfVertices,&cr[0],&cr[1],&cr[2],&lab);
-        vertices[i].x=cr[0];
-        vertices[i].y=cr[1];
-        vertices[i].z=cr[2];}
-        else
-        GmfGetLin(inm,GmfVertices,&vertices[i].x,&vertices[i].y,&vertices[i].z,&lab);
-        vertices[i].lab=lab;
-
-        mxlab= max(mxlab,lab);
-        mnlab= min(mnlab,lab);
-      }
-
-      //    /* read mesh triangles */
-      if(nbe > 0) {
-        if(mnlab==0 && mxlab==0 ) {
-          int kmv=0;
-          mesb=0;
-          GmfGotoKwd(inm,GmfTriangles);
-          for(int i=0;i<nbe;++i) {
-            GmfGetLin(inm,GmfTriangles,&iv[0],&iv[1],&iv[2],&lab);
-            for(int j=0;j<3;++j)
-            if(!vertices[iv[j]-1].lab) {
-              vertices[iv[j]-1].lab=1;
-              kmv++;
-            }
-            for (int j=0;j<3;++j) iv[j]--;
-            this->be(i).set(this->vertices,iv,lab);
-            mesb += this->be(i).mesure();
-          }
-
-          if(kmv&& verbosity>1)
-          cout << " Aucun label Hack (FH)  ??? => 1 sur les triangle frontiere "<<endl;
-        }
-        else {
-          mesb=0;
-          GmfGotoKwd(inm,GmfTriangles);
-          for(int i=0;i<nbe;++i) {
-            GmfGetLin(inm,GmfTriangles,&iv[0],&iv[1],&iv[2],&lab);
-            for (int j=0;j<3;++j) iv[j]--;
-            this->be(i).set(this->vertices,iv,lab);
-            mesb += this->be(i).mesure();
-          }
-        }
-      }
-
-      if(nt>0) {
-        /* read mesh tetrahedra */
-        GmfGotoKwd(inm,GmfTetrahedra);
-        for(int i=0;i<nt;++i) {
-          GmfGetLin(inm,GmfTetrahedra,&iv[0],&iv[1],&iv[2],&iv[3],&lab);
-          assert( iv[0]>0 && iv[0]<=nv && iv[1]>0 && iv[1]<=nv && iv[2]>0 && iv[2]<=nv && iv[3]>0 && iv[3]<=nv);
-          for (int j=0;j<4;j++) iv[j]--;
-          this->elements[i].set(vertices,iv,lab);
-          mes += this->elements[i].mesure();
-        }
-      }
-      GmfCloseMesh(inm);
-      return(0); // OK
-
-    }
 
 
 void Mesh3::readmsh(ifstream & f) {
