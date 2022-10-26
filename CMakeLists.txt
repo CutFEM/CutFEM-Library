@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 
-set(CMAKE_C_COMPILER "/usr/local/Cellar/gcc/11.1.0/bin/gcc-11")
-set(CMAKE_CXX_COMPILER "/usr/local/Cellar/gcc/11.1.0/bin/g++-11")
+set(CMAKE_C_COMPILER "/usr/local/Cellar/gcc/12.2.0/bin/gcc-12")
+set(CMAKE_CXX_COMPILER "/usr/local/Cellar/gcc/12.2.0/bin/g++-12")
 
 project(CutFEM VERSION 1.0)
 
@@ -18,10 +18,7 @@ option(USE_MUMPS "Found the MUMPS library" ON)
 
 
 if(USE_MPI)
-  set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.1_2/bin/mpicxx")
-
-#  For aitken
-#  set(CMAKE_CXX_COMPILER "/usr/bin/mpicxx")
+  set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.4_2/bin/mpicxx")
 endif()
 ## ##############################
 ## Configuration
@@ -31,11 +28,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w -fopenmp -D_Float128=__float128")
-
-#  For aitken
-#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w -fopenmp -D_Float128=__float128 -fpermissive")
-
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w  -D_Float128=__float128")
 
 message( " cxx compiler ${CMAKE_CXX_COMPILER}")
 
@@ -54,8 +47,9 @@ add_subdirectory(solver)
 list(APPEND EXTRA_LIBS solver)
 add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
-list(APPEND EXTRA_LIBS -lstdc++fs)
-
+#list(APPEND EXTRA_LIBS -lstdc++fs)
+list(APPEND EXTRA_LIBS -L/usr/local/opt/libomp/lib/libomp.dylib)
+list(APPEND EXTRA_INCLUDES /usr/local/opt/libomp/include)
 
 #
 set(EX_NAME stokesMixed)
