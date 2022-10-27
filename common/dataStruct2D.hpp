@@ -156,7 +156,7 @@ public:
   }; // constructor empty for array
 
 
-  R2 H(int i) const { ASSERTION(i>=0 && i <3);
+  R2 H(int i) const { assert(i>=0 && i <3);
     R2 E=Edge(i);return E.perp()/(2.*this->mesure());} // heigth
 
   void Gradlambda(R2 * GradL) const  {
@@ -252,7 +252,7 @@ public:
   }
 
 
-  // R2 H(int i) const { ASSERTION(i>=0 && i <3);
+  // R2 H(int i) const { assert(i>=0 && i <3);
   //   R2 E=Edge(i);return E.perp()/(2.*this->mesure());
   // } // heigth
 

@@ -172,9 +172,9 @@ private:
   Physical_Partition<Element> build_local_partition(const int k, int t=0) const ;
   Physical_Partition<Face> build_local_partition(Face& face, const int k, int ifac, int t=0) const ;
 public:
-  DataFENodeDF BuildDFNumbering(int ndfv,int ndfe,int ndff,int ndft, int nndv,int nnde,int nndf,int nndt, int N=1, const PeriodicBC* PPeriod = nullptr) const {
+  DataFENodeDF BuildDFNumbering(int ndfv,int ndfe,int ndff,int ndft, int nndv,int nnde,int nndf,int nndt, int N=1) const {
         assert(0);
-        return Th.BuildDFNumbering(ndfv,ndfe,ndff,ndft,nndv,nnde,nndf,nndt,N,PPeriod);
+        return Th.BuildDFNumbering(ndfv,ndfe,ndff,ndft,nndv,nnde,nndf,nndt,N);
       }
 
   int nbElmts() const {return get_nb_element();}

@@ -143,7 +143,7 @@ public:
   typedef Edge3 Face;
   Triangle3() {}; // constructor empty for array
 
-  R3 Edge(int i) const {ASSERTION(i>=0 && i <3);
+  R3 Edge(int i) const {assert(i>=0 && i <3);
     return Rd(this->at((i+1)%3),this->at((i+2)%3));
   }
 
@@ -269,13 +269,13 @@ public:
   }
 
   R3 H(int i) const ;
-  // { ASSERTION(i>=0 && i <4);
+  // { assert(i>=0 && i <4);
   //     R3 AB(at(this->nvface[i][0]),at(this->nvface[i][1]));
   //     R3 AC(at(this->nvface[i][0]),at(this->nvface[i][2]));
   //     return AB^AC/(6.*this->mesure());} // heigth
 
   R3 n(int i) const;
-  //    { ASSERTION(i>=0 && i <4);
+  //    { assert(i>=0 && i <4);
   // 	R3 AB(at(this->nvface[i][0]),at(this->nvface[i][1]));
   // 	R3 AC(at(this->nvface[i][0]),at(this->nvface[i][2]));
   // 	R3 N=AB^AC;

@@ -2,19 +2,20 @@
 #define _GENERIC_ELEMENT_HPP
 
 #include "Label.hpp"
-#include "../util/assertion.hpp"
+#include "R3.hpp"
+#include "GenericVertex.hpp"
+
 
 const double UnSetMesure=-1e+200;
 
 
-// enum class CellType {
-//   point = 0,
-//   segment = 1,
-//   triangle = 2,
-//   quadrilateral = 3,
-//   tetrahedron = 4,
-//   hexahedron = 5
-// };
+inline  R1 ExtNormal( GenericVertex<R1> *const v[2],int const f[1])  {
+  return f[0]==0 ? R1(-1):R1(1);  }
+inline  R2 ExtNormal( GenericVertex<R2> *const v[3],int const f[2])  {
+  return R2(*v[f[1]],*v[f[0]]).perp();  }
+inline  R3 ExtNormal( GenericVertex<R3> *const v[4],int const f[3])  {
+  return R3(*v[f[0]],*v[f[2]])^R3(*v[f[0]],*v[f[1]]) ;  }
+
 
 
 template<typename Data>
@@ -73,15 +74,15 @@ public:
   //     vertices[i]=v0+iv[i];
   //   mes=(mss!=UnSetMesure) ? mss : Data::mesure(vertices);
   //   lab=r;
-  //   ASSERTION(mss==UnSetMesure && mes>0);
+  //   assert(mss==UnSetMesure && mes>0);
   // }
 
   const Vertex & operator[](int i) const{
-    ASSERTION(i>=0 && i <nv);
+    assert(i>=0 && i <nv);
     return *vertices[i];} // to see triangle as a array of vertex
 
   Vertex & operator[](int i)  {
-    ASSERTION(i>=0 && i <nv);
+    assert(i>=0 && i <nv);
     return *vertices[i];} // to see triangle as a array of vertex
 
   const Vertex& at(int i) const   { return *vertices[i];} // to see triangle as a array of vert
@@ -93,7 +94,7 @@ public:
       vertices[i]=v0+iv[i];
     mes=(mss!=UnSetMesure) ? mss : Data::mesure(vertices);
     lab=r;
-    ASSERTION(mss==UnSetMesure && mes>0);
+    assert(mss==UnSetMesure && mes>0);
     return *this;
   }
 
@@ -128,7 +129,7 @@ public:
   }
 
   Rd Edge(int i) const {
-    ASSERTION(i>=0 && i <ne);
+    assert(i>=0 && i <ne);
     return Rd(at(nvedge[i][0]),at(nvedge[i][1]));}// opposite edge vertex i
 
   Rd N(int i) const  { return ExtNormal(vertices,nvadj[i])/(ExtNormal(vertices,nvadj[i]).norm());}
@@ -190,7 +191,7 @@ public:
     return &at(nvedge[i][1]) < &at(nvedge[i][0]);
   }  // 0 : no permutation
 
-  R lenEdge(int i) const {ASSERTION(i>=0 && i <3);
+  R lenEdge(int i) const {assert(i>=0 && i <3);
     Rd E=Edge(i);return sqrt((E,E));}
 
   R hElement() const {

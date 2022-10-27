@@ -125,13 +125,13 @@ const int (*const Hexa::nodeConnectivity)[3] = connectivityNodeHexa;
 
 
 R3 Tet::H(int i) const
-{ ASSERTION(i>=0 && i <4);
+{ assert(i>=0 && i <4);
   R3 AB(at(this->nvface[i][0]),at(this->nvface[i][1]));
   R3 AC(at(this->nvface[i][0]),at(this->nvface[i][2]));
   return AB^AC/(6.*this->mesure());} // heigth
 
 R3 Tet::n(int i) const
-{ ASSERTION(i>=0 && i <4);
+{ assert(i>=0 && i <4);
   R3 AB(at(this->nvface[i][0]),at(this->nvface[i][1]));
   R3 AC(at(this->nvface[i][0]),at(this->nvface[i][2]));
   R3 N=AB^AC;

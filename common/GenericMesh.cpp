@@ -1,63 +1,14 @@
 #include "GenericMesh.hpp"
 
 
-template<typename T,typename B,typename V>
-void GenericMesh<T,B,V>::BuildjElementConteningVertex()
-{
-  const int nkv= T::nv;
-  if(!ElementConteningVertex) ElementConteningVertex = new int[nv];
-
-  for(int i=0;i<nv;++i) ElementConteningVertex[i]=-1;
-
-  for (int k=0;k<nt;++k)
-    for (int i=0;i<nkv;++i)
-      ElementConteningVertex[operator()(elements[k][i])]=k ;
-
-    int kerr=0;
-    for(int i=0;i<nv;++i)
-      if (ElementConteningVertex[i]<0)  kerr++;
-    assert(kerr==0);
-}
 
 template<typename T,typename B,typename V>
-void GenericMesh<T,B,V>::BuildAdj()
-{
+void GenericMesh<T,B,V>::BuildAdj() {
   if(TheAdjacencesLink!=0) return ;           //  already build
 
   BuildAdjacencyOfMesh<GenericMesh<T,B,V>> a(*this);
 
-  ne_ = a.ne - this->nbe;
-
-  // this->BuildInnerFace();
-
 }
-
-// template<typename T,typename B,typename V>
-// void GenericMesh<T,B,V>::BuildInnerFace(){
-//   inner_faces_ = new Face[ne_];
-//   int idx = 0;
-//   int iv[T::nva];
-//   for(int k=0;k<nt;++k) {
-//
-//     for(int ie=0;ie<T::nea;++ie) {
-//       int je = ie;
-//       int kn = this->ElementAdj(k, je);
-//
-//       // skip boundary edges and only go once
-//       if(kn < k) continue;
-//       assert(idx < ne_);
-//
-//       for(int i=0;i<T::nva;++i) iv[i] = this->at(k, T::nvedge[ie][i]);
-//
-//       inner_faces_[idx].set(vertices, iv, 0);
-//       inner_faces_[idx].set_adjacent_element(k, kn);
-//
-//       idx++;
-//     }
-//   }
-// }
-//
-
 
 
 template<typename GMesh>
@@ -148,18 +99,7 @@ void GenericMesh<T,B,V>::BuildBound() {
   for (int i=0;i<nt;i++)   mes += this->elements[i].mesure();
 
   for (int i=0;i<nbe;i++)  mesb += this->be(i).mesure();
-
-  if(vertices && (nv>0)) {
-    Pmin=vertices[0];
-    Pmax=vertices[0];
-    for(int i=1;i<nv;++i) {
-      Pmin=Minc(Pmin,vertices[i]);
-      Pmax=Maxc(Pmax,vertices[i]);
-    }
-  }
 }
-
-
 
 
 
@@ -167,18 +107,15 @@ template<typename T,typename B,typename V>
 DataFENodeDF GenericMesh<T,B,V>::BuildDFNumbering(
               int nbDofOnItem[NbTypeItemElement],
 						  int nbNodeOnItem[NbTypeItemElement],
-						  int N,
-						  const PeriodicBC* PPeriod
-						  //						  int nbPeriodicBe, int* periodicBe
-						  ) const
+						  int N ) const
 {
   BuildDofNumberingOfMesh<GenericMesh> builderDof(*this, nbDofOnItem, nbNodeOnItem, N);
-  builderDof.computeData(PPeriod);//nbPeriodicBe);
+  builderDof.computeData();
 
 
 
   if(!builderDof.nodearevertices){
-    BuildDofNumberingOfMeshPk<GenericMesh> ttt(builderDof, PPeriod);//nbPeriodicBe, periodicBe);
+    BuildDofNumberingOfMeshPk<GenericMesh> ttt(builderDof);
   }
   else {
 
