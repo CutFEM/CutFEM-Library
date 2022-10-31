@@ -1,16 +1,96 @@
-template<typename M>
-void BaseProblem<M>::addDiagonal(const FESpace& Qh, double val){
-  int idxBegin = mapIdx0[&Qh];
-  int idxEnd   = Qh.nbDoF;
-  for(int i=idxBegin;i<idxEnd ;++i){
-    this->mat[std::make_pair(i,i)] += val;
+class ExpressionAverage {
+  public:
+  const ExpressionVirtual & fun1;
+  const R k1, k2;
+
+  ExpressionAverage(const ExpressionVirtual & fh1, double kk1, double kk2)
+  : fun1(fh1), k1(kk1), k2(kk2){
   }
+
+  ~ExpressionAverage(){}
+};
+ExpressionAverage average(const ExpressionVirtual & fh1, const double kk1=0.5, const double kk2=0.5);
+ExpressionAverage jump(const ExpressionVirtual & fh1, const double kk1=1, const double kk2=-1);
+ExpressionAverage operator* (double c, const ExpressionAverage& fh);
+ExpressionAverage operator* ( const ExpressionAverage& fh, double c);
+
+
+ExpressionAverage average(const ExpressionVirtual & f1, const double kk1, const double kk2){
+  return ExpressionAverage(f1,kk1,kk2);
 }
-template<typename M>
-void BaseProblem<M>::setDiagonal(const FESpace& Qh, double val){
-  int idxBegin = mapIdx0[&Qh];
-  int idxEnd   = Qh.nbDoF;
-  for(int i=idxBegin;i<idxEnd ;++i){
-    this->mat[std::make_pair(i,i)] = val;
+ExpressionAverage jump(const ExpressionVirtual & f1, const double kk1, const double kk2){
+  return ExpressionAverage(f1,1,-1);
+}
+ExpressionAverage operator* (double c, const ExpressionAverage& fh){
+  return ExpressionAverage(fh.fun1,c*fh.k1, c*fh.k2);
+}
+ExpressionAverage operator* (const ExpressionAverage& fh, double c){
+  return ExpressionAverage(fh.fun1,c*fh.k1, c*fh.k2);
+}
+
+template <int d>
+ListItemVF<d> innerProduct(const ExpressionAverage& fh, const TestFunction<d>& F) {
+ return (fh,F);
+}
+
+template <int d>
+ListItemVF<d> operator,(const ExpressionAverage& fh, const TestFunction<d>& F) {
+  int l = 0;
+  for(int i=0;i<F.A.N();++i) {
+    for(int j=0;j<F.A.M();++j) {
+      l += F.A(i,j)->size() ;
+    }
   }
+  l *= 2;
+
+  ListItemVF<d> item(l);
+  int k=0, kloc=0;
+  for(int i=0;i<F.A.N();++i){
+    for(int j=0;j<F.A.M();++j){
+      for(int ui=0;ui<F.A(i,j)->size();++ui) {
+        const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
+        item(k) = ItemVF<d>( v.c*fh.k1,0,-1,v.cu,v.du,0,v.ar_nu);
+        item(k).face_sideU_ = 0;
+        item(k).face_sideV_ = v.face_side_;
+        item(k).domainU_id_ = v.domain_id_;
+        item(k).domainV_id_ = v.domain_id_,
+        item(k).coefv = v.coefu;
+        item(k).dtu = 0;
+        item(k).dtv = v.dtu;
+        item(k).expru = &fh.fun1;
+        item(k).exprv = v.expru;
+        item(k).fespaceV = v.fespace;
+        item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+
+        k++;
+      }
+    }
+  }
+
+  for(int i=0;i<F.A.N();++i){
+    for(int j=0;j<F.A.M();++j){
+      for(int ui=0;ui<F.A(i,j)->size();++ui) {
+        const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
+        item(k) = ItemVF<d>( v.c*fh.k2,0,-1,v.cu,v.du,0,v.ar_nu);
+        item(k).face_sideU_ = 1;
+        item(k).face_sideV_ = v.face_side_;
+        item(k).domainU_id_ = v.domain_id_;
+        item(k).domainV_id_ = v.domain_id_,
+        item(k).coefv = v.coefu;
+        item(k).dtu = 0;
+        item(k).dtv = v.dtu;
+        item(k).expru = &fh.fun1;
+        item(k).exprv = v.expru;
+        item(k).fespaceV = v.fespace;
+        item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+
+        k++;
+      }
+    }
+  }
+
+  item.reduce();
+  item.setVarFormType();
+
+  return item;
 }
