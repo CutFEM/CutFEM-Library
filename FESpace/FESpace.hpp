@@ -251,7 +251,7 @@ public:
 
   GFESpace(const Mesh & TTh, const GTypeOfFE<Mesh> & tfe)
     :
-    DataFENodeDF(this->BuildDFNumbering(TTh, tfe.ndfonVertex,tfe.ndfonEdge,
+    DataFENodeDF(this->BuildDFNumbering(TTh,tfe.ndfonVertex,tfe.ndfonEdge,
       tfe.ndfonFace,tfe.ndfonVolume,
       tfe.nbNodeOnWhat[0],
       tfe.nbNodeOnWhat[1],
@@ -301,8 +301,6 @@ public:
 
   int FirstDFOfNode(int i) const {
     return (FirstDfOfNodeData ? FirstDfOfNodeData[i] : i*Nproduit) ;}
-  // int LastDFOfNode(int i)  const {return FirstDfOfNodeData ? FirstDfOfNodeData[i+1] : (i+1)*Nproduit;}
-  // int NbDFOfNode(int i)  const {return FirstDfOfNodeData ? FirstDfOfNodeData[i+1]-FirstDfOfNodeData[i] : Nproduit;}
 
   ~GFESpace(){
   }
@@ -315,15 +313,11 @@ public:
   int  operator()(int k,int i) const { //  the node i of element k
     return NodesOfElement ?  *(PtrFirstNodeOfElement(k) + i)  : Th(k,i)  ;}
 
-  // for mesh build from interface but works for all mesh
-  // virtual int idxElementFromBackMesh (int k)      const {return Th.idxElementFromBackMesh(k) ;}
-  // virtual int idxElementInBackMesh(int k)         const {return Th.idxElementInBackMesh(k);}
-  // virtual int idxElementFromBackMesh(int k,int i) const {return idxElementFromBackMesh(k); }
+
   virtual int idxElementFromBackMesh (int k)      const {return k ;}
   virtual int idxElementInBackMesh(int k)         const {return k;}
   virtual int idxElementFromBackMesh(int k,int i) const {return k; }
-  // virtual bool faceInDomain(const Face& face, int dom) const {return true;}
-  // const Face& get_face(int k) const {return Th.hyper_face(k);}
+
   virtual int whichDomain(int k) const { return -1;}
   virtual int get_domain(int k) const { return -1;}
   virtual int getNeighborElement(int k,int &j, int domain = 0) const { return Th.ElementAdj(k,j);}
@@ -528,6 +522,7 @@ DataFENodeDF GFESpace<Mesh>::BuildDFNumbering(const Mesh & TTh, int dfon[4], int
   int maxDFPerElement   = 0;
   int nbNodes=0, nbOfDF = 0;
   unsigned int tinfty=-1;
+  int nbb = 0;
 
   const int nk[]={Element::nv,Element::ne,Element::nf,Element::nt};
   int nbNodeInK = Element::NbNodes(nndon);
@@ -571,13 +566,11 @@ DataFENodeDF GFESpace<Mesh>::BuildDFNumbering(const Mesh & TTh, int dfon[4], int
     std::map<std::array<int,2>, int, decltype(comp)> edge(comp);
     std::map<std::array<int,2>, int, decltype(comp)> face(comp);
 
-
-
     for(int k=0;k<TTh.nt;++k) {
       const Element& K(TTh[k]);
       int ii = 0;
 
-      if(ndfon[0] > 0) {
+      if(dfon[0] > 0) {
         for(int i=0;i<Element::nv;++i) {
           keysdim[ii++] = 0;
           int idx = TTh(k,i);
@@ -618,18 +611,17 @@ DataFENodeDF GFESpace<Mesh>::BuildDFNumbering(const Mesh & TTh, int dfon[4], int
         std::array<int,2> id_e;
         for(int iii,i=0;i<Element::nf;++i) {
           keysdim[ii++]=2;
-
           if(Element::nf == 1) {
             id_e[0] = k;
             id_e[1] = tinfty;
           }
           else {
             int kAdj = TTh.ElementAdj(k,iii=i);
-            int kn = (kAdj == -1) ? tinfty : kAdj;
+            int kn = (kAdj == -1) ? --nbb : kAdj;
             id_e[0] = k;
             id_e[1] = kn;
+            std::sort(id_e.begin(), id_e.end());
           }
-
           const auto& it = face.find(id_e);
           int num_node;
           if(it == face.end()) {

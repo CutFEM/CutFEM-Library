@@ -103,32 +103,6 @@ void GenericMesh<T,B,V>::BuildBound() {
 
 
 
-template<typename T,typename B,typename V>
-DataFENodeDF GenericMesh<T,B,V>::BuildDFNumbering(
-              int nbDofOnItem[NbTypeItemElement],
-						  int nbNodeOnItem[NbTypeItemElement],
-						  int N ) const
-{
-  BuildDofNumberingOfMesh<GenericMesh> builderDof(*this, nbDofOnItem, nbNodeOnItem, N);
-  builderDof.computeData();
-
-
-
-  if(!builderDof.nodearevertices){
-    BuildDofNumberingOfMeshPk<GenericMesh> ttt(builderDof);
-  }
-  else {
-
-    builderDof.nbNodes = builderDof.Th.nv;
-    builderDof.nbOfDF  = builderDof.nbNodes*builderDof.nbDofOnItem[0];
-  }
-
-
-  return builderDof.createDataFENodeDF();
-
-}
-
-
 
 
 template class  GenericMesh<Seg1,BoundaryPoint1,Vertex1>;
@@ -142,9 +116,3 @@ template class  BuildAdjacencyOfMesh<GenericMesh<Triangle2,BoundaryEdge2,Vertex2
 template class  BuildAdjacencyOfMesh<GenericMesh<Tet,Triangle3,Vertex3>>;
 template class  BuildAdjacencyOfMesh<GenericMesh<Quad2,BoundaryEdge2,Vertex2>>;
 template class  BuildAdjacencyOfMesh<GenericMesh<Hexa,Quad3,Vertex3>>;
-
-template class  BuildDofNumberingOfMesh<GenericMesh<Seg1,BoundaryPoint1,Vertex1>>;
-template class  BuildDofNumberingOfMesh<GenericMesh<Triangle2,BoundaryEdge2,Vertex2>>;
-template class  BuildDofNumberingOfMesh<GenericMesh<Tet,Triangle3,Vertex3>>;
-template class  BuildDofNumberingOfMesh<GenericMesh<Quad2,BoundaryEdge2,Vertex2>>;
-template class  BuildDofNumberingOfMesh<GenericMesh<Hexa,Quad3,Vertex3>>;
