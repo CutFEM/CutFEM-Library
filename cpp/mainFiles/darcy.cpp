@@ -508,7 +508,124 @@ namespace Data_CutMixedDarcy {
   }
 
 }
-using namespace Data_CutMixedDarcy;
+namespace Data_CutMixedDarcy_Star {
+    R sq_SW = -1.+1e-10; // 1.1 for all convg tables
+    R sq_LGTH = 2*1.+2e-10; // 1.1 for all convg tables
+
+    double c1 = 100;
+    double c2 = 42;
+    double c3 = 200;
+    double a3 = 50;
+
+    // [saddle]
+    double c = 10.; double c0 = 0; // c= 10., 7. ; c0 = 1e2,7e2
+    R mu_G = 2.*c/1e2;
+    R fun_levelSet(const R2 P, const int i) {
+      double x=P.x, y=P.y;
+      return (c1*pow(x,6)+20*x*x-c2*y*y+c3*pow(y,4) - c);
+    }
+    R fun_dxg(const R2 P) {
+      double x=P.x, y=P.y;
+      return (6*c1*pow(x,5)+20*2*x);
+    }
+    R fun_dyg(const R2 P) {
+      double x=P.x, y=P.y;
+      return (-2*c2*y+4*c3*y*y*y);
+    }
+    R fun_normgradg(const R2 P) {
+      double x=P.x, y=P.y;
+      R g = fun_levelSet(P,0);
+      return sqrt(pow(fun_dxg(P),2)+pow(fun_dyg(P),2) + c0*g*g);
+    }
+    R fun_normal(const R2 P, const int i) {
+      double x=P.x, y=P.y;
+      R dxg = fun_dxg(P);
+      R dyg = fun_dyg(P);
+      R normgradg = fun_normgradg(P);
+      return -((i==0)*dxg/normgradg + (i==1)*dyg/normgradg);
+    }
+
+    R fun_exact_p(double* Pp, int compInd, int dom) {
+      R2 P(Pp);
+      return (dom==0)*(fun_levelSet(P,0)+c)/1e2 ; // 1,0
+    }
+    R fun_force(double* Pp, int compInd, int dom) {
+      R2 P(Pp);
+      double x=P.x, y=P.y; 
+      return (dom==0)*((compInd==0)*(fun_dxg(P)/1e2 + fun_normal(P,0)) + (compInd==1)*(fun_dyg(P)/1e2 + fun_normal(P,1)));
+    }
+    R fun_neumann(double* Pp, int compInd, int dom) {
+      R2 P(Pp);
+      return (dom==0)*((compInd==0)*(fun_normal(P,0)) + (compInd==1)*(fun_normal(P,1)));
+    }
+    R fun_exact_u(double* Pp, int compInd, int dom) {
+      R2 P(Pp);
+      return (dom==0)*((compInd==0)*(fun_normal(P,0)) + (compInd==1)*(fun_normal(P,1)));
+    }
+    R fun_div(double* Pp, int compInd, int dom) {
+      R2 P(Pp);
+      double x=P.x, y=P.y; 
+      R val = (- 12*c3*y*y + 2*c2)/sqrt(pow(6*c1*pow(x,5) + 40*x,2) + c0*pow(c1*pow(x,6) + 20*x*x + c3*pow(y,4) - c2*y*y - c,2) + pow(- 4*c3*y*y*y + 2*c2*y,2)) - (30*c1*pow(x,4) + 40)/sqrt(pow(6*c1*pow(x,5) + 40*x,2) + c0*pow(c1*pow(x,6) + 20*x*x + c3*pow(y,4) - c2*y*y - c,2) + pow(- 4*c3*y*y*y + 2*c2*y,2)) - ((- 4*c3*y*y*y + 2*c2*y)*(2*(- 4*c3*y*y*y + 2*c2*y)*(- 12*c3*y*y + 2*c2) - 2*c0*(- 4*c3*y*y*y + 2*c2*y)*(c1*pow(x,6) + 20*x*x + c3*pow(y,4) - c2*y*y - c)))/(2*pow(sqrt(pow(6*c1*pow(x,5) + 40*x,2) + c0*pow(c1*pow(x,6) + 20*x*x + c3*pow(y,4) - c2*y*y - c,2) + pow(- 4*c3*y*y*y + 2*c2*y,2)),3)) + ((2*(6*c1*pow(x,5) + 40*x)*(30*c1*pow(x,4) + 40) + 2*c0*(6*c1*pow(x,5) + 40*x)*(c1*pow(x,6) + 20*x*x + c3*pow(y,4) - c2*y*y - c))*(6*c1*pow(x,5) + 40*x))/(2*pow(sqrt(pow(6*c1*pow(x,5) + 40*x,2) + c0*pow(c1*pow(x,6) + 20*x*x + c3*pow(y,4) - c2*y*y - c,2) + pow(- 4*c3*y*y*y + 2*c2*y,2)),3));
+      
+      return (dom==0)*val;
+    }
+    R fun_interfacePr(R2 Pp, int compInd) {
+      return (-1./8*mu_G+c/(2.*1e2));
+    }
+  }
+using namespace Data_CutMixedDarcy_Star;
+// using namespace Data_CutMixedDarcy;
+
+
+void addExactLinearForm(R (*f)(double *, int, int), const GFESpace<Mesh2>& Vh, int n0, Rn& rhs) {
+  typedef Mesh2 Mesh;
+  typedef GFESpace<Mesh> FESpace;
+  typedef ActiveMeshT2 CutMesh;
+  typedef typename FESpace::FElement FElement;
+  typedef typename ActiveMesh<Mesh>::Element Element;
+  typedef typename FElement::QF QF;
+  typedef typename FElement::Rd Rd;
+  typedef typename QF::QuadraturePoint QuadraturePoint;
+
+  // const QF& qf(QuadratureFormular_T_1); // [Evaluates at centroid]
+  const QF& qf(*QF_Simplex<typename FElement::RdHat>(9));
+
+  const ActiveMesh<Mesh>& Th(Vh.get_mesh());
+  int nb_dom = Th.get_nb_domain();
+
+  KNMK<double> qfun(Vh[0].NbDoF(),Vh[0].N,1);
+
+  for (int domain = 0; domain < nb_dom; domain++) {
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+      if(domain != Th.get_domain_element(k)) continue;
+
+      const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
+      // int kb = Th.idxElementInBackMesh(k);
+      // std::cout << k << " :: " << qf.getNbrOfQuads() << std::endl;
+
+      const FElement& FK((Vh)[k]);
+
+      for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+        const R meas = cutK.measure(it);
+
+        for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+          QuadraturePoint ip(qf[ipq]); // integration point
+          Rd mip = cutK.mapToPhysicalElement(it, ip);
+          const R Cint = meas * ip.getWeight();
+          FK.BF(Fop_D0, FK.T.toKref(mip), qfun);
+
+          for(int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
+            rhs(FK.loc2glb(i)+n0) += Cint * f(mip, 0, domain) * qfun(i,0,op_id);
+          }
+
+        }
+      }
+    }
+  }
+}
+
+
 int main(int argc, char** argv ) {
   typedef TestFunction<2> FunTest;
   typedef FunFEM<Mesh2> Fun_h;
@@ -535,11 +652,26 @@ int main(int argc, char** argv ) {
 
   vector<double> uPrint,pPrint,divPrint,divPrintLoc,maxDivPrint,h,convuPr,convpPr,convdivPr,convdivPrLoc,convmaxdivPr;
   vector<double> ratioCut1, ratioCut2;
-  int iters = 3;
+  int iters = 6;
+
+  int nn = 1001;
+  double  hh = 1./(nn-1);
+  std::vector<R2>  sampling_node; 
+  sampling_node.reserve(1);//nn*nn);
+  sampling_node.push_back(R2(-0.9999,-0.9999));
+    // for(int j=0;j<nn;++j) {
+    //   for(int i=0;i<nn;++i) {
+    //    double xi = (j%2 == 0) ? i*hh : (nn-1-i)*hh;
+    //     sampling_node.push_back(R2(xi,j*hh));
+    //   } 
+    // } 
 
   for(int i=0;i<iters;++i) {
-    Mesh Kh;//(nx, ny, 0., 0., 1., 1.);
-    Kh.init(nx, ny, 0., 0., 1., 1.);
+    std::string f = "../mesh/square"+to_string(i+1)+".msh";
+    Mesh Kh(f.c_str());
+    // Mesh Kh(nx, ny, sq_SW, sq_SW, sq_LGTH, sq_LGTH);
+    
+    // Kh.init(nx, ny, 0., 0., 1., 1.);
     Kh.info();
 
 
@@ -550,8 +682,8 @@ int main(int argc, char** argv ) {
 
     // Lagrange2 FEvelocity(2);
     // Space Vh(Kh, FEvelocity);
-    Space Vh(Kh, DataFE<Mesh2>::RT0);
-    Space Qh(Kh, DataFE<Mesh2>::P0);
+    Space Vh(Kh, DataFE<Mesh2>::RT1);
+    Space Qh(Kh, DataFE<Mesh2>::P1dc);
 
 
     ActiveMesh<Mesh> Kh_i(Kh, interface);
@@ -566,7 +698,7 @@ int main(int argc, char** argv ) {
     darcy.init_nb_thread(thread_count);
     darcy.initSpace(Wh); darcy.add(Ph);
 
-    const R h_i = 1./(nx-1);
+    const R h_i = 2./(nx-1);
     const R invh = 1./h_i;
     MacroElement<Mesh> macro(Kh_i, 0.25);
     // ratioCut1.push_back((double)macro.nb_element_0 / (double)interface.nbElement());
@@ -579,12 +711,24 @@ int main(int argc, char** argv ) {
     // const CutFEM_Parameter& lambdaB(Parameter::lambdaB);
     // const R hei = Th[0].lenEdge(0);
 
+      Lagrange2 FEvelocity(4);
+      Space V2h(Kh, FEvelocity);
+      CutSpace W2h(Kh_i, V2h);
+      Space Q2h(Kh, DataFE<Mesh2>::P2dc);
+      CutSpace P2h(Kh_i, Q2h);
+
     // We define fh on the cutSpace
-    Fun_h fq(Ph, fun_div);
-    Fun_h p0(Lh, fun_neumann);
-    Fun_h phat(Ph, fun_interfacePr);
-    Fun_h pex(Ph, fun_exact_p); ExpressionFunFEM<Mesh> exactp(pex,0,op_id);
-    Fun_h u0(Wh, fun_exact_u);
+      Fun_h fv(W2h, fun_force);
+      Fun_h fq(P2h, fun_div);
+      Fun_h u0(W2h, fun_exact_u);
+      Fun_h p0(P2h, fun_exact_p);
+      Fun_h phat(Ph, fun_interfacePr);
+    // Fun_h fq(Ph, fun_div);
+    // Fun_h fv(Wh, fun_force);
+    // Fun_h p0(Lh, fun_neumann);
+    // Fun_h phat(Ph, fun_interfacePr);
+    // Fun_h pex(Ph, fun_exact_p); ExpressionFunFEM<Mesh> exactp(pex,0,op_id);
+    // Fun_h u0(Wh, fun_exact_u);
 
 
     Normal n;
@@ -623,9 +767,11 @@ int main(int argc, char** argv ) {
 
     // l(v)_Omega
     darcy.addLinear(
-      innerProduct(fq.expression(), q) , Kh_i
+      innerProduct(fv.expression(2), v)  
+      //  + innerProduct(fq.expression(), q) 
+      , Kh_i
     );
-
+    addExactLinearForm(fun_div, Ph, Wh.get_nb_dof(), darcy.rhs_);
 
     darcy.addLinear(
       -innerProduct(p0.expression(), v*n) // Only on Gamma_N (pressure)
@@ -663,23 +809,23 @@ int main(int argc, char** argv ) {
 double tt0 = MPIcf::Wtime();
 
   FunTest grad2un = grad(grad(u)*n)*n;
-  darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
-  //  innerProduct(uPenParam*pow(h_i,1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
-  // +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
-  // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-  // +innerProduct(pPenParam*pow(h_i,1)*jump(p), jump(q))
-  // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(q)))
+//   darcy.addFaceStabilization( // [h^(2k+1) h^(2k+1)]
+//   //  innerProduct(uPenParam*pow(h_i,1)*jump(u), jump(v)) // [Method 1: Remove jump in vel]
+//   // +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
+//   // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+//   // +innerProduct(pPenParam*pow(h_i,1)*jump(p), jump(q))
+//   // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(q)))
 
-   innerProduct(uPenParam*h_i*jump(u), jump(v)) // [Method 1: Remove jump in vel]
-  +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
-  +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-  -innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
-  +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
-  -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
-  +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
-  , Kh_i
-  , macro
-);
+//    innerProduct(uPenParam*h_i*jump(u), jump(v)) // [Method 1: Remove jump in vel]
+//   +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
+//   +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
+//   -innerProduct(pPenParam*h_i*jump(p), jump(div(v)))
+//   +innerProduct(pPenParam*h_i*jump(div(u)), jump(q))
+//   -innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(div(v))))
+//   +innerProduct(pPenParam*pow(h_i,3)*jump(grad(div(v))) , jump(grad(q)))
+//   , Kh_i
+//   , macro
+// );
 
 
 double t1 = MPIcf::Wtime();
@@ -754,7 +900,7 @@ std::cout << t1-t0 << std::endl;
   // matlab::Export(darcy.mat_, "matB"+to_string(i)+".dat");
   // matlab::Export(darcy.rhs_, "rhsA"+to_string(i)+".dat");
 
-  darcy.solve("umfpack");
+  darcy.solve();
 
   // EXTRACT SOLUTION
   int idx0_s = Wh.get_nb_dof();
@@ -765,21 +911,25 @@ std::cout << t1-t0 << std::endl;
   ExpressionFunFEM<Mesh> femSol_0dx(uh, 0, op_dx);
   ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
 
+
+
+//  
+
   // L2 norm vel
   R errU      = L2normCut(uh,fun_exact_u,0,2);
   R errP      = L2normCut(ph,fun_exact_p,0,1);
-  R errDiv    = L2normCut (femSol_0dx+femSol_1dy,fun_div,Kh_i);
+  // R errDiv    = L2normCut (femSol_0dx+femSol_1dy,fun_div,Kh_i);
   R maxErrDiv = maxNormCut(femSol_0dx+femSol_1dy,fun_div,Kh_i);
-
+  R errDiv    = maxNormCut(femSol_0dx+femSol_1dy,fun_div,Kh_i, sampling_node);
   // double errU2 = integralCut<Mesh>((u,u), uh, uh, Kh_i);
   // double errP2 = integralCut<Mesh>((p,p), ph, ph, Kh_i);
   // double errDiv2 = integralCut<Mesh>((div(u),div(u)), uh, uh, Kh_i);
-
+// return 0;
 //
   // std::cout << " hey" << std::endl;
   // getchar();
   // [PLOTTING]
-  {
+ if(MPIcf::IamMaster()) {
     Fun_h solh(Wh, fun_exact_u);
     // solh.v -= uh.v;
     // solh.v.map(fabs);
@@ -811,37 +961,39 @@ std::cout << t1-t0 << std::endl;
   }
   nx = 2*nx-1;
   ny = 2*ny-1;
+  // nx += 10;
+  // ny += 10;
 }
 
 std::cout << "\n" << std::left
 << std::setw(10) << std::setfill(' ') << "h"
 << std::setw(15) << std::setfill(' ') << "err_p"
-// << std::setw(15) << std::setfill(' ') << "conv p"
+<< std::setw(15) << std::setfill(' ') << "conv p"
 << std::setw(15) << std::setfill(' ') << "err u"
-// << std::setw(15) << std::setfill(' ') << "conv u"
+<< std::setw(15) << std::setfill(' ') << "conv u"
 << std::setw(15) << std::setfill(' ') << "err divu"
-// << std::setw(15) << std::setfill(' ') << "conv divu"
+<< std::setw(15) << std::setfill(' ') << "conv divu"
 // << std::setw(15) << std::setfill(' ') << "err_new divu"
 // << std::setw(15) << std::setfill(' ') << "convLoc divu"
 << std::setw(15) << std::setfill(' ') << "err maxdivu"
-// << std::setw(15) << std::setfill(' ') << "conv maxdivu"
+<< std::setw(15) << std::setfill(' ') << "conv maxdivu"
 << "\n" << std::endl;
 for(int i=0;i<uPrint.size();++i) {
   std::cout << std::left
   << std::setprecision(5)
   << std::setw(10) << std::setfill(' ') << h[i]
   << std::setw(15) << std::setfill(' ') << pPrint[i]
-  // << std::setw(15) << std::setfill(' ') << convpPr[i]
+  << std::setw(15) << std::setfill(' ') << convpPr[i]
   << std::setw(15) << std::setfill(' ') << uPrint[i]
-  // << std::setw(15) << std::setfill(' ') << convuPr[i]
+  << std::setw(15) << std::setfill(' ') << convuPr[i]
   << std::setw(15) << std::setfill(' ') << divPrint[i]
-  // << std::setw(15) << std::setfill(' ') << convdivPr[i]
+  << std::setw(15) << std::setfill(' ') << convdivPr[i]
   // << std::setw(15) << std::setfill(' ') << divPrintLoc[i]
   // << std::setw(15) << std::setfill(' ') << convdivPrLoc[i]
   << std::setw(15) << std::setfill(' ') << maxDivPrint[i]
   // << std::setw(15) << std::setfill(' ') << ratioCut1[i]
   // << std::setw(15) << std::setfill(' ') << ratioCut2[i]
-  // << std::setw(15) << std::setfill(' ') << convmaxdivPr[i]
+  << std::setw(15) << std::setfill(' ') << convmaxdivPr[i]
   << std::endl;
 }
 
