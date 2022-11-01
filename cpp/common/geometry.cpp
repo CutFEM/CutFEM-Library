@@ -75,12 +75,12 @@ bool geometry::p_boncote(const R2 a, const R2 b, const R2 c, const R2 p) {
 	//et retourne le resultat en conséquence
 
 	if(a.x==b.x){
-    return ((p.x-a.x) * (c.x-a.x) >= 0);
+    return ((p.x-a.x) * (c.x-a.x) >= -Epsilon);
   }
 
   Droite d;
 	d=equation(a,b);
-	return ((d.pente*c.x+d.ord_or-c.y)*(d.pente*p.x+d.ord_or-p.y) >= 0);
+	return ((d.pente*c.x+d.ord_or-c.y)*(d.pente*p.x+d.ord_or-p.y) >= -Epsilon);
 }
 bool geometry::p_dans_triangle(const typename Mesh2::Element& K, const R2 P){
   return ( (p_boncote( K[0], K[1], K[2], P))
@@ -98,14 +98,16 @@ int  geometry::find_triangle_contenant_p(const Mesh2& Th, const R2 P, int k_init
   int count = 0;
 
   // std::ofstream plot;
+  // plot.open("node.dat",  std::ofstream::out);
+  // plot<<  P << std::endl;
+  // plot.close();
   // plot.open("searchElement.dat", std::ofstream::out);
-
   while (!p_dans_triangle(Th[idx_elt],P)) {
-
 
     const typename Mesh2::Element& K(Th[idx_elt]);
     //passe au triangle voisin qui est dans la "direction" de p
     //première arête
+    
     int iface;
     if (! p_boncote(K[0],K[1],K[2],P)) {
       iface = 2;
@@ -120,6 +122,5 @@ int  geometry::find_triangle_contenant_p(const Mesh2& Th, const R2 P, int k_init
     }
     idx_elt = Th.ElementAdj(idx_elt, iface);
   }
-  const typename Mesh2::Element& K(Th[idx_elt]);
   return idx_elt;
 }

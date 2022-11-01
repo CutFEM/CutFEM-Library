@@ -489,45 +489,14 @@ double L2norm( const ExpressionVirtual& fh, const M& Th) {
 //
 //   return val_receive;
 // }
-
-template<typename Mesh>
-double maxNormCut(const ExpressionVirtual& fh,R (fex)(double*, int i, int dom),const ActiveMesh<Mesh>& Th,int domain) {
-
-  typedef GFESpace<Mesh> FESpace;
-  typedef typename FESpace::FElement FElement;
-  typedef typename ActiveMesh<Mesh>::Element Element;
-  typedef typename FElement::QF QF;
-  typedef typename FElement::Rd Rd;
-  typedef typename QF::QuadraturePoint QuadraturePoint;
-
-    const QF& qf(*QF_Simplex<typename FElement::RdHat>(3));
-    What_d Fop = Fwhatd(op_id);
-
-    double val = 0.;
-
-    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
-
-      if(domain != Th.get_domain_element(k)) continue;
-
-      const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
-      int kb = Th.idxElementInBackMesh(k);
-
-      for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
-
-        for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
-
-          QuadraturePoint ip(qf[ipq]); // integration point
-          Rd mip = cutK.mapToPhysicalElement(it, ip);
-
-          val = max(val, fabs(fh.eval(k, mip)-fex(mip, fh.cu, domain)));
-
-        }
-      }
-    }
-    double val_receive = 0;
-    MPIcf::AllReduce(val, val_receive, MPI_MAX);
-
-    return val_receive;
+template<typename M>
+double maxNormCut(const ExpressionVirtual& fh, const ActiveMesh<M>& Th) {
+  int nb_dom = Th.get_nb_domain();
+  double val = 0.;
+  for(int i=0;i<nb_dom;++i) {
+    val += max(val, maxNormCut(fh, Th,i));
+  }
+  return val;
 }
 template<typename Mesh>
 double maxNormCut(const ExpressionVirtual& fh,const ActiveMesh<Mesh>& Th,int domain) {
@@ -578,14 +547,102 @@ double maxNormCut(const ExpressionVirtual& fh,R (fex)(double*, int i, int dom), 
   }
   return val;
 }
+template<typename Mesh>
+double maxNormCut(const ExpressionVirtual& fh,R (fex)(double*, int i, int dom),const ActiveMesh<Mesh>& Th,int domain) {
+
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename ActiveMesh<Mesh>::Element Element;
+  typedef typename FElement::QF  QF;
+  typedef typename FElement::QFB QFB;  
+  typedef typename FElement::Rd Rd;
+
+    const QF&   qf(*QF_Simplex<typename FElement::RdHat>(5));
+    const QFB& qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
+
+    What_d Fop = Fwhatd(op_id);
+
+    double val = 0.;
+
+    for(int k=Th.first_element(); k<Th.last_element(); k+= Th.next_element()) {
+
+      if(domain != Th.get_domain_element(k)) continue;
+
+      const Element& K(Th[k]);
+
+      const Cut_Part<Element> cutK(Th.get_cut_part(k,0));
+      int kb = Th.idxElementInBackMesh(k);
+
+      for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){
+
+        for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+
+          auto ip(qf[ipq]); // integration point
+          Rd mip = cutK.mapToPhysicalElement(it, ip);
+
+          val = max(val, fabs(fh.eval(k, mip)-fex(mip, fh.cu, domain)));
+
+        }
+
+        for(int ifac=0; ifac<Element::nea;++ifac){
+          for(int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq)  {
+            auto ip(qfb[ipq]); // integration point
+            auto ipf = K.mapToReferenceElement(ip, ifac);  
+            Rd mip = cutK.mapToPhysicalElement(it, ipf);
+            val = max(val, fabs(fh.eval(k, mip)-fex(mip, fh.cu, domain)));
+          }
+        }
+      }
+    }
+    double val_receive = 0;
+    MPIcf::AllReduce(val, val_receive, MPI_MAX);
+
+    return val_receive;
+}
+
 template<typename M>
-double maxNormCut(const ExpressionVirtual& fh, const ActiveMesh<M>& Th) {
+double maxNormCut(const ExpressionVirtual& fh,R (fex)(double*, int i, int dom), const ActiveMesh<M>& Th, const std::vector<R2>& sample_node) {
   int nb_dom = Th.get_nb_domain();
   double val = 0.;
   for(int i=0;i<nb_dom;++i) {
-    val += max(val, maxNormCut(fh, Th,i));
+    val += max(val, maxNormCut(fh,fex, Th, i, sample_node));
   }
   return val;
+}
+template<typename Mesh>
+double maxNormCut(const ExpressionVirtual& fh,R (fex)(double*, int i, int dom),const ActiveMesh<Mesh>& cutTh,int domain, const std::vector<R2>& sample_node) {
+
+  typedef GFESpace<Mesh> FESpace;
+  typedef typename FESpace::FElement FElement;
+  typedef typename ActiveMesh<Mesh>::Element Element;
+  typedef typename FElement::Rd Rd;
+
+  What_d Fop = Fwhatd(op_id);
+  double val = 0.;
+  int k0 = 0;
+  
+  const auto& Th(cutTh.Th);
+    
+  progress bar(" Max noorm in Omega_i", sample_node.size(), globalVariable::verbose);
+  int ii= 0;;
+  for(auto mip : sample_node) {
+    bar ++;
+    int kb = geometry::find_triangle_contenant_p(Th, mip, k0);
+    k0 = kb;
+    int k = cutTh.idxElementFromBackMesh(kb, domain);
+    if( k == -1) continue;
+    const auto cutK(cutTh.get_cut_part(k,0)); 
+    for(auto it = cutK.element_begin();it != cutK.element_end(); ++it){ 
+
+      if( !geometry::p_dans_triangle(mip, cutK.get_vertex(it,0), cutK.get_vertex(it,1), cutK.get_vertex(it,2))) continue;
+      val = max(val, fabs(fh.eval(k, mip)-fex(mip, fh.cu, domain)));
+    }
+
+  }
+  bar.end();
+  double val_receive = 0;
+  MPIcf::AllReduce(val, val_receive, MPI_MAX);
+  return val_receive;
 }
 
 
