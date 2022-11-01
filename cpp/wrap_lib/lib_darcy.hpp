@@ -40,6 +40,7 @@ class Darcy {
 
   CutFEM<Mesh> darcy;
   Kernel kernel;
+  
 
   struct {
     int type           = 1;
@@ -78,6 +79,8 @@ public:
   }
 
   void init_space(std::string FE_type) {
+
+    std::cout << MPIcf::my_rank() << std::endl;
 
     Space Lh(*Kh_p, DataFE<Mesh>::P1);
 

@@ -4,7 +4,7 @@ import ctypes as ct
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 
-lib = ct.cdll.LoadLibrary('../cpp/build/lib/lib_darcy.dylib')
+lib = ct.cdll.LoadLibrary('/Users/thomas/Documents/cutFEM/libcutfem/cpp/build/lib/lib_darcy.dylib')
 
 # Function types for divergence, velocity, pressure
 #double fun_div(const R2 P, int compInd, int dom)
@@ -63,10 +63,6 @@ class Darcy2(object):
         lib.Darcy2_add_macro_stabilization.argtypes  = [ct.c_void_p, ct.c_double]
         lib.Darcy2_add_macro_stabilization(self.obj, dlt)
 
-    # def solve_umfpack(self) :
-    #     lib.Darcy2_solve_umfpack.restype    = None
-    #     lib.Darcy2_solve_umfpack.argtypes   = [ct.c_void_p]
-    #     lib.Darcy2_solve_umfpack(self.obj)
 
     def write_vtk_file(self, s):
         lib.Darcy2_write_vtk_file.restype    = None

@@ -7,10 +7,6 @@ from darcy_data import *
 from mpi4py import MPI
 
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-
 fun_div         = USER_FUNC(func_div)
 fun_neumann     = USER_FUNC(func_neumann)
 fun_phat        = USER_FUNC(func_phat)
