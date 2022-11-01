@@ -115,7 +115,10 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
     const Element &T = K.T;
     int k = 0;
     int arrEdgeOrient[3] = {T.EdgeOrientation(0), T.EdgeOrientation(1), T.EdgeOrientation(2)};
-    double s = 1./sqrt(T.measure());
+    double aa = T.measure();
+    double s[3] = {1.,1.,1.};//{T.lenEdge(0)/aa, T.lenEdge(1)/aa, T.lenEdge(2)/aa};
+
+    double sb = 1.;//1./sqrt(T.measure());
     for(int i = 0; i < 3; i++){
       R2 E(-T.Edge(i).perp());
       R eOrientation = arrEdgeOrient[i];
@@ -129,10 +132,10 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
         if(eOrientation < 0) {
           Exchange(lambda1, lambda0);    // exch lambda0,lambda1
         }
-        v[k++] = lambda0 * E.x * s;
-        v[k++] = lambda0 * E.y * s;
-        v[k++] = lambda1 * E.x * s;
-        v[k++] = lambda1 * E.y * s;
+        v[k++] = lambda0 * E.x * s[i];
+        v[k++] = lambda0 * E.y * s[i];
+        v[k++] = lambda1 * E.x * s[i];
+        v[k++] = lambda1 * E.y * s[i];
       }
     }
 
@@ -144,10 +147,10 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
 
     for(int p = 0; p < QFK.n; ++p) {
       double w = QFK[p].a * CK;
-      v[k++] = w * B[0].x * s;
-      v[k++] = w * B[0].y * s;
-      v[k++] = w * B[1].x * s;
-      v[k++] = w * B[1].y * s;
+      v[k++] = w * B[0].x * sb;
+      v[k++] = w * B[0].y * sb;
+      v[k++] = w * B[1].x * sb;
+      v[k++] = w * B[1].y * sb;
     }
 
     assert(k == this->ipj_Pi_h.N());
@@ -169,10 +172,12 @@ void TypeOfFE_RT1_2d::FB(const What_d whatd, const Element &K, const Rd &Phat, R
   assert(bfMat.M( ) == 2);
   bfMat = 0;
 
-  if ((whatd & Fop_D2) ) { FB_D2(K, Phat, bfMat);}
-  // else if ((whatd & Fop_D1) ) { FB_D1(K, Phat, bfMat);}
-  // else {FB_ID(K, Phat, bfMat);}
-  else { FB_Freefem(whatd, K, Phat, bfMat);}
+  // if ((whatd & Fop_D2) ) { FB_D2(K, Phat, bfMat);}
+  // // else if ((whatd & Fop_D1) ) { FB_D1(K, Phat, bfMat);}
+  // // else {FB_ID(K, Phat, bfMat);}
+  // else { 
+    FB_Freefem(whatd, K, Phat, bfMat);
+    // }
 
 }
 void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd &Phat, RNMK_ &bfMat) const{
@@ -242,7 +247,10 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
     int lI[8][3];    // store l_k
     R cI[8][3];      // store c_k
     int dof = 0;
-    double s = sqrt(K.mesure());
+    // double sb = sqrt(K.mesure());
+    // double aa = K.measure();
+    double s[4] = {1.,1.,1.,1.};//{K.lenEdge(0)/aa, K.lenEdge(1)/aa, K.lenEdge(2)/aa, sb};
+
 
     for (int e = 0; e < 3; ++e) { // [loops through edges]
       //int i = e;
@@ -295,8 +303,8 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
           fd += (cI[dof][k] * refBaryc[lI[dof][k]]) * phi[pI[dof][k]];
         }
 
-        bfMat(dof, 0, op_id) = fd.x * s;
-        bfMat(dof, 1, op_id) = fd.y * s;
+        bfMat(dof, 0, op_id) = fd.x * s[dof/2];
+        bfMat(dof, 1, op_id) = fd.y * s[dof/2];
 
       }
     }
@@ -315,8 +323,8 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
             fd += cI[dof][k] * (DL[lI[dof][k]].x * phi[pI[dof][k]] + refBaryc[lI[dof][k]] * e1);
           }
 
-          bfMat(dof, 0, op_dx) = fd.x * s;
-          bfMat(dof, 1, op_dx) = fd.y * s;
+          bfMat(dof, 0, op_dx) = fd.x * s[dof/2];
+          bfMat(dof, 1, op_dx) = fd.y * s[dof/2];
         }
       }
 
@@ -328,8 +336,8 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
             fd += cI[dof][k] * (DL[lI[dof][k]].y * phi[pI[dof][k]] + refBaryc[lI[dof][k]] * e2);
           }
 
-          bfMat(dof, 0, op_dy) = fd.x * s;
-          bfMat(dof, 1, op_dy) = fd.y * s;
+          bfMat(dof, 0, op_dy) = fd.x * s[dof/2];
+          bfMat(dof, 1, op_dy) = fd.y * s[dof/2];
         }
       }
 
@@ -344,8 +352,8 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
               fd += cI[dof][k] * (DL[lI[dof][k]].x * e1 + DL[lI[dof][k]].x * e1);
             }
 
-            bfMat(dof, 0, op_dxx) = fd.x * s;
-            bfMat(dof, 1, op_dxx) = fd.y * s;
+            bfMat(dof, 0, op_dxx) = fd.x * s[dof/2];
+            bfMat(dof, 1, op_dxx) = fd.y * s[dof/2];
 
           }
         }
@@ -361,8 +369,8 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
               fd += cI[dof][k] * (DL[lI[dof][k]].x * e2 + DL[lI[dof][k]].y * e1);
             }
 
-            bfMat(dof, 0, op_dxy) = fd.x * s;
-            bfMat(dof, 1, op_dxy) = fd.y * s;
+            bfMat(dof, 0, op_dxy) = fd.x * s[dof/2];
+            bfMat(dof, 1, op_dxy) = fd.y * s[dof/2];
 
 
           }
@@ -378,8 +386,8 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
               fd += cI[dof][k] * (DL[lI[dof][k]].y * e2 + DL[lI[dof][k]].y * e2);
             }
 
-            bfMat(dof, 0, op_dyy) = fd.x * s;
-            bfMat(dof, 1, op_dyy) = fd.y * s;
+            bfMat(dof, 0, op_dyy) = fd.x * s[dof/2];
+            bfMat(dof, 1, op_dyy) = fd.y * s[dof/2];
 
           }
         }
