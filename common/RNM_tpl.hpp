@@ -119,117 +119,117 @@ template<class R> ostream & operator<<(ostream & f,const KNM_<const_R> & v)
    };
 
 
-// template<class R>
-//  R  KN_<R>::operator,(const KN_<const_R> & u) const {
-//     K_throwassert(u.n == n);
-//     R  s=0;
-//     R * l(v);
-//     R  *r(u.v);
-//     for (long i=0;i<n;i++,l += step, r += u.step) s += *l * *r;
-//     return s;
-//   }
+template<class R>
+ R  KN_<R>::operator,(const KN_<const_R> & u) const {
+    K_throwassert(u.n == n);
+    R  s=0;
+    R * l(v);
+    R  *r(u.v);
+    for (long i=0;i<n;i++,l += step, r += u.step) s += *l * *r;
+    return s;
+  }
 
 
 
-// template<class R>
-// R  KN_<R>::min() const {
-//     R minv = v[index(0)];
-//     for (long i=1;i<n;i++)
-//       minv = RNM::Min(minv, v[index(i)]) ;
-//     return minv;
-//   }
-// template<class R>
-// R  KN_<R>::max() const {
-//     R maxv = v[index(0)];
-//     for (long i=1;i<n;i++)
-//       maxv = RNM::Max(maxv ,v[index(i)]);
-//     return maxv;
-//   }
+template<class R>
+R  KN_<R>::min() const {
+    R minv = v[index(0)];
+    for (long i=1;i<n;i++)
+      minv = RNM::Min(minv, v[index(i)]) ;
+    return minv;
+  }
+template<class R>
+R  KN_<R>::max() const {
+    R maxv = v[index(0)];
+    for (long i=1;i<n;i++)
+      maxv = RNM::Max(maxv ,v[index(i)]);
+    return maxv;
+  }
 
 
 
-// template<class R>
-// R  KN_<R>::sum() const {
-//     R s = v[index(0)];
-//     for (long i=1;i<n;i++)
-//       s +=  v[index(i)];
-//     //    cout << " sum = " << s << endl;
-//     return s;
-//   }
+template<class R>
+R  KN_<R>::sum() const {
+    R s = v[index(0)];
+    for (long i=1;i<n;i++)
+      s +=  v[index(i)];
+    //    cout << " sum = " << s << endl;
+    return s;
+  }
 
-//   template<class R>
-//   double  KN_<R>::norm() const {
-//     double s = 0.;
-//     for (long i=0;i<n;i++) s +=  RNM::norm(v[index(i)]);
-//     return s;
-//   }
+  template<class R>
+  double  KN_<R>::norm() const {
+    double s = 0.;
+    for (long i=0;i<n;i++) s +=  RNM::norm(v[index(i)]);
+    return s;
+  }
 
-// template<class R>
-// double  KN_<R>::l2() const {
-//   double s = 0.;
-//     for (long i=0;i<n;i++)
-//       s +=  RNM::norm(v[index(i)]);
-//     return sqrt(s);
-//   }
-// template<class R>
-// double  KN_<R>::l1() const {
-//   double s = 0.;
-//     for (long i=0;i<n;i++)
-//       s +=  std::abs(v[index(i)]);
-//     return (s);
-//   }
-// template<class R>
-// double  KN_<R>::linfty() const {
-//   double s = 0.;
-//     for (long i=0;i<n;i++)
-//       s = std::max( (double) std::abs(v[index(i)]),s);
-//     return (s);
-//   }
-// template<class R>
-// double  KN_<R>::lp(double p) const {
-//   if( p==1.) return l1();
-//   else if (p==2.) return l2();
-//   else if(p>1.e10) return linfty();
-//   else
-//   {
-//   double s = 0.;
-//     for (long i=0;i<n;i++)
-//       s += pow(std::max( (double) std::abs(v[index(i)]),s),p);
-//     return pow(s,1./p);
-//    }
-//   }
+template<class R>
+double  KN_<R>::l2() const {
+  double s = 0.;
+    for (long i=0;i<n;i++)
+      s +=  RNM::norm(v[index(i)]);
+    return sqrt(s);
+  }
+template<class R>
+double  KN_<R>::l1() const {
+  double s = 0.;
+    for (long i=0;i<n;i++)
+      s +=  std::abs(v[index(i)]);
+    return (s);
+  }
+template<class R>
+double  KN_<R>::linfty() const {
+  double s = 0.;
+    for (long i=0;i<n;i++)
+      s = std::max( (double) std::abs(v[index(i)]),s);
+    return (s);
+  }
+template<class R>
+double  KN_<R>::lp(double p) const {
+  if( p==1.) return l1();
+  else if (p==2.) return l2();
+  else if(p>1.e10) return linfty();
+  else
+  {
+  double s = 0.;
+    for (long i=0;i<n;i++)
+      s += pow(std::max( (double) std::abs(v[index(i)]),s),p);
+    return pow(s,1./p);
+   }
+  }
 
-// template<class R> template<class T>
-// long  KN_<R>::last(const T & a) const {
-//     for (long i=n;i-- >0;)
-//       if  (a(v[index(i)]))
-//         return i;
-//     return -1;
-//  }
+template<class R> template<class T>
+long  KN_<R>::last(const T & a) const {
+    for (long i=n;i-- >0;)
+      if  (a(v[index(i)]))
+        return i;
+    return -1;
+ }
 
-// template<class R> template<class T>
-// long  KN_<R>::first(const T & a) const {
-//     for (long i=0;i<n;i++)
-//       if  (a(v[index(i)])) return i;
-//     return n;
-//  }
+template<class R> template<class T>
+long  KN_<R>::first(const T & a) const {
+    for (long i=0;i<n;i++)
+      if  (a(v[index(i)])) return i;
+    return n;
+ }
 
 
-// template<class R>
-//  void  KN_<R>::map(R (*f)(R )) {
-//     for (long i=0;i<n;i++)
-//       {  R & x(v[index(i)]);
-//           x =  f(x);}
+template<class R>
+ void  KN_<R>::map(R (*f)(R )) {
+    for (long i=0;i<n;i++)
+      {  R & x(v[index(i)]);
+          x =  f(x);}
 
-//   }
+  }
 
-// template<class R>
-//  void  KN_<R>::map(R (*f)(const R& )) {
-//     for (long i=0;i<n;i++)
-//       {  R & x(v[index(i)]);
-//           x =  f(x);}
+template<class R>
+ void  KN_<R>::map(R (*f)(const R& )) {
+    for (long i=0;i<n;i++)
+      {  R & x(v[index(i)]);
+          x =  f(x);}
 
-//   }
+  }
 
 
 

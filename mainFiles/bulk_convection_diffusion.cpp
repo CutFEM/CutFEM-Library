@@ -326,7 +326,7 @@ namespace Lehrenfeld_Convection_Dominated {
     R fun_neumann_Gamma(const R2 P, const int i, const R t) {
         R x = P.x, y = P.y;
     
-        return 0.;
+        return - (pi*sin(pi*t)*sin(pi*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(2*x + 2*t*(y*y - 1))*(2*x + 2*t*(y*y - 1)))/(200*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y)) - (pi*sin(pi*t)*sin(pi*((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y))*(2*y + 4*t*y*(x + t*(y*y - 1)))*(2*y + 4*t*y*(x + t*(y*y - 1))))/(200*sqrt((x + t*(y*y - 1))*(x + t*(y*y - 1)) + y*y));
         
     }
 
@@ -378,7 +378,7 @@ typedef FunFEM<Mesh2> Fun_h;
 
 
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
-#define dg
+#define cg
 // Set numerical example (options: "example1", "lehrenfeld")
 #define example1
 // Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
@@ -386,9 +386,9 @@ typedef FunFEM<Mesh2> Fun_h;
 // Set boundary condition type on Omega 2 (options: "dirichlet", "neumann" – note: neumann only works combined with example1)
 #define neumann
 // Set scheme for the dg method (options: "classical", "conservative". Irrelevant if "cg" is defined instead of "dg")
-#define classical
+#define conservative
 // Set stabilization method (options: "fullstab", "macro") 
-#define macro     
+#define fullstab
 // Decide whether to solve for level set function, or to use exact (options: "levelsetsolve", "levelsetexact")
 #define levelsetexact
 // Solve on Omega_1 (options: "omega1" or anything else to solve on Omega 2)
@@ -423,8 +423,9 @@ int main(int argc, char** argv) {
     const size_t iterations = 5;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
     int nx = 15, ny = 15;       // starting mesh size
     //int nx = 25, ny = 25;       // starting mesh size
-    double h = 0.0125;             // starting mesh size
-    double dT = 0.25;
+    double h = 0.1;             // starting mesh size
+    double dT = 0.125;
+    
 
 #ifdef example1
     // Paths to store data
@@ -455,6 +456,8 @@ int main(int argc, char** argv) {
     
     // Arrays to hold data
     std::array<double, iterations> errorsBulk;          // array to hold bulk errors
+    std::array<int, iterations> number_of_stabilized_edges;          // array to count stabilized edges
+    std::array<double, iterations> gammas;          // array to count stabilized edges
     std::array<double, iterations> hs;                  // array to hold mesh sizes
     std::array<double, iterations> dts;
 
@@ -487,18 +490,21 @@ int main(int argc, char** argv) {
         #endif
         Mesh Th(nx, ny, -3.5, -1.5, lx, ly);
     #endif
-
+        
+        //// Parameters
+        double tfinal = .5;            // Final time
+        
+    #ifdef use_t
+        GTime::total_number_iteration = int(tfinal/dT);
+    #else
         int divisionMeshSize = 3;
         //int divisionMeshSize = 2*3*pi;
         //int divisionMeshSize = 18;
 
-        //double dT = h/divisionMeshSize;
+        double dT = h/divisionMeshSize;
         //double dT = 3*h;
-        
-        //// Parameters
-        double tfinal = .25;            // Final time
-        
-        GTime::total_number_iteration = (int)(tfinal/dT);
+        GTime::total_number_iteration = int(tfinal/dT);
+    #endif
         dT = tfinal / GTime::total_number_iteration;
         GTime::time_step = dT;
 
@@ -788,8 +794,22 @@ int main(int argc, char** argv) {
 
         // Stabilization
 
-        #ifdef macro    
-            TimeMacroElement<Mesh> TimeMacro(Kh2, qTime, 0.125);
+        #if defined(macro) || defined(macro2)    
+            
+            #ifdef macro
+            double gamma = 0.125;
+            TimeMacroElement<Mesh> TimeMacro(Kh2, qTime, gamma);
+            #elif defined(macro2)
+            // double eta = 5.5;
+            // double gamma = dT/(dT*20. + h)*eta;
+            // double eta = .75;
+            // double gamma = pow(dT/(dT + h),1)*eta;
+            double gamma = 0.1 + 2.95*dT;
+            //double gamma = 0.1 + 3.25*dT;
+            TimeMacroElement2<Mesh> TimeMacro(Kh2, qTime, gamma);
+            #endif
+            gammas.at(j) = gamma;
+            number_of_stabilized_edges.at(j) = TimeMacro.number_of_inner_edges();
 
             if (iterations == 1 && h > 0.01) {
                 Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" + to_string(iter+1) + ".vtk");
@@ -816,16 +836,18 @@ int main(int argc, char** argv) {
                 , In
                 , TimeMacro
             );
+
             //matlab::Export(convdiff.mat_, "mat.dat");
             //getchar();
 
         #elif defined(fullstab)
             
+            //number_of_stabilized_edges.at(j) = convdiff.num_stabilized_edges(Th, In);
             convdiff.addFaceStabilization(
                 + innerProduct(1./h*tau20*jump(u), jump(v))
                 + innerProduct(h*tau21*jump(grad(u)), jump(grad(v)))
-                // + innerProduct(tau20*jump(u), jump(v))
-                // + innerProduct(h*h*tau21*jump(grad(u)), jump(grad(v)))
+                //+ innerProduct(tau20*(1+dT/h)/h/h*jump(u), jump(v))
+                //+ innerProduct(tau21*h*h*jump(grad(u)), jump(grad(v)))
                 , Kh2
                 , In
             );
@@ -995,6 +1017,8 @@ int main(int argc, char** argv) {
             double intGrad = integral(A2*gdx*n.x, In, interface, 0) + integral(A2*gdy*n.y, In, interface, 0);
         #endif
             
+            if (iter == GTime::total_number_iteration-1) matlab::Export(convdiff.mat_, pathOutputFolder + "mat_h" + to_string(h) + "_" + to_string(j+1) + ".dat");
+            
             // Solve linear system
             convdiff.solve("mumps");
             
@@ -1036,10 +1060,23 @@ int main(int argc, char** argv) {
                 
             }
 
-            R errBulk =  L2normCut(b0h, fun_uBulkD, GTime::current_time(), 0, 1);
-            std::cout << std::endl;
-            std::cout << " L2 Error \t : \t" << errBulk << std::endl;
             
+            Rn sol(Wh.get_nb_dof(), 0.);
+            sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
+            Fun_h funuh(Wh, sol);
+            double errBulk =  L2normCut(funuh, fun_uBulkD,  GTime::current_time(), 0, 1);
+            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << std::endl;
+
+            sol  += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+            errBulk =  L2normCut(funuh, fun_uBulkD, GTime::current_time()+dT, 0, 1);
+            std::cout << " t_n -> || u-uex||_2 = " << errBulk << std::endl;
+            
+
+            //R errBulk =  L2normCut(b0h, fun_uBulkD, GTime::current_time(), 0, 1);
+            //std::cout << std::endl;
+            //std::cout << " L2 Error \t : \t" << errBulk << std::endl;
+            
+            //errorsBulk.at(j) = errBulk;
             errorsBulk.at(j) = errBulk;
 
             if ((iterations == 1) && MPIcf::IamMaster()) {
@@ -1079,6 +1116,30 @@ int main(int argc, char** argv) {
     for (int i=0; i<iterations; i++) {
 
         std::cout << errorsBulk.at(i);
+        if (i < iterations-1) {
+            std::cout << ", ";
+        }
+
+    }
+    std::cout << "]" << std::endl;
+
+    std::cout << std::endl;
+    std::cout << "Number of stabilized edges = [";
+    for (int i=0; i<iterations; i++) {
+
+        std::cout << number_of_stabilized_edges.at(i);
+        if (i < iterations-1) {
+            std::cout << ", ";
+        }
+
+    }
+    std::cout << "]" << std::endl;
+
+    std::cout << std::endl;
+    std::cout << "Gammas = [";
+    for (int i=0; i<iterations; i++) {
+
+        std::cout << gammas.at(i);
         if (i < iterations-1) {
             std::cout << ", ";
         }

@@ -91,7 +91,9 @@ public:
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const MacroElement<Mesh>& );
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const TimeSlab& In, const TimeMacroElement<Mesh>&);
   void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const TimeSlab& In, const TimeMacroElement2<Mesh>&);
-
+  void addFaceStabilization(const ListItemVF<Rd::d>& VF, const CutMesh&, const TimeSlab& In, const TimeMacroElementSurface<Mesh>&);
+  int num_stabilized_edges(const CutMesh& Th, const TimeSlab& In);  // get number of stabilized edges
+  
   // Lagrange multiplier
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&);
   void addLagrangeMultiplier(const ListItemVF<Rd::d>& VF, double val, const CutMesh&, const int k);

@@ -146,6 +146,17 @@ namespace Lehrenfeld_6_2 {
         return 0.;
         
     }
+
+    // Velocity field
+    R fun_velocity(const R2 P, const int i, const R t) {
+        if (i == 0) return 2*cos(2*M_PI*t);
+        else return 0.;
+    }
+
+    // Initial solution bulk
+    R fun_uBulkInit(const R2 P, const int i) {
+        return 0.;
+    }
 }
 
 namespace Lehrenfeld_6_2_Convection_Dominated {
@@ -303,7 +314,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Set numerical example (options: "lehrenfeld_6_2", "lehrenfeld_6_3")
 #define lehrenfeld_6_2
 
-#define convection_dominated
+#define convection_dominated_not
 // Set boundary condition type on Omega 2 (options: "dirichlet", "neumann" – note: neumann only works combined with example1)
 #define neumann
 // Set scheme for the dg method (options: "conservative", "classical" see thesis. Irrelevant if "cg" is defined instead of "dg")
@@ -314,6 +325,7 @@ typedef FunFEM<Mesh2> Fun_h;
 #define levelsetexact
 
 #define use_h
+#define use_t
 
 #if defined(lehrenfeld_6_2)
     #ifdef convection_dominated
@@ -328,10 +340,10 @@ typedef FunFEM<Mesh2> Fun_h;
 int main(int argc, char** argv) {
     
     // Mesh settings and data objects
-    const size_t iterations = 4;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
+    const size_t iterations = 5;         // number of mesh refinements   (set to 1 to run only once and plot to paraview)
     int nx = 10, ny = 10;       // starting mesh size
-    double h = 0.1;             // starting mesh size
-
+    double h = 0.05;             // starting mesh size
+    double dT = 0.25;
 #if defined(lehrenfeld_6_2)
     // Paths to store data
     const std::string pathOutputFolder = "../outputFiles/SpaceTimeBulk/Lehrenfeld_6_2/data/";
@@ -382,12 +394,16 @@ int main(int argc, char** argv) {
 
         // Mesh size
         int divisionMeshSize = 2;
-        double dT = h/divisionMeshSize;
+        //double dT = h/divisionMeshSize;
         hs.at(j) = h;
         dts.at(j) = dT;
         
-        double tfinal = 0.75+dT;            // Final time
-        GTime::total_number_iteration = (int)(tfinal/dT);
+        double tfinal = 0.25;            // Final time
+    #ifdef use_t
+        GTime::total_number_iteration = ceil(tfinal/dT);
+    #else
+        GTime::total_number_iteration = int(tfinal/dT);
+    #endif
         dT = tfinal / GTime::total_number_iteration;
         GTime::time_step = dT;
 
@@ -647,7 +663,7 @@ int main(int argc, char** argv) {
         // Stabilization
 
         #ifdef macro    
-            TimeMacroElement<Mesh> TimeMacro(Kh2, qTime, 0.125);
+            TimeMacroElement2<Mesh> TimeMacro(Kh2, qTime, 0.125);
 
             // Stabilization of the bulk 
             convdiff.addFaceStabilization(
@@ -699,7 +715,7 @@ int main(int argc, char** argv) {
             intF = integral(Kh2, In, f, 0, qTime);
             intG = integral(g_Neumann, In, interface, 0);
             
-            
+            if (iter == GTime::total_number_iteration-1) matlab::Export(convdiff.mat_, pathOutputFolder + "mat_h" + to_string(h) + "_" + to_string(j+1) + ".dat");
             // Solve linear system
             convdiff.solve();
             
@@ -739,6 +755,18 @@ int main(int argc, char** argv) {
                 
             }
 
+            {
+                Rn sol(Wh.get_nb_dof(), 0.);
+                sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
+                Fun_h funuh(Wh, sol);
+                double errL2 =  L2normCut(funuh, fun_uBulkD,  GTime::current_time(), 0, 1);
+                std::cout << " t_{n-1} -> || u-uex||_2 = " << errL2 << std::endl;
+
+                sol  += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+                errL2 =  L2normCut(funuh, fun_uBulkD, GTime::current_time()+dT, 0, 1);
+                std::cout << " t_n -> || u-uex||_2 = " << errL2 << std::endl;
+            }   
+
             R errBulk =  L2normCut(b0h, fun_uBulkD, GTime::current_time(), 0, 1);
             std::cout << std::endl;
             std::cout << " L2 Error \t : \t" << errBulk << std::endl;
@@ -777,6 +805,8 @@ int main(int argc, char** argv) {
         #ifdef use_n
         nx *= 2;
         ny *= 2; 
+        #elif defined(use_t)
+        dT *= 0.5; 
         #elif defined(use_h)
         h *= 0.5;
         #endif
