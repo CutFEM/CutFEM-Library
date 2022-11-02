@@ -15,7 +15,7 @@ Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
 template<typename F>
-void interpolate(const F& Mh, KN<double>& fh, R(*f)(const typename F::Rd ) ){
+void interpolate(const F& Mh, KN<double>& fh, R(*f)(double* ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
   // assert(0);
   typedef typename F::Rd Rd;
@@ -36,7 +36,7 @@ void interpolate(const F& Mh, KN<double>& fh, R(*f)(const typename F::Rd ) ){
     const int nbdf = K.NbDoF();            // nof local
 
     for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
-      const Rd & P(K.Pt(p));       // the coordinate of P in K hat
+      Rd P(K.Pt(p));       // the coordinate of P in K hat
       Vpf(p,0) = f(P);
 
     }
@@ -59,7 +59,7 @@ Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
 template<typename F>
-void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i ) ){
+void interpolate(const F& Mh, KN_<double>& fh, R(*f)(double*, int i ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
   // assert(0);
   typedef typename F::Rd Rd;
@@ -82,7 +82,7 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
     const int nbdf = K.NbDoF();            // nof local
 
     for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
-      const Rd & P(K.Pt(p));       // the coordinate of P in K hat
+      Rd P(K.Pt(p));       // the coordinate of P in K hat
 
       for(int i=0;i<d;++i) {
         Vpf(p,i) = f(P,i);
@@ -105,47 +105,6 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
 Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
-template<typename F>
-void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int ii, int dom ) ){
-  // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
-  // assert(0);
-  typedef typename F::Rd Rd;
-  typedef typename F::Element::RdHat RdHat;
-  // Rn fhSend(Mh.nbDoF); fhSend = 1e+50;
-  assert(fh.size() == Mh.nbDoF);
-  // fh.init(Mh.nbDoF);
-  const int d = Mh.N;
-  const int nve = Mh.TFE(0)->NbPtforInterpolation;
-  KNM<R>   Vpf(nve,d);                       // value of f at the interpolation points
-  KN<R> ggf(Mh.MaxNbDFPerElement);           // stock the values of the dof of the interpolate
-  progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
-
-  // for (int t=Mh.first_element();t<Mh.last_element();
-  //      t+= Mh.next_element()) {      // loop over element
-  for (int t=0;t<Mh.NbElement();  t+=1) {
-    bar += 1;
-    typename F::FElement K(Mh[t]);
-    const int nbdf = K.NbDoF();            // nof local
-    const int domain = K.get_domain();
-
-    for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
-      const Rd & P(K.Pt(p));       // the coordinate of P in K hat
-      for(int i=0;i<d;++i) {
-        Vpf(p,i) = f(P,i, domain);
-      }
-    }
-
-    K.Pi_h(Vpf,ggf);
-
-    for (int df=0;df<nbdf;df++) {
-      fh[K(df)] =  ggf[df] ;
-    }
-  }
-
-  // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
-  bar.end();
-}
-
 template<typename F>
 void interpolate(const F& Mh, KN_<double>& fh, R(*f)(double*, int ii, int dom ) ){
   typedef typename F::Rd Rd;
@@ -186,7 +145,7 @@ Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
 template<typename F>
-void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i, int domain, R t ), R tid ){
+void interpolate(const F& Mh, KN_<double>& fh, R(*f)(double*, int i, int domain, R t ), R tid ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
   // assert(0);
   typedef typename F::Rd Rd;
@@ -209,7 +168,7 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int i
     const int domain = K.get_domain();
 
     for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
-      const Rd & P(K.Pt(p));       // the coordinate of P in K hat
+      Rd  P(K.Pt(p));       // the coordinate of P in K hat
       for(int i=0;i<d;++i) {
         Vpf(p,i) = f(P,i, domain, tid);
       }
@@ -232,7 +191,7 @@ Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
 template<typename F>
-void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int, R ), R tid ){
+void interpolate(const F& Mh, KN_<double>& fh, R(*f)(double*, int, R ), R tid ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
   // assert(0);
   typedef typename F::Rd Rd;
@@ -254,7 +213,7 @@ void interpolate(const F& Mh, KN_<double>& fh, R(*f)(const typename F::Rd, int, 
     const int nbdf = K.NbDoF();            // nof local
 
     for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
-      const Rd & P(K.Pt(p));       // the coordinate of P in K hat
+      Rd P(K.Pt(p));       // the coordinate of P in K hat
       for(int i=0;i<d;++i) {
         Vpf(p,i) = f(P,i, tid);
       }
@@ -278,7 +237,7 @@ Interpolate f : Rd->R    on space time Vh
 - output : fh contains the values
 */
 template<typename F>
-void interpolate(const F& Mh, const TimeSlab& In, KN_<double>& fh, R(*f)(const typename F::Rd, int, R ) ){
+void interpolate(const F& Mh, const TimeSlab& In, KN_<double>& fh, R(*f)(double *, int, R ) ){
   // std::cout << " need to double check this interpolate function and add MPI" << std::endl;
   // assert(0);
   typedef typename F::Rd Rd;
@@ -308,7 +267,7 @@ void interpolate(const F& Mh, const TimeSlab& In, KN_<double>& fh, R(*f)(const t
     for(int it=0;it<In.tfe->NbPtforInterpolation;++it) {
       const R1 & tq(In.Pt(it));
       for (int p=0;p<K.tfe->NbPtforInterpolation;p++) {      // all interpolation points
-        const Rd & P(K.Pt(p));       // the coordinate of P in K hat
+        Rd P(K.Pt(p));       // the coordinate of P in K hat
         for(int i=0;i<d;++i) {
           Vpft(p,i,it) = f(P,i,tq);
 

@@ -1,7 +1,7 @@
 #ifndef _CF_MPI_HPP_
 #define _CF_MPI_HPP_
 
-#include <mpi.h>
+#include "/usr/local/Cellar/open-mpi/4.1.4_2/include/mpi.h"
 #include "../util/util.hpp"
 #include "../common/RNM.hpp"
 

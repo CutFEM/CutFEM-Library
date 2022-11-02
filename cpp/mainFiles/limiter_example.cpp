@@ -3,15 +3,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <experimental/filesystem>
-#include <omp.h>
-#include "../util/cputime.h"
-#include "cfmpi.hpp"
+#include "../tool.hpp"
 
 
-#include "baseProblem.hpp"
-#include "paraview.hpp"
-#include "../num/matlab.hpp"
 
 
 typedef std::map<std::pair<int,int>,R> MatMap;
@@ -1576,19 +1570,19 @@ std::cout << " Iteration computation time \t" << MPIcf::Wtime() - tt_iter << std
 // #define fluxFctN(I) (3.*I*N.x + I*N.y)
 
 
-R fun_levelSet(const R2 P, const int i) {
+R fun_levelSet(double* P, const int i) {
   // return P.y - 0.5*P.x - 1./4;
-  return P.y + 0.5*P.x - 1./4;
+  return P[1] + 0.5*P[0] - 1./4;
 }
-R fun_initial (const R2 P, int elementComp, int domain) {
-  return 1+0.5*sin(pi*(P.x+P.y));
+R fun_initial (double* P, int elementComp, int domain) {
+  return 1+0.5*sin(pi*(P[0]+P[1]));
 }
 R fun_scalar  (double x) {
   return 1+0.5*sin(pi*x);
 }
-R fun_solution(const R2 P, int elementComp, int domain, double t) {
-  double x0 = P.x+P.y;
-  double xy = P.x+P.y;
+R fun_solution(double* P, int elementComp, int domain, double t) {
+  double x0 = P[0]+P[1];
+  double xy = x0;
   for(int i=0;i<=50;++i) {
 
     double x1 = xy-2*t*fun_scalar(x0);
@@ -1913,8 +1907,6 @@ int main(int argc, char** argv ) {
 
     // COMPUTATION OF THE L2 ERROR
     // =================================================
-    // Fun2_h femSolh(Wh, uh);
-    // Expression2 femSol(femSolh, 0, op_id);
     double tt = MPIcf::Wtime();
     double qu = integral(Khi, fun_uh_tild, 0);
     auto [min_uh, max_uh] = limiter::CutFEM::findMinAndMaxValue(fun_uh);
@@ -1974,7 +1966,6 @@ int main(int argc, char** argv ) {
 
     }
 
-    // std::cout << setprecision(16) << "q(u) = " << qu << std::endl;
     std::cout << " || u-uex ||_2 = " << errU << std::endl;
     std::cout << setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu-qu0)
               << setprecision(6) << std::endl;
@@ -2006,21 +1997,21 @@ std::cout << " Iteration computation time \t" << MPIcf::Wtime() - tt_iter << std
 
 #ifdef CUTFEM_DISCONTINUOUS_SOLUTION
 double c0 = 0.77;//0.25;
-R fun_levelSet(const R2 P, const int i) {
-  return -0.5*P.x - P.y + 0.67*c0;
+R fun_levelSet(double* P, const int i) {
+  return -0.5*P[0] - P[1] + 0.67*c0;
 }
-R fun_initial(const R2 P, int elementComp, int domain) {
+R fun_initial(double* P, int elementComp, int domain) {
   // return 1.;//
   if(domain == 1) return 0;
   // double xs = -0.3, ys = -0.3;
   double xs = 0.1, ys = 0.1;
   double r = 0.3;
-  double v = (P.x-xs)*(P.x-xs) + (P.y-ys)*(P.y-ys);
+  double v = (P[0]-xs)*(P[0]-xs) + (P[1]-ys)*(P[1]-ys);
   if(v < r*r) return 1;//exp(-pow(P.x - xs,2)/r - pow(P.y - ys,2)/r);
   else return 0.;
   // return 1+0.5*sin(pi*(P.x+P.y));
 }
-R fun_boundary(const R2 P, int elementComp, double t) {
+R fun_boundary(double* P, int elementComp, double t) {
   return 0.;//1+0.5*sin(pi*(P.x+P.y));
 }
 
@@ -2151,7 +2142,7 @@ int main(int argc, char** argv ) {
 
   // OUTPUT FILE
   // =====================================================
-  std::ofstream outputData("output_CUTFEM_nx100_P1_delta1_fixed.txt");
+  std::ofstream outputData("output_CUTFEM_nx20_P1_delta1_fixed.txt");
 
   // DEFINITION OF THE MESH and SPACE
   // =====================================================
@@ -2210,8 +2201,8 @@ int main(int argc, char** argv ) {
   // return 0;
 
   double qu0 = integral(Khi, fun_uh, 0);
-  double min_u0 = 0.;//uh.min();
-  double max_u0 = 1.;//uh.max();
+  double min_u0 = uh.min();
+  double max_u0 = uh.max();
 
   // ASSEMBLY THE CONSTANT PART
   // ==================================================
@@ -2254,18 +2245,18 @@ int main(int argc, char** argv ) {
       Fun_h fun_u1(Wh, u1);
       Fun_h fun_u2(Wh, u2);
 
-      Rn u_mean(Wh.get_nb_element());
-      std::map<int, double>  map_mean_value;
-      Rn uM(u0);
-      Fun_h fun_uM(Wh, uM);
-      double min_u0=0., max_u0=1.;
+      // Rn u_mean(Wh.get_nb_element());
+      // std::map<int, double>  map_mean_value;
+      // Rn uM(u0);
+      // Fun_h fun_uM(Wh, uM);
+      // double min_u0=0., max_u0=1.;
 
       // std::cout << u0 << std::endl;
       // limiter::CutFEM::check_mean_value(fun_u0, macro, 0., 1., u_mean);
       // limiter::CutFEM::limiter_Pei_P1(fun_u0, uM, min_u0, max_u0, macro);
       // limiter::CutFEM::extendToMacroP1(fun_u0, uM, map_mean_value, macro);
-      limiter::CutFEM::minmaxP1(fun_uM, min_u0, max_u0);
-      std::cout << min_u0 << "\t" << max_u0 << std::endl;
+      // limiter::CutFEM::minmaxP1(fun_uM, min_u0, max_u0);
+      // std::cout << min_u0 << "\t" << max_u0 << std::endl;
 
 
       // if(MPIcf::IamMaster()) {
@@ -2277,51 +2268,67 @@ int main(int argc, char** argv ) {
       // limiter::CutFEM::check_mean_value(fun_u0, macro, 0., 1., u_mean);
 
       // getchar();
-      u0 = uM;
+      // u0 = uM;
 
-      std::cout << " compute u1 " << std::endl;
-      solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
-      u1 += dt * uh;
-      uM = u1;
+      // std::cout << " compute u1 " << std::endl;
+      // solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
+      // u1 += dt * uh;
+      // uM = u1;
 
-
-      limiter::CutFEM::check_mean_value(fun_u1, macro, 0.,1., u_mean);
-      Fun_h fun_u_mean(Eh, u_mean);
-
-      limiter::CutFEM::extendToMacroP1(fun_u1, uM, map_mean_value, macro);
-      std::cout << "hey " << std::endl;
-      Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
-      writer.add(fun_u1, "u0", 0, 1);
-      writer.add(fun_uM, "macroextended", 0, 1);
-      writer.add(fun_u_mean, "uMean", 0, 1);
-
-      uM = u1;
-      limiter::CutFEM::limiter_Pei_P1(fun_u1, uM, min_u0, max_u0, macro);
-      limiter::CutFEM::minmaxP1(fun_uM, min_u0, max_u0);
-
-      std::cout << min_u0 << "\t" << max_u0 << std::endl;
-      // if(MPIcf::IamMaster()) {
-        // Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
-        writer.add(fun_uM, "macroLimited", 0, 1);
-      // }
-
-      getchar();
+      if(Wh.basisFctType == BasisFctType::P1dc) {
+        solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
+        u1 += dt * uh;
+        limiter::CutFEM::applyBoundPreservingLimiter(fun_u1, u1_tild, min_u0, max_u0, macro);
 
 
-
-      std::cout << " compute u2 " << std::endl;
-      u2 += 3./4*u0 + 1./4*u1_tild;
-      solve_problem(Wh, interface, u1_tild, uh, Ah, Mh, tid+dt);
-      u2 += 1./4 * dt * uh;
-      limiter::CutFEM::limiter_Pei_P1(fun_u2, u2_tild, min_u0, max_u0, macro);
-      std::cout << " compute u3 " << std::endl;
-
-      solve_problem(Wh, interface, u2_tild, uh, Ah, Mh, tid+0.5*dt);
-      uh *= 2./3 * dt;
-      uh += 1./3*u0 + 2./3*u2_tild;
-      limiter::CutFEM::limiter_Pei_P1(fun_uh, uh_tild, min_u0, max_u0, macro);
+        // getchar();
 
 
+        u2 += 3./4*u0 + 1./4*u1_tild;
+        solve_problem(Wh, interface, u1_tild, uh, Ah, Mh, tid+dt);
+        u2 += 1./4 * dt * uh;
+        limiter::CutFEM::applyBoundPreservingLimiter(fun_u2, u2_tild, min_u0, max_u0, macro);
+        solve_problem(Wh, interface, u2_tild, uh, Ah, Mh, tid+0.5*dt);
+        uh *= 2./3 * dt;
+        uh += 1./3*u0 + 2./3*u2_tild;
+        limiter::CutFEM::applyBoundPreservingLimiter(fun_uh, uh_tild, min_u0, max_u0, macro);
+      }
+      else if (Wh.basisFctType == BasisFctType::P0){
+        solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
+        u1 += dt * uh;
+        limiter::CutFEM::extendToMacro(fun_u1, u1_tild, macro);
+        u2 += 3./4*u0 + 1./4*u1_tild;
+        solve_problem(Wh, interface, u1_tild, uh, Ah, Mh, tid+dt);
+        u2 += 1./4 * dt * uh;
+        limiter::CutFEM::extendToMacro(fun_u2, u2_tild, macro);
+        solve_problem(Wh, interface, u2_tild, uh, Ah, Mh, tid+0.5*dt);
+        uh *= 2./3 * dt;
+        uh += 1./3*u0 + 2./3*u2_tild;
+        limiter::CutFEM::extendToMacro(fun_uh, uh_tild, macro);
+      }
+
+
+      // limiter::CutFEM::check_mean_value(fun_u1, macro, 0.,1., u_mean);
+      // Fun_h fun_u_mean(Eh, u_mean);
+
+      // limiter::CutFEM::extendToMacroP1(fun_u1, uM, map_mean_value, macro);
+      // std::cout << "hey " << std::endl;
+      // Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
+      // writer.add(fun_u1, "u0", 0, 1);
+      // writer.add(fun_uM, "macroextended", 0, 1);
+      // writer.add(fun_u_mean, "uMean", 0, 1);
+
+      // uM = u1;
+      // limiter::CutFEM::limiter_Pei_P1(fun_u1, uM, min_u0, max_u0, macro);
+      // limiter::CutFEM::minmaxP1(fun_uM, min_u0, max_u0);
+
+      // std::cout << min_u0 << "\t" << max_u0 << std::endl;
+      // // if(MPIcf::IamMaster()) {
+      //   // Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
+      //   writer.add(fun_uM, "macroLimited", 0, 1);
+      // // }
+
+      // getchar();
     }
 
     u0 = uh_tild;
@@ -2329,13 +2336,12 @@ int main(int argc, char** argv ) {
 
     // COMPUTATION OF THE L2 ERROR
     // =================================================
-    // Fun2_h femSolh(Wh, uh);
-    // Expression2 femSol(femSolh, 0, op_id);
+    double tt = MPIcf::Wtime();
     double qu = integral(Khi, fun_uh_tild, 0);
-    double min_uh, max_uh;
-    limiter::CutFEM::minmaxP1(fun_uh, min_uh, max_uh);
-    double min_u1, max_u1;
-    limiter::CutFEM::minmaxP1(fun_uh_tild, min_u1, max_u1);
+    auto [min_uh, max_uh] = limiter::CutFEM::findMinAndMaxValue(fun_uh);
+    auto [min_u1, max_u1] = limiter::CutFEM::findMinAndMaxValue(fun_uh_tild);
+    std::cout << " time min max \t" << MPIcf::Wtime() - tt << std::endl;
+
 
     // if((i==24) && MPIcf::IamMaster()) {
     //   Paraview<Mesh> writer(Khi, "maxPrinciple.vtk");
@@ -2377,16 +2383,18 @@ int main(int argc, char** argv ) {
     }
     // PLOT THE SOLUTION
     // ==================================================
-    // if(MPIcf::IamMaster() && i%1 == 0 || i+1 == niteration) {
-    //
-    //   Paraview<Mesh> writer(Khi, "conservationP1_"+to_string(ifig++)+".vtk");
-    //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
-    //   writer.add(fun_u1, "uhLimiter", 0, 1);
-    // }
+    if(MPIcf::IamMaster() && i%1 == 0 || i+1 == niteration) {
+      Paraview<Mesh> writer(Khi, "conservationP1_"+to_string(ifig++)+".vtk");
+      writer.add(fun_uh     , "uhNoLimiter", 0, 1);
+      writer.add(fun_uh_tild, "uhLimiter"  , 0, 1);
+    }
 
-    // std::cout << setprecision(16) << "q(u) = " << qu << std::endl;
     std::cout << setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu-qu0)
               << setprecision(6) << std::endl;
+    
+    if(i == 0) {
+      outputData << "it \t tid \t errU \t q \t\t errQ \t\t minU \t\t maxU " << std::endl;
+    }
     outputData << i << "\t"
                << tid << "\t"
                << setprecision(16) << qu << "\t"

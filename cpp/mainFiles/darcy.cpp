@@ -3,18 +3,8 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include "../util/cputime.h"
-#ifdef USE_MPI
-#  include "cfmpi.hpp"
-#endif
+#include "../tool.hpp"
 
-// #include "finiteElement.hpp"
-#include "baseProblem.hpp"
-#include "../num/matlab.hpp"
-#include "paraview.hpp"
-#include "generalNorm.hpp"
-// #include "projection.hpp"
-// #include "../common/fracture.hpp"
 
 // #define TEST_PIOLA
 // #define DARCY_FEM
@@ -637,13 +627,13 @@ int main(int argc, char** argv ) {
 
   MPIcf cfMPI(argc,argv);
 
-  int thread_count_tmp = 1;
-  cout << "Threads: ";
-  cin >> thread_count_tmp;
-  MPIcf::Bcast(thread_count_tmp, MPIcf::Master(), 1);
-  const int thread_count = thread_count_tmp;
-  omp_set_num_threads(thread_count);
-  const double cpubegin = MPIcf::Wtime();
+  // int thread_count_tmp = 1;
+  // cout << "Threads: ";
+  // cin >> thread_count_tmp;
+  // MPIcf::Bcast(thread_count_tmp, MPIcf::Master(), 1);
+  // const int thread_count = thread_count_tmp;
+  // omp_set_num_threads(thread_count);
+  // const double cpubegin = MPIcf::Wtime();
 
 
   int nx = 11; // 6
@@ -695,7 +685,7 @@ int main(int argc, char** argv ) {
 
     // CutFEM<Mesh2> darcy(Wh); darcy.add(Ph);
     CutFEM<Mesh2> darcy;
-    darcy.init_nb_thread(thread_count);
+    // darcy.init_nb_thread(thread_count);
     darcy.initSpace(Wh); darcy.add(Ph);
 
     const R h_i = 2./(nx-1);

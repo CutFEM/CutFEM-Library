@@ -53,51 +53,39 @@ public:
   typedef typename FESpace::FElement FElement;
   typedef typename Mesh::Rd Rd;
 
-  // private:
-  // double * data = nullptr;
-  // KN_<double> v;
-  // bool alloc = false;
-  // double* databf = nullptr;
   bool alloc = false;
   double* databf = nullptr;
-  // using FunFEMVirtual::data;
-
 
 public:
   FESpace const *  Vh = nullptr;
   TimeSlab const * In = nullptr;
   public :
-  // FunFEM() : v(data, 0) {}
   FunFEM() : FunFEMVirtual () {}
   FunFEM(const FESpace& vh) : FunFEMVirtual (vh.NbDoF()),
   Vh(&vh), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){}
-  // : Vh(&vh), data(new double[vh.NbDoF()]), v(data,vh.NbDoF()), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){v=0.;}
   FunFEM(const FESpace& vh, const TimeSlab& in) : FunFEMVirtual (vh.NbDoF()*in.NbDoF()),
   Vh(&vh), In(&in), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){}
-  // : Vh(&vh), In(&in), data(new double[vh.NbDoF()*in.NbDoF()]), v(data,vh.NbDoF()*in.NbDoF()), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){v=0.;}
-  FunFEM(const FESpace& vh, Rn_& u) :FunFEMVirtual (u),
-  alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
-  // : v(u), alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
   FunFEM(const FESpace& vh, const TimeSlab& in, Rn_& u) : FunFEMVirtual (u),
   alloc(false), Vh(&vh), In(&in), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {}
-  // : v(u), alloc(false), Vh(&vh), In(&in), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {}
 
+  FunFEM(const FESpace& vh, Rn_& u) : FunFEMVirtual (u),
+  alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
+  FunFEM(const FESpace& vh, Rn&  u) : FunFEMVirtual (u),
+  alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
   template<typename fun_t>
   FunFEM(const FESpace& vh, fun_t f ) :
-  FunFEMVirtual (vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4])
-  {
+  FunFEMVirtual (vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {
     interpolate(*Vh, this->v, f);
   }
   FunFEM(const FESpace& vh, double f ) :
-  FunFEMVirtual(vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4])
-  {
+  FunFEMVirtual(vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]){
     this->v = f;
   }
+  
 
   template<typename fun_t>
   FunFEM(const FESpace& vh, fun_t f, R tid ) :
-  FunFEMVirtual (vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4])
-  {
+  FunFEMVirtual (vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {
     interpolate(*Vh, this->v, f, tid);
   }
   FunFEM(const FESpace& vh, const TimeSlab& in, R (*f)(const Rd, int i, R tt) ) :
@@ -105,7 +93,6 @@ public:
   {
     interpolate(*Vh,*In, this->v, f);
   }
-
   FunFEM(const FESpace& vh, const ExpressionVirtual& fh);
   FunFEM(const FESpace& vh, const ExpressionVirtual& fh1, const ExpressionVirtual& fh2);
 
@@ -995,15 +982,18 @@ public:
   };
   ExpressionDivS3 divS(const FunFEM<Mesh3>& f1);
 
-  template<typename M>
-  class ExpressionAverage : public ExpressionVirtual{
+  // template<typename M>
+  class ExpressionAverage {//}: public ExpressionVirtual{
   public:
-    const ExpressionFunFEM<M> fun1;
+    // const ExpressionFunFEM<M> fun1;
+    const ExpressionVirtual & fun1;
     const R k1, k2;
 
-    ExpressionAverage(const ExpressionFunFEM<M>& fh, double kk1, double kk2)
-    : fun1(fh.fun,fh.cu, fh.op, fh.opt, -1), k1(kk1), k2(kk2){
-    }
+    // ExpressionAverage(const ExpressionFunFEM<M>& fh, double kk1, double kk2)
+    // : fun1(fh.fun,fh.cu, fh.op, fh.opt, -1), k1(kk1), k2(kk2){
+    // }
+    ExpressionAverage(const ExpressionVirtual & fh1, double kk1, double kk2)
+    : fun1(fh1), k1(kk1), k2(kk2){ }
 
     R operator()(long i) const {assert(0 && " cannot use this "); return k1*fun1(i);}
 
@@ -1028,25 +1018,27 @@ public:
 
     ~ExpressionAverage(){}
   };
+ExpressionAverage average(const ExpressionVirtual & fh1, const double kk1=0.5, const double kk2=0.5);
+ExpressionAverage jump(const ExpressionVirtual & fh1, const double kk1=1, const double kk2=-1);
+ExpressionAverage operator* (double c, const ExpressionAverage& fh);
+ExpressionAverage operator* ( const ExpressionAverage& fh, double c);
 
-
-
-  template<typename M>
-  ExpressionAverage<M> average(const ExpressionFunFEM<M> & fh1, const double kk1=0.5, const double kk2=0.5) {
-    return ExpressionAverage<M>(fh1,kk1,kk2);
-  }
-  template<typename M>
-  ExpressionAverage<M> jump(const ExpressionFunFEM<M> & fh1, const double kk1=1, const double kk2=-1){
-    return ExpressionAverage<M>(fh1,1,-1);
-  }
-  template<typename M>
-  ExpressionAverage<M> operator* (double c, const ExpressionAverage<M>& fh){
-    return ExpressionAverage<M>(fh.fun1,c*fh.k1, c*fh.k2);
-  }
-  template<typename M>
-  ExpressionAverage<M> operator* ( const ExpressionAverage<M>& fh, double c){
-    return ExpressionAverage<M>(fh.fun1,c*fh.k1, c*fh.k2);
-  }
+  // template<typename M>
+  // ExpressionAverage<M> average(const ExpressionVirtual & fh1, const double kk1=0.5, const double kk2=0.5) {
+  //   return ExpressionAverage<M>(fh1,kk1,kk2);
+  // }
+  // template<typename M>
+  // ExpressionAverage<M> jump(const ExpressionVirtual & fh1, const double kk1=1, const double kk2=-1){
+  //   return ExpressionAverage<M>(fh1,1,-1);
+  // }
+  // template<typename M>
+  // ExpressionAverage<M> operator* (double c, const ExpressionAverage<M>& fh){
+  //   return ExpressionAverage<M>(fh.fun1,c*fh.k1, c*fh.k2);
+  // }
+  // template<typename M>
+  // ExpressionAverage<M> operator* ( const ExpressionAverage<M>& fh, double c){
+  //   return ExpressionAverage<M>(fh.fun1,c*fh.k1, c*fh.k2);
+  // }
 
 
   template<typename M>
@@ -1065,6 +1057,8 @@ public:
   ExpressionFunFEM<M> dt(const ExpressionFunFEM<M>& u) {
     return ExpressionFunFEM<M>(u.fun, u.cu, u.op, op_dx, u.domain);
   }
+
+
 
 
 
@@ -1173,50 +1167,57 @@ public:
     }
     ~ExpressionLinearSurfaceTension(){}
   };
-  template<typename M>
-  class ExpressionNonLinearSurfaceTension : public ExpressionVirtual {
-    const FunFEM<M> & fun;
-    const double sigma0 ;
+  template <typename M>
+  class ExpressionNonLinearSurfaceTension : public ExpressionVirtual
+  {
+    const FunFEM<M> &fun;
+    const double sigma0;
     const double beta;
     const double tid;
 
   public:
-    ExpressionNonLinearSurfaceTension(const FunFEM<M>& fh, double ssigma0, double bbeta, double ttid)
-    : fun(fh), sigma0(ssigma0), beta(bbeta), tid(ttid) {}
+    ExpressionNonLinearSurfaceTension(const FunFEM<M> &fh, double ssigma0, double bbeta, double ttid)
+        : fun(fh), sigma0(ssigma0), beta(bbeta), tid(ttid) {}
 
-    R operator()(long i) const {return fabs(fun(i));}
+    R operator()(long i) const { return fabs(fun(i)); }
 
-    R eval(const int k, const R* x, const R* normal)const  {
+    R eval(const int k, const R *x, const R *normal) const
+    {
       assert(0);
       return 0.;
     }
-    R eval(const int k, const R* x, const R t, const R* normal)const  {
+    R eval(const int k, const R *x, const R t, const R *normal) const
+    {
       assert(0);
       return 0.;
     }
 
-    R evalOnBackMesh(const int k, const int dom,const R* x, const R* normal)const  {
-      double val = fun.evalOnBackMesh(k,dom,x,tid,0,op_id, op_id);
-      return sigma0*(1 + beta*std::log(1-val));
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const
+    {
+      double val = fun.evalOnBackMesh(k, dom, x, tid, 0, op_id, op_id);
+      return sigma0 * (1 + beta * std::log(1 - val));
     }
-    R evalOnBackMesh(const int k, const int dom, const R* x, const R t, const R* normal)const  {
-      double val = fun.evalOnBackMesh(k,dom,x,tid,0,op_id, op_id);
-      return sigma0*(1 + beta*std::log(1-val));
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const
+    {
+      double val = fun.evalOnBackMesh(k, dom, x, tid, 0, op_id, op_id);
+      return sigma0 * (1 + beta * std::log(1 - val));
     }
-    int idxElementFromBackMesh(int kb, int dd=0) const {
+    int idxElementFromBackMesh(int kb, int dd = 0) const
+    {
       return fun.idxElementFromBackMesh(kb, dd);
     }
-    ~ExpressionNonLinearSurfaceTension(){}
+    ~ExpressionNonLinearSurfaceTension() {}
   };
 
-
-
-
-  #include "expression.tpp"
-
+#include "expression.tpp"
 
   typedef FunFEM<Mesh2> Fun2_h;
   typedef ExpressionFunFEM<Mesh2> Expression2;
   typedef FunFEM<Mesh3> Fun3_h;
   typedef ExpressionFunFEM<Mesh3> Expression3;
-  #endif
+
+
+
+
+
+#endif
