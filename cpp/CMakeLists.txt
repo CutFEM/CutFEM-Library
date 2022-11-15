@@ -15,8 +15,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 option(USE_MPI "Perform a parallel computation" OFF)
 option(USE_OMP "Perform a parallel omp computation" OFF)
-option(USE_UMFPACK "Found the UMFpack library" OFF)
-option(USE_LAPACK "Found the lapacke library" ON)
+option(USE_UMFPACK "Found the UMFpack library" ON)
+option(USE_LAPACK "Found the lapacke library" OFF)
 option(USE_MUMPS "Found the MUMPS library" OFF)
 
 

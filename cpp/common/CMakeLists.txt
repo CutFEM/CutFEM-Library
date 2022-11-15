@@ -20,7 +20,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/SparseMatMap.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/geometry.cpp
 )
 # message("common source files = ${COMMON_SOURCES}")
-add_library(common STATIC ${COMMON_SOURCES})
+add_library(common SHARED ${COMMON_SOURCES})
 
 target_include_directories(common
 PUBLIC
