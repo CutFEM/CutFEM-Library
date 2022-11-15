@@ -349,12 +349,13 @@ public:
   }
 
   void info() const {
-    // std::cout << " ------------------------------- " << std::endl;
-    std::cout << " Cut Mesh has  \t" << get_nb_domain() << " domains" << std::endl;
-    for(int i=0;i<get_nb_domain();++i) {
-      std::cout << " nb elements in \t" << i << " => " << this->get_nb_element(i) << std::endl;
+    std::cout << " ---  INFO CUT MESH  --- " << std::endl;
+    std::cout << " Number of subdomains          :\t" << get_nb_domain() << std::endl;
+    for(int i=0;i<get_nb_domain();++i) 
+    {
+      std::cout << " Number of elements in Omega_" << i << " :\t" << this->get_nb_element(i) << std::endl;
     }
-    std::cout << " nb elements in total => \t" << this->get_nb_element() << std::endl;
+    std::cout << " Total number of elements      :\t" << this->get_nb_element() << std::endl;
   }
 
   #ifdef USE_MPI

@@ -22,6 +22,7 @@
 // #include "GenericInterface.hpp"
 #include "../FESpace/QuadratureFormular.hpp"
 
+
 class FunFEMVirtual {
 public :
 
@@ -32,14 +33,19 @@ KN_<double> v;
 FunFEMVirtual () :v(data, 0) {}
 FunFEMVirtual (int df) : data(new double[df]), v(data,df) {v = 0.;}
 FunFEMVirtual (KN_<double>&u) : v(u) {}
+FunFEMVirtual (double* u, int n) : v(u, n) {}
 
 virtual double eval(const int k, const R* x, int cu=0, int op=0) const  {assert(0); return 0.;};
 virtual double eval(const int k, const R* x, const R t, int cu, int op, int opt) const {assert(0); return 0.;};
 virtual double evalOnBackMesh(const int k, int dom, const R* x, int cu=0, int op=0) const  {assert(0); return 0.;};
 virtual double evalOnBackMesh(const int k, int dom, const R* x, const R t, int cu, int op, int opt) const {assert(0); return 0.;};
 virtual int idxElementFromBackMesh(int, int=0) const {assert(0); return 0.;};
-};
 
+const KN_<double>& getArray() const {return v;}
+// const KN_<double>& data() const {return v;}
+
+
+};
 
 
 template<int N>

@@ -1,5 +1,5 @@
 from darcy_wrapper import *
-from darcy_data import *
+from darcy_data_example1_2D import *
 
 
 fun_level_set = USER_FUN_LS(func_level_set)
@@ -17,7 +17,7 @@ for x in range(3):
 
     darcy = Darcy2()
 
-    darcy.build_mesh(nx, nx, 0., 0., 1., 1.)
+    darcy.build_mesh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH)
     darcy.init_space(fun_level_set, 'BDM1')
 
     darcy.add_bulk_integral(fun_div)

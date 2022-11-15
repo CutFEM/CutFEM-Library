@@ -1,14 +1,17 @@
 import numpy
 
+sq_SW = 0. + 1e-10
+sq_LGTH = 1. + 2e-10
+
 
 def func_level_set(P):
     shift = 0.5
-    interfaceRad = 0.250001
+    interfaceRad = 0.25
     return numpy.sqrt((P[0] - shift) * (P[0] - shift) + (P[1] - shift) * (P[1] - shift)) - interfaceRad
 
 
 def func_div(P, c, dom):
-    rad = 0.250001
+    rad = 0.25
     r2 = rad*rad
     return -2./r2 if dom == 0 else -4./r2
 
@@ -18,7 +21,7 @@ def func_phat(P, c, dom):
 
 
 def func_neumann(P, c, dom):
-    rad = 0.250001
+    rad = 0.25
     shift = 0.5
     r2 = (P[0]-shift)*(P[0]-shift) + (P[1]-shift)*(P[1]-shift)
     radius2 = rad*rad
@@ -26,7 +29,7 @@ def func_neumann(P, c, dom):
 
 
 def func_velocity(P, c, dom):
-    rad = 0.250001
+    rad = 0.25
     shift = 0.5
     r2 = (P[0]-shift)*(P[0]-shift) + (P[1]-shift)*(P[1]-shift)
     rad2 = rad*rad
@@ -37,7 +40,7 @@ def func_velocity(P, c, dom):
 
 
 def func_pressure(P, c, dom):
-    rad = 0.250001
+    rad = 0.25
     shift = 0.5
     r2 = (P[0]-shift)*(P[0]-shift) + (P[1]-shift)*(P[1]-shift)
     rad2 = rad*rad

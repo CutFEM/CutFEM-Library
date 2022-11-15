@@ -45,6 +45,9 @@ class ExpressionVirtual;
 template<typename M> class ExpressionFunFEM;
 
 
+
+
+
 template<typename M>
 class FunFEM : public FunFEMVirtual {
 public:
@@ -61,7 +64,7 @@ public:
   TimeSlab const * In = nullptr;
   public :
   FunFEM() : FunFEMVirtual () {}
-  FunFEM(const FESpace& vh) : FunFEMVirtual (vh.NbDoF()),
+  explicit FunFEM(const FESpace& vh) : FunFEMVirtual (vh.NbDoF()),
   Vh(&vh), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){}
   FunFEM(const FESpace& vh, const TimeSlab& in) : FunFEMVirtual (vh.NbDoF()*in.NbDoF()),
   Vh(&vh), In(&in), alloc(true) ,databf(new double[10*vh[0].NbDoF()*vh.N*4]){}
@@ -72,6 +75,9 @@ public:
   alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
   FunFEM(const FESpace& vh, Rn&  u) : FunFEMVirtual (u),
   alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
+  FunFEM(const FESpace& vh, std::vector<double>&  u) : FunFEMVirtual (u.data(), u.size()),
+  alloc(false), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) { }
+  
   template<typename fun_t>
   FunFEM(const FESpace& vh, fun_t f ) :
   FunFEMVirtual (vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10*vh[0].NbDoF()*vh.N*4]) {
@@ -168,9 +174,6 @@ public:
   double& operator()(int i) { return v(i); }
   double operator()(int i) const { return v(i); }
   operator Rn() const {return Rn(v);}
-
-
-  const KN_<double>& getArray() const {return v;}
 
   double eval(const int k, const R* x,            int cu=0, int op=0) const ;
   double eval(const int k, const R* x, const R t, int cu=0, int op=0, int opt=0) const ;

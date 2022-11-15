@@ -274,6 +274,12 @@ public:
   int dfcbegin(int ic) const { return this->tfe->begin_dfcomp[ic];}
   int dfcend(int ic) const { return this->tfe->end_dfcomp[ic];}
 
+
+  // GFElement(GFElement&&) = default;
+  // GFElement& operator=(GFElement&& v) = default;  
+  // GFElement(const GFElement&) = delete;
+  // GFElement& operator=(const GFElement& v) = delete;
+
 };
 
 

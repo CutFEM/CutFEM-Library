@@ -2,8 +2,8 @@
 #include <iostream>
 #include "../util/util.hpp"
 #include "solver.hpp"
-//#include "../parallel/cfmpi.hpp"
-// #include "cutFEMConfig.h"
+// #include "../parallel/cfmpi.hpp"
+//  #include "cutFEMConfig.h"
 #include "../common/SparseMatMap.hpp"
 #ifdef USE_UMFPACK
 #include "umfpack.h"
@@ -19,78 +19,72 @@
 #endif
 // #include "../num/matlab.hpp"
 
+void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 
+   double tsolver = this->get_Time();
+   if (solver_name_ == "mumps") {
+#ifdef USE_MUMPS
+      MUMPS(*this, A, b);
+#else
+#ifdef USE_UMFPACK
+      solver::umfpack(A, b, clearMatrix_);
+#else
+      // assert(0);
+#endif
+#endif
+   } else if (solver_name_ == "umfpack") {
+      if (verbose_ > 1)
+         std::cout << " solve using umfpack" << std::endl;
+#ifdef USE_UMFPACK
+      solver::umfpack(A, b, clearMatrix_);
+#else
+         // assert(0);
+#endif
+   } else {
+      // assert(0);
+   }
+   // solver::umfpack(A,b);
 
+   tsolver = this->get_Time() - tsolver;
 
-
-void Solver::solve(std::map<std::pair<int,int>,R> & A, Rn & b) {
-
-  double tsolver = this->get_Time();
-  if(solver_name_ == "mumps"){
-    #ifdef USE_MUMPS
-    MUMPS(*this, A, b);
-    #else
-    #ifdef USE_UMFPACK
-    solver::umfpack(A,b,clearMatrix_);
-    #else
-    assert(0);
-    #endif
-    #endif
-  }
-  else if(solver_name_ == "umfpack"){
-    if(verbose_>1)std::cout << " solve using umfpack" << std::endl;
-    #ifdef USE_UMFPACK
-    solver::umfpack(A,b,clearMatrix_);
-    #else
-    assert(0);
-    #endif
-  }
-  else {
-    assert(0);
-  }
-  // solver::umfpack(A,b);
-
-  tsolver = this->get_Time() - tsolver;
-  // if(verbose_ > 0) {
-  //   //std::cout << " Solver is " << solver << std::endl;
-  //   // std::cout << " Time solving Ax=b : \t" << tsolver << std::endl;
-  // }
-
+   if (this->verbose_ > 0)
+      std::cout << " Real Time Solver \t \t " << tsolver << std::endl;
 }
 
 namespace solver {
-  #ifdef USE_UMFPACK
-   void umfpack(std::map<std::pair<int,int>,R> & Amap, Rn & b, bool clearMatrix) {
-     const int n = b.size();
-     KN<double> x(n);
-     SparseMatrixRC<double> A(n, n, Amap);
-     if(clearMatrix) Amap.clear();
-     void *Symbolic, *Numeric ;
-     (void) umfpack_di_symbolic (n, n, A.p, A.j, A.a, &Symbolic, 0, 0) ;
-     (void) umfpack_di_numeric (A.p, A.j, A.a, Symbolic, &Numeric, 0, 0) ;
-     umfpack_di_free_symbolic (&Symbolic) ;
-     (void) umfpack_di_solve (UMFPACK_At,A.p, A.j, A.a, x, b, Numeric, 0, 0) ;
-     umfpack_di_free_numeric (&Numeric) ;
-     b = x;
-   }
+#ifdef USE_UMFPACK
+void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
+   const int n = b.size();
+   KN<double> x(n);
+   SparseMatrixRC<double> A(n, n, Amap);
+   if (clearMatrix)
+      Amap.clear();
+   void *Symbolic, *Numeric;
+   (void)umfpack_di_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
+   (void)umfpack_di_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
+   umfpack_di_free_symbolic(&Symbolic);
+   (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x, b, Numeric, 0, 0);
+   umfpack_di_free_numeric(&Numeric);
+   b = x;
+}
 #endif
 
 #ifdef USE_LAPACK
-  void LAPACK(Rnm & a, Rn & b) {
-    lapack_int n = a.N();
-    lapack_int m = a.M();
-    lapack_int lda = n;
-    lapack_int ldb = 1;
-    lapack_int nrhs = 1;
-    lapack_int info = LAPACKE_dgels(LAPACK_ROW_MAJOR,'N',m,n,1,a,lda,b,ldb);
-  }
+void LAPACK(Rnm &a, Rn &b) {
+   lapack_int n    = a.N();
+   lapack_int m    = a.M();
+   lapack_int lda  = n;
+   lapack_int ldb  = 1;
+   lapack_int nrhs = 1;
+   lapack_int info =
+       LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', m, n, 1, a, lda, b, ldb);
+}
 #endif
 
+} // namespace solver
 
-}
-
-
-//   void MUMPS(std::map<std::pair<int,int>,R> & Amap, Rn & rhs, const int nloc) {
+//   void MUMPS(std::map<std::pair<int,int>,R> & Amap, Rn & rhs, const int nloc)
+//   {
 
 //     NoOrdering mapp;
 //     MUMPS(Amap, rhs, nloc,&mapp);
@@ -106,7 +100,8 @@ namespace solver {
 //     // Symmetry of the matrix
 //     //------------------------------------------------------
 //     mumps_par.sym = 0;
-//     // Type of parallelism (par = 1 : host working - par = 0 : host not working)
+//     // Type of parallelism (par = 1 : host working - par = 0 : host not
+//     working)
 //     // -----------------------------------------------------
 //     mumps_par.par = 1;
 
@@ -157,7 +152,6 @@ namespace solver {
 //     }
 //     mumps_par.nz_loc = nz_loc;
 
-
 //     // Construction of the local matrices for MUMPS
 //     //-------------------------------------------------------
 //     KN<int> IRN_loc(mumps_par.nz_loc), JCN_loc(mumps_par.nz_loc);
@@ -181,8 +175,9 @@ namespace solver {
 //     // The full rhs is saved on the root.
 //     // the rhs will also be used to save the solution
 //     //-------------------------------------------------------
-//     Rn rhs_sum(ndof_glob*(MPIcf::IamMaster()));                     // alloc mem for global rhs
-//     MPIcf::Reduce(rhs, rhs_sum , MPI_SUM, MPIcf::Master());
+//     Rn rhs_sum(ndof_glob*(MPIcf::IamMaster()));                     // alloc
+//     mem for global rhs MPIcf::Reduce(rhs, rhs_sum , MPI_SUM,
+//     MPIcf::Master());
 
 //     Rn rhsMapp;
 
@@ -202,15 +197,10 @@ namespace solver {
 //     R ta1 = MPI_Wtime();
 //     ierr = mumps_par.INFO(1);
 //     if(ierr != 0) {
-//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr << std::endl;
-//       std::cout <<mumps_par.INFO(2)  << std::endl;
-//       std::cout <<mumps_par.ICNTL(2) << std::endl;
-//       MPIcf::Barrier();
-//       assert(0);
+//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr <<
+//       std::endl; std::cout <<mumps_par.INFO(2)  << std::endl; std::cout
+//       <<mumps_par.ICNTL(2) << std::endl; MPIcf::Barrier(); assert(0);
 //     }
-
-
-
 
 //     // Factorization phase
 //     //-------------------------------------------------------
@@ -221,11 +211,9 @@ namespace solver {
 //     ierr = mumps_par.INFO(1);
 
 //     if(ierr != 0) {
-//       std::cout << " Error in factorization phase of MUMPS : ierr = " << ierr << std::endl;
-//       MPIcf::Barrier();
-//       assert(0);
+//       std::cout << " Error in factorization phase of MUMPS : ierr = " << ierr
+//       << std::endl; MPIcf::Barrier(); assert(0);
 //     }
-
 
 //     // Solving phase
 //     //--------------------------------------------------------
@@ -236,9 +224,8 @@ namespace solver {
 
 //     ierr = mumps_par.INFO(1);
 //     if(ierr != 0) {
-//       std::cout << " Error in solving phase of MUMPS : ierr = " << ierr << std::endl;
-//       MPIcf::Barrier();
-//       assert(0);
+//       std::cout << " Error in solving phase of MUMPS : ierr = " << ierr <<
+//       std::endl; MPIcf::Barrier(); assert(0);
 //     }
 
 //     // Distribution of the DOFs of the solution on each processor
@@ -270,36 +257,29 @@ namespace solver {
 //     szlumx = int((szlumx*8.0)/(1024.0*1024.0));
 
 //     R ratio = ((R)(mumps_par.nz/mumps_par.n)/mumps_par.n)*100.0;
-//     std::cout << " -------------------------------------------------------- \n";
-//     std::cout << "                MUMPS DIRECT SOLVER               " << std::endl;
-//     std::cout << " -------------------------------------------------------- \n";
-//     std::cout <<" STATISTICS OF THE GLOBAL MATRIX " << std::endl;
-//     std::cout << " Matrix order                         " << mumps_par.n << std::endl;
-//     std::cout << " Number of non-zero entries           " << mumps_par.nz << std::endl;
-//     std::cout << " Fill-in ratio percentage             " << ratio << std::endl;
-//     std::cout << "\n STATISTICS OF THE LU FACTORIZATION " << std::endl;
-//     std::cout << " Number of entries in the factors     " << mumps_par.infog[19] << std::endl;
-//     std::cout << "\n Storage of the factors " << std::endl;
-//     std::cout << " Minimum memory                       " << szlumn << std::endl;
-//     std::cout << " Maximum memory                       " << szlumx << std::endl;
-//     std::cout << "\n Working memory for factorization   " << std::endl;
-//     std::cout << " Minimum memory                       " << szwkmn << std::endl;
-//     std::cout << " Maximum memory                       " << szwkmx << std::endl;
-//     std::cout << std::endl;
-//     std::cout << " Time of analysis phase               " << ta1 - ta0 << std::endl;
-//     std::cout << " Time of factorization phase          " << tf1 - tf0 << std::endl;
-//     std::cout << " Time for solving                     " << ts1 - ts0 << std::endl << std::endl;
+//     std::cout << " --------------------------------------------------------
+//     \n"; std::cout << "                MUMPS DIRECT SOLVER               " <<
+//     std::endl; std::cout << "
+//     -------------------------------------------------------- \n"; std::cout
+//     <<" STATISTICS OF THE GLOBAL MATRIX " << std::endl; std::cout << " Matrix
+//     order                         " << mumps_par.n << std::endl; std::cout <<
+//     " Number of non-zero entries           " << mumps_par.nz << std::endl;
+//     std::cout << " Fill-in ratio percentage             " << ratio <<
+//     std::endl; std::cout << "\n STATISTICS OF THE LU FACTORIZATION " <<
+//     std::endl; std::cout << " Number of entries in the factors     " <<
+//     mumps_par.infog[19] << std::endl; std::cout << "\n Storage of the factors
+//     " << std::endl; std::cout << " Minimum memory                       " <<
+//     szlumn << std::endl; std::cout << " Maximum memory " << szlumx <<
+//     std::endl; std::cout << "\n Working memory for factorization   " <<
+//     std::endl; std::cout << " Minimum memory                       " <<
+//     szwkmn << std::endl; std::cout << " Maximum memory " << szwkmx <<
+//     std::endl; std::cout << std::endl; std::cout << " Time of analysis phase
+//     " << ta1 - ta0 << std::endl; std::cout << " Time of factorization phase
+//     " << tf1 - tf0 << std::endl; std::cout << " Time for solving " << ts1 -
+//     ts0 << std::endl << std::endl;
 //   }
 
-
-
 //   }
-
-
-
-
-
-
 
 //   void MUMPS(std::map<std::pair<int,int>,R> & Amap, Rn & rhs) {
 
@@ -308,12 +288,12 @@ namespace solver {
 
 //   }
 
-//   void MUMPS(std::map<std::pair<int,int>,R> & Amap, Rn & rhs, const MatrixOrdering * mapp) {
+//   void MUMPS(std::map<std::pair<int,int>,R> & Amap, Rn & rhs, const
+//   MatrixOrdering * mapp) {
 
 //     // MPIcf cfMPI;
 
 //     // MPI_Init(nullptr, nullptr);                    // initialize MPI
-
 
 //     DMUMPS_STRUC_C mumps_par;
 //     // Definition of the MPI communicator for MUMPS
@@ -322,7 +302,8 @@ namespace solver {
 //     // Symmetry of the matrix
 //     //------------------------------------------------------
 //     mumps_par.sym = 0;
-//     // Type of parallelism (par = 1 : host working - par = 0 : host not working)
+//     // Type of parallelism (par = 1 : host working - par = 0 : host not
+//     working)
 //     // -----------------------------------------------------
 //     mumps_par.par = 1;
 
@@ -369,7 +350,6 @@ namespace solver {
 //     mumps_par.nz = nz_glob;
 //     // mumps_par.nz_loc = nz_loc;
 
-
 //     // Construction of the local matrices for MUMPS
 //     //-------------------------------------------------------
 //     // KN<int> IRN_loc(mumps_par.nz_loc), JCN_loc(mumps_par.nz_loc);
@@ -413,15 +393,12 @@ namespace solver {
 //     R ta1 = MPI_Wtime();
 //     ierr = mumps_par.INFO(1);
 //     if(ierr != 0) {
-//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr << std::endl;
-//       std::cout <<mumps_par.INFO(2)  << std::endl;
-//       std::cout <<mumps_par.ICNTL(2) << std::endl;
+//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr <<
+//       std::endl; std::cout <<mumps_par.INFO(2)  << std::endl; std::cout
+//       <<mumps_par.ICNTL(2) << std::endl;
 //       // MPIcf::Barrier();
 //       assert(0);
 //     }
-
-
-
 
 //     // Factorization phase
 //     //-------------------------------------------------------
@@ -432,11 +409,11 @@ namespace solver {
 //     ierr = mumps_par.INFO(1);
 
 //     if(ierr != 0) {
-//       std::cout << " Error in factorization phase of MUMPS : ierr = " << ierr << std::endl;
+//       std::cout << " Error in factorization phase of MUMPS : ierr = " << ierr
+//       << std::endl;
 //       // MPIcf::Barrier();
 //       assert(0);
 //     }
-
 
 //     // Solving phase
 //     //--------------------------------------------------------
@@ -447,17 +424,16 @@ namespace solver {
 
 //     ierr = mumps_par.INFO(1);
 //     if(ierr != 0) {
-//       std::cout << " Error in solving phase of MUMPS : ierr = " << ierr << std::endl;
+//       std::cout << " Error in solving phase of MUMPS : ierr = " << ierr <<
+//       std::endl;
 //       // MPIcf::Barrier();
 //       assert(0);
 //     }
-
 
 //     // Terminate instance
 //     //--------------------------------------------------------
 //     mumps_par.job=JOB_END;
 //     dmumps_c(&mumps_par);
-
 
 //   // Get information about the resolution of the linear system
 //   // 9 : Size of the space used to store the factor matrices.
@@ -477,211 +453,215 @@ namespace solver {
 //       // 	szlumx = int((szlumx*8.0)/(1024.0*1024.0));
 
 //       // 	R ratio = ((R)(mumps_par.nz/mumps_par.n)/mumps_par.n)*100.0;
-//       // 	std::cout << " -------------------------------------------------------- \n";
-//       // 	std::cout << "                MUMPS DIRECT SOLVER               " << std::endl;
-//       // 	std::cout << " -------------------------------------------------------- \n";
+//       // 	std::cout << "
+//       -------------------------------------------------------- \n";
+//       // 	std::cout << "                MUMPS DIRECT SOLVER " <<
+//       std::endl;
+//       // 	std::cout << "
+//       -------------------------------------------------------- \n";
 //       // 	std::cout <<" STATISTICS OF THE GLOBAL MATRIX " << std::endl;
-//       // 	std::cout << " Matrix order                         " << mumps_par.n << std::endl;
-//       // 	std::cout << " Number of non-zero entries           " << mumps_par.nz << std::endl;
-//       // 	std::cout << " Fill-in ratio percentage             " << ratio << std::endl;
-//       // 	std::cout << "\n STATISTICS OF THE LU FACTORIZATION " << std::endl;
-//       // 	std::cout << " Number of entries in the factors     " << mumps_par.infog[19] << std::endl;
+//       // 	std::cout << " Matrix order                         " <<
+//       mumps_par.n << std::endl;
+//       // 	std::cout << " Number of non-zero entries           " <<
+//       mumps_par.nz << std::endl;
+//       // 	std::cout << " Fill-in ratio percentage             " << ratio
+//       << std::endl;
+//       // 	std::cout << "\n STATISTICS OF THE LU FACTORIZATION " <<
+//       std::endl;
+//       // 	std::cout << " Number of entries in the factors     " <<
+//       mumps_par.infog[19] << std::endl;
 //       // 	std::cout << "\n Storage of the factors " << std::endl;
-//       // 	std::cout << " Memory                       " << szlu << std::endl;
-//       // 	std::cout << "\n Working memory for factorization   " << std::endl;
-//       // 	std::cout << " Memory                       " << szwk << std::endl;
+//       // 	std::cout << " Memory                       " << szlu <<
+//       std::endl;
+//       // 	std::cout << "\n Working memory for factorization   " <<
+//       std::endl;
+//       // 	std::cout << " Memory                       " << szwk <<
+//       std::endl;
 //       // 	std::cout << std::endl;
-//       // 	std::cout << " Time of analysis phase               " << ta1 - ta0 << std::endl;
-//       // 	std::cout << " Time of factorization phase          " << tf1 - tf0 << std::endl;
-//       // 	std::cout << " Time for solving                     " << ts1 - ts0 << std::endl << std::endl;
+//       // 	std::cout << " Time of analysis phase               " << ta1 -
+//       ta0 << std::endl;
+//       // 	std::cout << " Time of factorization phase          " << tf1 -
+//       tf0 << std::endl;
+//       // 	std::cout << " Time for solving                     " << ts1 -
+//       ts0 << std::endl << std::endl;
 //       // }
 //       // MPI_Finalize();
 
 //   }
 
+//  void PETSC_Sequential(std::map<std::pair<int,int>,R> & Amap, Rn & rhs) {
 
+//    int argc = 0;
+//    char ** argv = NULL;
+//    PetscInitialize(&argc, &argv, NULL, NULL);             // initialize PETSC
 
+//    Vec            x, b, D;         /* approx solution, RHS */
+//    Mat            A, M;            /* linear system matrix */
+//    KSP            solver;       /* linear solver context */
+//    PC             pc;           /* preconditioner context */
 
- //  void PETSC_Sequential(std::map<std::pair<int,int>,R> & Amap, Rn & rhs) {
+//    const int size = rhs.size();
 
- //    int argc = 0;
- //    char ** argv = NULL;
- //    PetscInitialize(&argc, &argv, NULL, NULL);             // initialize PETSC
+//  /*
+//    Create vectors.  Note that we form 1 vector from scratch and
+//    then duplicate as needed.
+//  */
 
+//    VecCreateSeq(PETSC_COMM_WORLD, size, &x);
+//    VecDuplicate(x,&b);
 
+//    /*
+//      Assemble rhs
+//    */
+//    for(int i = 0; i < rhs.size(); ++i)
+//      VecSetValues(b, 1, &i, &rhs(i), INSERT_VALUES);
 
+//    VecAssemblyBegin(b);
+//    VecAssemblyEnd(b);
 
+//    MatCreate(PETSC_COMM_WORLD, &A);
+//    MatSetSizes(A,size,size,size,size);
+//    MatSetFromOptions(A);
+//    MatSetUp(A);
 
- //    Vec            x, b, D;         /* approx solution, RHS */
- //    Mat            A, M;            /* linear system matrix */
- //    KSP            solver;       /* linear solver context */
- //    PC             pc;           /* preconditioner context */
+//    /*
+//      Assemble matrix from map
+//    */
+//    const long nbcoef = Amap.size();
 
- //    const int size = rhs.size();
+//    int* Iv = new int[size+1];
+//    int* Jv = new int[nbcoef];
+//    R* a = new R[nbcoef];
+//    int* nnz = new int[size];
+//    R cmm=0;
 
- //  /*
- //    Create vectors.  Note that we form 1 vector from scratch and
- //    then duplicate as needed.
- //  */
+//    int k=0;
+//    for(int i=0;i<=size;++i) Iv[i]=0;        // pour les lignes vide
+//    for (typename std::map<std::pair<int,int>,R>::const_iterator
+//    q=Amap.begin();
+// 	 q != Amap.end(); ++q, ++k)
+//      {
+// 	int i = q->first.first;
+// 	Iv[i+1] = k+1;
+// 	Jv[k]   = q->first.second;
+// 	a[k]   = q->second;
+// 	cmm = std::max(cmm , a[k]);
+//      }
+//    Amap.clear();
+//    for(int i = 1; i <=size; ++i)  Iv[i] = std::max(Iv[i-1],Iv[i]);      //
+//    pour les lignes vides for(int i = 0; i < size; ++i)  nnz[i] = Iv[i+1] -
+//    Iv[i];             // nonzeros per row
 
- //    VecCreateSeq(PETSC_COMM_WORLD, size, &x);
- //    VecDuplicate(x,&b);
+//    assert(k==nbcoef);
 
+//    MatSeqAIJSetPreallocationCSR(A,Iv,Jv,a);
 
- //    /*
- //      Assemble rhs
- //    */
- //    for(int i = 0; i < rhs.size(); ++i)
- //      VecSetValues(b, 1, &i, &rhs(i), INSERT_VALUES);
+//    MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+//    MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
 
- //    VecAssemblyBegin(b);
- //    VecAssemblyEnd(b);
+//    /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//       Create the linear solver and set various options
+//       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+//    KSPCreate(PETSC_COMM_WORLD,&solver);
 
+//    /*
+//      Set operators. Here the matrix that defines the linear system
+//      also serves as the preconditioning matrix.
+//    */
+//    KSPSetOperators(solver,A,A);
 
- //    MatCreate(PETSC_COMM_WORLD, &A);
- //    MatSetSizes(A,size,size,size,size);
- //    MatSetFromOptions(A);
- //    MatSetUp(A);
+//    //
+//    KSPSetTolerances(solver,1.e-10,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT);
 
+//    // KSPSetType(solver,KSPGMRES);
+//    KSPSetType(solver,KSPBCGSL);
+//    //KSPSetType(solver,KSPCG);
+//    KSPSetInitialGuessNonzero(solver,PETSC_TRUE);
+// /*
+// 78:    * ILU preconditioner;
+// 79:    * this will break down unless you add the Shift line,
+// 80:    * or use the -pc_factor_shift_positive_definite option */
+//    KSPGetPC(solver,&pc);
+//    PCSetType(pc,PCILU);
+//    PCFactorSetShiftType(pc,MAT_SHIFT_POSITIVE_DEFINITE);
 
- //    /*
- //      Assemble matrix from map
- //    */
- //    const long nbcoef = Amap.size();
+//    KSPSetFromOptions(solver);
+//    KSPSetUp(solver);
 
- //    int* Iv = new int[size+1];
- //    int* Jv = new int[nbcoef];
- //    R* a = new R[nbcoef];
- //    int* nnz = new int[size];
- //    R cmm=0;
+//   /*
+// 89:    * Now that the factorisation is done, show the pivots;
+// 90:    * note that the last one is negative. This in itself is not an error,
+// 91:    * but it will make the iterative method diverge.
+// 92:    */
+//    PCFactorGetMatrix(pc,&M);
+//    VecDuplicate(b,&D);
+//    MatGetDiagonal(M,D);
 
- //    int k=0;
- //    for(int i=0;i<=size;++i) Iv[i]=0;        // pour les lignes vide
- //    for (typename std::map<std::pair<int,int>,R>::const_iterator q=Amap.begin();
- // 	 q != Amap.end(); ++q, ++k)
- //      {
- // 	int i = q->first.first;
- // 	Iv[i+1] = k+1;
- // 	Jv[k]   = q->first.second;
- // 	a[k]   = q->second;
- // 	cmm = std::max(cmm , a[k]);
- //      }
- //    Amap.clear();
- //    for(int i = 1; i <=size; ++i)  Iv[i] = std::max(Iv[i-1],Iv[i]);      // pour les lignes vides
- //    for(int i = 0; i < size; ++i)  nnz[i] = Iv[i+1] - Iv[i];             // nonzeros per row
+//    /*
+//      Solve linear system
+//    */
+//    // KSPSetFromOptions(solver);
 
- //    assert(k==nbcoef);
+//    KSPSolve(solver,b,x);
 
- //    MatSeqAIJSetPreallocationCSR(A,Iv,Jv,a);
+//    PetscInt           its;
+//    KSPConvergedReason reason;
+//    KSPGetConvergedReason(solver,&reason);
+//    if (reason==KSP_DIVERGED_INDEFINITE_PC) {
+//      PetscPrintf(PETSC_COMM_WORLD,"\nDivergence because of indefinite
+//      preconditioner;\n"); PetscPrintf(PETSC_COMM_WORLD,"Run the executable
+//      again but with '-pc_factor_shift_type POSITIVE_DEFINITE' option.\n");
+//    } else if (reason<0) {
+//      PetscPrintf(PETSC_COMM_WORLD,"\nOther kind of divergence: this should
+//      not happen.\n");
+//    } else {
+//      KSPGetIterationNumber(solver,&its);
+//      PetscPrintf(PETSC_COMM_WORLD," Iterations %D\n",its);
+//    }
+//    // std::cout << " KSP solver()" << std::endl;
+//    // KSPSolve(solver,b,x);
+//    // PetscReal      normm;
+//    // Vec u;
+//    // VecDuplicate(x,&u);
+//    // MatMult(A,x,u);
+//    // VecAXPY(b,-1.0,u);
+//    // VecNorm(u,NORM_2,&normm);
 
- //    MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
- //    MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+//    // // R t3 = MPIcf::Wtime();
+//    // // std::cout << " Time PETSC solver \t" << t3 - t2 << std::endl;
+//    // PetscInt its;
+//    // KSPGetIterationNumber(solver,&its);
+//    // // PetscPrintf(PETSC_COMM_WORLD,"iterations %D\n",its);
+//    // PetscPrintf(PETSC_COMM_WORLD,"Norm of error %g iterations
+//    %D\n",(double)normm,its);
 
+//    // KSPView(solver,PETSC_VIEWER_STDOUT_WORLD);
 
- //    /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- //       Create the linear solver and set various options
- //       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
- //    KSPCreate(PETSC_COMM_WORLD,&solver);
+//    // getchar();
+//    for(int i = 0; i < rhs.size(); ++i)
+//      VecGetValues(x, 1, &i, &rhs(i));
 
- //    /*
- //      Set operators. Here the matrix that defines the linear system
- //      also serves as the preconditioning matrix.
- //    */
- //    KSPSetOperators(solver,A,A);
+//   VecDestroy(&D);
 
- //    // KSPSetTolerances(solver,1.e-10,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT);
+//    VecDestroy(&x);
+//    VecDestroy(&b);
+//    MatDestroy(&A);
+//    KSPDestroy(&solver);
 
- //    // KSPSetType(solver,KSPGMRES);
- //    KSPSetType(solver,KSPBCGSL);
- //    //KSPSetType(solver,KSPCG);
- //    KSPSetInitialGuessNonzero(solver,PETSC_TRUE);
- // /*
- // 78:    * ILU preconditioner;
- // 79:    * this will break down unless you add the Shift line,
- // 80:    * or use the -pc_factor_shift_positive_definite option */
- //    KSPGetPC(solver,&pc);
- //    PCSetType(pc,PCILU);
- //    PCFactorSetShiftType(pc,MAT_SHIFT_POSITIVE_DEFINITE);
+//    delete[] Iv;
+//    delete[] Jv;
+//    delete[] a;
+//    delete[] nnz;
 
- //    KSPSetFromOptions(solver);
- //    KSPSetUp(solver);
-
- //   /*
- // 89:    * Now that the factorisation is done, show the pivots;
- // 90:    * note that the last one is negative. This in itself is not an error,
- // 91:    * but it will make the iterative method diverge.
- // 92:    */
- //    PCFactorGetMatrix(pc,&M);
- //    VecDuplicate(b,&D);
- //    MatGetDiagonal(M,D);
-
-
- //    /*
- //      Solve linear system
- //    */
- //    // KSPSetFromOptions(solver);
-
- //    KSPSolve(solver,b,x);
-
- //    PetscInt           its;
- //    KSPConvergedReason reason;
- //    KSPGetConvergedReason(solver,&reason);
- //    if (reason==KSP_DIVERGED_INDEFINITE_PC) {
- //      PetscPrintf(PETSC_COMM_WORLD,"\nDivergence because of indefinite preconditioner;\n");
- //      PetscPrintf(PETSC_COMM_WORLD,"Run the executable again but with '-pc_factor_shift_type POSITIVE_DEFINITE' option.\n");
- //    } else if (reason<0) {
- //      PetscPrintf(PETSC_COMM_WORLD,"\nOther kind of divergence: this should not happen.\n");
- //    } else {
- //      KSPGetIterationNumber(solver,&its);
- //      PetscPrintf(PETSC_COMM_WORLD," Iterations %D\n",its);
- //    }
- //    // std::cout << " KSP solver()" << std::endl;
- //    // KSPSolve(solver,b,x);
- //    // PetscReal      normm;
- //    // Vec u;
- //    // VecDuplicate(x,&u);
- //    // MatMult(A,x,u);
- //    // VecAXPY(b,-1.0,u);
- //    // VecNorm(u,NORM_2,&normm);
-
- //    // // R t3 = MPIcf::Wtime();
- //    // // std::cout << " Time PETSC solver \t" << t3 - t2 << std::endl;
- //    // PetscInt its;
- //    // KSPGetIterationNumber(solver,&its);
- //    // // PetscPrintf(PETSC_COMM_WORLD,"iterations %D\n",its);
- //    // PetscPrintf(PETSC_COMM_WORLD,"Norm of error %g iterations %D\n",(double)normm,its);
-
- //    // KSPView(solver,PETSC_VIEWER_STDOUT_WORLD);
-
- //    // getchar();
- //    for(int i = 0; i < rhs.size(); ++i)
- //      VecGetValues(x, 1, &i, &rhs(i));
-
- //   VecDestroy(&D);
-
- //    VecDestroy(&x);
- //    VecDestroy(&b);
- //    MatDestroy(&A);
- //    KSPDestroy(&solver);
-
- //    delete[] Iv;
- //    delete[] Jv;
- //    delete[] a;
- //    delete[] nnz;
-
- //  }
-
-
+//  }
 
 //   void PETSC_Parallel(std::map<std::pair<int,int>,R> & Amap, Rn & rhs) {
-
 
 //     Vec            x, b;         /* approx solution, RHS */
 //     Mat            A;            /* linear system matrix */
 //     KSP            solver;          /* linear solver context */
 //     MatInfo        matinfo;
 //     PC             pc;           /* preconditioner context */
-
 
 //     /*
 //       Get the rows for each processor
@@ -696,10 +676,8 @@ namespace solver {
 //     // const int Istart   = Iend - sizeLoc ;
 //     // Iend -= 1;
 
-
 //     int Istart, Iend;
 //     int sizeLoc = toolPETSC:: getLocalSize(sizeGlob, Istart, Iend);
-
 
 //     /*
 //       Create vectors.  Note that we form 1 vector from scratch and
@@ -717,8 +695,6 @@ namespace solver {
 //     VecAssemblyBegin(b);
 //     VecAssemblyEnd(b);
 
-
-
 //     /*
 //       Create matrix.  When using MatCreate(), the matrix format can
 //       be specified at runtime.
@@ -734,17 +710,15 @@ namespace solver {
 //     MatSetFromOptions(A);
 //     MatSetUp(A);
 
-
 //     // R t0 = MPIcf::Wtime();
 
 //     toolPETSC::transform2PETSCformat(Amap, Istart, Iend);
 
-
 //     // R t1 = MPIcf::Wtime();
-//     // std::cout << " Time transform matrix to PETSC format \t" << t1 - t0 << std::endl;
+//     // std::cout << " Time transform matrix to PETSC format \t" << t1 - t0 <<
+//     std::endl;
 
 //     for(int i=Istart;i<=Iend;++i) Amap[std::make_pair(i,i)] += 0;
-
 
 //   /*
 //     Assemble matrix from map
@@ -766,7 +740,8 @@ namespace solver {
 //     for(int i=0;i<n;++i) d_nnz[i]=0;        // pour les lignes vide
 //     for(int i=0;i<n;++i) o_nnz[i]=0;        // pour les lignes vide
 
-//     for (typename std::map<std::pair<int,int>,R>::const_iterator q=Amap.begin();
+//     for (typename std::map<std::pair<int,int>,R>::const_iterator
+//     q=Amap.begin();
 // 	 q != Amap.end(); ++q, ++k)
 //     {
 //       const int i = q->first.first;
@@ -785,20 +760,17 @@ namespace solver {
 //     }
 //     Amap.clear();
 
-
-//     for(int i = 1; i<=n; ++i)  Iv[i] = std::max(Iv[i-1],Iv[i]);  // pour les lignes vides
+//     for(int i = 1; i<=n; ++i)  Iv[i] = std::max(Iv[i-1],Iv[i]);  // pour les
+//     lignes vides
 
 //     assert(k==nbcoef);
 //     MatMPIAIJSetPreallocationCSR(A,Iv,Jv,a);
 //     MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
 //     MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
 
-
-
-
-
 //     // R t2 = MPIcf::Wtime();
-//     // std::cout << " Time assembly Matrix in  PETSC solver \t" << t2 - t1 << std::endl;
+//     // std::cout << " Time assembly Matrix in  PETSC solver \t" << t2 - t1 <<
+//     std::endl;
 
 //     /*
 //       Create linear solver context
@@ -809,14 +781,11 @@ namespace solver {
 
 //     // KSPGetPC(solver,&pc);
 
-
 //     // std::cout << " preconditioner " << std::endl;
 //     // PCSetType(pc,PCJACOBI);
 //     KSPSetTolerances(solver,1.e-10,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT);
 
-
 //     KSPSetFromOptions(solver);
-
 
 //     // std::cout << " here" << std::endl;
 //     // getchar();
@@ -836,19 +805,16 @@ namespace solver {
 //     PetscInt its;
 //     KSPGetIterationNumber(solver,&its);
 //     // PetscPrintf(PETSC_COMM_WORLD,"iterations %D\n",its);
-//     PetscPrintf(PETSC_COMM_WORLD,"Norm of error %g iterations %D\n",(double)normm,its);
-
+//     PetscPrintf(PETSC_COMM_WORLD,"Norm of error %g iterations
+//     %D\n",(double)normm,its);
 
 //     KSPView(solver,PETSC_VIEWER_STDOUT_WORLD);
-
-
 
 //     rhs_sum = 0.0;
 //     for(int i = Istart; i <= Iend; ++i)
 //       VecGetValues(x, 1, &i, &rhs_sum(i));
 
 //     MPIcf::AllReduce(rhs_sum, rhs , MPI_SUM);
-
 
 //     VecDestroy(&x);
 //     VecDestroy(&b);
@@ -861,8 +827,6 @@ namespace solver {
 
 //   }
 
-
-
 //   void PETSC(std::map<std::pair<int,int>,R> & Amap, Rn & b) {
 
 //     // if(MPIcf::size() < 2)
@@ -872,10 +836,7 @@ namespace solver {
 
 //   }
 
-
 // }
-
-
 
 // namespace toolPETSC {
 
@@ -894,7 +855,8 @@ namespace solver {
 //     Jv.resize(Amap.size());
 //     a.resize(Amap.size());
 //     int k = 0;
-//     for (typename std::map<std::pair<int,int>,R>::const_iterator q=Amap.begin();
+//     for (typename std::map<std::pair<int,int>,R>::const_iterator
+//     q=Amap.begin();
 // 	 q != Amap.end(); ++q, ++k)
 //       {
 // 	Iv(k) = q->first.first;
@@ -917,9 +879,6 @@ namespace solver {
 //     return sizeLoc;
 //   }
 
-
-
-
 //   void transform2PETSCformat(std::map<std::pair<int,int>,R> & Amap,
 // 			     int Il, int Ie) {
 
@@ -935,7 +894,8 @@ namespace solver {
 
 //     std::map<std::pair<int,int>,R> m[MPIcf::size()];
 
-//     for (typename std::map<std::pair<int,int>,R>::const_iterator q=Amap.begin();
+//     for (typename std::map<std::pair<int,int>,R>::const_iterator
+//     q=Amap.begin();
 // 	 q != Amap.end(); ++q)
 //     {
 //       const int i = q->first.first;
@@ -948,9 +908,6 @@ namespace solver {
 
 //     KN<int> nRecv(MPIcf::size()), nSend(MPIcf::size()); nRecv = 0;
 //     for(int i=0;i<MPIcf::size();++i) nSend[i] = m[i].size();
-
-
-
 
 //     for(int i=0;i<MPIcf::size();++i) {
 //       MPI_Scatter(nSend, 1, MPI_INT, &nRecv(i),1,MPI_INT, i, MPI_COMM_WORLD);
@@ -977,25 +934,24 @@ namespace solver {
 //     MPI_Request request_sendJv[MPIcf::size()];
 //     MPI_Request request_sendA[MPIcf::size()];
 
-
 //     for(int iproc=0; iproc<MPIcf::size(); ++iproc) {
 
 //       if(iproc == MPIcf::my_rank()) continue;
 
-//       MPI_Isend(Iv[iproc], nSend[iproc], MPI_INT, iproc, MPIcf::my_rank(), MPI_COMM_WORLD,
-//       		&request_send[iproc]);
-//       MPI_Irecv(IvRecv[iproc], nRecv[iproc], MPI_INT, iproc, iproc, MPI_COMM_WORLD,
-//       		&request_recv[iproc]);
+//       MPI_Isend(Iv[iproc], nSend[iproc], MPI_INT, iproc, MPIcf::my_rank(),
+//       MPI_COMM_WORLD, 		&request_send[iproc]);
+//       MPI_Irecv(IvRecv[iproc], nRecv[iproc], MPI_INT, iproc, iproc,
+//       MPI_COMM_WORLD, 		&request_recv[iproc]);
 
-//       MPI_Isend(Jv[iproc], nSend[iproc], MPI_INT, iproc, MPIcf::my_rank() + 10, MPI_COMM_WORLD,
-//       		&request_sendJv[iproc]);
-//       MPI_Irecv(JvRecv[iproc], nRecv[iproc], MPI_INT, iproc, iproc + 10, MPI_COMM_WORLD,
-//       		&request_recvJv[iproc]);
+//       MPI_Isend(Jv[iproc], nSend[iproc], MPI_INT, iproc, MPIcf::my_rank() +
+//       10, MPI_COMM_WORLD, 		&request_sendJv[iproc]);
+//       MPI_Irecv(JvRecv[iproc], nRecv[iproc], MPI_INT, iproc, iproc + 10,
+//       MPI_COMM_WORLD, 		&request_recvJv[iproc]);
 
-//       MPI_Isend(a[iproc], nSend[iproc], MPI_DOUBLE, iproc, MPIcf::my_rank() + 20, MPI_COMM_WORLD,
-//       		&request_sendA[iproc]);
-//       MPI_Irecv(aRecv[iproc], nRecv[iproc], MPI_DOUBLE, iproc, iproc + 20, MPI_COMM_WORLD,
-//       		&request_recvA[iproc]);
+//       MPI_Isend(a[iproc], nSend[iproc], MPI_DOUBLE, iproc, MPIcf::my_rank() +
+//       20, MPI_COMM_WORLD, 		&request_sendA[iproc]);
+//       MPI_Irecv(aRecv[iproc], nRecv[iproc], MPI_DOUBLE, iproc, iproc + 20,
+//       MPI_COMM_WORLD, 		&request_recvA[iproc]);
 
 //     }
 
@@ -1008,10 +964,7 @@ namespace solver {
 //       MPI_Wait(&request_recvA[iproc], &status);
 //       MPI_Wait(&request_sendA[iproc], &status);
 
-
 //     }
-
-
 
 //     for(int iproc=0; iproc<MPIcf::size(); ++iproc) {
 
@@ -1029,8 +982,6 @@ namespace solver {
 
 //     }
 
-
 //   }
 
-
- // }
+// }

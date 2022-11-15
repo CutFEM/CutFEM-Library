@@ -31,7 +31,10 @@ else()
   if(USE_MPI)
     message("Not Found MUMPS")
   elseif(MUMPS_LIBRARIES)
-    message("Found MUMPS but need set USE_MPI")
+    include_directories(${MUMPS_INCLUDES})
+    list(APPEND LINK_LIBRARY ${MUMPS_LIBRARIES})
+    option(USE_MUMPS "Found the mumps library" ON)
+    message("Found seq MUMPS")
   else()
     message("Not Found MUMPS")
   endif()
@@ -40,14 +43,14 @@ endif()
 configure_file(../cutFEMConfig.in ../cutFEMConfig.h)
 
 set(SOLVER_SOURCES
-  solver.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/solver.cpp
 )
 
 if(USE_MUMPS AND USE_MPI)
-list(APPEND  SOLVER_SOURCES solverMumpsMPI.cpp)
+list(APPEND  SOLVER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/solverMumpsMPI.cpp)
 list(APPEND LINK_LIBRARY parallel)
-#else()
-#list(APPEND  SOLVER_SOURCES solverMumps.cpp)
+elseif(USE_MUMPS)
+list(APPEND  SOLVER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/solverMumps.cpp)
 endif()
 
 add_library(solver SHARED ${SOLVER_SOURCES})

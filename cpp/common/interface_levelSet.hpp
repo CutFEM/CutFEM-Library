@@ -28,7 +28,7 @@ public:
   // InterfaceLevelSet(const Mesh & MM, const FunFEM<Mesh>& lss, int label = 0)
   InterfaceLevelSet(const Mesh & MM, const FunFEMVirtual& lss, int label = 0)
 
-  : Interface<M>(MM) , ls_(lss.v)//, fun(lss)
+  : Interface<M>(MM) , ls_(lss.getArray())//, fun(lss)
   {
     make_patch(ls_, label);
   }

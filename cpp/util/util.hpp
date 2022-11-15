@@ -221,7 +221,7 @@ public:
         it=0; prg=0;
         verbose=v;
 
-        if (verbose>0){
+        if (verbose>1){
             std::cout << "\r";
             std::cout << title << ": \t";
             std::cout << 0 << "%";
@@ -234,7 +234,7 @@ public:
     void operator++(int n){
         it++;
 
-        if( int(it*100./length)>prg & verbose>0){
+        if( int(it*100./length)>prg & verbose>1){
             prg=int(it*100./length);
             std::cout << "\r";
             std::cout << title << ": \t";
@@ -246,7 +246,7 @@ public:
     void operator+=(int n){
         it+=n;
 
-        if( int(it*100./length)>prg & verbose>0){
+        if( int(it*100./length)>prg & verbose>1){
             prg=int(it*100./length);
             std::cout << "\r";
             std::cout << title << ": \t";
@@ -259,7 +259,7 @@ public:
     void end(){
         t0 = clock()-t0;
         time_t now; time(&now);
-        if (verbose>0){
+        if (verbose>1){
             std::cout << "\r";
             std::cout << title << ": \t";
             std::cout << ((float)t0)/CLOCKS_PER_SEC << " sec." << std::endl;

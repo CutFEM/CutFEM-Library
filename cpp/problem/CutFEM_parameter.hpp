@@ -59,9 +59,11 @@ public:
   }
 
   double evaluate(int domain, double h, double meas, double measK, double meas_Cut) const {
+    // if(domain == -1) domain = 0;
     assert(domain >=0 && domain< val_.size());
     return val_[domain];
   }
+
   double operator() (int i) const {return val_[i];}
 
 private:

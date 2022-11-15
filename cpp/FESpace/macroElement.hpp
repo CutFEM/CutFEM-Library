@@ -3,7 +3,7 @@
 
 #include "../common/base_interface.hpp"
 #include "../common/cut_mesh.hpp"
-// #include "CutFESpace.hpp"
+#include "../common/global.hpp"
 #include<set>
 
 class Extension;
@@ -150,10 +150,14 @@ MacroElement<Mesh>::MacroElement(const ActiveMesh<Mesh>& th, const double C) : T
   nb_element_1 = 0;
   tol = C  * meas;
 
-  // std::cout << "constant \t" << C << "\t tolerance \t" << tol << std::endl;
   findSmallElement();
-  std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
-  std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
+  if (globalVariable::verbose > 0)
+  {
+    std::cout << " ---  INFO MACRO ELEMENT  --- " << std::endl;
+    std::cout << " Tolerance small element  :\t" << tol << std::endl;
+    std::cout << " Small element in Omega 1 :\t" << nb_element_0 << std::endl;
+    std::cout << " Small element in Omega 2 :\t" << nb_element_1 << std::endl;
+  }
   createMacroElement();
   // createMacroElementInside();
 }

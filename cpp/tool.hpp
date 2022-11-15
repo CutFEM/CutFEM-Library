@@ -1,10 +1,10 @@
 #ifdef USE_MPI
-#  include "cfmpi.hpp"
+#include "cfmpi.hpp"
 #endif
-// #ifdef USE_
-// #include <omp.h>
-// #endif
+#ifdef USE_OMP
+#include "/usr/local/opt/libomp/include/omp.h"
+#endif
 
-#include "baseProblem.hpp"
-#include "paraview.hpp"
-#include "generalNorm.hpp"
+#include "../problem/baseProblem.hpp"
+#include "../FESpace/paraview.hpp"
+#include "../problem/generalNorm.hpp"

@@ -1,28 +1,28 @@
 
 set(FESPACE_SOURCES
-  QuadratureFormular.cpp
-  P0.cpp
-  P1.cpp
-  P1dc.cpp
-  P2.cpp
-  P2dc.cpp
-  P3dc.cpp
-  P3.cpp
-  P4.cpp
-  RT0.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/QuadratureFormular.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P0.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P1.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P1dc.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P2.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P2dc.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P3dc.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P3.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/P4.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/RT0.cpp
   #RT1.cpp
-  RT2.cpp
-  BDM1.cpp
-  P2BR.cpp
-  transformation.cpp
-  finiteElement.cpp
-  GTypeOfFE.cpp
-  FESpace.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/RT2.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/BDM1.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/P2BR.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/transformation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/finiteElement.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/GTypeOfFE.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/FESpace.cpp
   #CutFESpace.cpp
-  expression.cpp
-  macroElement.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/expression.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/macroElement.cpp
   #limiter.cpp
-  paraview.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/paraview.cpp
 )
 
 
@@ -35,4 +35,8 @@ PUBLIC
 "${PROJECT_BINARY_DIR}")
             ##               INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
+if(USE_MPI)                   
 target_link_libraries(FESpace PRIVATE common parallel)
+else()
+target_link_libraries(FESpace PRIVATE common)
+endif()

@@ -41,7 +41,11 @@ databf(new double[10*vh[0].NbDoF()*vh.N*4])
     // }
     getchar();
   }
+  #ifdef USE_MPI
   MPIcf::AllReduce(dataSend, data, fhSend.size(),MPI_MIN);
+  #else
+  assert(0 && "need to fixe the output");
+  #endif
 }
 
 template<typename M>
@@ -87,7 +91,11 @@ databf(new double[10*vh[0].NbDoF()*vh.N*4])
     // }
 
   }
+  #ifdef USE_MPI
   MPIcf::AllReduce(dataSend, data, fhSend.size(),MPI_MIN);
+  #else
+  assert(0 && "need to fixe the output");
+  #endif
 }
 
 
