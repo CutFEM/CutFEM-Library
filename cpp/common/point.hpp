@@ -1,0 +1,358 @@
+#ifndef COMMON_POINT_HPP
+#define COMMON_POINT_HPP
+
+#include "../util/ufunction.hpp"
+
+class R0 {
+ public:
+   typedef double R;
+   static const int d = 0;
+   R0() {}
+};
+
+class R1 {
+ public:
+   typedef double R;
+   static const int d = 1;
+   static const std::vector<R1> KHat;
+
+   R x;
+   R1() : x(0.) {}
+   R1(R a) : x(a) {}
+   R1(R *a) : x(a[0]) {}
+   R1(const R1 &a, const R1 &b) : x(b.x - a.x) {}
+   //    static R1 diag(R a) { return R1(a); }
+   operator double() const { return x; }
+   operator double *() { return &x; }
+   operator const double *() const { return &x; }
+   const R X() const { return x; }
+   R &X() { return x; }
+   R1 &operator=(const R *P) {
+      x = P[0];
+      return *this;
+   }
+   R1 &operator+=(const R1 &P) {
+      x += P.x;
+      return *this;
+   }
+   R1 &operator-=(const R1 &P) {
+      x -= P.x;
+      return *this;
+   }
+   R1 &operator*=(R a) {
+      x *= a;
+      return *this;
+   }
+   R1 &operator/=(R a) {
+      x /= a;
+      return *this;
+   }
+   R1 operator+(const R1 &P) const { return R1(x + P.x); }
+   R1 operator-(const R1 &P) const { return R1(x - P.x); }
+   R operator,(const R1 &P) const { return x * P.x; }
+   R1 operator*(R c) const { return R1(x * c); }
+   R1 operator/(R c) const { return R1(x / c); }
+   R1 operator-() const { return R1(-x); }
+   R1 operator+() const { return *this; }
+
+   R sum() const { return x; }
+   //    R *toBary(R *b) const {
+   //       b[0] = 1 - x;
+   //       b[1] = x;
+   //       return b;
+   //    }
+
+   R &operator[](int i) { return (&x)[i]; }
+   const R &operator[](int i) const { return (&x)[i]; }
+   //    R norme() const { return std::sqrt(x * x); }
+   //    R norme2() const { return (x * x); }
+   //    R1 Bary(R1 P[d + 1]) const { return (1 - x) * P[0] + x * P[1]; } // add
+   //    FH R1 Bary(const R1 *const *const P) const {
+   //       return (1 - x) * (*P[0]) + x * (*P[1]);
+   //    } // add FH
+
+   friend R1 operator*(R c, const R1 &P) { return P * c; }
+
+   friend std::ostream &operator<<(std::ostream &f, const R1 &P) {
+      f << P.x;
+      return f;
+   }
+   friend std::istream &operator>>(std::istream &f, R1 &P) {
+      f >> P.x;
+      return f;
+   }
+};
+
+class R2 {
+ public:
+   typedef double R;
+   static const int d = 2;
+   static const std::vector<R2> KHat;
+   R x, y;
+
+   R2() : x(0.), y(0.) {}
+   R2(R a, R b) : x(a), y(b) {}
+   R2(const R *a) : x(a[0]), y(a[1]) {}
+   R2(R *a) : x(a[0]), y(a[1]) {}
+   R2(const R2 &a, const R2 &b) : x(b.x - a.x), y(b.y - a.y) {}
+
+   //    static R2 diag(R a) { return R2(a, a); }
+   operator const double *() const { return &x; }
+   operator double *() { return &x; }
+
+   R2 &operator=(const R *P) {
+      x = P[0];
+      y = P[1];
+      return *this;
+   }
+   R2 &operator+=(const R2 &P) {
+      x += P.x;
+      y += P.y;
+      return *this;
+   }
+   R2 &operator-=(const R2 &P) {
+      x -= P.x;
+      y -= P.y;
+      return *this;
+   }
+   R2 &operator*=(R a) {
+      x *= a;
+      y *= a;
+      return *this;
+   }
+   R2 &operator/=(R a) {
+      x /= a;
+      y /= a;
+      return *this;
+   }
+
+   // operateur binaire + - * , ^ /
+   R2 operator+(const R2 &P) const { return R2(x + P.x, y + P.y); }
+   R2 operator-(const R2 &P) const { return R2(x - P.x, y - P.y); }
+   R operator,(const R2 &P) const {
+      return x * P.x + y * P.y;
+   } // produit scalaire
+   R operator^(const R2 &P) const { return x * P.y - y * P.x; } // produit mixte
+   R2 operator*(R c) const { return R2(x * c, y * c); }
+   R2 operator/(R c) const { return R2(x / c, y / c); }
+   // operateur unaire
+   R2 operator-() const { return R2(-x, -y); }
+   R2 operator+() const { return *this; }
+   // un methode
+   R2 perp() const { return R2(-y, x); } // la perpendiculaire
+   R sum() const { return x + y; }
+   R *toBary(R *b) const {
+      b[0] = 1. - x - y;
+      b[1] = x;
+      b[2] = y;
+      return b;
+   }
+
+   // les operators  tableau
+   // version qui peut modifie la class  via l'adresse de x ou y
+   R &operator[](int i) { return (&x)[i]; }
+   const R &operator[](int i) const { return (&x)[i]; }
+
+   R X() const { return x; }
+   R Y() const { return y; }
+   R Z() const { return 0.; }
+
+   R norme() const { return std::sqrt(x * x + y * y); }
+   R norm() const { return std::sqrt(x * x + y * y); }
+   R norme2() const { return (x * x + y * y); }
+   R2 Bary(R2 P[d + 1]) const {
+      return (1 - x - y) * P[0] + x * P[1] + y * P[2];
+   } // add FH
+   R2 Bary(const R2 *const *const P) const {
+      return (1 - x - y) * (*P[0]) + x * (*P[1]) + y * (*P[2]);
+   } // add FH
+   friend R2 operator*(R c, const R2 &P) { return P * c; }
+   friend R2 perp(const R2 &P) { return R2(-P.y, P.x); }
+   // inline R2 Perp(const R2 & P) { return P.perp(); }  // autre ecriture  de
+   // la fonction perp
+   friend R det(const R2 &A, const R2 &B, const R2 &C) {
+      return R2(A, B) ^ R2(A, C);
+   }
+
+   friend std::ostream &operator<<(std::ostream &f, const R2 &P) {
+      f << P.x << ' ' << P.y;
+      return f;
+   }
+   friend std::istream &operator>>(std::istream &f, R2 &P) {
+      f >> P.x >> P.y;
+      return f;
+   }
+};
+
+inline double Norme_infty(const R2 &A) {
+   return std::max(std::fabs(A.x), std::fabs(A.y));
+}
+inline double Norme2_2(const R2 &A) { return (A, A); }
+inline double Norme2(const R2 &A) { return std::sqrt((A, A)); }
+
+class R3 {
+
+ public:
+   typedef double R;
+   static const int d = 3;
+   static const std::vector<R3> KHat;
+
+   R x, y, z;
+
+   R3() : x(0), y(0), z(0){};
+   R3(R a, R b, R c) : x(a), y(b), z(c) {}
+   R3(const R *a) : x(a[0]), y(a[1]), z(a[2]) {}
+
+   R3(R2 P2) : x(P2.x), y(P2.y), z(0) {}
+   R3(R2 P2, R zz) : x(P2.x), y(P2.y), z(zz) {}
+   R3(const R3 &A, const R3 &B) : x(B.x - A.x), y(B.y - A.y), z(B.z - A.z) {}
+   static R3 diag(R a) { return R3(a, a, a); }
+   operator const double *() const { return &x; }
+   operator double *() { return &x; }
+
+   R3 &operator=(const R *P) {
+      x = P[0];
+      y = P[1];
+      z = P[2];
+      return *this;
+   }
+   R3 &operator=(const R2 &P2) {
+      x = P2.x;
+      y = P2.y;
+      z = 0;
+      return *this;
+   }
+   R3 operator+(const R3 &P) const { return R3(x + P.x, y + P.y, z + P.z); }
+   R3 &operator+=(const R3 &P) {
+      x += P.x;
+      y += P.y;
+      z += P.z;
+      return *this;
+   }
+   R3 operator-(const R3 &P) const { return R3(x - P.x, y - P.y, z - P.z); }
+   R3 &operator-=(const R3 &P) {
+      x -= P.x;
+      y -= P.y;
+      z -= P.z;
+      return *this;
+   }
+   R3 &operator*=(R c) {
+      x *= c;
+      y *= c;
+      z *= c;
+      return *this;
+   }
+   R3 &operator/=(R c) {
+      x /= c;
+      y /= c;
+      z /= c;
+      return *this;
+   }
+   R3 operator-() const { return R3(-x, -y, -z); }
+   R3 operator+() const { return *this; }
+   R operator,(const R3 &P) const {
+      return x * P.x + y * P.y + z * P.z;
+   } // produit scalaire
+   R3 operator^(const R3 &P) const {
+      return R3(y * P.z - z * P.y, P.x * z - x * P.z, x * P.y - y * P.x);
+   } // produit vectoreil
+   R3 operator*(R c) const { return R3(x * c, y * c, z * c); }
+   R3 operator/(R c) const { return R3(x / c, y / c, z / c); }
+   R &operator[](int i) { return (&x)[i]; }
+   const R &operator[](int i) const { return (&x)[i]; }
+   friend R3 operator*(R c, const R3 &P) { return P * c; }
+   friend R3 operator/(R c, const R3 &P) { return P / c; }
+   R norme() const { return std::sqrt(x * x + y * y + z * z); }
+   R norm() const { return std::sqrt(x * x + y * y + z * z); }
+   R norme2() const { return (x * x + y * y + z * z); }
+   R sum() const { return x + y + z; }
+   R *toBary(R *b) const {
+      b[0] = 1. - x - y - z;
+      b[1] = x;
+      b[2] = y;
+      b[3] = z;
+      return b;
+   }
+   R X() const { return x; }
+   R Y() const { return y; }
+   R Z() const { return z; }
+
+   R3 Bary(const R3 P[d + 1]) const {
+      return (1 - x - y - z) * P[0] + x * P[1] + y * P[2] + z * P[3];
+   } // add FH
+   R3 Bary(const R3 **P) const {
+      return (1 - x - y - z) * (*P[0]) + x * (*P[1]) + y * (*P[2]) +
+             z * (*P[3]);
+   } // add FH
+   friend std::ostream &operator<<(std::ostream &f, const R3 &P) {
+      f << P.x << ' ' << P.y << ' ' << P.z;
+      return f;
+   }
+   friend std::istream &operator>>(std::istream &f, R3 &P) {
+      f >> P.x >> P.y >> P.z;
+      return f;
+   }
+
+   friend R det(R3 A, R3 B, R3 C) {
+      R s = 1.;
+      if (fabs(A.x) < fabs(B.x))
+         Exchange(A, B), s = -s;
+      if (fabs(A.x) < fabs(C.x))
+         Exchange(A, C), s = -s;
+      if (fabs(A.x) > 1e-50) {
+         s *= A.x;
+         A.y /= A.x;
+         A.z /= A.x;
+         B.y -= A.y * B.x;
+         B.z -= A.z * B.x;
+         C.y -= A.y * C.x;
+         C.z -= A.z * C.x;
+         return s * (B.y * C.z - B.z * C.y);
+      } else
+         return 0.;
+   }
+
+   friend R det(const R3 &A, const R3 &B, const R3 &C, const R3 &D) {
+      return det(R3(A, B), R3(A, C), R3(A, D));
+   }
+
+   R2 p2() const { return R2(x, y); }
+};
+
+inline R3 Minc(const R3 &A, const R3 &B) {
+   return R3(std::min(A.x, B.x), std::min(A.y, B.y), std::min(A.z, B.z));
+}
+inline R3 Maxc(const R3 &A, const R3 &B) {
+   return R3(std::max(A.x, B.x), std::max(A.y, B.y), std::max(A.z, B.z));
+}
+inline double Norme_infty(const R3 &A) {
+   return Max(std::fabs(A.x), std::fabs(A.y), std::fabs(A.z));
+}
+inline double Norme2_2(const R3 &A) { return (A, A); }
+inline double Norme2(const R3 &A) { return sqrt((A, A)); }
+
+struct lessRd {
+   bool operator()(const R1 &s1, const R1 &s2) const { return s1.X() < s2.X(); }
+   bool operator()(const R2 &s1, const R2 &s2) const {
+      return s1.x == s2.x ? (s1.y < s2.y) : s1.x < s2.x;
+   }
+   bool operator()(const R3 &s1, const R3 &s2) const {
+      return s1.x == s2.x ? (s1.y == s2.y ? (s1.z < s2.z) : s1.y < s2.y)
+                          : s1.x < s2.x;
+   }
+};
+
+template <int d> struct typeRd {
+   typedef R0 Rd;
+};
+template <> struct typeRd<1> {
+   typedef R1 Rd;
+};
+template <> struct typeRd<2> {
+   typedef R2 Rd;
+};
+template <> struct typeRd<3> {
+   typedef R3 Rd;
+};
+
+#endif

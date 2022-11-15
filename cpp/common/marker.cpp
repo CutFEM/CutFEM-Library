@@ -2,60 +2,59 @@
 #include "../util/util.hpp"
 #include "../FESpace/expression.hpp"
 
-
 //
 // Marker::Marker(const Mesh2& Thh) : Th_(Thh) { }
-Marker::Marker(const Mesh2& Thh, R2(*fparam)(double t), double x_begin, double x_end, int npoint) : Th_(Thh) {
-  T_.reserve(npoint);
-  X_.reserve(npoint);
-  Y_.reserve(npoint);
+Marker::Marker(const Mesh2 &Thh, R2 (*fparam)(double t), double x_begin,
+               double x_end, int npoint)
+    : Th_(Thh) {
+   T_.reserve(npoint);
+   X_.reserve(npoint);
+   Y_.reserve(npoint);
 
-  double h = (x_end - x_begin) / (npoint - 1);
-  for(int i=0;i<npoint;++i) {
-    double t = x_begin + i*h;
-    R2 val = fparam(t);
-    this->add(t, val);
-  }
-  // check periodicity
-  int l = X_.size()-1;
-  R2 AB(X_[l] - X_[0], Y_[l]-Y_[0]);;
-  periodic_ = (AB.norm() < 1e-12);
+   double h = (x_end - x_begin) / (npoint - 1);
+   for (int i = 0; i < npoint; ++i) {
+      double t = x_begin + i * h;
+      R2 val   = fparam(t);
+      this->add(t, val);
+   }
+   // check periodicity
+   int l = X_.size() - 1;
+   R2 AB(X_[l] - X_[0], Y_[l] - Y_[0]);
+   ;
+   periodic_ = (AB.norm() < 1e-12);
 
-  // Find element containing markers.
-  element_of_marker_.reserve(this->size());
-  int k = 0;
-  for(int e=0;e<this->size();++e) {
-    R2 P = this->get_marker(e);
-    int k = geometry::find_triangle_contenant_p(Th_, P , k);
-    element_of_marker_.push_back(k);
-  }
-  assert(element_of_marker_.size() == this->size());
-  if(periodic_) assert(element_of_marker_[0] == element_of_marker_[this->size()-1]);
-
+   // Find element containing markers.
+   element_of_marker_.reserve(this->size());
+   int k = 0;
+   for (int e = 0; e < this->size(); ++e) {
+      R2 P  = this->get_marker(e);
+      int k = geometry::find_triangle_contenant_p(Th_, P, k);
+      element_of_marker_.push_back(k);
+   }
+   assert(element_of_marker_.size() == this->size());
+   if (periodic_)
+      assert(element_of_marker_[0] == element_of_marker_[this->size() - 1]);
 }
 
 void Marker::add(double t, R2 val) {
-  T_.push_back(t);
-  X_.push_back(val.x);
-  Y_.push_back(val.y);
+   T_.push_back(t);
+   X_.push_back(val.x);
+   Y_.push_back(val.y);
 }
 
-void Marker::move(const FunFEMVirtual& uh, double dt) {
-  int k = 0;
-  for(auto k=0; k<this->size(); ++k) {
-    int kb = element_of_marker_[k];  // get index in backMesh
-    R2 val(0.,0.);
-    R2 P = this->get_marker(k);
-    for(int j=0; j<2; ++j) {
-      val[j] = uh.evalOnBackMesh(kb, 0, P, j, op_id);
-    }
-    P += dt*val;
-    this->set(k, P);
-  }
+void Marker::move(const FunFEMVirtual &uh, double dt) {
+   int k = 0;
+   for (auto k = 0; k < this->size(); ++k) {
+      int kb = element_of_marker_[k]; // get index in backMesh
+      R2 val(0., 0.);
+      R2 P = this->get_marker(k);
+      for (int j = 0; j < 2; ++j) {
+         val[j] = uh.evalOnBackMesh(kb, 0, P, j, op_id);
+      }
+      P += dt * val;
+      this->set(k, P);
+   }
 }
-
-
-
 
 // Marker::Marker(const Mesh2& Thh, std::string path) : Th_(Thh) {
 //   add(path);
@@ -106,7 +105,8 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //
 
 //
-// R2 Marker::get_intersect_edge(R2 A, R2 B, int previousK, int k, int& k_next) {
+// R2 Marker::get_intersect_edge(R2 A, R2 B, int previousK, int k, int& k_next)
+// {
 //   assert(0);
 //   // const Element& K(Th[k]);
 //   //
@@ -223,7 +223,8 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //   //
 //   //   idxK = nextK;
 //   //   int ed1;
-//   //   R2 P1 = find_intersection(markers[i-1], markers[i], idxK, previousK, ed1);
+//   //   R2 P1 = find_intersection(markers[i-1], markers[i], idxK, previousK,
+//   ed1);
 //   //
 //   //   int j = i;
 //   //   find_marker_limit(idxK, j);
@@ -259,7 +260,8 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //   //   face_of_element_[idxK] = element_of_face_.size()-1;
 //   //
 //   //   // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
-//   //   outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
+//   //
+//   outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
 //   //   nloop += 1;
 //   // }
 //   //
@@ -294,7 +296,8 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //   // element_of_face_.push_back(k0);
 //   // face_of_element_[k0] = element_of_face_.size()-1;
 //   // // faces_.push_back(Face(vertices_.size()-2,vertices_.size()-1, 0));
-//   // outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
+//   //
+//   outward_normal_.push_back(make_normal(vertices_.size()-2,vertices_.size()-1));
 //
 //
 // }
@@ -308,8 +311,8 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //   outward_normal_.resize(0);
 //   is_boundary_face_.resize( 0);
 //
-//   // get vertices & element_of_face_ & face_of_element_ & faces_ & outward_normal
-//   find_vertices();
+//   // get vertices & element_of_face_ & face_of_element_ & faces_ &
+//   outward_normal find_vertices();
 //
 //   if(leftB && (fabs(vertices_[0].x - markers[0].x) > 1e-12
 //            ||  fabs(vertices_[0].y - markers[0].y) > 1e-12) ) {
@@ -359,28 +362,6 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 // }
 //
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //
 //
 // void Marker::add_interface(int ll) {
@@ -416,9 +397,8 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //       get_intersect_edge(firstNode, nextNode, Th, k0);
 //
 //       i2 = edges_node.size()-1;
-//       faces.push_back(FaceMarker(*this, cut_element[cut_element.size()-2], i1,i2, ll));
-//       i1 = i2;
-//       const Element& K(Th[k0]);
+//       faces.push_back(FaceMarker(*this, cut_element[cut_element.size()-2],
+//       i1,i2, ll)); i1 = i2; const Element& K(Th[k0]);
 //
 //       if( point_inside_tri(nextNode, K) ) {
 //         firstNode = nextNode;
@@ -438,7 +418,8 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //     // cut_element.push_back(k0);
 //     // element_seen(k0) = cut_element.size()-1;
 //     std::cout << k0 << std::endl;
-//     faces.push_back(FaceMarker(*this, cut_element[cut_element.size()-1], i1,i2, ll));
+//     faces.push_back(FaceMarker(*this, cut_element[cut_element.size()-1],
+//     i1,i2, ll));
 //   }
 //
 // }
@@ -600,8 +581,10 @@ void Marker::move(const FunFEMVirtual& uh, double dt) {
 //
 //
 // //     if(k_next == -1) continue;               // boundary
-// //     // std::cout << list_element(k_next) << "\t" << element_seen(k_next) << std::endl;
-// //     if(dom == list_element1(k_next) || dom == list_element2(k_next) ) continue;  // already seen
+// //     // std::cout << list_element(k_next) << "\t" << element_seen(k_next)
+// << std::endl;
+// //     if(dom == list_element1(k_next) || dom == list_element2(k_next) )
+// continue;  // already seen
 // //     if(element_seen(k_next) != -1) continue; // element cut
 //
 // //     addNeighbor(k_next, dom);

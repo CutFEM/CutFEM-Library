@@ -120,7 +120,7 @@ double integralCut(const ListItemVF<Mesh::Rd::d> &VF, const FunFEM<Mesh> &f,
 // f,const FunFEM<Mesh>& g, const GenericInterface<Mesh>& interface) {
 //
 //   // TYPEDEF NAMES OF TEMPLATE CLASSES
-//   typedef CutGFESpace<Mesh> FESpace;
+//   //typedef CutGFESpace<Mesh> FESpace;
 //   typedef typename FESpace::FElement  FElement;
 //   typedef typename TypeCutData<Mesh::Rd::d>::CutData CutData;
 //   typedef typename Mesh::Partition Partition;
@@ -128,8 +128,7 @@ double integralCut(const ListItemVF<Mesh::Rd::d> &VF, const FunFEM<Mesh> &f,
 //   typedef typename FElement::RdHatBord RdHatBord;
 //   typedef GenericInterface<Mesh> Interface;
 //   typedef typename Mesh::Rd Rd;
-//
-//
+
 //   const QFB& qf(*QF_Simplex<typename FElement::RdHatBord>(5));
 //   double val = 0.;
 //
@@ -144,17 +143,17 @@ double integralCut(const ListItemVF<Mesh::Rd::d> &VF, const FunFEM<Mesh> &f,
 //     const double h = meas;
 //       // LOOP OVER TERMS IN THE WEAK FORMULATION
 //       for(int l=0; l<VF.size();++l) {
-//
+
 //         double measK = (*interface.backMesh)[kb].mesure();
-//
+
 //         R coef = VF[l].computeCoefInterface(h,meas,measK );
 //         double Cnormal = VF[l].getCoef(normal);
-//
+
 //         for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
-//
+
 //           typename QFB::QuadraturePoint ip(qf[ipq]);
 //           Rd mip = interface.mapToFace(face,(RdHatBord)ip);
-//
+
 //           double Cint = meas * ip.getWeight() * coef* VF[l].c * Cnormal;
 //
 //           double val_fh = f.evalOnBackMesh(kb, mip, VF[l].cu, VF[l].du,
@@ -163,12 +162,113 @@ double integralCut(const ListItemVF<Mesh::Rd::d> &VF, const FunFEM<Mesh> &f,
 //         }
 //       }
 //     }
-//
+
 //   double val_receive = 0;
 //   MPIcf::AllReduce(val, val_receive, MPI_SUM);
 //   return sqrt(val_receive);
 // }
-//
-//
+
+template <typename Mesh>
+double integralCut(const ListItemVF<Mesh::Rd::d> &VF,
+                   const CutFEM<Mesh> &cutfem, const FunFEM<Mesh> &f,
+                   const FunFEM<Mesh> &g, const TimeInterface<Mesh> &gamma,
+                   const TimeSlab &In) {
+
+   double val = 0.;
+
+   typedef typename Mesh::Element Element;
+   typedef GFESpace<Mesh> FESpace;
+   typedef typename FESpace::FElement FElement;
+   typedef typename FElement::Rd Rd;
+   typedef typename FElement::QF QF;
+   typedef typename FElement::QFB QFB;
+   typedef typename Mesh::BorderElement BorderElement;
+
+   const QuadratureFormular1d &qTime = gamma.get_quadrature_time();
+
+   for (int itq = 0; itq < qTime.n; ++itq) {
+      assert(!VF.isRHS());
+      auto tq    = cutfem.get_quadrature_time(itq);
+      double tid = In.map(tq);
+
+      KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+      // RNMK_ bf_time(cutfem.databf_time_, In.NbDoF(), 1, op_dz);
+      // In.BF(tq.x, bf_time); // compute time basic funtions
+      double cst_time = tq.a * In.get_measure();
+
+      for (int iface = gamma[itq]->first_element();
+           iface < gamma[itq]->last_element();
+           iface += gamma[itq]->next_element()) {
+         const typename Interface<Mesh>::Face &face =
+             (*gamma[itq])[iface]; // the face
+
+         typedef typename FElement::RdHatBord RdHatBord;
+
+         // GET IDX ELEMENT CONTAINING FACE ON backMes
+         const int kb = gamma[itq]->idxElementOfFace(iface);
+         const Element &K(gamma[itq]->get_element(kb));
+         double measK = K.measure();
+         double h     = K.get_h();
+         double meas  = gamma[itq]->measure(iface);
+
+         const Rd normal(-gamma[itq]->normal(iface));
+
+         // GET THE QUADRATURE RULE
+         // const QFB &qfb(cutfem.get_quadrature_formular_cutFace());
+         const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
+
+         for (int l = 0; l < VF.size(); ++l) {
+            // if(!VF[l].on(domain)) continue;
+
+            // FINITE ELEMENT SPACES && ELEMENTS
+            const FESpace &Vhv(VF.get_spaceV(l));
+            const FESpace &Vhu(VF.get_spaceU(l));
+            bool same = (VF.isRHS() || (&Vhu == &Vhv));
+
+            std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(
+                kb, VF[l].get_domain_test_function());
+            std::vector<int> idxU =
+                (same) ? idxV
+                       : Vhu.idxAllElementFromBackMesh(
+                             kb, VF[l].get_domain_trial_function());
+            int kv = VF[l].onWhatElementIsTestFunction(idxV);
+            int ku = VF[l].onWhatElementIsTrialFunction(idxU);
+
+            const FElement &FKu(Vhu[ku]);
+            const FElement &FKv(Vhv[kv]);
+            int domu = FKu.get_domain();
+            int domv = FKv.get_domain();
+
+            // COMPUTE COEFFICIENT && NORMAL
+            double coef =
+                VF[l].computeCoefInterface(h, meas, measK, measK, domu, domv);
+            coef *= VF[l].computeCoefFromNormal(normal);
+
+            // LOOP OVER QUADRATURE IN SPACE
+            for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+
+               typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
+               const Rd mip =
+                   gamma[itq]->mapToPhysicalFace(iface, (RdHatBord)ip);
+               double Cint = meas * ip.getWeight() * cst_time * VF[l].c * coef;
+
+               double val_fh = f.evalOnBackMesh(kb, 0, mip, tid, VF[l].cu,
+                                                VF[l].du, VF[l].dtu);
+               double val_gh = g.evalOnBackMesh(kb, 0, mip, tid, VF[l].cv,
+                                                VF[l].dv, VF[l].dtu);
+               // std::cout << "Cint = " << Cint << ", val_fh = " << val_fh <<
+               // ", val_gh = " << val_gh << std::endl;
+               val += Cint * val_fh * val_gh;
+               // std::cout << "val = " << val << std::endl;
+            }
+         }
+      }
+   }
+
+   double val_receive = 0;
+   MPIcf::AllReduce(val, val_receive, MPI_SUM);
+   // return sqrt(val_receive);
+   return val_receive;
+}
 
 #endif

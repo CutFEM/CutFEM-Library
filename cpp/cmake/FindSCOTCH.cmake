@@ -10,7 +10,7 @@
 #  SCOTCH_LIBRARIES    SCOTCH_librarie
 
 #set (SCOTCH_DIR "/afs/kth.se/home/f/r/frachon/lib/scotch_6.0.4/lib")
-set (SCOTCH_DIR "/NOBACKUP/frachon/lib/scotch_6.0.4/lib")
+set(SCOTCH_DIR "/opt/homebrew/Cellar/scotch/7.0.1")
 set(SCOTCH_FOUND "NO")
 
 #if SCOTCH_DIR is specified
@@ -24,9 +24,9 @@ endif()
 # otherwise look for standard places
 find_path(SCOTCH_LIBRARY_DIR
   NAMES libesmumps.a libscotch.a libscotcherr.a
-  PATHS 
+  PATHS
   /opt/SCOTCH/lib
-  /usr/local/SCOTCH/lib
+  /opt/homebrew/Cellar/scotch/7.0.1
   /usr/local/lib
   /usr/lib
   ~/lib/lib)

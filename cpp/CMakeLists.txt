@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 
-set(CMAKE_C_COMPILER "/usr/local/Cellar/gcc/12.2.0/bin/gcc-12")
-set(CMAKE_CXX_COMPILER "/usr/local/Cellar/gcc/12.2.0/bin/g++-12")
-#set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
-
+set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang")
+set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang++")
 
 
 project(CutFEM VERSION 1.0)
@@ -72,20 +70,6 @@ PUBLIC
 target_sources(_darcy PRIVATE ${COMMON_SOURCES} ${FESPACE_SOURCES} ${SOLVER_SOURCES} ${PROBLEM_SOURCES})
 
 #
-set(EX_NAME stokesMixed)
-add_executable(${EX_NAME}  mainFiles/stokesRT.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-#
-set(EX_NAME peiFu)
-add_executable(${EX_NAME}  mainFiles/peiFu.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-#
 
 set(EX_NAME limiter)
 add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )
@@ -101,67 +85,6 @@ target_include_directories(${EX_NAME} PUBLIC
                        ${EXTRA_INCLUDES})
 
 #
-set(EX_NAME convDiff)
-add_executable(${EX_NAME}  mainFiles/statConvectionDiffusion.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-
-set(EX_NAME testMarker)
-add_executable(${EX_NAME}  mainFiles/testMarker.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-
-
-#
-set(EX_NAME bulkConvDiff)
-add_executable(${EX_NAME}  mainFiles/bulk_Sebastian.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-set(EX_NAME bulkSurface)
-add_executable(${EX_NAME}  mainFiles/bulkSurface.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-#
-set(EX_NAME bulkSurface3)
-add_executable(${EX_NAME}  mainFiles/bulkSurface3.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-set(EX_NAME mainTest)
-add_executable(${EX_NAME}  mainFiles/mainTest.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                            "${PROJECT_BINARY_DIR}"
-                            ${EXTRA_INCLUDES})
-
-set(EX_NAME surfactant2)
-add_executable(${EX_NAME}  mainFiles/surfactant.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-
-#
-set(EX_NAME poisson)
-add_executable(${EX_NAME}  mainFiles/poisson.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                        "${PROJECT_BINARY_DIR}"
-                        ${EXTRA_INCLUDES})
-#
 #
 set(EX_NAME showMesh)
 add_executable(${EX_NAME}  mainFiles/showMesh.cpp )
@@ -173,6 +96,13 @@ target_include_directories(${EX_NAME} PUBLIC
 #
 set(EX_NAME shearBubble)
 add_executable(${EX_NAME}  mainFiles/shearBubble.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+
+set(EX_NAME stokesMixed)
+add_executable(${EX_NAME}  mainFiles/stokesRT.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
                         "${PROJECT_BINARY_DIR}"

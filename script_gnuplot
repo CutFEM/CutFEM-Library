@@ -1,7 +1,0 @@
-set term pdf
-set output "marker_t2.pdf"
-set yrange[-2: 2]
-set xrange[-2.5: 2.5]
-set ylabel "y" font ",12" rotate by 0
-set xlabel "x" font ",12" rotate by 0
-plot "marker_t20.dat" w p ps 0.5 pointtype 3 notitle, "marker_t20.dat" w l lw 1.5 notitle

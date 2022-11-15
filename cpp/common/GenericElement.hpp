@@ -1,11 +1,7 @@
 #ifndef _GENERIC_ELEMENT_HPP
 #define _GENERIC_ELEMENT_HPP
 
-#include "Label.hpp"
-#include "R3.hpp"
 #include "GenericVertex.hpp"
-
-const double UnSetMesure = -1e+200;
 
 inline R1 ExtNormal(GenericVertex<R1> *const v[2], int const f[1]) {
    return f[0] == 0 ? R1(-1) : R1(1);

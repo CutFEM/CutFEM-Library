@@ -16,10 +16,12 @@ find_path(LAPACK_INCLUDES
 NAMES
 lapacke.h
 PATHS
-/home/f/r/frachon/lib/lapack-3.7.0/LAPACKE/include/
+/opt/homebrew/Cellar/lapack/3.10.1_1
+/opt/homebrew/Cellar/lapack/3.10.1_1/include/
 /usr/local/opt/lapack/include/
 /usr/include/
 /usr/lib/lapack
+
 )
 
 ##message(" LAPACK INCLUDE :  ${LAPACK_INCLUDES}")
@@ -28,9 +30,10 @@ PATHS
 find_path(LAPACK_LIBRARY_DIR
 NAMES liblapacke.dylib
 PATHS
-/home/f/r/frachon/lib/lapack-3.7.0/
-/usr/lib/lapack
+/opt/homebrew/Cellar/lapack/3.10.1_1
 /usr/local/opt/lapack/lib/
+/usr/lib/lapack
+/opt/homebrew/Cellar/lapack/3.10.1_1/lib/
 /opt
 /usr/local/lib
 /usr/lib
