@@ -38,7 +38,7 @@ class TypeOfFE_RT2_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
             }
 
             Pt_Pi_h[i++] =
-                B * (QFE[p].x) + A * (1. - QFE[p].x); // X=0 => A  X=1 => B;
+                B * (QFE[p].X()) + A * (1. - QFE[p].X()); // X=0 => A  X=1 => B;
          }
       }
 
@@ -74,7 +74,7 @@ class TypeOfFE_RT2_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
          R s = T.EdgeOrientation(i);
 
          for (int p = 0; p < QFE.n; ++p) {
-            R l1 = QFE[p].x, l2 = 1 - QFE[p].x;
+            R l1 = QFE[p].X(), l2 = 1 - QFE[p].X();
             R l11 = l1 * l1;
             R l22 = l2 * l2;
             R l21 = l2 * l1;
@@ -318,7 +318,7 @@ void TypeOfFE_RT2_2d::FB_D2(const Element &K, const R2 &Phat,
    double s = 1.;
 
    R2 ddd[3] = {K.H(0), K.H(1), K.H(2)};
-   Diff<Diff<R, 2>, 2> ll1(l1, 0), ll2(l2, 1);
+   DDiff_R2 ll1(l1, 0), ll2(l2, 1);
    ll1.d[0]     = ddd[1].x;
    ll1.d[1]     = ddd[1].y;
    ll2.d[0]     = ddd[2].x;
@@ -328,23 +328,23 @@ void TypeOfFE_RT2_2d::FB_D2(const Element &K, const R2 &Phat,
    ll2.val.d[0] = ddd[2].x;
    ll2.val.d[1] = ddd[2].y;
 
-   Diff<Diff<R, 2>, 2> ll0 = 1 - ll1 - ll2;
-   Diff<Diff<R, 2>, 2> Xx(X.x, 0), Xy(X.y, 1);
-   Xx.val.d[0]                 = 1; // init val of dx
-   Xy.val.d[1]                 = 1;
-   Diff<Diff<R, 2>, 2> LL[3]   = {ll0, ll1, ll2};
-   Diff<Diff<R, 2>, 2> PHIx[3] = {
+   DDiff_R2 ll0 = 1 - ll1 - ll2;
+   DDiff_R2 Xx(X.x, 0), Xy(X.y, 1);
+   Xx.val.d[0]      = 1; // init val of dx
+   Xy.val.d[1]      = 1;
+   DDiff_R2 LL[3]   = {ll0, ll1, ll2};
+   DDiff_R2 PHIx[3] = {
        Xx - Q[0].x,
        Xx - Q[1].x,
        Xx - Q[2].x,
    };
-   Diff<Diff<R, 2>, 2> PHIy[3] = {
+   DDiff_R2 PHIy[3] = {
        Xy - Q[0].y,
        Xy - Q[1].y,
        Xy - Q[2].y,
    };
-   Diff<Diff<R, 2>, 2> PMx[18];
-   Diff<Diff<R, 2>, 2> PMy[18];
+   DDiff_R2 PMx[18];
+   DDiff_R2 PMy[18];
 
    int p[15]      = {0, 1, 2,  5,  4,  3,  6, 7,
                      8, 9, 10, 11, 12, 13, 14}; // Permutation for orinatation
@@ -399,7 +399,7 @@ void TypeOfFE_RT2_2d::FB_D2(const Element &K, const R2 &Phat,
    for (int pdf = 0; pdf < 15; ++pdf) {
       int df = p[pdf];
       // R2 fd(0., 0.);
-      Diff<Diff<R, 2>, 2> FDx, FDy;
+      DDiff_R2 FDx, FDy;
       if (df < 9) {
          // fd = Pm[fe[df]];    // edge function ..
          FDx = PMx[fe[df]];

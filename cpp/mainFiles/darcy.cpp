@@ -464,22 +464,23 @@ R fun_div(double *Pp, int compInd, int dom) { // is also exact divergence
 }
 R fun_exact_u(double *Pp, int compInd, int dom) {
    R2 P(Pp);
-   Diff<R, 2> X(P[0], 0), Y(P[1], 1);
-   Diff<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
-   R radius2      = interfaceRad * interfaceRad;
-   R cst          = (dom == 0) * 3. / 2;
-   R mul          = (dom == 0) * 2 + (dom == 1) * 1;
-   Diff<R, 2> val = r2 / (mul * radius2) + cst;
+   DA<R, 2> X(P[0], 0), Y(P[1], 1);
+   DA<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
+   R radius2    = interfaceRad * interfaceRad;
+   R cst        = (dom == 0) * 3. / 2;
+   R mul        = (dom == 0) * 2 + (dom == 1) * 1;
+   DA<R, 2> val = r2 / (mul * radius2) + cst;
+
    return -val.d[compInd];
 }
 R fun_exact_p(double *Pp, int compInd, int dom) {
    R2 P(Pp);
-   Diff<R, 2> X(P[0], 0), Y(P[1], 1);
-   Diff<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
-   R radius2      = interfaceRad * interfaceRad;
-   R cst          = (dom == 0) * 3. / 2;
-   R mul          = (dom == 0) * 2 + (dom == 1) * 1;
-   Diff<R, 2> val = r2 / (mul * radius2) + cst;
+   DA<R, 2> X(P[0], 0), Y(P[1], 1);
+   DA<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
+   R radius2    = interfaceRad * interfaceRad;
+   R cst        = (dom == 0) * 3. / 2;
+   R mul        = (dom == 0) * 2 + (dom == 1) * 1;
+   DA<R, 2> val = r2 / (mul * radius2) + cst;
    return val.val;
 }
 R fun_interfacePr(double *P, int compInd) { return 19. / 12; }
@@ -1042,7 +1043,7 @@ R fun_div(double *P, int compInd, int dom) { // is also exact divergence
 }
 R fun_exact(double *P, int compInd, int dom) {
    // Diff<R,2> X(P[0],0), Y(P[1],1);
-   // Diff<R, 2> val = - sin(X)*sinh(Y) - (cos(1) - 1)*(cosh(1) - 1);
+   // DA<R,2> val = - sin(X)*sinh(Y) - (cos(1) - 1)*(cosh(1) - 1);
    // if (compInd==2) {
    //   return val.val;
    // }
@@ -1399,21 +1400,21 @@ R fun_div(double *P, int compInd, int dom) { // is also exact divergence
       return -4. / radius2;
 }
 R fun_exact_u(double *P, int compInd, int dom) {
-   Diff<R, 2> X(P[0], 0), Y(P[1], 1);
-   Diff<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
-   R radius2      = inRad * inRad;
-   R cst          = (dom == 0) * 3. / 2;
-   R mul          = (dom == 0) * 2 + (dom == 1) * 1;
-   Diff<R, 2> val = r2 / (mul * radius2) + cst;
+   DA<R, 2> X(P[0], 0), Y(P[1], 1);
+   DA<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
+   R radius2    = inRad * inRad;
+   R cst        = (dom == 0) * 3. / 2;
+   R mul        = (dom == 0) * 2 + (dom == 1) * 1;
+   DA<R, 2> val = r2 / (mul * radius2) + cst;
    return -val.d[compInd];
 }
 R fun_exact_p(double *P, int compInd, int dom) {
-   Diff<R, 2> X(P[0], 0), Y(P[1], 1);
-   Diff<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
-   R radius2      = inRad * inRad;
-   R cst          = (dom == 0) * 3. / 2;
-   R mul          = (dom == 0) * 2 + (dom == 1) * 1;
-   Diff<R, 2> val = r2 / (mul * radius2) + cst;
+   DA<R, 2> X(P[0], 0), Y(P[1], 1);
+   DA<R, 2> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift);
+   R radius2    = inRad * inRad;
+   R cst        = (dom == 0) * 3. / 2;
+   R mul        = (dom == 0) * 2 + (dom == 1) * 1;
+   DA<R, 2> val = r2 / (mul * radius2) + cst;
    return val.val;
 }
 R fun_interfacePr(double *P, int compInd) { return 19. / 12; }

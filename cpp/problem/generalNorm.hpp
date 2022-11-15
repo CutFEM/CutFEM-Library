@@ -266,7 +266,11 @@ double integralCut(const ListItemVF<Mesh::Rd::d> &VF,
    }
 
    double val_receive = 0;
+#ifdef USE_MPI
    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+   val_receive = val;
+#endif
    // return sqrt(val_receive);
    return val_receive;
 }

@@ -7,7 +7,7 @@ set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang++")
 
 project(CutFEM VERSION 1.0)
 
-set(CMAKE_CXX_STANDARD 11)
+# set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 

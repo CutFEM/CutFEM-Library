@@ -7,27 +7,27 @@ using namespace std;
 #include "../util/ufunction.hpp"
 #include "QuadratureFormular.hpp"
 
-static const R gauss_n2_1 = (1 - sqrt(1. / 3.)) / 2;
-static const R gauss_n2_2 = 1 - gauss_n2_1;
+static const double gauss_n2_1 = (1 - sqrt(1. / 3.)) / 2;
+static const double gauss_n2_2 = 1 - gauss_n2_1;
 
-const R gauss_n3_0 = 0.5;
-const R gauss_n3_1 = (1 - sqrt(3. / 5.)) / 2;
-const R gauss_n3_2 = 1 - gauss_n3_1;
+const double gauss_n3_0 = 0.5;
+const double gauss_n3_1 = (1 - sqrt(3. / 5.)) / 2;
+const double gauss_n3_2 = 1 - gauss_n3_1;
 
-const R pgauss_n3_0 = 8. / 18.;
-const R pgauss_n3_1 = 5. / 18.;
-const R pgauss_n3_2 = 5. / 18.;
+const double pgauss_n3_0 = 8. / 18.;
+const double pgauss_n3_1 = 5. / 18.;
+const double pgauss_n3_2 = 5. / 18.;
 
-const R pgauss1_n4_a = (18. + sqrt(30.)) / 36.;
-const R pgauss1_n4_b = (18. - sqrt(30.)) / 36.;
-const R gauss1_n4_a  = sqrt(525. - 70. * sqrt(30.)) / 35.;
-const R gauss1_n4_b  = sqrt(525. + 70. * sqrt(30.)) / 35.;
+const double pgauss1_n4_a = (18. + sqrt(30.)) / 36.;
+const double pgauss1_n4_b = (18. - sqrt(30.)) / 36.;
+const double gauss1_n4_a  = sqrt(525. - 70. * sqrt(30.)) / 35.;
+const double gauss1_n4_b  = sqrt(525. + 70. * sqrt(30.)) / 35.;
 
-const R pgauss1_n5_0 = 128. / 225.;
-const R pgauss1_n5_a = (322 + 13. * sqrt(70.)) / 900.;
-const R pgauss1_n5_b = (322 - 13. * sqrt(70.)) / 900.;
-const R gauss1_n5_a  = sqrt(245. - 14. * sqrt(70.)) / 21.;
-const R gauss1_n5_b  = sqrt(245. + 14. * sqrt(70.)) / 21.;
+const double pgauss1_n5_0 = 128. / 225.;
+const double pgauss1_n5_a = (322 + 13. * sqrt(70.)) / 900.;
+const double pgauss1_n5_b = (322 - 13. * sqrt(70.)) / 900.;
+const double gauss1_n5_a  = sqrt(245. - 14. * sqrt(70.)) / 21.;
+const double gauss1_n5_b  = sqrt(245. + 14. * sqrt(70.)) / 21.;
 
 // Computation of nodes and weights for a Gauss-Legendre quadrature formula on
 // [0 1]
@@ -55,8 +55,8 @@ QP1 *GaussLegendre(int nn) {
          r1  = r;
          r   = r - p3 / dp3;
       } while (fabs(r - r1) >= eps * (1 + fabs(r)) * 100);
-      p[i].x  = 0.5 + r / 2;
-      p[ii].x = 0.5 - r / 2;
+      p[i].X()  = 0.5 + r / 2;
+      p[ii].X() = 0.5 - r / 2;
       p[i].a = p[ii].a = 1. / ((1. - r * r) * dp3 * dp3);
    }
    return p;
@@ -268,20 +268,20 @@ const GQuadratureFormular<R3> *QF_Hexa(int exact) {
 // Quadrature formula for the time integrals. Those are convenient because
 // of the quadrature points at the extremities of the interval
 //---------------------------------------------------------------------------------
-const R pLob_n3_0 = 1. / 6;
-const R pLob_n3_1 = 2. / 3;
+const double pLob_n3_0 = 1. / 6;
+const double pLob_n3_1 = 2. / 3;
 
-const R Lob_n5_2  = 1.4472135954999579 * 0.5;
-const R Lob_n5_1  = (-0.4472135954999579 + 1) * 0.5;
-const R pLob_n5_1 = 5. / 12;
-const R pLob_n5_0 = 1. / 12;
+const double Lob_n5_2  = 1.4472135954999579 * 0.5;
+const double Lob_n5_1  = (-0.4472135954999579 + 1) * 0.5;
+const double pLob_n5_1 = 5. / 12;
+const double pLob_n5_0 = 1. / 12;
 
-const R Lob_n7_1  = 0.172673164646011;
-const R Lob_n7_2  = 0.5;
-const R Lob_n7_3  = 0.827326835353989;
-const R pLob_n7_0 = 0.05;
-const R pLob_n7_1 = 0.272222222222222;
-const R pLob_n7_2 = 0.355555555555556;
+const double Lob_n7_1  = 0.172673164646011;
+const double Lob_n7_2  = 0.5;
+const double Lob_n7_3  = 0.827326835353989;
+const double pLob_n7_0 = 0.05;
+const double pLob_n7_1 = 0.272222222222222;
+const double pLob_n7_2 = 0.355555555555556;
 
 //---------------------------------------------------------------------------------
 const QuadratureFormular1d QF_LumpP1_1D(1, QuadratureFormular1d::QP(0.5, 0.),
@@ -471,12 +471,12 @@ GQuadratureFormular<R2> const QuadratureFormular_T_2(2, 3,
                                                      P_QuadratureFormular_T_2);
 // ----------------------------------------------------------------------
 
-const R sqrt15 = 3.87298334620741688517926539978;
-const R t_T5 = 1.E0 / 3.E0, A_T5 = 0.225E0;
-const R r_T5 = (6 - sqrt15) / 21, s_T5 = (9 + 2 * sqrt15) / 21,
-        B_T5 = (155 - sqrt15) / 1200;
-const R u_T5 = (6 + sqrt15) / 21, v_T5 = (9 - 2 * sqrt15) / 21,
-        C_T5 = (155 + sqrt15) / 1200;
+const double sqrt15 = 3.87298334620741688517926539978;
+const double t_T5 = 1.E0 / 3.E0, A_T5 = 0.225E0;
+const double r_T5 = (6 - sqrt15) / 21, s_T5 = (9 + 2 * sqrt15) / 21,
+             B_T5 = (155 - sqrt15) / 1200;
+const double u_T5 = (6 + sqrt15) / 21, v_T5 = (9 - 2 * sqrt15) / 21,
+             C_T5 = (155 + sqrt15) / 1200;
 
 static GQuadraturePoint<R2> P_QuadratureFormular_T_5[] = {
     GQuadraturePoint<R2>(A_T5, R2(t_T5, t_T5)),
@@ -607,7 +607,7 @@ void QuadratureFormular1d::Check()
     int err=0;
     for(int m=0;m<=exact;++m)
     {
-        R ve = 1./ ( m+1), v=0.;
+        double ve = 1./ ( m+1), v=0.;
         for (int i=0;i<n;++i)
             v += p[i].a*pow(p[i].x,m);
         if (abs( ve-v)/ve > 1.e-8)
@@ -884,15 +884,15 @@ Corresponding weight:
 //   // QF_exact<GQuadratureFormular<Rd>,Rd::d+1>(exact,this);
 //   // const int d=Rd::d;
 //   // const double tol=1.e-12;
-//   // R err=0;
-//   // R a[d+1],h;
+//   // double err=0;
+//   // double a[d+1],h;
 //
 //   // for (int k=0;k<=exact;  k++)
 //   //   {
 //
 //   //     //  formule magic: int_K  \lamda^k =   d! k! / ( d+k)!
 //
-//   //     R sa[d+1];
+//   //     double sa[d+1];
 //   //     for(int l=0;l<=d;++l)
 //   // 	sa[l]=0.;
 //
@@ -909,9 +909,9 @@ Corresponding weight:
 //   // 	    sa[l]+=h*pow(a[l],k);
 //   // 	}
 //
-//   //     R se(1),see(1);
+//   //     double se(1),see(1);
 //   //     for (int i=1;i<=k;i++)
-//   // 	se *= (R) i / (R) (i+d);
+//   // 	se *= (double) i / (double) (i+d);
 //   //     see=se;
 //
 //   //     for(int l=0;l<=d;++l)
@@ -919,7 +919,8 @@ Corresponding weight:
 //
 //   //     if (err>tol)
 //   // 	{
-//   // 	  cerr << " d= " << d << "T Ordre= " << k << " d!k!/(d+k)!= " << se
+//   // 	  cerr << " d= " << d << "T Ordre= " << k << " d!k!/(d+k)!= " <<
+//   se
 //   << " " ;
 //   // 	  for(int l=0;l<=d;++l)
 //   // 	    cerr << sa[l] << " ";

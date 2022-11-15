@@ -734,159 +734,156 @@ ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
    }
    l *= 2;
 
-   //   ListItemVF<d> item(l);
-   //   int k=0, kloc=0;
-   //   for(int i=0;i<F.A.N();++i){
-   //     for(int j=0;j<F.A.M();++j){
-   //       for(int ui=0;ui<F.A(i,j)->size();++ui) {
-   //         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-   //         item(k) = ItemVF<d>( v.c*fh.k1,0,-1,v.cu,v.du,0,v.ar_nu);
-   //         item(k).face_sideU_ = 0;
-   //         item(k).face_sideV_ = v.face_side_;
-   //         item(k).domainU_id_ = v.domain_id_;
-   //         item(k).domainV_id_ = v.domain_id_,
-   //         item(k).coefv = v.coefu;
-   //         item(k).dtu = 0;
-   //         item(k).dtv = v.dtu;
-   //         item(k).expru = &fh.fun1;
-   //         item(k).exprv = v.expru;
-   //         item(k).fespaceV = v.fespace;
-   //         item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+   ListItemVF<d> item(l);
+   int k = 0, kloc = 0;
+   for (int i = 0; i < F.A.N(); ++i) {
+      for (int j = 0; j < F.A.M(); ++j) {
+         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
+            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+            item(k) = ItemVF<d>(v.c * fh.k1, 0, -1, v.cu, v.du, 0, v.ar_nu);
+            item(k).face_sideU_ = 0;
+            item(k).face_sideV_ = v.face_side_;
+            item(k).domainU_id_ = v.domain_id_;
+            item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
+            item(k).dtu          = 0;
+            item(k).dtv          = v.dtu;
+            item(k).expru        = &fh.fun1;
+            item(k).exprv        = v.expru;
+            item(k).fespaceV     = v.fespace;
+            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
 
-   //         k++;
-   //       }
-   //     }
-   //   }
-
-   //   for(int i=0;i<F.A.N();++i){
-   //     for(int j=0;j<F.A.M();++j){
-   //       for(int ui=0;ui<F.A(i,j)->size();++ui) {
-   //         const ItemTestFunction<d>& v(F.A(i,j)->getItem(ui));
-   //         item(k) = ItemVF<d>( v.c*fh.k2,0,-1,v.cu,v.du,0,v.ar_nu);
-   //         item(k).face_sideU_ = 1;
-   //         item(k).face_sideV_ = v.face_side_;
-   //         item(k).domainU_id_ = v.domain_id_;
-   //         item(k).domainV_id_ = v.domain_id_,
-   //         item(k).coefv = v.coefu;
-   //         item(k).dtu = 0;
-   //         item(k).dtv = v.dtu;
-   //         item(k).expru = &fh.fun1;
-   //         item(k).exprv = v.expru;
-   //         item(k).fespaceV = v.fespace;
-   //         item(k).varFormType_ = VarFormType::VF_MONOSPACE;
-
-   //         k++;
-   //       }
-   //     }
-   //   }
-
-   //   item.reduce();
-   //   item.setVarFormType();
-
-   //   return item;
-   // }
-
-   template <int d>
-   ListItemVF<d> operator,(
-       std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> fh,
-       const TestFunction<d> &F) {
-      if (F.A.N() != fh.size()) {
-         std::cout << "size expression \t" << fh.size() << std::endl;
-         std::cout << "size test function \t" << F.A.N() << std::endl;
-      }
-      assert(F.A.N() == fh.size());
-      int l = 0;
-      for (int i = 0; i < F.A.N(); ++i) {
-         for (int j = 0; j < F.A.M(); ++j) {
-            l += F.A(i, j)->size();
+            k++;
          }
       }
+   }
 
-      ListItemVF<d> item(l);
-      int k = 0, kloc = 0;
-      auto it = fh.begin();
-      for (int i = 0; i < F.A.N(); ++i, ++it) {
-         for (int j = 0; j < F.A.M(); ++j) {
-            for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-               const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
-               item(k) = ItemVF<d>(v.c, i, -1, v.cu, v.du, 0, v.ar_nu);
-               item(k).face_sideU_ = v.face_side_;
-               item(k).face_sideV_ = v.face_side_;
-               item(k).domainU_id_ = v.domain_id_;
-               item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-               item(k).dtu          = 0;
-               item(k).dtv          = v.dtu;
-               item(k).expru        = *it;
-               item(k).exprv        = v.expru;
-               item(k).fespaceV     = v.fespace;
-               item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+   for (int i = 0; i < F.A.N(); ++i) {
+      for (int j = 0; j < F.A.M(); ++j) {
+         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
+            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+            item(k) = ItemVF<d>(v.c * fh.k2, 0, -1, v.cu, v.du, 0, v.ar_nu);
+            item(k).face_sideU_ = 1;
+            item(k).face_sideV_ = v.face_side_;
+            item(k).domainU_id_ = v.domain_id_;
+            item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
+            item(k).dtu          = 0;
+            item(k).dtv          = v.dtu;
+            item(k).expru        = &fh.fun1;
+            item(k).exprv        = v.expru;
+            item(k).fespaceV     = v.fespace;
+            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
 
-               k++;
-            }
+            k++;
          }
       }
-
-      item.reduce();
-      item.setVarFormType();
-
-      return item;
    }
 
-   template <int d>
-   ListItemVF<d> innerProduct(const ExpressionAverage &fh,
-                              const TestFunction<d> &F) {
-      return (fh, F);
-   }
+   item.reduce();
+   item.setVarFormType();
 
-   template <int d>
-   ListItemVF<d> innerProduct(double c, const TestFunction<d> &F) {
-      return operator,(c, F);
-   }
+   return item;
+}
 
-   template <int d>
-   ListItemVF<d> innerProduct(const ExpressionVirtual &fh,
-                              const TestFunction<d> &F) {
-      return operator,(fh, F);
+template <int d>
+ListItemVF<d>
+operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> fh,
+          const TestFunction<d> &F) {
+   if (F.A.N() != fh.size()) {
+      std::cout << "size expression \t" << fh.size() << std::endl;
+      std::cout << "size test function \t" << F.A.N() << std::endl;
    }
-
-   template <int d>
-   ListItemVF<d> innerProduct(
-       std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>> fh,
-       const TestFunction<d> &F) {
-      std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> pointer2fh;
-      for (auto it = fh.begin(); it != fh.end(); ++it) {
-         pointer2fh.push_back(&(*it));
+   assert(F.A.N() == fh.size());
+   int l = 0;
+   for (int i = 0; i < F.A.N(); ++i) {
+      for (int j = 0; j < F.A.M(); ++j) {
+         l += F.A(i, j)->size();
       }
-      return operator,(pointer2fh, F);
    }
 
-   template <int d>
-   ListItemVF<d> innerProduct(const TestFunction<d> &F1,
+   ListItemVF<d> item(l);
+   int k = 0, kloc = 0;
+   auto it = fh.begin();
+   for (int i = 0; i < F.A.N(); ++i, ++it) {
+      for (int j = 0; j < F.A.M(); ++j) {
+         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
+            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+            item(k)             = ItemVF<d>(v.c, i, -1, v.cu, v.du, 0, v.ar_nu);
+            item(k).face_sideU_ = v.face_side_;
+            item(k).face_sideV_ = v.face_side_;
+            item(k).domainU_id_ = v.domain_id_;
+            item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
+            item(k).dtu          = 0;
+            item(k).dtv          = v.dtu;
+            item(k).expru        = *it;
+            item(k).exprv        = v.expru;
+            item(k).fespaceV     = v.fespace;
+            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+
+            k++;
+         }
+      }
+   }
+
+   item.reduce();
+   item.setVarFormType();
+
+   return item;
+}
+
+template <int d>
+ListItemVF<d> innerProduct(const ExpressionAverage &fh,
+                           const TestFunction<d> &F) {
+   return (fh, F);
+}
+
+template <int d>
+ListItemVF<d> innerProduct(double c, const TestFunction<d> &F) {
+   return operator,(c, F);
+}
+
+template <int d>
+ListItemVF<d> innerProduct(const ExpressionVirtual &fh,
+                           const TestFunction<d> &F) {
+   return operator,(fh, F);
+}
+
+template <int d>
+ListItemVF<d>
+innerProduct(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>> fh,
+             const TestFunction<d> &F) {
+   std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> pointer2fh;
+   for (auto it = fh.begin(); it != fh.end(); ++it) {
+      pointer2fh.push_back(&(*it));
+   }
+   return operator,(pointer2fh, F);
+}
+
+template <int d>
+ListItemVF<d> innerProduct(const TestFunction<d> &F1,
+                           const TestFunction<d> &F2) {
+   return (F1, F2);
+}
+
+// template <int d>
+// ListItemVF<d> innerProduct(const ExpressionAverage& fh, const
+// TestFunction<d>& F) {
+//  return (fh,F);
+// }
+
+template <int d>
+ListItemVF<d> contractProduct(const TestFunction<d> &F1,
                               const TestFunction<d> &F2) {
-      return (F1, F2);
-   }
+   return (F1, F2);
+}
 
-   // template <int d>
-   // ListItemVF<d> innerProduct(const ExpressionAverage& fh, const
-   // TestFunction<d>& F) {
-   //  return (fh,F);
-   // }
+template <int d>
+ListItemVF<d> contractProduct(const Rnm &F1, const TestFunction<d> &F2) {
+   return (F1, F2);
+}
 
-   template <int d>
-   ListItemVF<d> contractProduct(const TestFunction<d> &F1,
-                                 const TestFunction<d> &F2) {
-      return (F1, F2);
-   }
-
-   template <int d>
-   ListItemVF<d> contractProduct(const Rnm &F1, const TestFunction<d> &F2) {
-      return (F1, F2);
-   }
-
-   template <int d>
-   ListItemVF<d> contractProduct(const Projection &F1,
-                                 const TestFunction<d> &F2) {
-      return (F1, F2);
-   }
+template <int d>
+ListItemVF<d> contractProduct(const Projection &F1, const TestFunction<d> &F2) {
+   return (F1, F2);
+}
 
 #endif

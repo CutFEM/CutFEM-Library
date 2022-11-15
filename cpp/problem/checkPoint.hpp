@@ -1,0 +1,34 @@
+#ifndef _CHECKPOINT_HPP
+#define _CHECKPOINT_HPP
+
+
+
+namespace checkPoint {
+  void save(const KN_<double>& v, string filename) {
+    std::ofstream f;
+    f.open(filename.c_str(), std::ofstream::out);
+    f << v.size();
+    for(int i=0;i<v.size();++i) f << v(i);
+    f.close();
+  }
+
+  template<class Mesh>
+  void load(FunFEM<Mesh>& v, string path) {
+    int n;
+    ifstream f(path.c_str());
+    if(!f) {cerr << "Load a file to KN<double> " << path << endl; exit(1);}
+    cout << " Read On file \"" << path <<"\""<<  endl;
+    f >> n;
+    assert(n == v.Vh->NbDoF());
+    for(int i=0;i<v.size();++i) f >> v(i);
+  }
+
+};
+
+
+
+
+
+
+
+#endif

@@ -105,10 +105,6 @@ template <typename M> void FunFEM<M>::print() const {
    std::cout << v << std::endl;
 }
 
-template <typename M> void FunFEM<M>::print() const {
-   std::cout << v << std::endl;
-}
-
 template <typename M>
 double FunFEM<M>::eval(const int k, const R *x, int cu, int op) const {
    const FElement &FK((*Vh)[k]);
