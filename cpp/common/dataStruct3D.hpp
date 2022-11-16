@@ -2,6 +2,7 @@
 #define _DATA_STRUCT_3D_HPP
 
 #include "GenericElement.hpp"
+#include <cassert>
 
 typedef double R;
 typedef GenericVertex<R3> Vertex3;
@@ -238,7 +239,7 @@ class Tet : public GenericElement<DataTet> {
    typedef Triangle3 Face;
    typedef Tet TypeCutElement;
 
-   static const int oppEdgeOfEdge[ne]; //
+   static const std::vector<int> oppEdgeOfEdge; //
 
    Tet(){}; // constructor empty for array
 
@@ -272,6 +273,8 @@ class Tet : public GenericElement<DataTet> {
       GradL[3] = (V1 ^ V2) * det1;
       GradL[0] = -GradL[1] - GradL[2] - GradL[3];
    }
+
+   int faceOrient(int i) const;
 
    R3 toKref(const R3 &P) const {
       R l[4];
@@ -344,10 +347,12 @@ class Hexa : public GenericElement<DataHexa> {
    typedef Quad3 Face;
    typedef Tet TypeCutElement;
 
-   static const int oppEdgeOfEdge[ne]; //
-   static const int (*const nodeConnectivity)[3];
+   static const std::vector<int> oppEdgeOfEdge;
+   static const std::vector<std::vector<int>> nodeConnectivity;
+
    Hexa(){}; // constructor empty for array
-   Hexa(Vertex *v0, int *iv, int r = 0, double mss = UnSetMesure) {
+   Hexa(Vertex *v0, int *iv, int r = 0,
+        double mss = globalVariable::UnSetMesure) {
       this->set(v0, iv, r, mss);
    }; // constructor empty for array
 

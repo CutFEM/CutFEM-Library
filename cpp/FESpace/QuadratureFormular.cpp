@@ -2,7 +2,6 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
-using namespace std;
 #include "../util/error.hpp"
 #include "../util/ufunction.hpp"
 #include "QuadratureFormular.hpp"

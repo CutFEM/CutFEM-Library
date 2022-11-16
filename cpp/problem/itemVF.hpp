@@ -200,7 +200,7 @@ template <int N = 2> struct ItemVF {
                              double measCut, int domain) const {
       R val = 1;
       for (int l = 0; l < 2; ++l) {
-         const vector<const VirtualParameter *> &listCoef =
+         const std::vector<const VirtualParameter *> &listCoef =
              (l == 0) ? coefu : coefv;
          for (int i = 0; i < listCoef.size(); ++i) {
             val *= listCoef[i]->evaluate(domain, h, meas, measK, measCut);
@@ -212,7 +212,7 @@ template <int N = 2> struct ItemVF {
                                double measCut, int domi, int domj) const {
       R val = 1;
       for (int l = 0; l < 2; ++l) {
-         const vector<const VirtualParameter *> &listCoef =
+         const std::vector<const VirtualParameter *> &listCoef =
              (l == 0) ? coefu : coefv;
          int dom = (l == 0) ? domi : domj;
          for (int i = 0; i < listCoef.size(); ++i) {
@@ -226,7 +226,7 @@ template <int N = 2> struct ItemVF {
                                std::pair<int, int> domi) const {
       R val = 1;
       for (int l = 0; l < 2; ++l) {
-         const vector<const VirtualParameter *> &listCoef =
+         const std::vector<const VirtualParameter *> &listCoef =
              (l == 0) ? coefu : coefv;
          int dom = (l == 0) ? domi.first : domi.second;
          for (int i = 0; i < listCoef.size(); ++i) {
@@ -325,7 +325,7 @@ template <int N = 2> struct ItemVF {
    // ------------------------------------------
 
    friend std::ostream &operator<<(std::ostream &f, const ItemVF &u) {
-      string n[3] = {"nx", "ny", "nz"};
+      std::string n[3] = {"nx", "ny", "nz"};
       // f << " FESpaces => " << u.fespaceU << " and " << u.fespaceV << "\t";
       f << u.c << "\t" << whichOperator(u.dtu) << whichOperator(u.du, u.cu);
       for (int i = 0; i < u.ar_nu.size(); ++i)

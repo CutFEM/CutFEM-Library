@@ -3,167 +3,148 @@
 #include "../common/Mesh3dn.hpp"
 #include "../common/Mesh2dn.hpp"
 #include "../common/Mesh1dn.hpp"
-#include "interpolationMatrix.hpp"
-
+// #include "interpolationMatrix.hpp"
 
 /*
  *  compute the number of item used
  */
-static int nbnode_d(const int nodePerItem[4],const  int nbItem[4]) {
-  const int ndf = nbItem[0]*nodePerItem[0] + nbItem[1]*nodePerItem[1]
-                + nbItem[2]*nodePerItem[2] + nbItem[3]*nodePerItem[3];
-  return ndf;
+static int nbnode_d(const int nodePerItem[4], const std::vector<int> &nbItem) {
+   const int ndf = nbItem[0] * nodePerItem[0] + nbItem[1] * nodePerItem[1] +
+                   nbItem[2] * nodePerItem[2] + nbItem[3] * nodePerItem[3];
+   return ndf;
 }
 
-static int getDFonWhat(const int* data, int nbdf, int on) {
-  int kk=0;
-  for (int i=0;i<nbdf;++i)
-    if (on == data[i]) ++kk;
-  // cout << " on " << on << " k = " << kk << endl;
-  return kk;
+static int getDFonWhat(const int *data, int nbdf, int on) {
+   int kk = 0;
+   for (int i = 0; i < nbdf; ++i)
+      if (on == data[i])
+         ++kk;
+   // cout << " on " << on << " k = " << kk << endl;
+   return kk;
 }
 
-static int startwhat(const int nitem[4], int on) {
-  int s = 0;
-  for(int i=0;i<on;++i) s += nitem[i];
-  return s;}
-
-
-
-dataTypeOfFE::dataTypeOfFE(const int nitem[4], const int *Data, int nbdf, int NN)
-  :
-  data(Data),
-  dataalloc(0),
-  ndfonVertex(getDFonWhat(data,nbdf,0)),
-  ndfonEdge(getDFonWhat(data,nbdf,startwhat(nitem,1))),
-  ndfonFace(getDFonWhat(data,nbdf,startwhat(nitem,2))),
-  ndfonVolume(getDFonWhat(data,nbdf,startwhat(nitem,3))),
-  nbDoF(nbdf),
-  nbNode(nbnode_d(data + 4*nbdf, nitem)),
-  nbOfFE(1),
-  N(NN),
-  nbNodeOnWhat(data +4*nbdf ),
-  DFOnWhat(data),
-  DFOfNode(data+nbdf),
-  NodeOfDF(data+2*nbdf)
-{
-
-
+static int startwhat(const std::vector<int> &nitem, int on) {
+   int s = 0;
+   for (int i = 0; i < on; ++i)
+      s += nitem[i];
+   return s;
 }
 
+dataTypeOfFE::dataTypeOfFE(const std::vector<int> &nitem, const int *Data,
+                           int nbdf, int NN)
+    : data(Data), dataalloc(0), ndfonVertex(getDFonWhat(data, nbdf, 0)),
+      ndfonEdge(getDFonWhat(data, nbdf, startwhat(nitem, 1))),
+      ndfonFace(getDFonWhat(data, nbdf, startwhat(nitem, 2))),
+      ndfonVolume(getDFonWhat(data, nbdf, startwhat(nitem, 3))), nbDoF(nbdf),
+      nbNode(nbnode_d(data + 4 * nbdf, nitem)), nbOfFE(1), N(NN),
+      nbNodeOnWhat(data + 4 * nbdf), DFOnWhat(data), DFOfNode(data + nbdf),
+      NodeOfDF(data + 2 * nbdf) {}
 
+static int *builddata_d(const std::vector<int> nbItem,
+                        const KN<dataTypeOfFE const *> &t) {
 
-static int *builddata_d(const int nbItem[4], const KN<dataTypeOfFE const*>& t)
-{
+   int nbDoF   = 0;
+   int dfon[4] = {0, 0, 0, 0};
+   int k       = t.N();
+   int nbFE    = 0;
 
-  int nbDoF = 0;
-  int dfon[4] = {0,0,0,0};
-  int k = t.N();
-  int nbFE = 0;
+   for (int i = 0; i < k; ++i) {
+      nbDoF += t[i]->nbDoF;
+      dfon[0] += t[i]->ndfonVertex;
+      dfon[1] += t[i]->ndfonEdge;
+      dfon[2] += t[i]->ndfonFace;
+      dfon[3] += t[i]->ndfonVolume;
+      nbFE += t[i]->nbOfFE;
+   }
 
-  for(int i=0;i<k;++i) {
-    nbDoF   += t[i]->nbDoF;
-    dfon[0] += t[i]->ndfonVertex;
-    dfon[1] += t[i]->ndfonEdge;
-    dfon[2] += t[i]->ndfonFace;
-    dfon[3] += t[i]->ndfonVolume;
-    nbFE += t[i]->nbOfFE;
-  }
+   KN<int> NN(k + 1), DF(k + 1), comp(k + 1);
+   int n = 0, N = 0;
+   for (int j = 0; j < k; j++) {
+      N += t[j]->N;
+   }
 
+   //  reservation des interval en df
+   for (int j = 0; j < k; j++) {
+      DF[j] = n;
+      n += t[j]->nbDoF;
+   }
+   DF[k] = n;
 
-  KN<int> NN(k+1), DF(k+1) , comp(k+1);
-  int n=0,N=0;
-  for ( int j=0; j<k; j++) { N+=t[j]->N;}
+   int nwhat = 15;
+   KN<int> w(nwhat), nn(nwhat);
+   w  = 0;
+   nn = 0;
 
-  //  reservation des interval en df
-  for (int j=0;j<k;j++) { DF[j] = n ; n += t[j]->nbDoF;}
-  DF[k] = n;
+   for (int j = 0; j < k; j++)
+      for (int i = 0; i < t[j]->nbDoF; i++) {
+         nn[t[j]->DFOnWhat[i]]++;
+      }
 
-  int nwhat = 15;
-  KN<int> w(nwhat),nn(nwhat);
-  w=0;
-  nn=0;
+   int nbn = 0;
+   for (int j = 0; j < nwhat; j++) {
+      if (nn[j])
+         nn[j] = nbn++;
+      else
+         nn[j] = -1;
+   }
 
-  for ( int j=0; j<k; j++)
-    for ( int i=0; i<t[j]->nbDoF; i++) {
-      nn[t[j]->DFOnWhat[i]]++;
-    }
+   int *data  = new int[nwhat + 7 * nbDoF + N];
+   int lgdata = nwhat + 7 * nbDoF + N;
 
-  int nbn=0;
-  for( int j=0; j<nwhat; j++) {
-    if (nn[j]) nn[j] = nbn++;
-    else nn[j] = -1;
-  }
+   for (int i = 0; i < 4; ++i)
+      data[i] = dfon[i];
 
-  int * data = new int[nwhat+7*nbDoF +N];
-  int lgdata = nwhat+7*nbDoF+N;
+   data[4] = nbDoF;
+   data[5] = nbn;
+   data[6] = N;
+   data[7] = nbFE;
 
-  for(int i=0;i<4;++i) data[i] = dfon[i];
+   int p = 8;
+   for (int i = 0; i <= 3; ++i) { // loop over each kind of item
+      int maxN = 0;
+      for (int j = 0; j < k; ++j) {
+         maxN = std::max(t[j]->nbNodeOnWhat[i], maxN);
+      }
+      data[p++] = maxN; // save on what item element
+   }
 
-  data[4] = nbDoF;
-  data[5] = nbn;
-  data[6] = N;
-  data[7] = nbFE;
+   p = 15;
+   for (int j = 0; j < k; j++) {
+      for (int i = 0; i < t[j]->nbDoF; i++) {
+         data[p++] = t[j]->DFOnWhat[i];
+      }
+   }
 
-  int p=8;
-  for(int i=0; i<=3; ++i){            // loop over each kind of item
-    int maxN = 0;
-    for(int j=0; j<k; ++j) {
-      maxN = max(t[j]->nbNodeOnWhat[i], maxN);
-    }
-    data[p++] = maxN;                // save on what item element
-  }
+   KN<int> dln(nwhat);
+   dln = 0;
+   for (int j = 0; j < k; j++) {
+      int cc = p;
+      for (int i = 0; i < t[j]->nbDoF; i++) {
+         data[p++] = t[j]->DFOfNode[i] + dln[t[j]->DFOnWhat[i]];
+      }
 
-  p = 15;
-  for ( int j=0; j<k; j++) {
-    for ( int i=0; i<t[j]->nbDoF; i++){
-      data[p++] = t[j]->DFOnWhat[i];
-    }
-  }
+      for (int i = 0; i < t[j]->nbDoF; i++)
+         dln[t[j]->DFOnWhat[i]] = Max(dln[t[j]->DFOnWhat[i]], data[cc++] + 1);
+   }
+   //  Ok si un noeud par what
+   for (int j = 0; j < k; j++) {
+      for (int i = 0; i < t[j]->nbDoF; i++) {
+         data[p++] = nn[t[j]->DFOnWhat[i]];
+      }
+   }
 
-  KN<int> dln(nwhat);
-  dln=0;
-  for ( int j=0; j<k; j++) {
-    int  cc=p;
-    for ( int i=0; i<t[j]->nbDoF; i++) {
-      data[p++] = t[j]->DFOfNode[i] + dln[t[j]->DFOnWhat[i]];
-    }
-
-    for ( int i=0;i<t[j]->nbDoF;i++)
-      dln[t[j]->DFOnWhat[i]] = Max(dln[t[j]->DFOnWhat[i]],data[cc++]+1);
-  }
-  //  Ok si un noeud par what
-  for (int j=0; j<k; j++) {
-    for (int  i=0; i<t[j]->nbDoF; i++) {
-      data[p++] = nn[t[j]->DFOnWhat[i]];
-    }
-  }
-
-
-  for(int i=p+nwhat; i<lgdata; ++i)
-    data[i] = 0;                        // set 0 to the rest
-  return data;
+   for (int i = p + nwhat; i < lgdata; ++i)
+      data[i] = 0; // set 0 to the rest
+   return data;
 }
 
-
-dataTypeOfFE::dataTypeOfFE(const int nitemdim[4], const KN<dataTypeOfFE const*> &t)
-  :
-  data(builddata_d(nitemdim,t)),
-  dataalloc(data),
-  ndfonVertex(data[0]),
-  ndfonEdge(data[1]),
-  ndfonFace(data[2]),
-  ndfonVolume(data[3]),
-  nbDoF(data[4]),
-  nbNode(data[5]),
-  N(data[6]),
-  nbOfFE(data[7]),
-  nbNodeOnWhat(data+8),
-  DFOnWhat(data+15+0*nbDoF),
-  DFOfNode(data+15+1*nbDoF),
-  NodeOfDF(data+15+2*nbDoF)
-{
-}
+dataTypeOfFE::dataTypeOfFE(const std::vector<int> &nitemdim,
+                           const KN<dataTypeOfFE const *> &t)
+    : data(builddata_d(nitemdim, t)), dataalloc(data), ndfonVertex(data[0]),
+      ndfonEdge(data[1]), ndfonFace(data[2]), ndfonVolume(data[3]),
+      nbDoF(data[4]), nbNode(data[5]), N(data[6]), nbOfFE(data[7]),
+      nbNodeOnWhat(data + 8), DFOnWhat(data + 15 + 0 * nbDoF),
+      DFOfNode(data + 15 + 1 * nbDoF), NodeOfDF(data + 15 + 2 * nbDoF) {}
 
 //
 // static int *builddata_d(const int nbItem[4],
@@ -273,8 +254,8 @@ dataTypeOfFE::dataTypeOfFE(const int nitemdim[4], const KN<dataTypeOfFE const*> 
 // }
 //
 //
-// dataTypeOfFE::dataTypeOfFE(const int nitemdim[4], const KN<dataTypeOfFE const*> &t,
-// 			   const dataTypeOfFE* tt)
+// dataTypeOfFE::dataTypeOfFE(const int nitemdim[4], const KN<dataTypeOfFE
+// const*> &t, 			   const dataTypeOfFE* tt)
 //   :
 //   data(builddata_d(nitemdim,t, tt)),
 //   dataalloc(data),
@@ -292,11 +273,6 @@ dataTypeOfFE::dataTypeOfFE(const int nitemdim[4], const KN<dataTypeOfFE const*> 
 //   NodeOfDF(data+15+2*nbDoF)
 // {
 // }
-
-
-
-
-
 
 template class GTypeOfFE<Mesh1>;
 template class GTypeOfFE<Mesh2>;

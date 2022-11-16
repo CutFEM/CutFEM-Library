@@ -20,7 +20,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
    BaseCutFEM(const QuadratureFormular1d &qt, const ProblemOption &option,
               int np)
        : BaseFEM<Mesh>(qt, option, np) {}
-   // BaseCutFEM(const list<FESpace*>& vh,const ProblemOption& option) :
+   // BaseCutFEM(const std::list<FESpace*>& vh,const ProblemOption& option) :
    // BaseFEM<Mesh>(vh, option) {}
    BaseCutFEM(const FESpace &vh, const ProblemOption &option, int np)
        : BaseFEM<Mesh>(vh, option, np) {}
@@ -70,61 +70,63 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
    // integral on boundary
    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &,
-                    const CBorder &b, list<int> label = {});
+                    const CBorder &b, std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &,
-                    const CBorder &b, const TimeSlab &In, list<int> label = {});
+                    const CBorder &b, const TimeSlab &In,
+                    std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &,
                     const CBorder &b, const TimeSlab &In, int itq,
-                    list<int> label = {});
+                    std::list<int> label = {});
 
    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &,
-                  const CBorder &b, list<int> label = {});
+                  const CBorder &b, std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &,
-                  const CBorder &b, const TimeSlab &In, list<int> label = {});
+                  const CBorder &b, const TimeSlab &In,
+                  std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &,
                   const CBorder &b, const TimeSlab &In, int itq,
-                  list<int> label = {});
+                  std::list<int> label = {});
    void addBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K,
                               const BorderElement &BE, int ifac,
                               const TimeSlab *In, int itq, double cst_time);
 
    void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th,
-                     list<int> label = {});
+                     std::list<int> label = {});
 
    // integral on interface
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                    list<int> label = {}) {
+                    std::list<int> label = {}) {
       return BaseFEM<Mesh>::addBilinear(VF, gamma, label);
    }
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                    const TimeSlab &In, int itq, list<int> label = {}) {
+                    const TimeSlab &In, int itq, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addBilinear(VF, gamma, In, itq, label);
    }
    void addBilinear(const ListItemVF<Rd::d> &VF,
                     const TimeInterface<Mesh> &gamma, const TimeSlab &In,
-                    list<int> label = {}) {
+                    std::list<int> label = {}) {
       return BaseFEM<Mesh>::addBilinear(VF, gamma, In, label);
    }
    void addBilinear(const ListItemVF<Rd::d> &VF,
                     const TimeInterface<Mesh> &gamma, const TimeSlab &In,
-                    int itq, list<int> label = {}) {
+                    int itq, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addBilinear(VF, gamma, In, itq, label);
    }
 
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                  list<int> label = {}) {
+                  std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, label);
    }
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                  const TimeSlab &In, int itq, list<int> label = {}) {
+                  const TimeSlab &In, int itq, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);
    }
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
-                  const TimeSlab &In, list<int> label = {}) {
+                  const TimeSlab &In, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, In, label);
    }
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
-                  const TimeSlab &In, int itq, list<int> label = {}) {
+                  const TimeSlab &In, int itq, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);
    }
    // void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const
@@ -132,32 +134,32 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
    // cst_time);
 
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                    const Mapping<Mesh> &mapping, list<int> label = {}) {
+                    const Mapping<Mesh> &mapping, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addBilinear(VF, gamma, mapping, label);
    }
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                  const Mapping<Mesh> &mapping, list<int> label = {}) {
+                  const Mapping<Mesh> &mapping, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, mapping, label);
    }
 
    // integral on inner Ridge / intersction with interface
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                    const CRidge &innerRidge, list<int> label = {});
+                    const CRidge &innerRidge, std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF,
                     const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
-                    const TimeSlab &In, list<int> label = {});
+                    const TimeSlab &In, std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF,
                     const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
-                    const TimeSlab &In, int itq, list<int> label = {});
+                    const TimeSlab &In, int itq, std::list<int> label = {});
 
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                  const CRidge &innerRidge, list<int> label = {});
+                  const CRidge &innerRidge, std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
                   const CRidge &innerRidge, const TimeSlab &In,
-                  list<int> label = {});
+                  std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
                   const CRidge &innerRidge, const TimeSlab &In, int itq,
-                  list<int> label = {});
+                  std::list<int> label = {});
    void addInterfaceRidgeContribution(const ListItemVF<Rd::d> &VF,
                                       const Interface<Mesh> &interface,
                                       int ifac, const TimeSlab *In, int itq,
@@ -187,7 +189,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val,
                               const CutMesh &, const CBorder &b,
-                              list<int> label = {});
+                              std::list<int> label = {});
    void addLagrangeBorderContribution(const ListItemVF<Rd::d> &VF,
                                       const Element &K, const BorderElement &BE,
                                       int ifac, const TimeSlab *In, int itq,
@@ -228,17 +230,17 @@ template <typename Mesh> class CutFEM : public BaseCutFEM<Mesh>, public Solver {
       gather(this->mat_);
       Solver::solve(this->mat_[0], this->rhs_);
    }
-   void solve(string solverName) {
+   void solve(std::string solverName) {
       this->solver_name_ = solverName;
       gather(this->mat_);
       Solver::solve(this->mat_[0], this->rhs_);
    }
    void solve(std::map<std::pair<int, int>, R> &A, Rn &b,
-              string solverName = "mumps") {
+              std::string solverName = "mumps") {
       this->solver_name_ = solverName;
       Solver::solve(A, b);
    }
-   void solve(std::vector<Matrix> &A, Rn &b, string solverName = "mumps") {
+   void solve(std::vector<Matrix> &A, Rn &b, std::string solverName = "mumps") {
       this->solver_name_ = solverName;
       gather(A);
       Solver::solve(A[0], b);
@@ -277,7 +279,7 @@ template <typename M> class BaseCutProblem : public BaseProblem<M> {
       }
    }
 
-   BaseCutProblem(const list<FESpace *> &vh) : BaseProblem<M>(vh) {}
+   BaseCutProblem(const std::list<FESpace *> &vh) : BaseProblem<M>(vh) {}
 
    BaseCutProblem(const QuadratureFormular1d &qT, int orderSpace = 5)
        : BaseProblem<M>(qT, orderSpace) {}
@@ -301,11 +303,11 @@ template <typename M> class BaseCutProblem : public BaseProblem<M> {
 
    // integral on the boundary
    void addBilinear(const ListItemVF<Rd::d> &VF, const CBorder &b,
-                    list<int> label = {}) {
+                    std::list<int> label = {}) {
       return BaseProblem<M>::addBilinear(VF, b, label);
    };
    void addLinear(const ListItemVF<Rd::d> &VF, const CBorder &b,
-                  list<int> label = {}) {
+                  std::list<int> label = {}) {
       return BaseProblem<M>::addLinear(VF, b, label);
    };
    // integral on inner Edge/Face
@@ -371,12 +373,12 @@ template <typename M> class BaseCutProblem : public BaseProblem<M> {
  public:
    // FEM on surface
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                    list<int> label        = {},
+                    std::list<int> label   = {},
                     const Mapping &mapping = DataMapping<Mesh>::Id) {
       return BaseProblem<M>::addBilinear(VF, gamma, label, mapping);
    };
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                    const GMacro &macro, list<int> label = {},
+                    const GMacro &macro, std::list<int> label = {},
                     const Mapping &mapping = DataMapping<Mesh>::Id) {
       return BaseProblem<M>::addBilinear(VF, gamma, macro, label, mapping);
    };
@@ -385,12 +387,12 @@ template <typename M> class BaseCutProblem : public BaseProblem<M> {
       return BaseProblem<M>::addBilinear(VF, gamma, b);
    };
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                  list<int> label        = {},
+                  std::list<int> label   = {},
                   const Mapping &mapping = DataMapping<Mesh>::Id) {
       return BaseProblem<M>::addLinear(VF, gamma, label, mapping);
    };
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                  const CBorder &b, list<int> label = {}) {
+                  const CBorder &b, std::list<int> label = {}) {
       return BaseProblem<M>::addLinear(VF, gamma, b, label);
    };
 
@@ -445,10 +447,10 @@ R BaseCutProblem<M>::computeCoef(const ItemVF<Rd::d> &item, int domain,
    double meas  = cutK.mesure(domain);
    double measK = cutK.T.mesure();
    for (int l = 0; l < 2; ++l) {
-      const vector<string> &listCoef = (l == 0) ? item.coefu : item.coefv;
-      int domCoef                    = domain;
+      const vector<std::string> &listCoef = (l == 0) ? item.coefu : item.coefv;
+      int domCoef                         = domain;
       for (int i = 0; i < listCoef.size(); ++i) {
-         string coef = listCoef[i];
+         std::string coef = listCoef[i];
 
          if (this->parameterList.find(coef)) {
             CutFEM_Parameter &p(*this->parameterList.listParameter[coef]);

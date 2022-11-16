@@ -7,8 +7,6 @@ extern long verbosity;
 #include "../util/util.hpp"
 #include <cstdlib>
 
-using namespace ::std;
-
 #include "dataStruct1D.hpp"
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
@@ -19,7 +17,7 @@ using namespace ::std;
 #endif
 
 inline int maxdfon(const int *dfon) {
-   return max(max(dfon[0], dfon[1]), max(dfon[2], dfon[3]));
+   return std::max(std::max(dfon[0], dfon[1]), std::max(dfon[2], dfon[3]));
 }
 
 const int NbTypeItemElement = 4;
@@ -160,8 +158,8 @@ template <typename T, typename B, typename V> class GenericMesh {
       return p >= 0 ? p / nea : -1;
    }
 
-   int GetAllElementAdj(
-       int it, int *tabk) const { //  get the tab of all adj element (max ne)
+   int GetAllElementAdj(int it, int *tabk)
+       const { //  get the tab of all adj element (std::max ne)
       int i = 0;
       for (int j = 0; j < nea; ++j) {
          int p = TheAdjacencesLink[nea * it + j];
@@ -195,7 +193,8 @@ template <typename T, typename B, typename V> class GenericMesh {
    }
 
    template <int N, int M>
-   SortArray<int, N> iteme(const int (*const nu)[N], int k, int i) {
+   SortArray<int, N> iteme(const std::vector<std::vector<int>> &nu, int k,
+                           int i) {
       int nnv[N];
       Element &K(elements[CheckT(k)]);
       assert(i >= 0 && i < M);
@@ -206,7 +205,7 @@ template <typename T, typename B, typename V> class GenericMesh {
       return SortArray<int, N>(nnv);
    }
    SortArray<int, B::nv> itemadj(int k, int i) {
-      return iteme<B::nv, T::nea>(T::nvadj, k, i);
+      return iteme<B::nv, T::nea>(T::nvhyperFace, k, i);
    }
    SortArray<int, B::nv> itembe(int k) {
       int nnv[B::nv];
@@ -222,7 +221,7 @@ template <typename T, typename B, typename V> class GenericMesh {
    double get_mesh_size() const {
       double hh = 1e300;
       for (int k = 0; k < nt; ++k) {
-         hh = min((*this)[k].hElement(), hh);
+         hh = std::min((*this)[k].hElement(), hh);
       }
       return hh;
    }

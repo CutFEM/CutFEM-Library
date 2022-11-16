@@ -143,7 +143,8 @@ class Triangle2 : public GenericElement<DataTriangle2> {
    typedef Edge2 Face;
    typedef Triangle2 TypeCutElement;
    Triangle2(){}; // constructor empty for array
-   Triangle2(Vertex *v0, int *iv, int r = 0, double mss = UnSetMesure) {
+   Triangle2(Vertex *v0, int *iv, int r = 0,
+             double mss = globalVariable::UnSetMesure) {
       this->set(v0, iv, r, mss);
    }; // constructor empty for array
 
@@ -232,7 +233,8 @@ class Quad2 : public GenericElement<DataQuad2> {
    typedef Triangle2 TypeCutElement;
 
    Quad2(){}; // constructor empty for array
-   Quad2(Vertex *v0, int *iv, int r = 0, double mss = UnSetMesure) {
+   Quad2(Vertex *v0, int *iv, int r = 0,
+         double mss = globalVariable::UnSetMesure) {
       this->set(v0, iv, r, mss);
    }; // constructor empty for array
 

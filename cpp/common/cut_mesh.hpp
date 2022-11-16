@@ -61,7 +61,7 @@ template <typename E> struct Cut_Part {
    // GETTERS
    int get_sign() const { return sign_cut_; }
    int get_sign_node(int i) const { return partition_->get_sign_node(i); }
-   void get_list_node(vector<typename E::Rd> &node) const {
+   void get_list_node(std::vector<typename E::Rd> &node) const {
       partition_->get_list_node(node, sign_cut_);
    }
    CutElement<E> get_element(int k) const { return partition_->get_element(k); }
@@ -354,7 +354,7 @@ template <typename Mesh> class ActiveMesh {
          return Cut_Part<Face>(this->build_local_partition(face, k, ifac), 0);
    }
 
-   vector<int> idxAllElementFromBackMesh(int k, int d) const {
+   std::vector<int> idxAllElementFromBackMesh(int k, int d) const {
       std::vector<int> idx(0);
       if (d != -1) {
          int ret = idxElementFromBackMesh(k, d);
@@ -371,7 +371,7 @@ template <typename Mesh> class ActiveMesh {
       return idx;
    }
 
-   vector<int> getAllDomainId(int k) const {
+   std::vector<int> getAllDomainId(int k) const {
       std::vector<int> idx(0);
       for (int i = 0; i < get_nb_domain(); ++i) {
          int ret = idxElementFromBackMesh(k, i);
@@ -1089,7 +1089,7 @@ ActiveMesh<Mesh>::build_local_partition(const int k, int t) const {
 
    // START CUTTING PROCEDURE
    std::list<int> erased_element;
-   vector<ElementIdx> new_element_idx;
+   std::vector<ElementIdx> new_element_idx;
 
    int domain = get_domain_element(k);
    int kloc   = idxK_in_domain(k, domain);

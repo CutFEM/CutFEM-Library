@@ -13,19 +13,19 @@ Mesh1::Mesh1(const char *filename) { // read the mesh
    int nt, nv, nbe;
    int ok = 0; // load(filename);
    if (ok) {
-      ifstream f(filename);
+      std::ifstream f(filename);
       if (!f) {
-         cerr << "Mesh1::Mesh1 Erreur openning " << filename << endl;
+         std::cerr << "Mesh1::Mesh1 Erreur openning " << filename << std::endl;
          exit(1);
       }
       if (verbosity)
-         cout << " Read On file \"" << filename << "\"" << endl;
+         std::cout << " Read On file \"" << filename << "\"" << std::endl;
       f >> nv >> nt >> nbe;
       this->set(nv, nt, nbe);
       if (verbosity)
-         cout << "  -- Nb of Vertex " << nv << " "
-              << " Nb of Seg " << nt << " , Nb of border Vertex " << nbe
-              << endl;
+         std::cout << "  -- Nb of Vertex " << nv << " "
+                   << " Nb of Seg " << nt << " , Nb of border Vertex " << nbe
+                   << std::endl;
       assert(f.good() && nt && nv);
       for (int i = 0; i < nv; i++) {
          f >> this->vertices[i];
@@ -46,8 +46,8 @@ Mesh1::Mesh1(const char *filename) { // read the mesh
    BuildAdj();
 
    if (verbosity)
-      cout << "   - mesh mesure = " << mes << " border mesure: " << mesb
-           << endl;
+      std::cout << "   - mesh mesure = " << mes << " border mesure: " << mesb
+                << std::endl;
 }
 
 Mesh1::Mesh1(int nx, R orx, R lx) {

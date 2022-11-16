@@ -550,7 +550,7 @@ template <typename M> double L2norm(const ExpressionVirtual &fh, const M &Th) {
 //       Rd mip = FK.map(ip);
 //       const R Cint = meas * ip.getWeight();
 //
-//       val = max(val, fabs(fh.eval(k, mip)-fex(mip, fh.cu)));
+//       val = std::max(val, fabs(fh.eval(k, mip)-fex(mip, fh.cu)));
 //     }
 //   }
 //
@@ -569,7 +569,7 @@ double maxNormCut(const ExpressionVirtual &fh, const ActiveMesh<M> &Th) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
-      val += max(val, maxNormCut(fh, Th, i));
+      val += std::max(val, maxNormCut(fh, Th, i));
    }
    return val;
 }
@@ -605,7 +605,7 @@ double maxNormCut(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
             QuadraturePoint ip(qf[ipq]); // integration point
             Rd mip = cutK.mapToPhysicalElement(it, ip);
 
-            val = max(val, fabs(fh.eval(k, mip)));
+            val = std::max(val, fabs(fh.eval(k, mip)));
          }
       }
    }
@@ -625,7 +625,7 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
-      val += max(val, maxNormCut(fh, fex, Th, i));
+      val += std::max(val, maxNormCut(fh, fex, Th, i));
    }
    return val;
 }
@@ -665,7 +665,8 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
             auto ip(qf[ipq]); // integration point
             Rd mip = cutK.mapToPhysicalElement(it, ip);
 
-            val = max(val, fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
+            val =
+                std::max(val, fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
          }
 
          for (int ifac = 0; ifac < Element::nea; ++ifac) {
@@ -673,7 +674,8 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
                auto ip(qfb[ipq]); // integration point
                auto ipf = K.mapToReferenceElement(ip, ifac);
                Rd mip   = cutK.mapToPhysicalElement(it, ipf);
-               val = max(val, fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
+               val      = std::max(val,
+                                   fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
             }
          }
       }
@@ -694,7 +696,7 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
-      val += max(val, maxNormCut(fh, fex, Th, i, sample_node));
+      val += std::max(val, maxNormCut(fh, fex, Th, i, sample_node));
    }
    return val;
 }
@@ -732,7 +734,7 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
                                         cutK.get_vertex(it, 1),
                                         cutK.get_vertex(it, 2)))
             continue;
-         val = max(val, fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
+         val = std::max(val, fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
       }
    }
    bar.end();
@@ -769,7 +771,7 @@ double maxNorm(const ExpressionVirtual &fh, const Mesh &Th) {
          QuadraturePoint ip(qf[ipq]); // integration point
          Rd mip = K.mapToPhysicalElement(ip);
 
-         val = max(val, fabs(fh.eval(k, mip)));
+         val = std::max(val, fabs(fh.eval(k, mip)));
       }
    }
    double val_receive = 0;

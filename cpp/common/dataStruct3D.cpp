@@ -3,145 +3,146 @@
 const std::vector<R3> R3::KHat = {R3(0., 0., 0.), R3(1., 0., 0.),
                                   R3(0., 1., 0.), R3(0., 0., 1.)};
 
-//  Attention  nvfaceTet  donnne les faces  les 4 faces de tet telle que la
-// tel que  le tet forme des trois sommet  + l'autre sommet soit positif.
-//  donc  le  produit vectoriel des 2 aretes  (0,1) (0,2)  donne une  normale
-//  interieur. Ok pour les gradients des $\lambda_i$
-static const int nvfaceTet[4][3] = {{3, 2, 1}, {0, 2, 3}, {3, 1, 0}, {0, 1, 2}};
-static const int nvedgeTet[6][2] = {{0, 1}, {0, 2}, {0, 3},
-                                    {1, 2}, {1, 3}, {2, 3}};
-static const int edgeOfFaceTet[4][3] = {
+/// @brief Static mumber for Point3
+template <>
+const std::vector<std::vector<int>> GenericElement<DataPoint3>::nvedge = {{}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataPoint3>::nvface = {{}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataPoint3>::nvhyperFace = {
+    {}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataPoint3>::edgeOfFace = {
+    {}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataPoint3>::faceOfEdge = {
+    {}};
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataPoint3>::commonVertOfEdges = {{}};
+
+/// @brief Static mumber for Seg3
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg3>::nvedge = {{0, 1}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg3>::nvface = {{}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg3>::nvhyperFace = {
+    {0}, {1}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg3>::edgeOfFace = {{}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg3>::faceOfEdge = {{}};
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataSeg3>::commonVertOfEdges = {{}};
+
+/// @brief Static mumber for Triangle3
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::nvedge = {
+    {1, 2}, {2, 0}, {0, 1}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::nvface = {
+    {0, 1, 2}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::nvhyperFace =
+    {{1, 2}, {2, 0}, {0, 1}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::edgeOfFace =
+    {{0, 1, 2}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::faceOfEdge{
+    {0}, {0}, {0}};
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataTriangle3>::commonVertOfEdges = {
+        {-1, 2, 1}, {2, -1, 0}, {1, 0, -1}};
+
+/// @brief Static mumber for Quad3
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad3>::nvedge = {
+    {0, 1}, {1, 2}, {2, 3}, {3, 0}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad3>::nvface = {
+    {0, 1, 2, 3}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad3>::nvhyperFace = {
+    {0, 1}, {1, 2}, {2, 3}, {3, 0}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad3>::edgeOfFace = {
+    {0, 1, 2, 3}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad3>::faceOfEdge{
+    {0}, {0}, {0}, {0}};
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataQuad3>::commonVertOfEdges = {
+        {-1, 1, -1, 0}, {1, -1, 2, -1}, {-1, 2, -1, 3}, {0, -1, 3, -1}};
+
+/// @brief Static mumber for Tet
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::nvedge = {
+    {0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::nvface = {
+    {3, 2, 1}, {0, 2, 3}, {3, 1, 0}, {0, 1, 2}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::nvhyperFace = {
+    {3, 2, 1}, {0, 2, 3}, {3, 1, 0}, {0, 1, 2}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::edgeOfFace = {
     {3, 4, 5}, {1, 2, 5}, {0, 2, 4}, {0, 1, 3}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::faceOfEdge = {
+    {2, 3}, {1, 3}, {1, 2}, {0, 3}, {0, 2}, {0, 1}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::commonVertOfEdges =
+    {{-1, 0, 0, 1, 1, -1}, {0, -1, 0, 2, -1, 2}, {0, 0, -1, -1, 3, 3},
+     {1, 2, -1, -1, 1, 2}, {1, -1, 3, 1, -1, 3}, {-1, 2, 3, 2, 3, -1}};
 
-static const int nvfaceTria[1][3] = {{0, 1, 2}};
-static const int nvedgeTria[3][2] = {{1, 2}, {2, 0}, {0, 1}};
+/// @brief Static mumber for Hexa
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::nvedge = {
+    {0, 1}, {1, 2}, {2, 3}, {3, 0}, {0, 4}, {1, 5},
+    {2, 6}, {3, 7}, {4, 5}, {5, 6}, {6, 7}, {7, 4}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::nvface = {
+    {0, 1, 2, 3}, {0, 1, 5, 4}, {1, 2, 6, 5},
+    {2, 3, 7, 6}, {3, 0, 4, 7}, {4, 5, 6, 7}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::nvhyperFace = {
+    {0, 1, 2, 3}, {0, 1, 5, 4}, {1, 2, 6, 5},
+    {2, 3, 7, 6}, {3, 0, 4, 7}, {4, 5, 6, 7}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::edgeOfFace = {
+    {0, 1, 2, 3},  {0, 5, 8, 4},  {1, 6, 9, 5},
+    {2, 7, 10, 6}, {3, 4, 11, 7}, {8, 9, 10, 11}};
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::faceOfEdge = {
+    {0, 1}, {0, 2}, {0, 3}, {0, 4}, {1, 4}, {1, 2},
+    {2, 3}, {3, 4}, {1, 5}, {2, 5}, {3, 5}, {4, 5}};
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataHexa>::commonVertOfEdges = {
+        {-1, 1, -1, 0, 0, 1, -1, -1, -1, -1, -1, -1},
+        {1, -1, 2, -1, -1, 1, 2, -1, -1, -1, -1, -1},
+        {-1, 2, -1, 3, -1, -1, 2, 3, -1, -1, -1, -1},
+        {0, -1, 3, -1, 0, -1, -1, 3, -1, -1, -1, -1},
+        {0, -1, -1, 0, -1, -1, -1, -1, 4, -1, -1, 4},
+        {1, 1, -1, -1, -1, -1, -1, -1, 5, 5, -1, -1},
+        {-1, 2, 2, -1, -1, -1, -1, -1, -1, 6, 6, -1},
+        {-1, -1, 3, 3, -1, -1, -1, -1, -1, -1, 7, 7},
+        {-1, -1, -1, -1, 4, 5, -1, -1, -1, 5, -1, 4},
+        {-1, -1, -1, -1, -1, 5, 6, -1, 5, -1, 6, -1},
+        {-1, -1, -1, -1, -1, -1, 6, 7, -1, 6, -1, 7},
+        {-1, -1, -1, -1, 4, -1, -1, 7, 4, -1, 7, -1}};
 
-static const int nvfaceSeg[1][3] = {{-1, -1, 1}};
-static const int nvedgeSeg[1][2] = {{0, 1}};
-
-static const int nvfaceQuad3[1][4] = {{0, 1, 2, 3}};
-static const int nvedgeQuad3[4][2] = {{0, 1}, {1, 2}, {2, 3}, {3, 0}};
-
-static const int nvfaceHexa[6][4]  = {{0, 1, 2, 3}, {0, 1, 5, 4}, {1, 2, 6, 5},
-                                      {2, 3, 7, 6}, {3, 0, 4, 7}, {4, 5, 6, 7}};
-static const int nvedgeHexa[12][2] = {{0, 1}, {1, 2}, {2, 3}, {3, 0},
-                                      {0, 4}, {1, 5}, {2, 6}, {3, 7},
-                                      {4, 5}, {5, 6}, {6, 7}, {7, 4}};
-static const int commonVertOfEdgeHexa[12][12] = {
-    {-1, 1, -1, 0, 0, 1, -1, -1, -1, -1, -1, -1},
-    {1, -1, 2, -1, -1, 1, 2, -1, -1, -1, -1, -1},
-    {-1, 2, -1, 3, -1, -1, 2, 3, -1, -1, -1, -1},
-    {0, -1, 3, -1, 0, -1, -1, 3, -1, -1, -1, -1},
-    {0, -1, -1, 0, -1, -1, -1, -1, 4, -1, -1, 4},
-    {1, 1, -1, -1, -1, -1, -1, -1, 5, 5, -1, -1},
-    {-1, 2, 2, -1, -1, -1, -1, -1, -1, 6, 6, -1},
-    {-1, -1, 3, 3, -1, -1, -1, -1, -1, -1, 7, 7},
-    {-1, -1, -1, -1, 4, 5, -1, -1, -1, 5, -1, 4},
-    {-1, -1, -1, -1, -1, 5, 6, -1, 5, -1, 6, -1},
-    {-1, -1, -1, -1, -1, -1, 6, 7, -1, 6, -1, 7},
-    {-1, -1, -1, -1, 4, -1, -1, 7, 4, -1, 7, -1}};
-
-static const int faceOfEdgeHexa[12][2]      = {{0, 1}, {0, 2}, {0, 3}, {0, 4},
-                                               {1, 4}, {1, 2}, {2, 3}, {3, 4},
-                                               {1, 5}, {2, 5}, {3, 5}, {4, 5}};
-static const int edgeOfFaceHexa[6][4]       = {{0, 1, 2, 3},  {0, 5, 8, 4},
-                                               {1, 6, 9, 5},  {2, 7, 10, 6},
-                                               {3, 4, 11, 7}, {8, 9, 10, 11}};
-static const int connectivityNodeHexa[8][3] = {{1, 3, 4}, {0, 2, 5}, {1, 3, 6},
-                                               {0, 2, 7}, {0, 5, 7}, {1, 4, 6},
-                                               {2, 5, 7}, {3, 4, 6}};
-
-static const int commonVertOfEdgeTria[3][3] = {
-    {-1, 2, 1}, {2, -1, 0}, {1, 0, -1}};
-static const int commonVertOfEdgeQuad3[4][4] = {
-    {-1, 1, -1, 0}, {1, -1, 2, -1}, {-1, 2, -1, 3}, {0, -1, 3, -1}};
-static const int commonVertOfEdgeTet[6][6] = {
-    {-1, 0, 0, 1, 1, -1}, {0, -1, 0, 2, -1, 2}, {0, 0, -1, -1, 3, 3},
-    {1, 2, -1, -1, 1, 2}, {1, -1, 3, 1, -1, 3}, {-1, 2, 3, 2, 3, -1}};
-
-static const int nvrefTria[4][3] = {{0, 5, 4}, {1, 3, 5}, {2, 4, 3}, {3, 4, 5}};
-
-static const int nvrefTet[8][4] = {{0, 4, 5, 6}, {1, 7, 4, 8}, {2, 5, 7, 9},
-                                   {3, 6, 9, 8}, {4, 7, 5, 8}, {5, 8, 6, 4},
-                                   {5, 8, 9, 6}, {5, 7, 9, 8}};
-
-static const int onWhatIsEdge3[3][7]  = {{0, 1, 3, 2, 0, 0, 0}, // edge 0
-                                         {3, 0, 1, 0, 2, 0, 0},
-                                         {1, 3, 0, 0, 0, 2, 0}};
-static const int onWhatIsFace3[4][15] = {
-    {0, 1, 1, 1, 0, 0, 0, 2, 2, 2, 3, 0, 0, 0, 0},
-    {1, 0, 1, 1, 0, 2, 2, 0, 0, 2, 0, 3, 0, 0, 0},
-    {1, 1, 0, 1, 2, 0, 2, 0, 2, 0, 0, 0, 3, 0, 0},
-    {1, 1, 1, 0, 2, 2, 0, 2, 0, 0, 0, 0, 0, 3, 0}};
-static const int onWhatIsEdgeQuad3[4][9] = {{1, 1, 0, 0, 2, 0, 0, 0, 0},
-                                            {0, 1, 1, 0, 0, 2, 0, 0, 0},
-                                            {0, 0, 1, 1, 0, 0, 2, 0, 0},
-                                            {1, 0, 0, 1, 0, 0, 0, 2, 0}};
-
-template <>
-const int (*const GenericElement<DataTriangle3>::nvface)[3] = nvfaceTria;
-template <>
-const int (*const GenericElement<DataTriangle3>::nvedge)[2] = nvedgeTria;
-template <>
-const int (*const GenericElement<DataTriangle3>::nvhyperFace)[2] = nvedgeTria;
-template <>
-const int (*const GenericElement<DataTriangle3>::nvadj)[2]       = nvedgeTria;
-template <> const int GenericElement<DataTriangle3>::nitemdim[4] = {3, 3, 1, 0};
-template <>
-const int (*const GenericElement<DataTriangle3>::onWhatBorder)[7] =
-    onWhatIsEdge3;
-template <>
-const int (*const GenericElement<DataTriangle3>::commonVertOfEdges)[3] =
-    commonVertOfEdgeTria;
-
-template <>
-const int (*const GenericElement<DataQuad3>::nvface)[4] = nvfaceQuad3;
-template <>
-const int (*const GenericElement<DataQuad3>::nvhyperFace)[2] = nvedgeQuad3;
-template <>
-const int (*const GenericElement<DataQuad3>::nvedge)[2] = nvedgeQuad3;
-template <>
-const int (*const GenericElement<DataQuad3>::nvadj)[2]       = nvedgeQuad3;
-template <> const int GenericElement<DataQuad3>::nitemdim[4] = {4, 4, 1, 0};
-template <>
-const int (*const GenericElement<DataQuad3>::commonVertOfEdges)[4] =
-    commonVertOfEdgeQuad3;
-template <>
-const int (*const GenericElement<DataQuad3>::onWhatBorder)[9] =
-    onWhatIsEdgeQuad3;
-
-template <>
-const int (*const GenericElement<DataTet>::nvhyperFace)[3]        = nvfaceTet;
-template <> const int (*const GenericElement<DataTet>::nvface)[3] = nvfaceTet;
-template <> const int (*const GenericElement<DataTet>::nvedge)[2] = nvedgeTet;
-template <> const int (*const GenericElement<DataTet>::nvadj)[3]  = nvfaceTet;
-template <> const int GenericElement<DataTet>::nitemdim[4] = {4, 6, 4, 1};
-template <>
-const int (*const GenericElement<DataTet>::onWhatBorder)[15] = onWhatIsFace3;
-template <>
-const int (*const GenericElement<DataTet>::commonVertOfEdges)[6] =
-    commonVertOfEdgeTet;
-template <>
-const int (*const GenericElement<DataTet>::edgeOfFace)[3] = edgeOfFaceTet;
-
-const int Tet::oppEdgeOfEdge[6] = {5, 4, 3, 2, 1, 0};
-
-template <> const int (*const GenericElement<DataHexa>::nvedge)[2] = nvedgeHexa;
-template <> const int (*const GenericElement<DataHexa>::nvface)[4] = nvfaceHexa;
-template <>
-const int (*const GenericElement<DataHexa>::nvhyperFace)[4]       = nvfaceHexa;
-template <> const int (*const GenericElement<DataHexa>::nvadj)[4] = nvfaceHexa;
-// template<> const int (* const GenericElement<DataHexa>::onWhatBorder)[27] = ;
-template <>
-const int (*const GenericElement<DataHexa>::commonVertOfEdges)[12] =
-    commonVertOfEdgeHexa;
-template <>
-const int (*const GenericElement<DataHexa>::faceOfEdge)[2] = faceOfEdgeHexa;
-template <>
-const int (*const GenericElement<DataHexa>::edgeOfFace)[4]  = edgeOfFaceHexa;
-template <> const int GenericElement<DataHexa>::nitemdim[4] = {8, 12, 6, 1};
-const int Hexa::oppEdgeOfEdge[12] = {10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1};
-const int (*const Hexa::nodeConnectivity)[3] = connectivityNodeHexa;
+const std::vector<int> Tet::oppEdgeOfEdge  = {5, 4, 3, 2, 1, 0};
+const std::vector<int> Hexa::oppEdgeOfEdge = {10, 11, 8, 9, 6, 7,
+                                              4,  5,  2, 3, 0, 1};
+const std::vector<std::vector<int>> Hexa::nodeConnectivity = {
+    {1, 3, 4}, {0, 2, 5}, {1, 3, 6}, {0, 2, 7},
+    {0, 5, 7}, {1, 4, 6}, {2, 5, 7}, {3, 4, 6}};
 
 R3 Tet::H(int i) const {
    assert(i >= 0 && i < 4);
@@ -171,4 +172,18 @@ R Tet::mesureBord(int i) const {
    R3 AB(at(nvface[i][0]), at(nvface[i][1]));
    R3 AC(at(nvface[i][0]), at(nvface[i][2]));
    return (AB ^ AC).norm() * 0.5;
+}
+
+int Tet::faceOrient(int i) const { // def the permutatution of orient the face
+   int fo             = 1;
+   const Vertex *f[3] = {&at(nvface[i][0]), &at(nvface[i][1]),
+                         &at(nvface[i][2])};
+   if (f[0] > f[1])
+      fo = -fo, Exchange(f[0], f[1]);
+   if (f[1] > f[2]) {
+      fo = -fo, Exchange(f[1], f[2]);
+      if (f[0] > f[1])
+         fo = -fo, Exchange(f[0], f[1]);
+   }
+   return fo;
 }

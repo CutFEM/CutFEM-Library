@@ -86,7 +86,7 @@ class TypeOfFE_RT2_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
             R cc1 = sa * p1; //
             R cc0 = sa * p2; //
             if (s < 0) {
-               swap(cc0, cc2);
+               std::swap(cc0, cc2);
             }
 
             v[k++] = cc0 * E.x;
@@ -301,7 +301,7 @@ void TypeOfFE_RT2_2d::FB_Freefem(const What_d whatd, const Element &K,
 
       if (whatd & Fop_D2) {
 
-         cout << " to do FH RT2 dxx, dyy dxy " << endl;
+         std::cout << " to do FH RT2 dxx, dyy dxy " << std::endl;
          ffassert(0);
       }
    }

@@ -26,9 +26,7 @@ struct DataPoint1 {
    typedef V::Rd Rd;
    typedef R0 Face;
    static R mesure(V *pv[NbOfVertices]) { return 1.; }
-   // static R mesure() {
-   //   return 1.;
-   // }
+
    typedef R0 RdHatBord;
    typedef R0 RdHat;
    static RdHat PBord(const int *nvb, const RdHatBord &P) { return R0(); }

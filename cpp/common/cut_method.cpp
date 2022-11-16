@@ -718,11 +718,11 @@ Ubyte RefPartition<Hexa>::first_uncut_edge(const SignPattern<Hexa> &cut) const {
    assert(0);
 }
 template <>
-void Partition<Edge2>::get_list_node(vector<R2> &node, int s) const {
+void Partition<Edge2>::get_list_node(std::vector<R2> &node, int s) const {
    assert(0);
 }
 template <>
-void Partition<Triangle2>::get_list_node(vector<R2> &node, int s) const {
+void Partition<Triangle2>::get_list_node(std::vector<R2> &node, int s) const {
    node.resize(0);
    const SignPattern<Triangle2> cut(ls);
    if (cut.empty() || s == 0) {
@@ -743,7 +743,7 @@ void Partition<Triangle2>::get_list_node(vector<R2> &node, int s) const {
    }
 }
 template <>
-void Partition<Quad2>::get_list_node(vector<R2> &node, int s) const {
+void Partition<Quad2>::get_list_node(std::vector<R2> &node, int s) const {
    node.resize(0);
    const SignPattern<Quad2> cut(ls);
    if (cut.empty() || s == 0) {
@@ -784,13 +784,15 @@ void Partition<Quad2>::get_list_node(vector<R2> &node, int s) const {
       }
    }
 }
-template <> void Partition<Hexa>::get_list_node(vector<R3> &node, int s) const {
-   assert(0);
-}
-template <> void Partition<Tet>::get_list_node(vector<R3> &node, int s) const {
+template <>
+void Partition<Hexa>::get_list_node(std::vector<R3> &node, int s) const {
    assert(0);
 }
 template <>
-void Partition<Triangle3>::get_list_node(vector<R3> &node, int s) const {
+void Partition<Tet>::get_list_node(std::vector<R3> &node, int s) const {
+   assert(0);
+}
+template <>
+void Partition<Triangle3>::get_list_node(std::vector<R3> &node, int s) const {
    assert(0);
 }

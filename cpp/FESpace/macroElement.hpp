@@ -11,8 +11,8 @@ class Extension;
 struct MElement {
  public:
    int idx_root_element;
-   vector<int> idx_element;
-   vector<std::pair<int, int>> inner_edge; // idx_Element, idx_edge
+   std::vector<int> idx_element;
+   std::vector<std::pair<int, int>> inner_edge; // idx_Element, idx_edge
 
    double area_root_  = 0;
    double area_total_ = 0;
@@ -74,8 +74,9 @@ class GMacro {
    const int small = -1;
    const int good = 0, extension = 1, exhaust = 2;
 
-   map<int, MElement> macro_element;     // idx_root -> idx_macroElement
-   map<int, SmallElement> small_element; // idx_element -> idx_small_element
+   std::map<int, MElement> macro_element; // idx_root -> idx_macroElement
+   std::map<int, SmallElement>
+       small_element; // idx_element -> idx_small_element
    double tol;
 
    GMacro() {}
@@ -176,9 +177,9 @@ template <typename Mesh> void MacroElement<Mesh>::findSmallElement() {
 
 template <typename Mesh> void MacroElement<Mesh>::createMacroElement() {
 
-   vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
-   vector<int> small_or_fat_K(Th_.get_nb_element());
-   vector<std::pair<int, int>> big_element_found;
+   std::vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
+   std::vector<int> small_or_fat_K(Th_.get_nb_element());
+   std::vector<std::pair<int, int>> big_element_found;
 
    for (int i = 0; i < small_or_fat_K.size(); ++i)
       small_or_fat_K[i] = i;
@@ -214,7 +215,7 @@ template <typename Mesh> void MacroElement<Mesh>::createMacroElement() {
             // set position of the small element
             Ks.setChainPosition(pos);
             Ks.setRoot(small_or_fat_K[kn]);
-            big_element_found.push_back(make_pair(k, kn));
+            big_element_found.push_back(std::make_pair(k, kn));
 
             // find the correonding macro element
             int root_id = small_or_fat_K[kn];
@@ -446,9 +447,9 @@ void TimeMacroElementSurface<Mesh>::findSmallElement() {
 template <typename Mesh>
 void TimeMacroElementSurface<Mesh>::createMacroElement() {
 
-   vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
-   vector<int> small_or_fat_K(Th.get_nb_element());
-   vector<std::pair<int, int>> big_element_found;
+   std::vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
+   std::vector<int> small_or_fat_K(Th.get_nb_element());
+   std::vector<std::pair<int, int>> big_element_found;
 
    for (int i = 0; i < small_or_fat_K.size(); ++i)
       small_or_fat_K[i] = i;
@@ -484,7 +485,7 @@ void TimeMacroElementSurface<Mesh>::createMacroElement() {
             // set position of the small element
             Ks.setChainPosition(pos);
             Ks.setRoot(small_or_fat_K[kn]);
-            big_element_found.push_back(make_pair(k, kn));
+            big_element_found.push_back(std::make_pair(k, kn));
 
             // find the correonding macro element
             int root_id = small_or_fat_K[kn];
@@ -628,9 +629,9 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
 
 template <typename Mesh> void TimeMacroElement<Mesh>::createMacroElement() {
 
-   vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
-   vector<int> small_or_fat_K(Th.get_nb_element());
-   vector<std::pair<int, int>> big_element_found;
+   std::vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
+   std::vector<int> small_or_fat_K(Th.get_nb_element());
+   std::vector<std::pair<int, int>> big_element_found;
 
    for (int i = 0; i < small_or_fat_K.size(); ++i)
       small_or_fat_K[i] = i;
@@ -666,7 +667,7 @@ template <typename Mesh> void TimeMacroElement<Mesh>::createMacroElement() {
             // set position of the small element
             Ks.setChainPosition(pos);
             Ks.setRoot(small_or_fat_K[kn]);
-            big_element_found.push_back(make_pair(k, kn));
+            big_element_found.push_back(std::make_pair(k, kn));
 
             // find the correonding macro element
             int root_id = small_or_fat_K[kn];
@@ -809,9 +810,9 @@ template <typename Mesh> void TimeMacroElement2<Mesh>::findSmallElement() {
 
 template <typename Mesh> void TimeMacroElement2<Mesh>::createMacroElement() {
 
-   vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
-   vector<int> small_or_fat_K(Th.get_nb_element());
-   vector<std::pair<int, int>> big_element_found;
+   std::vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
+   std::vector<int> small_or_fat_K(Th.get_nb_element());
+   std::vector<std::pair<int, int>> big_element_found;
 
    for (int i = 0; i < small_or_fat_K.size(); ++i)
       small_or_fat_K[i] = i;
@@ -847,7 +848,7 @@ template <typename Mesh> void TimeMacroElement2<Mesh>::createMacroElement() {
             // set position of the small element
             Ks.setChainPosition(pos);
             Ks.setRoot(small_or_fat_K[kn]);
-            big_element_found.push_back(make_pair(k, kn));
+            big_element_found.push_back(std::make_pair(k, kn));
 
             // find the correonding macro element
             int root_id = small_or_fat_K[kn];

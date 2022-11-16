@@ -87,7 +87,7 @@ std::tuple<double, double> findMinAndMaxValue_P1(const FunFEM<Mesh> &uh) {
       const Cut_Part<Element> cutK(Kh.get_cut_part(k, 0));
 
       for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
-         // get the local min and max on K
+         // get the local std::min and std::max on K
          for (int ipq = 0; ipq < nv_loc; ++ipq) {
             Rd mip     = cutK.get_vertex(it, ipq);
             // double val = uh.eval(k, mip);
@@ -100,8 +100,8 @@ std::tuple<double, double> findMinAndMaxValue_P1(const FunFEM<Mesh> &uh) {
                min_val_loc = val;
                k_min       = k;
             }
-            // max_val  = max(max_val, val);
-            // min_val  = min(min_val, val);
+            // max_val  = std::max(max_val, val);
+            // min_val  = std::min(min_val, val);
          }
       }
    }
@@ -364,14 +364,14 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
             u_bar_K += Cint * fun_uM.eval(k, mip);
          }
 
-         // get the local min and max on K
+         // get the local std::min and max on K
          for (int ipq = 0; ipq < nv_loc; ++ipq) {
             Rd mip     = cutK.get_vertex(it, ipq);
             // double val = uh.eval(k, mip);
             double val = fun_uM.eval(k, mip);
 
-            max_K = max(max_K, val);
-            min_K = min(min_K, val);
+            max_K = std::max(max_K, val);
+            min_K = std::min(min_K, val);
          }
       }
       u_bar_K = u_bar_K / areaCut;
@@ -383,7 +383,7 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
       double v2 = fabs((max_val - u_bar_K) / (max_K - u_bar_K));
       if ((max_K - u_bar_K) == 0.)
          v2 = 1.;
-      double theta = min(min(v1, v2), 1.);
+      double theta = std::min(std::min(v1, v2), 1.);
       // if( fabs(theta) < Epsilon) theta = 0.;
 
       // 4) replace the dof
@@ -420,7 +420,7 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
 
       // 1) the mean value
       double u_bar_M = map_mean_value[idx_root];
-      // 2) get local min and max
+      // 2) get local min and std::max
       double max_M = -1e300, min_M = 1e300;
       for (auto k : MK.idx_element) {
          const FElement &FK(Wh[k]);
@@ -429,8 +429,8 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
             for (int ipq = 0; ipq < nv_loc; ++ipq) {
                Rd mip     = cutK.get_vertex(it, ipq);
                double val = fun_uM.eval(k, mip);
-               max_M      = max(max_M, val);
-               min_M      = min(min_M, val);
+               max_M      = std::max(max_M, val);
+               min_M      = std::min(min_M, val);
             }
          }
       }
@@ -438,7 +438,7 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
       // 3) compute theta
       double v1    = fabs((min_val - u_bar_M) / (min_M - u_bar_M - Epsilon));
       double v2    = fabs((max_val - u_bar_M) / (max_M - u_bar_M + Epsilon));
-      double theta = min(min(v1, v2), 1.);
+      double theta = std::min(std::min(v1, v2), 1.);
       // std::cout << theta << std::endl;
       if (fabs(theta) < Epsilon)
          theta = 0.;
@@ -605,7 +605,7 @@ std::vector<double> compute_trouble_cell_indicator(const FunFEM<Mesh> &uh) {
                  fabs(uh.eval(k, mip, 0, op_id) - uh.eval(kn, mip, 0, op_id));
             Pj += Cint * fabs(uh.eval(k, mip, 0, op_id));
          }
-         maxPj = max(maxPj, Pj);
+         maxPj = std::max(maxPj, Pj);
          Pj    = 0.;
 
          // compute mean of p_j j=1,2,3 on K_j
@@ -615,7 +615,7 @@ std::vector<double> compute_trouble_cell_indicator(const FunFEM<Mesh> &uh) {
             const R Cint = meas_Kj * ip.getWeight();
             Pj += Cint * fabs(uh.eval(k, mip, 0, op_id));
          }
-         maxPj = max(maxPj, Pj);
+         maxPj = std::max(maxPj, Pj);
       }
       indicator_loc[k] = s;
    }
@@ -651,7 +651,7 @@ std::vector<double> compute_trouble_cell_indicator(const FunFEM<Mesh> &uh) {
 //     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
 //       typename QF::QuadraturePoint ip(qf[ipq]); // integration point
 //       const R2 mip = FK.T((R2)ip);
-//       maxQj = max(maxQj, fabs(uh.eval(k, mip, 0, op_id)));
+//       maxQj = std::max(maxQj, fabs(uh.eval(k, mip, 0, op_id)));
 //     }
 //
 //     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges
@@ -710,14 +710,14 @@ std::vector<double> compute_trouble_cell_indicator(const FunFEM<Mesh> &uh) {
 //       continue;
 //     }
 //
-//     //compute m and M , min max average of neighbor
+//     //compute m and M , min std::max average of neighbor
 //     double m, M;
 //     min_and_max_average_neighbor(FK, uh, m, M);
 //
 //     // compute solution average on K_j
 //     double Uj = average_on_Kj(FK, uh);
 //
-//     // compute the min max (alpha_i , 0)
+//     // compute the min std::max (alpha_i , 0)
 //     double min_alpha_i = compute_alpha(FK, uh, Uj, m, M);
 //
 //     for(int df=FK.dfcbegin(0);df<FK.dfcend(0);++df){
@@ -795,7 +795,7 @@ std::tuple<double, double> findMinAndMaxValue_P1(const FunFEM<Mesh> &uh) {
         k += Wh.next_element()) {
       const FElement &FK(Wh[k]);
 
-      // get the local min and max on K
+      // get the local min and std::max on K
       for (int ipq = 0; ipq < nv_loc; ++ipq) {
          Rd P       = Rd::KHat[ipq];
          Rd mip     = FK.mapToPhysicalElement(P);
@@ -828,9 +828,10 @@ std::tuple<double, double> findMinAndMaxValue(const FunFEM<Mesh> &uh) {
    } else if (fctOrder == 1) {
       return findMinAndMaxValue_P1(uh);
    } else {
-      std::cout << " Min and max compute using linear elements. Not exact for "
-                   "this polynomial order"
-                << std::endl;
+      std::cout
+          << " Min and std::max compute using linear elements. Not exact for "
+             "this polynomial order"
+          << std::endl;
       return findMinAndMaxValue_P1(uh);
    }
 }
@@ -946,13 +947,13 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
       }
       // if(u_bar_K < min_val ) u_bar_K = min_val;
 
-      // get the local min and max on K
+      // get the local min and std::max on K
       for (int ipq = 0; ipq < nv_loc; ++ipq) {
          Rd mip     = K[ipq];
          double val = uh.eval(k, mip);
 
-         max_K = max(max_K, val);
-         min_K = min(min_K, val);
+         max_K = std::max(max_K, val);
+         min_K = std::min(min_K, val);
       }
 
       // 3) compute theta
@@ -962,7 +963,7 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
       double v2 = fabs((max_val - u_bar_K) / (max_K - u_bar_K));
       if ((max_K - u_bar_K) == 0.)
          v2 = 1.;
-      double theta = min(min(v1, v2), 1.);
+      double theta = std::min(std::min(v1, v2), 1.);
 
       // if( fabs(theta) < Epsilon) theta = 0.;
 
@@ -979,7 +980,7 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
          //   std::cout << " ----------------------- " << std::endl;
          //   std::cout << " Element " << k << "\n"
          //             << " theta   " << theta << "\n"
-         //             << " min K   " << min_K << "\n"
+         //             << " std::min K   " << min_K << "\n"
          //             << " minK-u  " << min_K - u_bar_K << "\n"
          //             << " minv-u  " << min_val - u_bar_K << "\n"
          //             << " u_bar_K " << u_bar_K << "\n"
@@ -1007,13 +1008,13 @@ void minmaxP1(const FunFEM<Mesh> &uh, double &min_val, double &max_val) {
    for (int k = Wh.first_element(); k < Wh.last_element(); ++k) {
       const FElement &FK(Wh[k]);
 
-      // get the local min and max on K
+      // get the local std::min and std::max on K
       for (int ipq = 0; ipq < nv_loc; ++ipq) {
          Rd mip     = FK.T[ipq];
          // double val = uh.eval(k, mip);
          double val = uh.eval(k, mip);
-         max_val    = max(max_val, val);
-         min_val    = min(min_val, val);
+         max_val    = std::max(max_val, val);
+         min_val    = std::min(min_val, val);
       }
    }
 }
@@ -1069,7 +1070,7 @@ std::vector<double> compute_trouble_cell_indicator(const FunFEM<Mesh> &uh) {
                  fabs(uh.eval(k, mip, 0, op_id) - uh.eval(kn, mip, 0, op_id));
             Pj += Cint * fabs(uh.eval(k, mip, 0, op_id));
          }
-         maxPj = max(maxPj, Pj);
+         maxPj = std::max(maxPj, Pj);
          Pj    = 0.;
 
          // compute mean of p_j j=1,2,3 on K_j
@@ -1079,7 +1080,7 @@ std::vector<double> compute_trouble_cell_indicator(const FunFEM<Mesh> &uh) {
             const R Cint = meas_Kj * ip.getWeight();
             Pj += Cint * fabs(uh.eval(k, mip, 0, op_id));
          }
-         maxPj = max(maxPj, Pj);
+         maxPj = std::max(maxPj, Pj);
       }
       indicator_loc[k] = s;
    }

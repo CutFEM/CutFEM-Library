@@ -450,7 +450,7 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d> &VF,
 // INTEGRATION ON BOUNDARY
 template <typename Mesh>
 void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &Th,
-                                const CBorder &b, list<int> label) {
+                                const CBorder &b, std::list<int> label) {
    assert(!VF.isRHS());
    bool all_label = (label.size() == 0);
    progress bar("Add Bilinear border", Th.last_boundary_element(),
@@ -473,7 +473,7 @@ void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &Th,
 }
 template <typename Mesh>
 void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &VF, const Mesh &Th,
-                              const CBorder &b, list<int> label) {
+                              const CBorder &b, std::list<int> label) {
    assert(VF.isRHS());
    bool all_label = (label.size() == 0);
    progress bar("Add Bilinear border", Th.last_boundary_element(),
@@ -587,7 +587,7 @@ void BaseFEM<M>::addBorderContribution(const ListItemVF<Rd::d> &VF,
 
 template <typename Mesh>
 void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th,
-                                 list<int> label) {
+                                 std::list<int> label) {
 
    bool all_label = (label.size() == 0);
    std::map<int, double> dof2set;
@@ -642,7 +642,7 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th,
 // On Faces
 template <typename M>
 void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
-                             const Interface<M> &gamma, list<int> label) {
+                             const Interface<M> &gamma, std::list<int> label) {
    assert(!VF.isRHS());
    bool all_label = (label.size() == 0);
    progress bar(" Add Bilinear Interface", gamma.last_element(),
@@ -664,7 +664,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
                              const Interface<M> &gamma, const TimeSlab &In,
-                             int itq, list<int> label) {
+                             int itq, std::list<int> label) {
    assert(!VF.isRHS());
    bool all_label = (label.size() == 0);
    auto tq        = this->get_quadrature_time(itq);
@@ -674,7 +674,8 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
    In.BF(tq.x, bf_time); // compute time basic funtions
 
-   std::string title = " Add Bilinear Interface, In(" + to_string(itq) + ")";
+   std::string title =
+       " Add Bilinear Interface, In(" + std::to_string(itq) + ")";
    progress bar(title.c_str(), gamma.last_element(), globalVariable::verbose);
 
    for (int iface = gamma.first_element(); iface < gamma.last_element();
@@ -694,7 +695,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
                              const TimeInterface<M> &gamma, const TimeSlab &In,
-                             list<int> label) {
+                             std::list<int> label) {
 
    for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
       addBilinear(VF, gamma, In, itq, label);
@@ -704,7 +705,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
                              const TimeInterface<M> &gamma, const TimeSlab &In,
-                             int itq, list<int> label) {
+                             int itq, std::list<int> label) {
    assert(!VF.isRHS());
    bool all_label = (label.size() == 0);
    auto tq        = this->get_quadrature_time(itq);
@@ -713,8 +714,9 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
    In.BF(tq.x, bf_time); // compute time basic funtions
-   double cst_time   = tq.a * In.get_measure();
-   std::string title = " Add Bilinear Interface, In(" + to_string(itq) + ")";
+   double cst_time = tq.a * In.get_measure();
+   std::string title =
+       " Add Bilinear Interface, In(" + std::to_string(itq) + ")";
    progress bar(title.c_str(), gamma[itq]->last_element(),
                 globalVariable::verbose);
 
@@ -736,7 +738,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
 
 template <typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
-                           const Interface<M> &gamma, list<int> label) {
+                           const Interface<M> &gamma, std::list<int> label) {
    assert(VF.isRHS());
    bool all_label = (label.size() == 0);
    progress bar(" Add Linear Interface", gamma.last_element(),
@@ -759,7 +761,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
                            const Interface<M> &gamma, const TimeSlab &In,
-                           int itq, list<int> label) {
+                           int itq, std::list<int> label) {
    assert(VF.isRHS());
    bool all_label = (label.size() == 0);
    auto tq        = this->get_quadrature_time(itq);
@@ -783,7 +785,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
                            const TimeInterface<M> &gamma, const TimeSlab &In,
-                           list<int> label) {
+                           std::list<int> label) {
    assert(VF.isRHS());
 
    for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
@@ -794,7 +796,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
                            const TimeInterface<M> &gamma, const TimeSlab &In,
-                           int itq, list<int> label) {
+                           int itq, std::list<int> label) {
    assert(VF.isRHS());
    bool all_label = (label.size() == 0);
    auto tq        = this->get_quadrature_time(itq);
@@ -927,7 +929,7 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
                              const Interface<M> &gamma,
-                             const Mapping<M> &mapping, list<int> label) {
+                             const Mapping<M> &mapping, std::list<int> label) {
    assert(!VF.isRHS());
    bool all_label = (label.size() == 0);
    progress bar(" Add Bilinear Interface", gamma.last_element(),
@@ -949,7 +951,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
 template <typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
                            const Interface<M> &gamma, const Mapping<M> &mapping,
-                           list<int> label) {
+                           std::list<int> label) {
    assert(VF.isRHS());
    bool all_label = (label.size() == 0);
    progress bar(" Add Linear Interface", gamma.last_element(),

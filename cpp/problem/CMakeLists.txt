@@ -7,7 +7,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/itemVF.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/problem.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/baseProblem.cpp
   #GenericMapping.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/extension.cpp
+  # ${CMAKE_CURRENT_SOURCE_DIR}/extension.cpp
   #  levelSet.cpp
   #  reinitialization.cpp
 

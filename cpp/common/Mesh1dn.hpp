@@ -4,7 +4,6 @@
 
 #include "GenericMesh.hpp"
 #include <cstdlib>
-using namespace std;
 
 typedef GenericVertex<R1> Vertex1;
 
@@ -26,7 +25,7 @@ class Mesh1 : public GenericMesh<Seg1, BoundaryPoint1, Vertex1> {
                        const Element *tstart) const;
 
  private:
-   int load(const string &filename);
+   int load(const std::string &filename);
    Mesh1(const Mesh1 &);          // pas de construction par copie
    void operator=(const Mesh1 &); // pas affectation par copy
 };

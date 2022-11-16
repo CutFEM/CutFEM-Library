@@ -5,6 +5,8 @@
 #include <iostream>
 #include "../tool.hpp"
 
+using namespace std;
+
 // #define TEST_PIOLA
 // #define DARCY_FEM
 // #define DARCY_FEM_3D

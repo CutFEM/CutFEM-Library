@@ -62,7 +62,7 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
    bool isCutFace(int k, int ifac) const;
 
    void cut_partition(Physical_Partition<Element> &local_partition,
-                      vector<ElementIdx> &new_element_idx,
+                      std::vector<ElementIdx> &new_element_idx,
                       std::list<int> &erased_element, int sign_part) const {
       assert(0);
    };

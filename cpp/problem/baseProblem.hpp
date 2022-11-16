@@ -77,8 +77,8 @@ class BaseFEM : public ShapeOfProblem<Mesh>, public QuadratureOfProblem<Mesh> {
       this->mapIdx0_[&Qh] = this->get_nb_dof();
       int ndf             = this->get_nb_dof() + Qh.NbDoF();
       this->init(ndf);
-      N_component_max_ = max(N_component_max_, Qh.N);
-      df_loc_max_      = max(df_loc_max_, Qh[0].NbDoF());
+      N_component_max_ = std::max(N_component_max_, Qh.N);
+      df_loc_max_      = std::max(df_loc_max_, Qh[0].NbDoF());
       delete databf_;
       offset_bf_        = 5 * df_loc_max_ * N_component_max_ * op_DDall;
       long size_data_bf = this->thread_count_max_ * offset_bf_;
@@ -89,8 +89,8 @@ class BaseFEM : public ShapeOfProblem<Mesh>, public QuadratureOfProblem<Mesh> {
       this->mapIdx0_[&Vh] = this->get_nb_dof();
       int ndf             = this->get_nb_dof() + (Vh.NbDoF() * In.NbDoF());
       this->init(ndf);
-      N_component_max_ = max(N_component_max_, Vh.N);
-      df_loc_max_      = max(df_loc_max_, Vh[0].NbDoF());
+      N_component_max_ = std::max(N_component_max_, Vh.N);
+      df_loc_max_      = std::max(df_loc_max_, Vh[0].NbDoF());
       delete databf_;
       offset_bf_        = 5 * df_loc_max_ * N_component_max_ * op_DDall;
       long size_data_bf = this->thread_count_max_ * offset_bf_;
@@ -142,44 +142,45 @@ class BaseFEM : public ShapeOfProblem<Mesh>, public QuadratureOfProblem<Mesh> {
 
    // integral on boundary
    void addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &, const CBorder &b,
-                    list<int> label = {});
+                    std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const Mesh &, const CBorder &b,
-                  list<int> label = {});
+                  std::list<int> label = {});
    void addBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K,
                               const BorderElement &BE, int ifac,
                               const TimeSlab *In, int itq, double cst_time);
 
-   void setDirichlet(const FunFEM<Mesh> &, const Mesh &, list<int> label = {});
+   void setDirichlet(const FunFEM<Mesh> &, const Mesh &,
+                     std::list<int> label = {});
 
    // integral on interface
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                    list<int> label = {});
+                    std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                    const TimeSlab &In, int itq, list<int> label = {});
+                    const TimeSlab &In, int itq, std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF,
                     const TimeInterface<Mesh> &gamma, const TimeSlab &In,
-                    list<int> label = {});
+                    std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF,
                     const TimeInterface<Mesh> &gamma, const TimeSlab &In,
-                    int itq, list<int> label = {});
+                    int itq, std::list<int> label = {});
 
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                  list<int> label = {});
+                  std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                  const TimeSlab &In, int itq, list<int> label = {});
+                  const TimeSlab &In, int itq, std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
-                  const TimeSlab &In, list<int> label = {});
+                  const TimeSlab &In, std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
-                  const TimeSlab &In, int itq, list<int> label = {});
+                  const TimeSlab &In, int itq, std::list<int> label = {});
    void addInterfaceContribution(const ListItemVF<Rd::d> &VF,
                                  const Interface<Mesh> &gamma, int ifac,
                                  double tid, const TimeSlab *In,
                                  double cst_time, int itq);
 
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                    const Mapping<Mesh> &, list<int> label = {});
+                    const Mapping<Mesh> &, std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
-                  const Mapping<Mesh> &, list<int> label = {});
+                  const Mapping<Mesh> &, std::list<int> label = {});
    void addInterfaceContribution(const ListItemVF<Rd::d> &VF,
                                  const Interface<Mesh> &gamma, int ifac,
                                  double tid, const TimeSlab *In,
@@ -216,7 +217,7 @@ template <typename Mesh> class FEM : public BaseFEM<Mesh>, public Solver {
        : BaseFEM<Mesh>(vh, option, np), Solver(option) {}
 
    void solve() { Solver::solve(this->mat_[0], this->rhs_); }
-   void solve(string solverName) {
+   void solve(std::string solverName) {
       this->solver_name_ = solverName;
       Solver::solve(this->mat_[0], this->rhs_);
    }
@@ -267,7 +268,7 @@ class BaseProblem : public ShapeOfNonLinProblem, public Solver {
       this->nt      = Vh->NbElement();
    }
 
-   BaseProblem(const list<FESpace *> &vh)
+   BaseProblem(const std::list<FESpace *> &vh)
        : ShapeOfNonLinProblem(0), Solver(), Vh(*vh.begin()),
          qfb(*QF_Simplex<typename FElement::RdHatBord>(5)),
          qf(*QF_Simplex<typename FElement::RdHat>(5)), qTime(*Lobatto(1)) {
@@ -364,13 +365,13 @@ class BaseProblem : public ShapeOfNonLinProblem, public Solver {
    void addLinear(const ListItemVF<Rd::d> &VF);
    // on boundary
    void addBilinear(const ListItemVF<Rd::d> &VF, const CBorder &b,
-                    list<int> label = {});
+                    std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const CBorder &b,
-                  list<int> label = {});
-   void addStrongBC(const ExpressionVirtual &gh, list<int> label = {});
-   void
-   addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh,
-               list<int> label = {});
+                  std::list<int> label = {});
+   void addStrongBC(const ExpressionVirtual &gh, std::list<int> label = {});
+   void addStrongBC(
+       std::std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh,
+       std::list<int> label = {});
    // on innerEdge
    void addBilinear(const ListItemVF<Rd::d> &VF, const CFacet &b);
    void addLinear(const ListItemVF<Rd::d> &VF, const CFacet &b);
@@ -400,17 +401,17 @@ class BaseProblem : public ShapeOfNonLinProblem, public Solver {
    // ---------------------------------------------------
    // on element
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                    list<int> label        = {},
+                    std::list<int> label   = {},
                     const Mapping &mapping = DataMapping<Mesh>::Id);
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                    const GMacro &macro, list<int> label = {},
+                    const GMacro &macro, std::list<int> label = {},
                     const Mapping &mapping = DataMapping<Mesh>::Id);
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                  list<int> label        = {},
+                  std::list<int> label   = {},
                   const Mapping &mapping = DataMapping<Mesh>::Id);
    // on boundary
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
-                  const CBorder &b, list<int> label = {});
+                  const CBorder &b, std::list<int> label = {});
    // on inner edges => node eval in 2D
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface &gamma,
                     const CFacet &b);
@@ -445,14 +446,14 @@ class BaseProblem : public ShapeOfNonLinProblem, public Solver {
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeSlab &In);
    // on boundary
    void addBilinear(const ListItemVF<Rd::d> &VF, const TimeSlab &In,
-                    const CBorder &b, list<int> label = {});
+                    const CBorder &b, std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeSlab &In,
-                  const CBorder &b, list<int> label = {});
+                  const CBorder &b, std::list<int> label = {});
    void addStrongBC(const ExpressionVirtual &gh, const TimeSlab &In,
-                    list<int> label = {});
-   void
-   addStrongBC(std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh,
-               const TimeSlab &In, list<int> label = {});
+                    std::list<int> label = {});
+   void addStrongBC(
+       std::std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh,
+       const TimeSlab &In, std::list<int> label = {});
    // on inner edges
    void addBilinear(const ListItemVF<Rd::d> &VF, const TimeSlab &In,
                     const CFacet &b);
@@ -691,7 +692,7 @@ void BaseProblem<M>::addElementMat(const ListItemVF<Rd::d> &VF, const int k) {
 
 template <typename M>
 void BaseProblem<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CBorder &b,
-                                 list<int> label) {
+                                 std::list<int> label) {
    typedef typename Mesh::BorderElement BorderElement;
    bool all_label = (label.size() == 0);
 
@@ -844,7 +845,7 @@ void BaseProblem<M>::addElementRHS(const ListItemVF<Rd::d> &VF, const int k) {
 */
 template <typename M>
 void BaseProblem<M>::addLinear(const ListItemVF<Rd::d> &VF, const CBorder &b,
-                               list<int> label) {
+                               std::list<int> label) {
    typedef typename Mesh::BorderElement BorderElement;
    bool all_label = (label.size() == 0);
 
@@ -1173,8 +1174,8 @@ void BaseProblem<M>::addElementRHSEdge(const ListItemVF<Rd::d> &VF, const int k,
 */
 template <typename M>
 void BaseProblem<M>::addStrongBC(
-    std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh,
-    list<int> label) {
+    std::std::list<ExpressionFunFEM<typename typeMesh<Rd::d>::Mesh>> gh,
+    std::list<int> label) {
 
    typedef typename Mesh::BorderElement BorderElement;
    bool all_label = (label.size() == 0);
@@ -1192,7 +1193,8 @@ void BaseProblem<M>::addStrongBC(
 }
 
 template <typename M>
-void BaseProblem<M>::addStrongBC(const ExpressionVirtual &gh, list<int> label) {
+void BaseProblem<M>::addStrongBC(const ExpressionVirtual &gh,
+                                 std::list<int> label) {
 
    typedef typename Mesh::BorderElement BorderElement;
    bool all_label = (label.size() == 0);

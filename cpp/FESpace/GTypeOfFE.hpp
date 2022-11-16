@@ -58,8 +58,10 @@ class dataTypeOfFE {
 
    const int *ndfOn() const { return &ndfonVertex; }
 
-   dataTypeOfFE(const int *nitemdim, const KN<dataTypeOfFE const *> &);
-   dataTypeOfFE(const int *nitem, const int *Data, int nbdf, int NN);
+   dataTypeOfFE(const std::vector<int> &nitemdim,
+                const KN<dataTypeOfFE const *> &);
+   dataTypeOfFE(const std::vector<int> &nitem, const int *Data, int nbdf,
+                int NN);
 
    virtual ~dataTypeOfFE() {
       if (dataalloc)
@@ -115,7 +117,8 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
     */
    GTypeOfFE(const int nbdf, const int NN, const int *data, int kPi, int npPi,
              double *coef_Pi_h_a = 0)
-       : dataTypeOfFE(Element::nitemdim, data, nbdf, NN),
+       : dataTypeOfFE(Element::itemTopology(), data, nbdf, NN),
+
          NbPtforInterpolation(npPi), NbcoefforInterpolation(kPi), ipj_Pi_h(kPi),
          Pt_Pi_h(npPi), coef_Pi_h(coef_Pi_h_a),
          // begin_coef_Pi_h, end_coef_Pi_h;
@@ -131,7 +134,8 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
     *
     */
    GTypeOfFE(const KN<GTypeOfFE<Mesh> const *> &t)
-       : dataTypeOfFE(Element::nitemdim, t), NbPtforInterpolation(this->nbNode),
+       : dataTypeOfFE(Element::itemTopology(), t),
+         NbPtforInterpolation(this->nbNode),
          NbcoefforInterpolation(this->nbNode), Sub_ToFE(nbOfFE),
          begin_dfcomp(N, 0), end_dfcomp(N, this->nbDoF)
 

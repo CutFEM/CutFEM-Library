@@ -2,8 +2,6 @@
 #define _QuadratureFormular_h
 
 #include <iostream>
-
-using namespace std;
 #include "../common/point.hpp"
 
 struct QuadratureWeight {
@@ -105,22 +103,23 @@ template <class Rdd> class GQuadratureFormular {
 };
 
 template <class Rd>
-ostream &operator<<(ostream &f, const GQuadraturePoint<Rd> &p) {
+std::ostream &operator<<(std::ostream &f, const GQuadraturePoint<Rd> &p) {
    f << '{' << (const double)p << '\t' << (const Rd &)p << '}';
    return f;
 }
 
 template <class Rd>
-ostream &operator<<(ostream &f, const GQuadratureFormular<Rd> &fi) {
-   f << "nb de point integration " << fi.n << ", adr = " << &f << endl;
+std::ostream &operator<<(std::ostream &f, const GQuadratureFormular<Rd> &fi) {
+   f << "nb de point integration " << fi.n << ", adr = " << &f << std::endl;
    for (int i = 0; i < fi.n; i++)
-      f << '\t' << fi[i] << endl;
+      f << '\t' << fi[i] << std::endl;
    return f;
 }
 
 template <class Rd>
-ostream &operator<<(ostream &, const GQuadratureFormular<Rd> &);
-template <class Rd> ostream &operator<<(ostream &, GQuadraturePoint<Rd> &);
+std::ostream &operator<<(std::ostream &, const GQuadratureFormular<Rd> &);
+template <class Rd>
+std::ostream &operator<<(std::ostream &, GQuadraturePoint<Rd> &);
 
 typedef GQuadratureFormular<R1> QuadratureFormular1d;
 typedef GQuadratureFormular<R2> QuadratureFormular2d;

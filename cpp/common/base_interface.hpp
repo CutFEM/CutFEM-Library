@@ -167,7 +167,7 @@ template <typename M> class Interface {
                       int ifac) const = 0;
 
    virtual void cut_partition(Physical_Partition<Element> &local_partition,
-                              vector<ElementIdx> &new_element_idx,
+                              std::vector<ElementIdx> &new_element_idx,
                               std::list<int> &erased_element,
                               int sign_part) const = 0;
    virtual R measure(const Face &f) const          = 0;
