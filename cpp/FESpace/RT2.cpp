@@ -112,10 +112,10 @@ class TypeOfFE_RT2_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
 
       for (int p = 0; p < QFK.n; ++p) {
          double w = -QFK[p].a * CK;
-         QFK[p].toBary(ll);
-         ll[0] *= w;
-         ll[1] *= w;
-         ll[2] *= w;
+
+         ll[0] = w * (1. - QFK[p].x - QFK[p].y);
+         ll[1] = w * QFK[p].x;
+         ll[2] = w * QFK[p].y;
 
          for (int l = 0; l < 3; ++l) {
             v[k++] = ll[l] * B[0].x;
@@ -204,15 +204,15 @@ void TypeOfFE_RT2_2d::FB_Freefem(const What_d whatd, const Element &K,
    // static int ddd=0;
 
    if (eo[0] < 0) {
-      Exchange(p[0], p[2]);
+      std::swap(p[0], p[2]);
    }
 
    if (eo[1] < 0) {
-      Exchange(p[3], p[5]);
+      std::swap(p[3], p[5]);
    }
 
    if (eo[2] < 0) {
-      Exchange(p[6], p[8]);
+      std::swap(p[6], p[8]);
    }
 
    double sg[15] = {eo[0], eo[0], eo[0], eo[1], eo[1], eo[1], eo[2], eo[2],
@@ -384,13 +384,13 @@ void TypeOfFE_RT2_2d::FB_D2(const Element &K, const R2 &Phat,
       PMy[l] = PHIy[i] * (LL[j] * LL[k] / CKK);
    }
    if (eo[0] < 0) {
-      Exchange(p[0], p[2]);
+      std::swap(p[0], p[2]);
    }
    if (eo[1] < 0) {
-      Exchange(p[3], p[5]);
+      std::swap(p[3], p[5]);
    }
    if (eo[2] < 0) {
-      Exchange(p[6], p[8]);
+      std::swap(p[6], p[8]);
    }
 
    double sg[15] = {eo[0], eo[0], eo[0], eo[1], eo[1], eo[1], eo[2], eo[2],

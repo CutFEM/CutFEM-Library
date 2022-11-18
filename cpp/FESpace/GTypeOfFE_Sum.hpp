@@ -106,7 +106,6 @@ template <class Mesh> void GTypeOfFESum<Mesh>::build() {
    KN<int> numPt(npi);
    {
       std::map<RdHat, int, lessRd> mpt;
-      // // numPtInterpolation.init(npi);
       int npp = 0, kkk = 0;
       KN<RdHat> Ptt(npi);
       for (int i = 0; i < this->nbOfFE; i++) {

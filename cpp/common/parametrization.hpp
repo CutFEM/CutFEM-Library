@@ -1,43 +1,34 @@
-#ifndef _PARAMETRIZATION_HPP
-#define _PARAMETRIZATION_HPP
+#ifndef COMMON_PARAMETRIZATION_HPP
+#define COMMON_PARAMETRIZATION_HPP
 
 class CurveParametrization {
 
-public:
-
-  virtual R2 evalutate(double t) const = 0;
-  virtual R2 evalutate(int i, double t) const = 0;
-
-
-
-
+ public:
+   virtual R2 evalutate(double t) const        = 0;
+   virtual R2 evalutate(int i, double t) const = 0;
 };
-
 
 class LinearParametrization : public CurveParametrization {
 
-public:
+ public:
+   int nb_interval;
 
-  int nb_interval;
+   struct LineSet {
+      double a; // constant
+      double b; // 1st order coefficient
+      double x; // starting x value
+   };
 
-  struct LineSet {
-    double a;   // constant
-    double b;   // 1st order coefficient
-    double x;   // starting x value
-  };
+   LineSet *myLineSet;
+   LinearParametrization(const std::vector<double> &x,
+                         const std::vector<double> &y);
+   void init(const std::vector<double> &x, const std::vector<double> &y);
 
-  LineSet * myLineSet;
-  LinearParametrization( const std::vector<double> & x, const std::vector<double> & y );
-  void init( const std::vector<double> & x, const std::vector<double> & y );
+   ~LinearParametrization() { delete[] myLineSet; }
 
-
-  ~LinearParametrization(){ delete [] myLineSet;}
-private:
- LinearParametrization(const LinearParametrization &);
- void operator=(const LinearParametrization&);
-
+ private:
+   LinearParametrization(const LinearParametrization &);
+   void operator=(const LinearParametrization &);
 };
-
-
 
 #endif

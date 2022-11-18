@@ -179,11 +179,11 @@ int Tet::faceOrient(int i) const { // def the permutatution of orient the face
    const Vertex *f[3] = {&at(nvface[i][0]), &at(nvface[i][1]),
                          &at(nvface[i][2])};
    if (f[0] > f[1])
-      fo = -fo, Exchange(f[0], f[1]);
+      fo = -fo, std::swap(f[0], f[1]);
    if (f[1] > f[2]) {
-      fo = -fo, Exchange(f[1], f[2]);
+      fo = -fo, std::swap(f[1], f[2]);
       if (f[0] > f[1])
-         fo = -fo, Exchange(f[0], f[1]);
+         fo = -fo, std::swap(f[0], f[1]);
    }
    return fo;
 }

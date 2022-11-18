@@ -1,12 +1,12 @@
-#ifndef BASE_INTERFACE_HPP_
-#define BASE_INTERFACE_HPP_
+#ifndef COMMON_BASE_INTERFACE_HPP_
+#define COMMON_BASE_INTERFACE_HPP_
 
 #include <iostream>
 #include <cassert>
 #include <bitset>
 #include "RNM.hpp"
 #include "Label.hpp"
-#include "../util/util.hpp"
+#include "../num/util.hpp"
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"
 #include "cut_method.hpp"

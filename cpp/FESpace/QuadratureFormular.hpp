@@ -2,6 +2,7 @@
 #define _QuadratureFormular_h
 
 #include <iostream>
+#include <cassert>
 #include "../common/point.hpp"
 
 struct QuadratureWeight {

@@ -124,7 +124,8 @@ static int *builddata_d(const std::vector<int> nbItem,
       }
 
       for (int i = 0; i < t[j]->nbDoF; i++)
-         dln[t[j]->DFOnWhat[i]] = Max(dln[t[j]->DFOnWhat[i]], data[cc++] + 1);
+         dln[t[j]->DFOnWhat[i]] =
+             std::max(dln[t[j]->DFOnWhat[i]], data[cc++] + 1);
    }
    //  Ok si un noeud par what
    for (int j = 0; j < k; j++) {

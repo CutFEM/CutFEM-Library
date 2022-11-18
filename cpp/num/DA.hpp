@@ -1,5 +1,5 @@
-#ifndef _DA_HPP_
-#define _DA_HPP_
+#ifndef COMMON_DA_HPP_
+#define COMMON_DA_HPP_
 
 #include <stdlib.h>
 #include <cmath>

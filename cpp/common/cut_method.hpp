@@ -1,7 +1,7 @@
-#ifndef CUT_METHOD_HPP_
-#define CUT_METHOD_HPP_
+#ifndef COMMON_CUT_METHOD_HPP_
+#define COMMON_CUT_METHOD_HPP_
 
-#include "../util/util.hpp"
+#include "../num/util.hpp"
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
 #include "geometry.hpp"
@@ -301,7 +301,7 @@ template <typename Element> class RefPatch {
    } ///< True after assign(...)
      //
    ///@{ Recommended access to the triangles for a given sign-pattern; memoizes
-   ///the result.
+   /// the result.
    static inline const RefPatch<Element> &instance(const byte ls[Element::nv]) {
       int m0 = (Element::nb_sign_pattern - 1) / 2;
       RefPatch<Element> &instance =
@@ -443,7 +443,7 @@ template <typename E> class RefPartition {
    bool is_initialized() const { return begin_ < end_; }
 
    ///@{ Recommended access to the triangles for a given sign-pattern; memoizes
-   ///the result.
+   /// the result.
    static inline const RefPartition &instance(const byte ls[E::nv]) {
       int m0                 = (E::nb_sign_pattern - 1) / 2;
       RefPartition &instance = instance_array_[instance_idx<E>(ls) + m0];
@@ -490,7 +490,7 @@ template <typename E> class RefPartition {
    // { return s == NegElement ? elements_ + start_array : end_; }
    //   ///@}
    ///@{ Random-access to the tetras: all tetras, or negative and positive
-   ///tetras separately, see TetraSignEnum
+   /// tetras separately, see TetraSignEnum
    const_element_iterator element_begin(ElementSignEnum s = AllElement) const {
       return s == PosElement ? elements_ + start_array : begin_;
    }

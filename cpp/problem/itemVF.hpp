@@ -3,19 +3,15 @@
 #include "testFunction.hpp"
 #include <list>
 
-enum class VarFormType { VF_MIXED, VF_MONOSPACE };
-
 template <int N = 2> struct ItemVF {
    typedef typename typeMesh<N>::Mesh Mesh;
    typedef GFESpace<Mesh> FESpace;
    typedef typename typeRd<N>::Rd Rd;
 
-   VarFormType varFormType_ = VarFormType::VF_MIXED;
-
    double c;
    int cu, du, cv, dv;
-   KN<int> ar_nu, ar_nv;
-   KN<int> conormalU_, conormalV_;
+   std::vector<int> ar_nu, ar_nv;
+   std::vector<int> conormalU_, conormalV_;
    int face_sideU_, face_sideV_;
    int domainU_id_, domainV_id_;
 
@@ -36,23 +32,11 @@ template <int N = 2> struct ItemVF {
    ItemVF(double cc, int i, int j, int k, int l)
        : c(cc), cu(i), du(j), cv(k), dv(l), face_sideU_(-1), face_sideV_(-1),
          domainU_id_(-1), domainV_id_(-1), dtu(-1), dtv(-1) {}
-   ItemVF(double cc, int i, int j, int k, int l, const KN<int> &nn,
-          const KN<int> &mm)
+   ItemVF(double cc, int i, int j, int k, int l, const std::vector<int> &nn,
+          const std::vector<int> &mm)
        : c(cc), cu(i), du(j), cv(k), dv(l), ar_nu(nn), ar_nv(mm),
          face_sideU_(-1), face_sideV_(-1), domainU_id_(-1), domainV_id_(-1),
          dtu(-1), dtv(-1) {}
-   // ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>&
-   // mm, int dou, int dov) : c(cc),
-   // cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),face_sideU_(dou),face_sideV_(dov),dtu(-1),dtv(-1){}
-   // ItemVF(double cc,int i,int j,int k,int l,const KN<int>& nn, const KN<int>&
-   // mm, int dou, int dov,
-   //   const vector<const VirtualParameter*>& weu, const vector<const
-   //   VirtualParameter*>& wev, int tu, int tv)
-   // : c(cc),
-   // cu(i),du(j),cv(k),dv(l),ar_nu(nn),ar_nv(mm),face_sideU_(dou),face_sideV_(dov),dtu(tu),dtv(tv){
-   //   for(int i=0;i<weu.size();++i) coefu.push_back(weu[i]);
-   //   for(int i=0;i<wev.size();++i) coefv.push_back(wev[i]);
-   // }
    ItemVF(const ItemVF &U)
        : ItemVF(U.c, U.cu, U.du, U.cv, U.dv, U.ar_nu, U.ar_nv) {
       conormalU_ = U.conormalU_;
@@ -77,8 +61,6 @@ template <int N = 2> struct ItemVF {
       fespaceV = U.fespaceV;
       pfunU    = U.pfunU;
       pfunV    = U.pfunV;
-
-      varFormType_ = U.varFormType_;
    }
 
    ItemVF(const ItemTestFunction<N> &U, const ItemTestFunction<N> &V)
@@ -105,12 +87,7 @@ template <int N = 2> struct ItemVF {
 
       pfunU = U.pfun;
       pfunV = V.pfun;
-
-      setVarFormType();
    }
-
-   // // bool same() const {
-   //   return (fespaceU == fespaceV) && (pfunU == pfunV); }
 
    bool operator==(const ItemVF &F) {
 
@@ -118,75 +95,12 @@ template <int N = 2> struct ItemVF {
           F.face_sideU_ == face_sideU_ && face_sideV_ == F.face_sideV_ &&
           dtu == F.dtu && dtv == F.dtv && domainU_id_ == F.domainU_id_ &&
           domainV_id_ == F.domainV_id_ && fespaceU == F.fespaceU &&
-          fespaceV == F.fespaceV && expru == F.expru && exprv == F.exprv) {
-         if (ar_nu.size() == F.ar_nu.size() && ar_nv.size() == F.ar_nv.size()) {
-            for (int i = 0; i < ar_nu.size(); ++i) {
-               if (ar_nu(i) != F.ar_nu(i))
-                  return false;
-            }
-            for (int i = 0; i < ar_nv.size(); ++i) {
-               if (ar_nv(i) != F.ar_nv(i))
-                  return false;
-            }
-         } else
-            return false;
-         if (conormalU_.size() == F.conormalU_.size() &&
-             conormalV_.size() == F.conormalV_.size()) {
-            for (int i = 0; i < conormalU_.size(); ++i) {
-               if (conormalU_(i) != F.conormalU_(i))
-                  return false;
-            }
-            for (int i = 0; i < conormalV_.size(); ++i) {
-               if (conormalV_(i) != F.conormalV_(i))
-                  return false;
-            }
-         } else
-            return false;
+          fespaceV == F.fespaceV && expru == F.expru && exprv == F.exprv &&
+          ar_nu == F.ar_nu && ar_nv == F.ar_nv && conormalU_ == F.conormalU_ &&
+          conormalV_ == F.conormalV_) {
       } else
          return false;
       return true;
-   }
-
-   // double fxU(int k, Rd mip, const R* normal = nullptr) const {
-   //   return ((expru)? expru->eval(k, mip, normal) : 1);
-   // }
-   // double fxV(int k, Rd mip, const R* normal = nullptr) const {
-   //   return ((exprv)? exprv->eval(k, mip, normal) : 1);
-   // }
-   // double fxu(int k, Rd mip) const {
-   //   return ((expru)? expru->eval(k, mip) : 1)*((exprv)? exprv->eval(k, mip)
-   //   : 1);
-   // }
-   // double fxu(int k, Rd mip, double t) const {
-   //   return ((expru)? expru->eval(k, mip, t) : 1)*((exprv)? exprv->eval(k,
-   //   mip,t) : 1);
-   // }
-   //
-   // double fxu_backMesh(int k, int dom, Rd mip, const R* normal = nullptr)
-   // const {
-   //   return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1)
-   //         *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
-   // }
-   // double fxu_backMesh(int k, int dom, Rd mip, double t, const R* normal =
-   // nullptr) const {
-   //   return ((expru)? expru->GevalOnBackMesh(k, dom, mip, t, normal) : 1)
-   //          *((exprv)? exprv->GevalOnBackMesh(k, dom, mip, t, normal) : 1);
-   // }
-   //
-   // double fx_backMesh_U(int k, int dom, Rd mip, const R* normal = nullptr)
-   // const {
-   //   return ((expru)? expru->GevalOnBackMesh(k, dom, mip, normal) : 1);
-   // }
-   // double fx_backMesh_V(int k, int dom, Rd mip, const R* normal = nullptr)
-   // const {
-   //   return ((exprv)? exprv->GevalOnBackMesh(k, dom, mip, normal) : 1);
-   // }
-
-   void setVarFormType() {
-      if (fespaceU == fespaceV)
-         varFormType_ = VarFormType::VF_MONOSPACE;
-      else
-         varFormType_ = VarFormType::VF_MIXED;
    }
 
  public:
@@ -314,10 +228,11 @@ template <int N = 2> struct ItemVF {
    }
 
  private:
-   double computeCoeffFromArray(const KN<int> &array_idx, const R *v) const {
-      R val = 1;
-      for (int i = 0; i < array_idx.size(); ++i)
-         val *= v[array_idx(i)];
+   double computeCoeffFromArray(const std::vector<int> &array_idx,
+                                const double *v) const {
+      double val = 1;
+      for (const auto &i : array_idx)
+         val *= v[i];
       return val;
    }
 
@@ -364,8 +279,7 @@ template <int N = 2> class ListItemVF {
 
  public:
    KN<ItemVF<N>> VF;
-   bool isRHS_              = true;
-   VarFormType varFormType_ = VarFormType::VF_MIXED;
+   bool isRHS_ = true;
    ListItemVF(int l) : VF(l){};
    const ItemVF<N> &operator()(int i) const { return VF(i); }
    const ItemVF<N> &operator[](int i) const { return VF[i]; }
@@ -384,8 +298,6 @@ template <int N = 2> class ListItemVF {
       this->VF.resize(n);
       for (int i = n0, j = 0; i < n; ++i, ++j)
          (*this)(i) = L(j);
-      if (varFormType_ != L.varFormType_)
-         varFormType_ = VarFormType::VF_MIXED;
       return *this;
    }
    ListItemVF &operator-(const ListItemVF &L) {
@@ -394,8 +306,6 @@ template <int N = 2> class ListItemVF {
       this->VF.resize(n);
       for (int i = n0, j = 0; i < n; ++i, ++j)
          (*this)(i) = -L(j);
-      if (varFormType_ != L.varFormType_)
-         varFormType_ = VarFormType::VF_MIXED;
 
       return *this;
    }
@@ -452,21 +362,6 @@ template <int N = 2> class ListItemVF {
          n = Max(n, getLastop(VF[i].du, VF[i].dv));
       return n;
    }
-   void setVarFormType() {
-      for (int i = 0; i < this->size(); ++i) {
-         if (VF[i].varFormType_ == VarFormType::VF_MIXED) {
-            varFormType_ = VarFormType::VF_MIXED;
-            return;
-         }
-      }
-      for (int i = 0; i < this->size() - 1; ++i) {
-         if (VF[i].fespaceV != VF[i + 1].fespaceV) {
-            varFormType_ = VarFormType::VF_MIXED;
-            return;
-         }
-      }
-      varFormType_ = VarFormType::VF_MONOSPACE;
-   }
 
    bool isRHS() const { return isRHS_; }
    const FESpace &get_spaceU(int i) const {
@@ -489,8 +384,7 @@ template <int d> ListItemVF<d> jump(const ListItemVF<d> &L) {
    int n  = 2 * n0;
 
    ListItemVF<d> item(n);
-   item.isRHS_       = L.isRHS_;
-   item.varFormType_ = L.varFormType_;
+   item.isRHS_ = L.isRHS_;
    for (int i = 0; i < n0; ++i) {
       item(i)             = L(i);
       item(i).face_sideU_ = 0;
@@ -523,7 +417,6 @@ template <int d> ListItemVF<d> average(const ListItemVF<d> &L, int v1, int v2) {
       item(i).face_sideU_ = 1;
       item(i).face_sideV_ = 1;
    }
-   item.varFormType_ = L.varFormType_;
    return item;
 }
 
@@ -555,7 +448,6 @@ ListItemVF<d> operator,(const TestFunction<d> &uu, const TestFunction<d> &vv) {
       }
    }
    item.reduce();
-   item.setVarFormType();
    return item;
 }
 
@@ -574,22 +466,21 @@ template <int d> ListItemVF<d> operator,(const R c, const TestFunction<d> &F) {
       for (int j = 0; j < F.A.M(); ++j) {
          for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
             const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
-            item(k) = ItemVF<d>(v.c * c, v.cu, 0, v.cu, v.du, 0, v.ar_nu);
+            item(k)             = ItemVF<d>(v.c * c, v.cu, 0, v.cu, v.du,
+                                std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
             item(k).face_sideV_ = v.face_side_;
             item(k).domainU_id_ = v.domain_id_;
             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-            item(k).dtu          = -1;
-            item(k).dtv          = v.dtu;
-            item(k).expru        = v.expru;
-            item(k).fespaceV     = v.fespace;
-            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+            item(k).dtu      = -1;
+            item(k).dtv      = v.dtu;
+            item(k).expru    = v.expru;
+            item(k).fespaceV = v.fespace;
             k++;
          }
       }
    }
    item.reduce();
-   item.setVarFormType();
 
    return item;
 }
@@ -611,23 +502,22 @@ ListItemVF<d> operator,(const Rnm &c, const TestFunction<d> &F) {
       for (int j = 0; j < F.A.M(); ++j) {
          for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
             const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
-            item(k) = ItemVF<d>(v.c * c(i, j), v.cu, 0, v.cu, v.du, 0, v.ar_nu);
+            item(k)             = ItemVF<d>(v.c * c(i, j), v.cu, 0, v.cu, v.du,
+                                std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
             item(k).face_sideV_ = v.face_side_;
             item(k).domainU_id_ = v.domain_id_;
             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-            item(k).dtu          = -1;
-            item(k).dtv          = v.dtu;
-            item(k).exprv        = v.expru;
-            item(k).fespaceV     = v.fespace;
-            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+            item(k).dtu      = -1;
+            item(k).dtv      = v.dtu;
+            item(k).exprv    = v.expru;
+            item(k).fespaceV = v.fespace;
 
             k++;
          }
       }
    }
    item.reduce();
-   item.setVarFormType();
 
    return item;
 }
@@ -672,16 +562,14 @@ ListItemVF<d> operator,(const Projection &c, const TestFunction<d> &F) {
             item(k).dtu = -1;
             item(k).dtv = v.dtu;
 
-            item(k).exprv        = v.expru;
-            item(k).fespaceV     = v.fespace;
-            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+            item(k).exprv    = v.expru;
+            item(k).fespaceV = v.fespace;
 
             k++;
          }
       }
    }
    item.reduce();
-   item.setVarFormType();
 
    return item;
 }
@@ -701,17 +589,17 @@ ListItemVF<d> operator,(const ExpressionVirtual &fh, const TestFunction<d> &F) {
       for (int j = 0; j < F.A.M(); ++j) {
          for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
             const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
-            item(k)             = ItemVF<d>(v.c, 0, -1, v.cu, v.du, 0, v.ar_nu);
+            item(k) =
+                ItemVF<d>(v.c, 0, -1, v.cu, v.du, std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
             item(k).face_sideV_ = v.face_side_;
             item(k).domainU_id_ = v.domain_id_;
             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-            item(k).dtu          = 0;
-            item(k).dtv          = v.dtu;
-            item(k).expru        = &fh;
-            item(k).exprv        = v.expru;
-            item(k).fespaceV     = v.fespace;
-            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+            item(k).dtu      = 0;
+            item(k).dtv      = v.dtu;
+            item(k).expru    = &fh;
+            item(k).exprv    = v.expru;
+            item(k).fespaceV = v.fespace;
 
             k++;
          }
@@ -719,7 +607,6 @@ ListItemVF<d> operator,(const ExpressionVirtual &fh, const TestFunction<d> &F) {
    }
 
    item.reduce();
-   item.setVarFormType();
 
    return item;
 }
@@ -745,12 +632,11 @@ ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
             item(k).face_sideV_ = v.face_side_;
             item(k).domainU_id_ = v.domain_id_;
             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-            item(k).dtu          = 0;
-            item(k).dtv          = v.dtu;
-            item(k).expru        = &fh.fun1;
-            item(k).exprv        = v.expru;
-            item(k).fespaceV     = v.fespace;
-            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+            item(k).dtu      = 0;
+            item(k).dtv      = v.dtu;
+            item(k).expru    = &fh.fun1;
+            item(k).exprv    = v.expru;
+            item(k).fespaceV = v.fespace;
 
             k++;
          }
@@ -766,12 +652,11 @@ ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
             item(k).face_sideV_ = v.face_side_;
             item(k).domainU_id_ = v.domain_id_;
             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-            item(k).dtu          = 0;
-            item(k).dtv          = v.dtu;
-            item(k).expru        = &fh.fun1;
-            item(k).exprv        = v.expru;
-            item(k).fespaceV     = v.fespace;
-            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+            item(k).dtu      = 0;
+            item(k).dtv      = v.dtu;
+            item(k).expru    = &fh.fun1;
+            item(k).exprv    = v.expru;
+            item(k).fespaceV = v.fespace;
 
             k++;
          }
@@ -779,7 +664,6 @@ ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
    }
 
    item.reduce();
-   item.setVarFormType();
 
    return item;
 }
@@ -807,17 +691,17 @@ operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> fh,
       for (int j = 0; j < F.A.M(); ++j) {
          for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
             const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
-            item(k)             = ItemVF<d>(v.c, i, -1, v.cu, v.du, 0, v.ar_nu);
+            item(k) =
+                ItemVF<d>(v.c, i, -1, v.cu, v.du, std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
             item(k).face_sideV_ = v.face_side_;
             item(k).domainU_id_ = v.domain_id_;
             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-            item(k).dtu          = 0;
-            item(k).dtv          = v.dtu;
-            item(k).expru        = *it;
-            item(k).exprv        = v.expru;
-            item(k).fespaceV     = v.fespace;
-            item(k).varFormType_ = VarFormType::VF_MONOSPACE;
+            item(k).dtu      = 0;
+            item(k).dtv      = v.dtu;
+            item(k).expru    = *it;
+            item(k).exprv    = v.expru;
+            item(k).fespaceV = v.fespace;
 
             k++;
          }
@@ -825,7 +709,6 @@ operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> fh,
    }
 
    item.reduce();
-   item.setVarFormType();
 
    return item;
 }

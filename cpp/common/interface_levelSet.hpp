@@ -1,5 +1,5 @@
-#ifndef LEVELSET_INTERFACE_HPP_
-#define LEVELSET_INTERFACE_HPP_
+#ifndef COMMON_LEVELSET_INTERFACE_HPP
+#define COMMON_LEVELSET_INTERFACE_HPP
 
 #include "base_interface.hpp"
 // #include "../FESpace/expression.hpp"

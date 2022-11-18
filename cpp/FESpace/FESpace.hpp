@@ -11,10 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
-#include "../util/error.hpp"
-#include "../util/util.hpp"
-#include "../util/ufunction.hpp"
-
+#include "../num/util.hpp"
 #include "GTypeOfFE_Sum.hpp"
 
 #include "../common/Mesh3dn.hpp"

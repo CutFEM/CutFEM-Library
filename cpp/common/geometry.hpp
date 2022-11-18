@@ -1,5 +1,5 @@
-#ifndef GEOMETRY_HPP
-#define GEOMETRY_HPP
+#ifndef COMMON_GEOMETRY_HPP
+#define COMMON_GEOMETRY_HPP
 
 #include "Mesh2dn.hpp"
 

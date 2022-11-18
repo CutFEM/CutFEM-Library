@@ -1,5 +1,5 @@
-#ifndef KNM_H_
-#define KNM_H_
+#ifndef COMMON_KNM_HPP
+#define COMMON_KNM_HPP
 
 #include <iostream>
 #include <cstdlib>
@@ -8,50 +8,6 @@
 #include <cassert>
 #include <fstream>
 #include <list>
-
-// using namespace std;
-
-// inline void Check_Kn(const char *str, const char *file, int line) {
-//    std::std::cerr << "CHECK_KN: " << str << " in file: " << file << ", line "
-//    << line
-//              << std::endl;
-//    assert(0);
-//    abort();
-// }
-
-// #define K_bigassert(i)                                                         \
-//    if (!(i))                                                                   \
-//       Check_Kn(#i, __FILE__, __LINE__);
-// #define assert( 0&&i) Check_Kn(i, __FILE__, __LINE__);
-// #ifdef CHECK_KN
-// #define assert(i) \
-//    if (!(i)) \
-//       Check_Kn(#i, __FILE__, __LINE__);
-// #else
-// #define assert(i)
-// #endif
-
-namespace RNM {
-template <class T> inline T Min(const T &a, const T &b) {
-   return a < b ? a : b;
-}
-template <class T> inline T Max(const T &a, const T &b) {
-   return a > b ? a : b;
-}
-template <class T> inline T Abs(const T &a) { return a < 0 ? -a : a; }
-
-template <class T> inline void Exchange(T &a, T &b) {
-   T c = a;
-   a   = b;
-   b   = c;
-}
-template <class T> inline T Max(const T &a, const T &b, const T &c) {
-   return Max(Max(a, b), c);
-}
-template <class T> inline T Min(const T &a, const T &b, const T &c) {
-   return Min(Min(a, b), c);
-}
-} // namespace RNM
 
 template <class R> class KNMK_;
 template <class R> class KNM_;

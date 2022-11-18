@@ -1,7 +1,10 @@
+#ifndef COMMON_SPARSE_MATRIX_HPP
+#define COMMON_SPARSE_MATRIX_HPP
+
 #include <map>
 
 #include "RNM.hpp"
-#include "../util/util.hpp"
+#include "../num/util.hpp"
 #include <map>
 #include <set>
 #include <iostream>
@@ -191,3 +194,5 @@ template <class R> R *SparseMatrixRC<R>::pcoef(int ii, int jj) {
    }
    return 0;
 }
+
+#endif

@@ -13,6 +13,7 @@
 #include "../common/RNM.hpp"
 #include <sys/stat.h>
 #include <list>
+#include <time.h>
 
 /// Used in equality-tests for floating point numbers.
 const double DoubleEpsC = 1.0e-9; // numeric_limits<double>::epsilon();
@@ -41,24 +42,14 @@ inline byte sign(double d) { return d > 0. ? 1 : (d < 0. ? -1 : 0); }
 
 inline byte fsign(double d) { return d > 0. ? 1 : (d < 0. ? -1 : 0); }
 
-// inline byte sign (double d)
-// {
-//   return d > 0. ? 1 : (d < 0. ? -1 : 0);
+// inline bool changeSign(const Rn &v) {
+//    R a = v(0);
+//    for (int i = 1; i < v.size(); ++i) {
+//       if (sign(a * v(i)) < 0)
+//          return true;
+//    }
+//    return false;
 // }
-//
-// inline byte fsign (double d)
-// {
-//   return d > 0. ? 1 : (d < 0. ? -1 : 0);
-// }
-
-inline bool changeSign(const Rn &v) {
-   R a = v(0);
-   for (int i = 1; i < v.size(); ++i) {
-      if (sign(a * v(i)) < 0)
-         return true;
-   }
-   return false;
-}
 
 inline bool changeSign(const R *v, int size) {
    R a = v[0];
@@ -252,6 +243,20 @@ static void gather(std::vector<std::map<std::pair<int, int>, double>> &l) {
       }
       A.clear();
    }
+}
+
+////========================================================////
+////////////=========     Timer     =========///////////////////
+
+inline double CPUtime() {
+#ifdef SYSTIMES
+   struct tms buf;
+   if (times(&buf) != -1)
+      return ((double)buf.tms_utime + (double)buf.tms_stime) /
+             (long)sysconf(_SC_CLK_TCK);
+   else
+#endif
+      return ((double)clock()) / CLOCKS_PER_SEC;
 }
 
 #endif

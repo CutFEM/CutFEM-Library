@@ -1,5 +1,5 @@
-#ifndef _DATA_STRUCT_1D_HPP
-#define _DATA_STRUCT_1D_HPP
+#ifndef COMMON_DATA_STRUCT_1D_HPP
+#define COMMON_DATA_STRUCT_1D_HPP
 
 #include "GenericElement.hpp"
 

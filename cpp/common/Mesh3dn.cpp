@@ -1,9 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#include <algorithm>
 #include "libmesh5.h"
-#include "../util/ufunction.hpp"
-#include "../util/error.hpp"
 #include "RNM.hpp"
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"
@@ -129,17 +128,17 @@ Mesh3::Mesh3(int nnv, int nnbe, Vertex3 *vv, Triangle3 *bb) {
 int signe_permutation(int i0, int i1, int i2, int i3) {
    int p = 1;
    if (i0 > i1)
-      Exchange(i0, i1), p = -p;
+      std::swap(i0, i1), p = -p;
    if (i0 > i2)
-      Exchange(i0, i2), p = -p;
+      std::swap(i0, i2), p = -p;
    if (i0 > i3)
-      Exchange(i0, i3), p = -p;
+      std::swap(i0, i3), p = -p;
    if (i1 > i2)
-      Exchange(i1, i2), p = -p;
+      std::swap(i1, i2), p = -p;
    if (i1 > i3)
-      Exchange(i1, i3), p = -p;
+      std::swap(i1, i3), p = -p;
    if (i2 > i3)
-      Exchange(i2, i3), p = -p;
+      std::swap(i2, i3), p = -p;
    return p;
 }
 

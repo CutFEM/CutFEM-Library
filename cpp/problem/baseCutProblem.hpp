@@ -14,6 +14,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
    typedef typename Mesh::Element Element;
    typedef typename Mesh::BorderElement BorderElement;
 
+   int number_of_stabilized_edges;
+
  public:
    BaseCutFEM(const ProblemOption &option, int np)
        : BaseFEM<Mesh>(option, np) {}
@@ -173,7 +175,15 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                              const TimeSlab &In, int itq);
    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &,
                              const MacroElement<Mesh> &);
-
+   void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &,
+                             const TimeSlab &In,
+                             const TimeMacroElement<Mesh> &);
+   void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &,
+                             const TimeSlab &In,
+                             const TimeMacroElement2<Mesh> &);
+   void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &,
+                             const TimeSlab &In,
+                             const TimeMacroElementSurface<Mesh> &);
    // Lagrange multiplier
    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val,
                               const CutMesh &);

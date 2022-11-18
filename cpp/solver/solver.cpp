@@ -1,9 +1,7 @@
 #include <fstream>
 #include <iostream>
-#include "../util/util.hpp"
+#include "../num/util.hpp"
 #include "solver.hpp"
-// #include "../parallel/cfmpi.hpp"
-//  #include "cutFEMConfig.h"
 #include "../common/SparseMatMap.hpp"
 #ifdef USE_UMFPACK
 #include "umfpack.h"

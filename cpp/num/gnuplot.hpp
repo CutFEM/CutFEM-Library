@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <fstream>
+#include "mapping.hpp"
 #include "macroElement.hpp"
 
 namespace gnuplot {

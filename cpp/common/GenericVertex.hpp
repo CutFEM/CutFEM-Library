@@ -1,5 +1,5 @@
-#ifndef _GENERIC_VERTEX_HPP
-#define _GENERIC_VERTEX_HPP
+#ifndef COMMON_GENERIC_VERTEX_HPP
+#define COMMON_GENERIC_VERTEX_HPP
 
 #include "Label.hpp"
 #include "point.hpp"

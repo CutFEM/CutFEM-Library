@@ -1,6 +1,6 @@
 
-#ifndef MESH1DN_HPP_
-#define MESH1DN_HPP_
+#ifndef COMMON_MESH1DN_HPP_
+#define COMMON_MESH1DN_HPP_
 
 #include "GenericMesh.hpp"
 #include <cstdlib>

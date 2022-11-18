@@ -1,5 +1,5 @@
-#ifndef _CUT_MESH_HPP
-#define _CUT_MESH_HPP
+#ifndef COMMON_CUT_MESH_HPP
+#define COMMON_CUT_MESH_HPP
 
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"

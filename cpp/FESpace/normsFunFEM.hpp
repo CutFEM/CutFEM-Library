@@ -4,10 +4,8 @@
 // NORM FOR CUTFEM
 template <typename M>
 double L2normCut(const FunFEM<M> &fh,
-                 R(fex)(const typename GFESpace<M>::FElement::Rd, int i,
-                        int dom, double tt),
-                 double t, int c0, int num_comp,
-                 const MacroElement<M> *macro = nullptr) {
+                 R(fex)(double *, int i, int dom, double tt), double t, int c0,
+                 int num_comp, const MacroElement<M> *macro = nullptr) {
 
    const GFESpace<M> &Vh(*fh.Vh);
    const ActiveMesh<M> &Th(Vh.get_mesh());
@@ -69,8 +67,7 @@ double L2normCut_2(const ExpressionVirtual &fh,
 }
 template <typename M>
 double L2normCut_2(const ExpressionVirtual &fh,
-                   R(fex)(const typename GFESpace<M>::FElement::Rd, int i,
-                          int dom, double tt),
+                   R(fex)(double *, int i, int dom, double tt),
                    const ActiveMesh<M> &Th, double t,
                    const MacroElement<M> *macro) {
    int nb_dom = Th.get_nb_domain();
@@ -191,9 +188,8 @@ double L2normCut_2(const ExpressionVirtual &fh,
 }
 template <typename Mesh>
 double L2normCut_2(const ExpressionVirtual &fh,
-                   R(fex)(const typename GFESpace<Mesh>::FElement::Rd, int i,
-                          int dom, double tt),
-                   int domain, const ActiveMesh<Mesh> &Th, double t,
+                   R(fex)(double *, int i, int dom, double tt), int domain,
+                   const ActiveMesh<Mesh> &Th, double t,
                    const MacroElement<Mesh> *macro) {
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -251,8 +247,7 @@ double L2normCut_2(const ExpressionVirtual &fh,
 // -----------------------------------------------------------------------------
 
 template <typename Mesh>
-double L2normSurf_2(const ExpressionVirtual &fh,
-                    R(fex)(const typename GFESpace<Mesh>::FElement::Rd, int i),
+double L2normSurf_2(const ExpressionVirtual &fh, R(fex)(double *, int i),
                     const Interface<Mesh> &interface) {
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -293,8 +288,7 @@ double L2normSurf_2(const ExpressionVirtual &fh,
 }
 template <typename Mesh>
 double L2normSurf_2(const ExpressionVirtual &fh,
-                    R(fex)(const typename GFESpace<Mesh>::FElement::Rd, int i,
-                           double t),
+                    R(fex)(double *, int i, double t),
                     const Interface<Mesh> &interface, double tt) {
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -337,10 +331,9 @@ double L2normSurf_2(const ExpressionVirtual &fh,
    return val_receive;
 }
 template <typename Mesh>
-double
-L2normSurf(const FunFEM<Mesh> &fh,
-           R(fex)(const typename GFESpace<Mesh>::FElement::Rd, int i, double t),
-           const Interface<Mesh> &interface, double tt, int c0, int num_comp) {
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
+                  const Interface<Mesh> &interface, double tt, int c0,
+                  int num_comp) {
 
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
@@ -350,8 +343,7 @@ L2normSurf(const FunFEM<Mesh> &fh,
    return sqrt(val);
 }
 template <typename Mesh>
-double L2normSurf(const FunFEM<Mesh> &fh,
-                  R(fex)(const typename GFESpace<Mesh>::FElement::Rd, int i),
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
                   const Interface<Mesh> &interface, int c0, int num_comp) {
 
    double val = 0;
@@ -362,10 +354,9 @@ double L2normSurf(const FunFEM<Mesh> &fh,
    return sqrt(val);
 }
 template <typename Mesh>
-double
-L2normSurf(const FunFEM<Mesh> &fh,
-           R(fex)(const typename GFESpace<Mesh>::FElement::Rd, int i, double t),
-           const Interface<Mesh> *interface, double tt, int c0, int num_comp) {
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
+                  const Interface<Mesh> *interface, double tt, int c0,
+                  int num_comp) {
 
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
@@ -375,8 +366,7 @@ L2normSurf(const FunFEM<Mesh> &fh,
    return sqrt(val);
 }
 template <typename Mesh>
-double L2normSurf(const FunFEM<Mesh> &fh,
-                  R(fex)(const typename GFESpace<Mesh>::FElement::Rd, int i),
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
                   const Interface<Mesh> *interface, int c0, int num_comp) {
 
    double val = 0;

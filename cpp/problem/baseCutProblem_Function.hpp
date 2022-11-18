@@ -1332,6 +1332,123 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF,
    bar.end();
 }
 
+template <typename M>
+void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF,
+                                         const CutMesh &Th, const TimeSlab &In,
+                                         const TimeMacroElement<M> &macro) {
+
+   number_of_stabilized_edges      = 0;
+   int number_of_quadrature_points = this->get_nb_quad_point_time();
+   for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
+
+      assert(!VF.isRHS());
+      auto tq    = this->get_quadrature_time(itq);
+      double tid = In.map(tq);
+
+      KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+      RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+      In.BF(tq.x, bf_time); // compute time basic funtions
+      double cst_time = tq.a * In.get_measure();
+
+      for (auto me = macro.macro_element.begin();
+           me != macro.macro_element.end(); ++me) {
+
+         for (auto it = me->second.inner_edge.begin();
+              it != me->second.inner_edge.end(); ++it) {
+            int k    = it->first;
+            int ifac = it->second;
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);
+            std::pair<int, int> e2 = std::make_pair(kn, jfac);
+
+            number_of_stabilized_edges += 1;
+            BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+         }
+         this->addLocalContribution();
+      }
+   }
+   number_of_stabilized_edges /= number_of_quadrature_points;
+}
+
+template <typename M>
+void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF,
+                                         const CutMesh &Th, const TimeSlab &In,
+                                         const TimeMacroElement2<M> &macro) {
+   number_of_stabilized_edges      = 0;
+   int number_of_quadrature_points = this->get_nb_quad_point_time();
+   for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
+
+      assert(!VF.isRHS());
+      auto tq    = this->get_quadrature_time(itq);
+      double tid = In.map(tq);
+
+      KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+      RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+      In.BF(tq.x, bf_time); // compute time basic funtions
+      double cst_time = tq.a * In.get_measure();
+
+      for (auto me = macro.macro_element.begin();
+           me != macro.macro_element.end(); ++me) {
+
+         for (auto it = me->second.inner_edge.begin();
+              it != me->second.inner_edge.end(); ++it) {
+            int k    = it->first;
+            int ifac = it->second;
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);
+            std::pair<int, int> e2 = std::make_pair(kn, jfac);
+            number_of_stabilized_edges += 1;
+            BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+         }
+         this->addLocalContribution();
+      }
+   }
+   number_of_stabilized_edges /= number_of_quadrature_points;
+}
+
+template <typename M>
+void BaseCutFEM<M>::addFaceStabilization(
+    const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In,
+    const TimeMacroElementSurface<M> &macro) {
+   number_of_stabilized_edges      = 0;
+   int number_of_quadrature_points = this->get_nb_quad_point_time();
+   for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
+
+      assert(!VF.isRHS());
+      auto tq    = this->get_quadrature_time(itq);
+      double tid = In.map(tq);
+
+      KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+      RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+      In.BF(tq.x, bf_time); // compute time basic funtions
+      double cst_time = tq.a * In.get_measure();
+
+      for (auto me = macro.macro_element.begin();
+           me != macro.macro_element.end(); ++me) {
+
+         for (auto it = me->second.inner_edge.begin();
+              it != me->second.inner_edge.end(); ++it) {
+            int k    = it->first;
+            int ifac = it->second;
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);
+            std::pair<int, int> e2 = std::make_pair(kn, jfac);
+            number_of_stabilized_edges += 1;
+            BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+         }
+
+         this->addLocalContribution();
+      }
+   }
+   number_of_stabilized_edges /= number_of_quadrature_points;
+}
+
 // LAGRANGE MULTIPLIER
 template <typename M>
 void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF,

@@ -1,5 +1,5 @@
-#ifndef MESH3DN_HPP_
-#define MESH3DN_HPP_
+#ifndef COMMON_MESH3DN_HPP_
+#define COMMON_MESH3DN_HPP_
 
 #include <cstdlib>
 #include "dataStruct3D.hpp"

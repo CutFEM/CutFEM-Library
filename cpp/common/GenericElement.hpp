@@ -1,17 +1,18 @@
-#ifndef _GENERIC_ELEMENT_HPP
-#define _GENERIC_ELEMENT_HPP
+#ifndef COMMON_GENERIC_ELEMENT_HPP
+#define COMMON_GENERIC_ELEMENT_HPP
 #include <cassert>
+#include <vector>
 #include "global.hpp"
 #include "GenericVertex.hpp"
 
 inline R1 ExtNormal(GenericVertex<R1> *const v[2], const std::vector<int> &f) {
-   return f[0] == 0 ? R1(-1) : R1(1);
+   return (f[0] == 0) ? R1(-1) : R1(1);
 }
 inline R2 ExtNormal(GenericVertex<R2> *const v[3], const std::vector<int> &f) {
-   return R2(*v[f[1]], *v[f[0]]).perp();
+   return R2(*v[f.at(1)], *v[f.at(0)]).perp();
 }
 inline R3 ExtNormal(GenericVertex<R3> *const v[4], const std::vector<int> &f) {
-   return R3(*v[f[0]], *v[f[2]]) ^ R3(*v[f[0]], *v[f[1]]);
+   return R3(*v[f.at(0)], *v[f.at(2)]) ^ R3(*v[f.at(0)], *v[f.at(1)]);
 }
 
 template <typename Data> class GenericElement : public Label {

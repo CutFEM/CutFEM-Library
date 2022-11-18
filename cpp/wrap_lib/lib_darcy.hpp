@@ -78,7 +78,7 @@ template <typename Kernel> class Darcy {
       Space Lh(*Kh_p, DataFE<Mesh>::P1);
 
       FunFEM<Mesh> levelSet(Lh, f); // fun_levelSet);
-      inter_p = make_shared<Interface>(*Kh_p, levelSet);
+      inter_p = std::make_shared<Interface>(*Kh_p, levelSet);
       const auto &interface(*inter_p);
 
       if (FE_type == "RT0") {

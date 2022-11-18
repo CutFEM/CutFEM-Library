@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "../util/util.hpp"
+#include "../num/util.hpp"
 #include "../common/RNM.hpp"
 #include "../common/Mesh1dn.hpp"
 #include "operationTypeFE.hpp"

@@ -651,7 +651,7 @@ int main(int argc, char **argv) {
    typedef FESpace2 Space;
    typedef CutFESpaceT2 CutSpace;
 
-   // MPIcf cfMPI(argc, argv);
+   MPIcf cfMPI(argc, argv);
 
    // int thread_count_tmp = 1;
    // cout << "Threads: ";

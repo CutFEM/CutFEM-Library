@@ -1,5 +1,5 @@
 #include "FESpace.hpp"
-#include "../common/DA.hpp"
+#include "../num/DA.hpp"
 
 struct InitTypeOfRTk_2d {
    int k;    // order poly on edge
@@ -132,7 +132,7 @@ class TypeOfFE_RT1_2d : public InitTypeOfRTk_2d, public GTypeOfFE<Mesh2> {
                 eOrientation * p0 * QFE[p].a; // [some quadrature function?]
             R lambda0 = eOrientation * p1 * QFE[p].a; //
             if (eOrientation < 0) {
-               Exchange(lambda1, lambda0); // exch lambda0,lambda1
+               std::swap(lambda1, lambda0); // exch lambda0,lambda1
             }
             v[k++] = lambda0 * E.x * s[i];
             v[k++] = lambda0 * E.y * s[i];
@@ -267,7 +267,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K,
       int ii[2]      = {(e + 1) % 3, (e + 2) % 3};
       R eOrientation = arrEdgeOrient[e] / triMeas2;
       if (eOrientation < 0) {
-         Exchange(ii[0], ii[1]);
+         std::swap(ii[0], ii[1]);
       }
 
       for (int j = 0; j < 2; ++j, dof++) {
@@ -460,7 +460,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K,
 //       int ii[2]      = {(e + 1) % 3, (e + 2) % 3};
 //       R eOrientation = arrEdgeOrient[e] / triMeas2;
 //       if (eOrientation < 0) {
-//          Exchange(ii[0], ii[1]);
+//          std::swap(ii[0], ii[1]);
 //       }
 
 //       for (int j = 0; j < 2; ++j, dof++) {
@@ -544,7 +544,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K,
 //       int ii[2]      = {(e + 1) % 3, (e + 2) % 3};
 //       R eOrientation = arrEdgeOrient[e] / triMeas2;
 //       if (eOrientation < 0) {
-//          Exchange(ii[0], ii[1]);
+//          std::swap(ii[0], ii[1]);
 //       }
 
 //       for (int j = 0; j < 2; ++j, dof++) {
@@ -644,7 +644,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K,
 //       int ii[2]      = {(e + 1) % 3, (e + 2) % 3};
 //       R eOrientation = arrEdgeOrient[e] / triMeas2;
 //       if (eOrientation < 0) {
-//          Exchange(ii[0], ii[1]);
+//          std::swap(ii[0], ii[1]);
 //       }
 
 //       for (int j = 0; j < 2; ++j, dof++) {
@@ -840,15 +840,15 @@ template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::RT1 = myRT1_2d;
 //     int p[] = {0, 1, 2};
 //     int fp = K.facePermutation(ff);
 //     if (fp & 1) {
-//       Exchange(p[0], p[1]);
+//       std::swap(p[0], p[1]);
 //     }
 //
 //     if (fp & 2) {
-//       Exchange(p[1], p[2]);
+//       std::swap(p[1], p[2]);
 //     }
 //
 //     if (fp & 4) {
-//       Exchange(p[0], p[1]);
+//       std::swap(p[0], p[1]);
 //     }
 //
 //     R3 N = NK[ff];
@@ -922,15 +922,15 @@ template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::RT1 = myRT1_2d;
 //     // orientation de la face a envert
 //     int fp = K.facePermutation(ff);
 //     if (fp & 1) {
-//       Exchange(p[k], p[k + 1]);
+//       std::swap(p[k], p[k + 1]);
 //     }
 //
 //     if (fp & 2) {
-//       Exchange(p[k + 1], p[k + 2]);
+//       std::swap(p[k + 1], p[k + 2]);
 //     }
 //
 //     if (fp & 4) {
-//       Exchange(p[k], p[k + 1]);
+//       std::swap(p[k], p[k + 1]);
 //     }
 //   }
 //

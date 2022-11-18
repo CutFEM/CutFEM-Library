@@ -1,5 +1,5 @@
-#ifndef LABEL_HPP
-#define LABEL_HPP
+#ifndef COMMON_LABEL_HPP
+#define COMMON_LABEL_HPP
 
 #include <iostream>
 

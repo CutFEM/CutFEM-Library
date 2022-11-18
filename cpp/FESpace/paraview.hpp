@@ -4,7 +4,7 @@
 #include "../common/cut_method.hpp"
 #include "FESpace.hpp"
 #include "macroElement.hpp"
-#include "../util/util.hpp"
+#include "../num/util.hpp"
 #include "expression.hpp"
 
 // template<class F>

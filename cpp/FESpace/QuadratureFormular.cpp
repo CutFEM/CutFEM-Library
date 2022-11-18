@@ -2,8 +2,6 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
-#include "../util/error.hpp"
-#include "../util/ufunction.hpp"
 #include "QuadratureFormular.hpp"
 
 static const double gauss_n2_1 = (1 - sqrt(1. / 3.)) / 2;

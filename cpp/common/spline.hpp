@@ -1,5 +1,5 @@
-#ifndef _SPLINE_HPP_
-#define _SPLINE_HPP_
+#ifndef COMMON_SPLINE_HPP
+#define COMMON_SPLINE_HPP
 #include <fstream>
 #include <iostream>
 #include <string>

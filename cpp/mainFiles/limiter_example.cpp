@@ -5,6 +5,8 @@
 #include <iostream>
 #include "../tool.hpp"
 
+using namespace std;
+
 typedef std::map<std::pair<int, int>, R> MatMap;
 typedef Mesh2 Mesh;
 typedef FESpace2 Space;
@@ -1982,8 +1984,8 @@ int main(int argc, char **argv) {
    // =====================================================
    double tid      = 0;
    double meshSize = 2. / nx;
-   double dt = meshSize / 5 / sqrt(2) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
-   double tend    = 0.1;
+   double dt   = meshSize / 5 / sqrt(2) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
+   double tend = 0.1;
    int niteration = tend / dt;
    dt             = tend / niteration;
    double errSum  = 0;
@@ -2319,8 +2321,8 @@ int main(int argc, char **argv) {
    // =====================================================
    double tid      = 0;
    double meshSize = 2. / nx;
-   double dt = meshSize / 5 / sqrt(2) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
-   double tend    = 0.1;
+   double dt   = meshSize / 5 / sqrt(2) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
+   double tend = 0.1;
    int niteration = tend / dt;
    dt             = tend / niteration;
    double errSum  = 0;
