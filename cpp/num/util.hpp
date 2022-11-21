@@ -1,7 +1,6 @@
 #ifndef UTIL_HPP_
 #define UTIL_HPP_
 
-#include <ctime>
 #include <vector>
 #include <sstream>
 #include <iostream>
@@ -14,7 +13,7 @@
 #include <sys/stat.h>
 #include <list>
 #include <time.h>
-
+#include <ctime>
 /// Used in equality-tests for floating point numbers.
 const double DoubleEpsC = 1.0e-9; // numeric_limits<double>::epsilon();
 const double Epsilon    = 10 * std::numeric_limits<double>::epsilon();
@@ -80,30 +79,6 @@ static bool contain(const std::list<int> &v, int x) {
 }
 
 } // namespace util
-
-/*
-/// Master process
-#ifdef _PAR
-#  define MasterProc 0
-#  define MASTER (MPIcf::IamMaster())
-#  define IF_MASTER if (MASTER)
-#  define IF_NOT_MASTER if (!MASTER)
-#else
-#  define MASTER true
-#  define IF_MASTER
-#  define IF_NOT_MASTER if (false)
-#endif
-
-
-/// The stream for dedug output.
-/// In parallel mode, the proc number is printed in front of the message
-#ifndef _PAR
-#  define cdebug std::cout
-#else
-#  define cdebug std::cout << "["<<ProcCL::MyRank()<<"]: "
-#endif
-*/
-#include <time.h>
 
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 inline const std::string currentDateTime() {
@@ -257,6 +232,14 @@ inline double CPUtime() {
    else
 #endif
       return ((double)clock()) / CLOCKS_PER_SEC;
+}
+
+inline double getTime() {
+#ifdef USE_MPI
+   return MPIcf::Wtime();
+#else
+   return CPUtime();
+#endif
 }
 
 #endif

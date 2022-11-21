@@ -71,27 +71,28 @@ get_directory_property(SOLVER_SOURCES DIRECTORY solver DEFINITION SOLVER_SOURCES
 
 
 #
-# set(EX_NAME bulkCD)
-# add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
-# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-# target_include_directories(${EX_NAME} PUBLIC
-#                         "${PROJECT_BINARY_DIR}"
-#                         ${EXTRA_INCLUDES})
-                        
-# set(EX_NAME limiter)
-# add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )
-# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-# target_include_directories(${EX_NAME} PUBLIC
-#                         "${PROJECT_BINARY_DIR}"
-#                         ${EXTRA_INCLUDES})
-# set(EX_NAME darcy)
-# add_executable(${EX_NAME}  mainFiles/darcy.cpp )
-# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-# target_include_directories(${EX_NAME} PUBLIC
-#                        "${PROJECT_BINARY_DIR}"
-#                        ${EXTRA_INCLUDES})
-
+set(EX_NAME bulkCD)
+add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
+#                        
+set(EX_NAME limiter)
+add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 #
+set(EX_NAME darcy)
+add_executable(${EX_NAME}  mainFiles/darcy.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                       "${PROJECT_BINARY_DIR}"
+                       ${EXTRA_INCLUDES})
+
+
 #
 # set(EX_NAME showMesh)
 # add_executable(${EX_NAME}  mainFiles/showMesh.cpp )

@@ -36,7 +36,7 @@ R fun_boundary(double *P, int elementComp, double t) {
 }
 void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
    const Mesh &Khi(Wh.Th);
    FEM<Mesh2> problem(Wh);
    R2 beta(3, 1);
@@ -73,12 +73,12 @@ void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
    problem.set_map(Mh);
    problem.addBilinear(innerProduct(u, v), Khi);
 
-   std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+   std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 void solve_problem(const Space &Wh, const Rn &u0, Rn &uh, MatMap &Ah,
                    MatMap &Mh, double tn) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
 
    const Mesh &Khi(Wh.Th);
 
@@ -115,7 +115,7 @@ void solve_problem(const Space &Wh, const Rn &u0, Rn &uh, MatMap &Ah,
 int main(int argc, char **argv) {
 
    MPIcf cfMPI(argc, argv);
-   const double cpubegin = MPIcf::Wtime();
+   const double cpubegin = getTime();
 
    // OUTPUT FILE
    // =====================================================
@@ -330,8 +330,7 @@ int main(int argc, char **argv) {
 
    std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration
              << std::endl;
-   std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin
-             << std::endl;
+   std::cout << " Time computation \t" << getTime() - cpubegin << std::endl;
    return 0;
 }
 
@@ -369,7 +368,7 @@ R fun_boundary(double *P, int elementComp, int domain, double t) {
 void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
               MatMap &Mh) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
    CutFEM<Mesh2> problem(Wh);
    CutFEM_R2 beta({R2(3, 1), R2(3, 1)});
@@ -426,12 +425,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
        ,
        Khi);
 
-   std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+   std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 void solve_problem(const Space &Wh, const Interface<Mesh> &interface,
                    const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
 
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
 
@@ -470,7 +469,7 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface,
 int main(int argc, char **argv) {
 
    MPIcf cfMPI(argc, argv);
-   const double cpubegin = MPIcf::Wtime();
+   const double cpubegin = getTime();
 
    // OUTPUT FILE
    // =====================================================
@@ -699,8 +698,7 @@ int main(int argc, char **argv) {
 
    std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration
              << std::endl;
-   std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin
-             << std::endl;
+   std::cout << " Time computation \t" << getTime() - cpubegin << std::endl;
    return 0;
 }
 
@@ -749,7 +747,7 @@ R fun_velocity(double *P, int elementComp, int domain) {
 void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
               MatMap &Mh, const Fun_h &beta) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
    CutFEM<Mesh2> problem(Wh);
    CutFEMParameter lambda(0, 1.);
@@ -768,7 +766,7 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
    // BUILDING A
    // =====================================================
    problem.set_map(Ah);
-   double tt = MPIcf::Wtime();
+   double tt = getTime();
 
    problem.addBilinear(innerProduct(beta.expression(2) * u, grad(v)), Khi);
 
@@ -823,12 +821,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
        ,
        Khi);
 
-   std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+   std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 void solve_problem(const Space &Wh, const Interface<Mesh> &interface,
                    const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
 
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
 
@@ -869,8 +867,10 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface,
 
 int main(int argc, char **argv) {
 
+#ifdef USE_MPI
    MPIcf cfMPI(argc, argv);
-   const double cpubegin = MPIcf::Wtime();
+#endif
+   const double cpubegin = getTime();
 
    // OUTPUT FILE
    // =====================================================
@@ -1061,7 +1061,11 @@ int main(int argc, char **argv) {
 
       // PLOT THE SOLUTION
       // ==================================================
+#ifdef USE_MPI
       if (MPIcf::IamMaster() && i % 1 == 0 || i + 1 == niteration) {
+#else
+      if (i % 1 == 0 || i + 1 == niteration) {
+#endif
          // Fun_h fun_thet (Wh, fun_theta);
          Paraview<Mesh> writer(Khi,
                                "test_accuracyP0_" + to_string(ifig++) + ".vtk");
@@ -1091,8 +1095,7 @@ int main(int argc, char **argv) {
 
    std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration
              << std::endl;
-   std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin
-             << std::endl;
+   std::cout << " Time computation \t" << getTime() - cpubegin << std::endl;
    return 0;
 }
 
@@ -1158,7 +1161,7 @@ R fun_solution(double *P, int elementComp, int domain, double t) {
 
 void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
    const Mesh &Khi(Wh.Th);
 
    FEM<Mesh2> problem(Wh);
@@ -1187,12 +1190,12 @@ void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
    problem.set_map(Mh);
    problem.addBilinear(innerProduct(u, v), Khi);
 
-   std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+   std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 void solve_problem(const Space &Wh, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
                    double tn) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
 
    const Mesh &Khi(Wh.Th);
    ProblemOption optionProblem;
@@ -1216,7 +1219,7 @@ void solve_problem(const Space &Wh, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
    mAh.addMatMul(u0, problem.rhs_);
 
    // CONSTRUCT THE RHS
-   double tt = MPIcf::Wtime();
+   double tt = getTime();
 
    problem.addLinear(innerProduct(fluxFctX(Un), dx(v)) +
                          innerProduct(fluxFctY(Un), dy(v)),
@@ -1247,9 +1250,9 @@ void solve_problem(const Space &Wh, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
 
    // SOLVING  (M+S)E'(t) = rhs
    // =====================================================
-   tt = MPIcf::Wtime();
+   tt = getTime();
    problem.solve(Mh, problem.rhs_);
-   // std::cout << "Time solver \t" << MPIcf::Wtime()-tt << std::endl;
+   // std::cout << "Time solver \t" << getTime()-tt << std::endl;
 
    uh           = problem.rhs_;
    problem.rhs_ = 0.;
@@ -1258,7 +1261,7 @@ void solve_problem(const Space &Wh, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
 int main(int argc, char **argv) {
 
    MPIcf cfMPI(argc, argv);
-   const double cpubegin = MPIcf::Wtime();
+   const double cpubegin = getTime();
 
    // OUTPUT FILE
    // =====================================================
@@ -1327,7 +1330,7 @@ int main(int argc, char **argv) {
    // ==================================================
    int ifig = 1;
    for (int i = 0; i < niteration; ++i) {
-      double tt_iter = MPIcf::Wtime();
+      double tt_iter = getTime();
 
       std::cout << " ------------------------------ " << std::endl;
       std::cout << "Iteration " << i + 1 << " / " << niteration
@@ -1379,13 +1382,13 @@ int main(int argc, char **argv) {
       // =================================================
       // Fun2_h femSolh(Wh, uh);
       // Expression2 femSol(femSolh, 0, op_id);
-      double tt = MPIcf::Wtime();
+      double tt = getTime();
       double qu = integral(Th, fun_uh_tild, 0);
       double min_uh, max_uh;
       limiter::FEM::findMinAndMaxValue(fun_uh, min_uh, max_uh);
       double min_u1, max_u1;
       limiter::FEM::findMinAndMaxValue(fun_uh_tild, min_u1, max_u1);
-      std::cout << " time min max \t" << MPIcf::Wtime() - tt << std::endl;
+      std::cout << " time min max \t" << getTime() - tt << std::endl;
 
       if (min_u0 <= min_u1 + Epsilon && max_u1 <= max_u0 + Epsilon) {
 
@@ -1456,14 +1459,13 @@ int main(int argc, char **argv) {
                  << setprecision(16) << max_u1 << "\t" << setprecision(5)
                  << std::endl;
 
-      std::cout << " Iteration computation time \t" << MPIcf::Wtime() - tt_iter
+      std::cout << " Iteration computation time \t" << getTime() - tt_iter
                 << std::endl;
    }
 
    std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration
              << std::endl;
-   std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin
-             << std::endl;
+   std::cout << " Time computation \t" << getTime() - cpubegin << std::endl;
    return 0;
 }
 
@@ -1511,7 +1513,7 @@ R fun_solution(double *P, int elementComp, int domain, double t) {
 void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
               MatMap &Mh) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
 
    CutFEM<Mesh2> problem(Wh);
@@ -1567,12 +1569,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
            innerProduct((h ^ 3) * jump(grad(u)), Cstab * jump(grad(v))),
        Khi);
 
-   std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+   std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 void solve_problem(const Space &Wh, const Interface<Mesh> &interface, Rn &u0,
                    Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
 
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
    ProblemOption optionProblem;
@@ -1604,7 +1606,7 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface, Rn &u0,
    // matlab::Export(problem.rhs_, "rhs0.dat");
    // problem.rhs_ = 0.;
    // CONSTRUCT THE RHS
-   double tt = MPIcf::Wtime();
+   double tt = getTime();
 
    problem.addLinear(innerProduct(fluxFctX(Un), dx(v)) +
                          innerProduct(fluxFctY(Un), dy(v)),
@@ -1645,9 +1647,9 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface, Rn &u0,
 
    // SOLVING  (M+S)E'(t) = rhs
    // =====================================================
-   tt = MPIcf::Wtime();
+   tt = getTime();
    problem.solve(Mh, problem.rhs_);
-   // std::cout << "Time solver \t" << MPIcf::Wtime()-tt << std::endl;
+   // std::cout << "Time solver \t" << getTime()-tt << std::endl;
 
    uh           = problem.rhs_;
    problem.rhs_ = 0.;
@@ -1656,7 +1658,7 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface, Rn &u0,
 int main(int argc, char **argv) {
 
    MPIcf cfMPI(argc, argv);
-   const double cpubegin = MPIcf::Wtime();
+   const double cpubegin = getTime();
 
    // OUTPUT FILE
    // =====================================================
@@ -1734,7 +1736,7 @@ int main(int argc, char **argv) {
    // ==================================================
    int ifig = 1;
    for (int i = 0; i < niteration; ++i) {
-      double tt_iter = MPIcf::Wtime();
+      double tt_iter = getTime();
 
       std::cout << " ------------------------------ " << std::endl;
       std::cout << "Iteration " << i + 1 << " / " << niteration
@@ -1785,11 +1787,11 @@ int main(int argc, char **argv) {
 
       // COMPUTATION OF THE L2 ERROR
       // =================================================
-      double tt             = MPIcf::Wtime();
+      double tt             = getTime();
       double qu             = integral(Khi, fun_uh_tild, 0);
       auto [min_uh, max_uh] = limiter::CutFEM::findMinAndMaxValue(fun_uh);
       auto [min_u1, max_u1] = limiter::CutFEM::findMinAndMaxValue(fun_uh_tild);
-      std::cout << " time min max \t" << MPIcf::Wtime() - tt << std::endl;
+      std::cout << " time min max \t" << getTime() - tt << std::endl;
 
       if (min_u0 <= min_u1 + Epsilon && max_u1 <= max_u0 + Epsilon) {
 
@@ -1858,14 +1860,13 @@ int main(int argc, char **argv) {
                  << setprecision(16) << max_u1 << "\t" << setprecision(5)
                  << std::endl;
 
-      std::cout << " Iteration computation time \t" << MPIcf::Wtime() - tt_iter
+      std::cout << " Iteration computation time \t" << getTime() - tt_iter
                 << std::endl;
    }
 
    std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration
              << std::endl;
-   std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin
-             << std::endl;
+   std::cout << " Time computation \t" << getTime() - cpubegin << std::endl;
    return 0;
 }
 
@@ -1885,7 +1886,7 @@ R fun_boundary(double *P, int elementComp, int domain, double t) { return 0.; }
 
 void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
    const Mesh &Khi(Wh.Th);
    FEM<Mesh> problem(Wh);
    R2 beta(1, 1);
@@ -1921,13 +1922,13 @@ void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
    problem.set_map(Mh);
    problem.addBilinear(innerProduct(u, v), Khi);
 
-   std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+   std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 
 void solve_problem(const Space &Wh, const Rn &u0, Rn &uh, MatMap &Ah,
                    MatMap &Mh, double tn) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
 
    const Mesh &Khi(Wh.Th);
 
@@ -1964,7 +1965,7 @@ void solve_problem(const Space &Wh, const Rn &u0, Rn &uh, MatMap &Ah,
 int main(int argc, char **argv) {
 
    MPIcf cfMPI(argc, argv);
-   const double cpubegin = MPIcf::Wtime();
+   const double cpubegin = getTime();
 
    // OUTPUT FILE
    // =====================================================
@@ -2109,11 +2110,11 @@ int main(int argc, char **argv) {
 
       // COMPUTATION OF THE L2 ERROR
       // =================================================
-      double tt             = MPIcf::Wtime();
+      double tt             = getTime();
       double qu             = integral(Th, fun_uh_tild, 0);
       auto [min_uh, max_uh] = limiter::CutFEM::findMinAndMaxValue(fun_uh);
       auto [min_u1, max_u1] = limiter::CutFEM::findMinAndMaxValue(fun_uh_tild);
-      std::cout << " time min max \t" << MPIcf::Wtime() - tt << std::endl;
+      std::cout << " time min max \t" << getTime() - tt << std::endl;
 
       // if((i==24) && MPIcf::IamMaster()) {
       //   Paraview<Mesh> writer(Khi, "maxPrinciple.vtk");
@@ -2177,8 +2178,7 @@ int main(int argc, char **argv) {
       // if(i==10) return 0;
    }
 
-   std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin
-             << std::endl;
+   std::cout << " Time computation \t" << getTime() - cpubegin << std::endl;
    return 0;
 }
 
@@ -2204,7 +2204,7 @@ R fun_boundary(double *P, int elementComp, int domain, double t) {
 void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
               MatMap &Mh) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
    CutFEM<Mesh2> problem(Wh);
    CutFEM_R2 beta({R2(1, 1), R2(1, 1)});
@@ -2259,12 +2259,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
        ,
        Khi);
 
-   std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+   std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 void solve_problem(const Space &Wh, const Interface<Mesh> &interface,
                    const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
 
-   double t0 = MPIcf::Wtime();
+   double t0 = getTime();
 
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
 
@@ -2301,7 +2301,7 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface,
 int main(int argc, char **argv) {
 
    MPIcf cfMPI(argc, argv);
-   const double cpubegin = MPIcf::Wtime();
+   const double cpubegin = getTime();
 
    // OUTPUT FILE
    // =====================================================
@@ -2519,11 +2519,11 @@ int main(int argc, char **argv) {
 
       // COMPUTATION OF THE L2 ERROR
       // =================================================
-      double tt             = MPIcf::Wtime();
+      double tt             = getTime();
       double qu             = integral(Khi, fun_uh_tild, 0);
       auto [min_uh, max_uh] = limiter::CutFEM::findMinAndMaxValue(fun_uh);
       auto [min_u1, max_u1] = limiter::CutFEM::findMinAndMaxValue(fun_uh_tild);
-      std::cout << " time min max \t" << MPIcf::Wtime() - tt << std::endl;
+      std::cout << " time min max \t" << getTime() - tt << std::endl;
 
       // if((i==24) && MPIcf::IamMaster()) {
       //   Paraview<Mesh> writer(Khi, "maxPrinciple.vtk");
@@ -2588,8 +2588,7 @@ int main(int argc, char **argv) {
       // if(i==10) return 0;
    }
 
-   std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin
-             << std::endl;
+   std::cout << " Time computation \t" << getTime() - cpubegin << std::endl;
    return 0;
 }
 

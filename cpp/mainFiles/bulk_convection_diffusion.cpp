@@ -33,7 +33,6 @@
 #include "baseProblem.hpp"
 #include "../time_stuff.hpp"
 #include "projection.hpp"
-// #include "../util/redirectOutput.hpp"
 #include "../num/matlab.hpp"
 #include "paraview.hpp"
 
@@ -581,9 +580,10 @@ int main(int argc, char **argv) {
        "../outputFiles/SpaceTimeBulk/Lehrenfeld/paraview/";
 #endif
 
-   // Initialize MPI
+// Initialize MPI
+#ifdef USE_MPI
    MPIcf cfMPI(argc, argv);
-
+#endif
    // Create directory if not already existent
    //    if (MPIcf::IamMaster()) {
    //       std::experimental::filesystem::create_directories(pathOutputFolder);
@@ -820,8 +820,12 @@ int main(int argc, char **argv) {
          // Make function objects to use in innerProducts
          Fun_h b0h(Wh, data_B0);
 
-         // Plot initial solution in paraview
+// Plot initial solution in paraview
+#ifdef USE_MPI
          if (iter == 0 && MPIcf::IamMaster()) {
+#else
+         if (iter == 0) {
+#endif
             Paraview<Mesh> writerInitial(Kh2,
                                          pathOutputFigures + "BulkInitial.vtk");
             writerInitial.add(b0h, "bulk", 0, 1);
@@ -890,8 +894,8 @@ int main(int argc, char **argv) {
                               Kh2, In);
 
 #elif defined(cg) && defined(conservative) // classic CG scheme
-         convdiff.addBilinear(-innerProduct(u, (vel.expression() * grad(v))),
-                              Kh2, In);
+      convdiff.addBilinear(-innerProduct(u, (vel.expression() * grad(v))), Kh2,
+                           In);
 
 #endif
 
@@ -1160,8 +1164,11 @@ int main(int argc, char **argv) {
          // errorsBulk.at(j) = errBulk;
          errorsBulk.at(j) = errBulk;
 
+#ifdef USE_MPI
          if ((iterations == 1) && MPIcf::IamMaster()) {
-
+#else
+         if ((iterations == 1)) {
+#endif
             Paraview<Mesh> writer(Kh2, pathOutputFigures + "Bulk" +
                                            to_string(iter + 1) + "DG.vtk");
             writer.add(b0h, "bulk", 0, 1);
@@ -1188,7 +1195,7 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
       dT *= 0.5;
 #elif defined(use_h)
-      h *= 0.5;
+h *= 0.5;
 #endif
    }
 
