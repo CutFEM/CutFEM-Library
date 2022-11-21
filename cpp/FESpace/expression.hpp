@@ -2,6 +2,7 @@
 #define _EXPRESSION_HPP
 #include "FESpace.hpp"
 #include <cmath>
+#include <memory>
 #include <list>
 
 struct Normal_Component {
@@ -17,21 +18,27 @@ struct Normal_Component_Z : public Normal_Component {
    virtual int component() const { return 2; }
 };
 
-struct BaseVector {};
+struct BaseVector {
+   virtual int operator[](int i) const = 0;
+   virtual int cst(int i) const        = 0;
+};
 struct Normal : public BaseVector {
    Normal_Component_X x;
    Normal_Component_Y y;
    Normal_Component_Z z;
-   // int operator[](int i) const {return idx[i];}
+   int operator[](int i) const { return i; }
+   int cst(int i) const { return 1; }
 };
 struct Conormal : public BaseVector {
    Normal_Component_X x;
    Normal_Component_Y y;
    Normal_Component_Z z;
+   int operator[](int i) const { return i; }
+   int cst(int i) const { return 1; }
 };
-struct Tangent {
-   // static const int idx[3];
-   // int operator[](int i) const {return idx[i];}
+struct Tangent : public BaseVector {
+   int operator[](int i) const { return (i == 0); }
+   int cst(int i) const { return (i == 0) ? -1 : 1; }
 };
 struct Projection {
    Normal normal;
@@ -211,8 +218,10 @@ template <typename M> class FunFEM : public FunFEMVirtual {
    const FESpace &getSpace() const { return *Vh; }
    BasisFctType getBasisFctType() const { return Vh->basisFctType; }
    int getPolynomialOrder() const { return Vh->polynomialOrder; }
-   std::list<ExpressionFunFEM<M>> expression(int n = -1) const;
-   std::list<ExpressionFunFEM<M>> expression(int n, int i0) const;
+   std::list<std::shared_ptr<const ExpressionVirtual>>
+   expression(int n = -1) const;
+   std::list<std::shared_ptr<const ExpressionFunFEM<M>>>
+   expression(int n, int i0) const;
 
    ~FunFEM() {
       if (databf)
@@ -271,7 +280,7 @@ class ExpressionVirtual {
       return evalOnBackMesh(k, theDomain, x, t, normal);
    }
 
-   virtual int size() const { assert(0); }
+   virtual int size() const { assert(0); };
 
    ExpressionVirtual &operator=(const ExpressionVirtual &L) {
       cu  = L.cu;
@@ -527,8 +536,8 @@ class ExpressionProduct : public ExpressionVirtual {
    }
    ~ExpressionProduct() {}
 };
-ExpressionProduct operator*(const ExpressionVirtual &f1,
-                            const ExpressionVirtual &f2);
+std::shared_ptr<const ExpressionProduct> operator*(const ExpressionVirtual &f1,
+                                                   const ExpressionVirtual &f2);
 
 class ExpressionDivision : public ExpressionVirtual {
    const ExpressionVirtual &fun1;

@@ -187,7 +187,8 @@ template <typename M>
 double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
-   ExpressionFunFEM<M> ui(fh, c0, op_id);
+   std::shared_ptr<const ExpressionVirtual> ui =
+       std::make_shared<const ExpressionFunFEM<M>>(fh, c0, op_id);
    for (int i = 0; i < nb_dom; ++i) {
       val += integral(Th, ui, i, 0);
    }
@@ -197,7 +198,8 @@ template <typename M>
 double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0, int itq) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
-   ExpressionFunFEM<M> ui(fh, c0, op_id);
+   std::shared_ptr<const ExpressionVirtual> ui =
+       std::make_shared<const ExpressionFunFEM<M>>(fh, c0, op_id);
    for (int i = 0; i < nb_dom; ++i) {
       val += integral(Th, ui, i, itq);
    }
@@ -213,7 +215,8 @@ double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0,
    return val;
 }
 template <typename M>
-double integral(const ActiveMesh<M> &Th, const ExpressionVirtual &fh) {
+double integral(const ActiveMesh<M> &Th,
+                const std::shared_ptr<const ExpressionVirtual> &fh) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
@@ -222,7 +225,8 @@ double integral(const ActiveMesh<M> &Th, const ExpressionVirtual &fh) {
    return val;
 }
 template <typename M>
-double integral(const ActiveMesh<M> &Th, const ExpressionVirtual &fh, int itq) {
+double integral(const ActiveMesh<M> &Th,
+                const std::shared_ptr<const ExpressionVirtual> &fh, int itq) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
@@ -231,8 +235,9 @@ double integral(const ActiveMesh<M> &Th, const ExpressionVirtual &fh, int itq) {
    return val;
 }
 template <typename M>
-double integral(const ActiveMesh<M> &Th, const ExpressionVirtual &fh,
-                int domain, int itq) {
+double integral(const ActiveMesh<M> &Th,
+                const std::shared_ptr<const ExpressionVirtual> &fh, int domain,
+                int itq) {
    typedef M Mesh;
    typedef typename Mesh::Element Element;
    typedef GFESpace<Mesh> FESpace;
@@ -266,7 +271,7 @@ double integral(const ActiveMesh<M> &Th, const ExpressionVirtual &fh,
             Rd mip       = cutK.mapToPhysicalElement(it, ip);
             const R Cint = meas * ip.getWeight();
 
-            val += Cint * fh.evalOnBackMesh(kb, domain, mip);
+            val += Cint * fh->evalOnBackMesh(kb, domain, mip);
          }
       }
    }
@@ -286,7 +291,8 @@ double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
                 const QuadratureFormular1d &qTime) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
-   ExpressionFunFEM<M> ui(fh, c0, op_id);
+   std::shared_ptr<const ExpressionVirtual> ui =
+       std::make_shared<ExpressionFunFEM<M>>(fh, c0, op_id);
    for (int i = 0; i < nb_dom; ++i) {
       val += integral(Th, In, ui, qTime, i);
    }
@@ -294,8 +300,8 @@ double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
 }
 template <typename M>
 double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
-                const ExpressionVirtual &fh, const QuadratureFormular1d &qTime,
-                int domain) {
+                const std::shared_ptr<const ExpressionVirtual> &fh,
+                const QuadratureFormular1d &qTime, int domain) {
    typedef M Mesh;
    typedef typename Mesh::Element Element;
    typedef GFESpace<Mesh> FESpace;
@@ -331,7 +337,7 @@ double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
                Rd mip       = cutK.mapToPhysicalElement(it, ip);
                const R Cint = meas * ip.getWeight() * In.T.mesure() * tq.a;
 
-               val += Cint * fh.evalOnBackMesh(kb, domain, mip, t);
+               val += Cint * fh->evalOnBackMesh(kb, domain, mip, t);
             }
          }
       }
@@ -395,12 +401,14 @@ double integral(const ActiveMesh<M> &Th, const double C, int domain, int itq) {
 // ===============================================================
 
 template <typename Mesh>
-double integral(const Mesh &Th, const ExpressionVirtual &fh) {
+double integral(const Mesh &Th,
+                const std::shared_ptr<const ExpressionVirtual> &fh) {
    double val = integral(Th, fh, 0);
    return val;
 }
 template <typename Mesh>
-double integral(const Mesh &Th, const ExpressionVirtual &fh, int itq) {
+double integral(const Mesh &Th,
+                const std::shared_ptr<const ExpressionVirtual> &fh, int itq) {
    typedef typename Mesh::Element Element;
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -423,7 +431,7 @@ double integral(const Mesh &Th, const ExpressionVirtual &fh, int itq) {
          Rd mip       = K.mapToPhysicalElement(ip);
          const R Cint = meas * ip.getWeight();
 
-         val += Cint * fh.evalOnBackMesh(k, 0, mip);
+         val += Cint * fh->evalOnBackMesh(k, 0, mip);
       }
    }
    double val_receive = 0;
@@ -647,8 +655,9 @@ double integral(FunFEM<M> &fh, const TimeSlab &In,
 // new
 template <typename M>
 double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
-                const ExpressionVirtual &fh, const CBorder &b,
-                const QuadratureFormular1d &qTime, std::list<int> label = {}) {
+                const std::shared_ptr<const ExpressionVirtual> &fh,
+                const CBorder &b, const QuadratureFormular1d &qTime,
+                std::list<int> label = {}) {
 
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
@@ -661,8 +670,8 @@ double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
 
 template <typename M>
 double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
-                const ExpressionVirtual &fh, const CBorder &b,
-                const QuadratureFormular1d &qTime, int domain,
+                const std::shared_ptr<const ExpressionVirtual> &fh,
+                const CBorder &b, const QuadratureFormular1d &qTime, int domain,
                 std::list<int> label) {
 
    typedef M Mesh;
@@ -723,9 +732,9 @@ double integral(const ActiveMesh<M> &Th, const TimeSlab &In,
 }
 
 template <typename Mesh>
-double integral_dK_cut(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
-                       const TimeSlab &In, int k, int ifac,
-                       const QuadratureFormular1d &qTime, int itq) {
+double integral_dK_cut(const std::shared_ptr<const ExpressionVirtual> &fh,
+                       const ActiveMesh<Mesh> &Th, const TimeSlab &In, int k,
+                       int ifac, const QuadratureFormular1d &qTime, int itq) {
 
    typedef typename Mesh::Element Element;
    typedef GFESpace<Mesh> FESpace;
@@ -766,7 +775,7 @@ double integral_dK_cut(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
          double Cint  = meas * ip.getWeight();
 
          val +=
-             Cint * fh.evalOnBackMesh(kb, domain, mip, tid, normal) * cst_time;
+             Cint * fh->evalOnBackMesh(kb, domain, mip, tid, normal) * cst_time;
       }
    }
 
@@ -774,8 +783,8 @@ double integral_dK_cut(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
 }
 
 template <typename Mesh>
-double integral_dK(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
-                   const TimeSlab &In, int k,
+double integral_dK(const std::shared_ptr<const ExpressionVirtual> &fh,
+                   const ActiveMesh<Mesh> &Th, const TimeSlab &In, int k,
                    const typename Mesh::BorderElement &BE, int ifac,
                    const QuadratureFormular1d &qTime, int itq) {
 
@@ -811,7 +820,7 @@ double integral_dK(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
       const Rd mip = BE.mapToPhysicalElement((RdHatBord)ip);
       double Cint  = meas * ip.getWeight();
 
-      val += Cint * fh.evalOnBackMesh(kb, domain, mip, tid, normal) * cst_time;
+      val += Cint * fh->evalOnBackMesh(kb, domain, mip, tid, normal) * cst_time;
    }
 
    return val;
