@@ -9,7 +9,7 @@ std::string whichOperator(int op);
 std::string whichOperator(int op, int cu);
 std::string whichOperatorV(int op, int cu);
 
-static int D(int i) {
+static int D1(int i) {
    int op[3] = {op_dx, op_dy, op_dz};
    return op[i];
 }
@@ -21,7 +21,7 @@ static int D2(int i, int j) {
 static int nextDerivative(int c, int du) {
    assert(du <= op_dz);
    if (du == op_id)
-      return D(c);
+      return D1(c);
    else
       return D2(du - 1, c);
 }
@@ -40,9 +40,9 @@ template <int N = 2> struct ItemTestFunction {
    std::vector<int> ar_nu, conormal;
    std::vector<const VirtualParameter *> coefu;
    int domain_id_, face_side_;
-   const ExpressionVirtual *expru = nullptr;
-   const GFESpace<Mesh> *fespace  = nullptr;
-   const testFun_t *root_fun_p    = nullptr;
+   std::shared_ptr<const ExpressionVirtual> expru = nullptr;
+   const GFESpace<Mesh> *fespace                  = nullptr;
+   const testFun_t *root_fun_p                    = nullptr;
 
    void (*pfun)(RNMK_ &, int, int) = f_id;
 
@@ -87,13 +87,6 @@ template <int N = 2> struct ItemTestFunction {
    ItemTestFunction(ItemTestFunction &&v) = default;
 
    void addNormal(int i) { ar_nu.push_back(i); }
-   void addTangent(int i) {
-      int Ni = (i == 0); // which normal component
-      ar_nu.push_back(Ni);
-      if (Ni == 1)
-         c *= -1; //(-b,a) with (a,b) normal
-   }
-   void addCoNormal(int i) { conormal.push_back(i); }
    void addParameter(const VirtualParameter &x) { coefu.push_back(&x); }
    void addParameter(const VirtualParameter *x) { coefu.push_back(x); }
 
@@ -101,8 +94,8 @@ template <int N = 2> struct ItemTestFunction {
       if (root_fun_p == F.root_fun_p && coefu.size() == 0 &&
           F.coefu.size() == 0 && cu == F.cu && du == F.du && dtu == F.dtu &&
           face_side_ == F.face_side_ && domain_id_ == F.domain_id_ &&
-          ar_nu == F.ar_nu && conormal == F.conormal && expru == F.expru &&
-          fespace == F.fespace)
+          ar_nu == F.ar_nu && conormal == F.conormal &&
+          expru.get() == F.expru.get() && fespace == F.fespace)
          return true;
       else
          return false;
@@ -224,219 +217,6 @@ template <int dim = 2> struct TestFunction {
          A[i][j].push(ui);
    }
 
-   // TestFunction t() const {
-   //    TestFunction Ut(this->nbCol(),
-   //                    this->nbRow()); // Ut.init(nbCol(), nbRow());
-   //    for (int i = 0; i < this->nbRow(); ++i) {
-   //       for (int j = 0; j < this->nbCol(); ++j) {
-   //          Ut.A(j, i) = new ItemList<dim>(A(i, j)->size());
-   //          for (int ui = 0; ui < A(i, j)->size(); ++ui) {
-   //             ItemTestFunction<dim> &v(A(i, j)->getItem(ui));
-   //             ItemTestFunction<dim> &u(Ut.A(j, i)->getItem(ui));
-   //             u = v;
-   //          }
-   //       }
-   //    }
-   //    return Ut;
-   // }
-
-   // TestFunction operator*(const Normal &N) {
-   //    // assert(!(nbCol() == 1 && nbRow() == dim ));// no column accepted
-   //    assert(nbCol() == dim || nbCol() == 1);
-   //    bool scalar(nbCol() == 1 && nbRow() == 1);
-   //    bool line(nbCol() == dim && nbRow() == 1);
-   //    bool column(nbCol() == 1 && nbRow() == dim);
-
-   //    int s = (scalar) ? dim : ((column) ? 1 : nbRow());
-
-   //    TestFunction Un(s);
-   //    if (scalar) {
-   //       int ksum = 0;
-   //       ksum += A(0, 0)->size();
-   //       for (int i = 0; i < dim; ++i) {
-   //          int k      = 0;
-   //          Un.A(i, 0) = new ItemList<dim>(ksum);
-   //          for (int ui = 0; ui < A(0, 0)->size(); ++ui, ++k) {
-   //             ItemTestFunction<dim> &v(A(0, 0)->getItem(ui));
-   //             ItemTestFunction<dim> &u(Un.A(i, 0)->getItem(k));
-   //             u = v;
-   //             u.addNormal(i);
-   //          }
-   //       }
-   //    } else if (column) {
-   //       int ksum = 0, k = 0;
-   //       for (int i = 0; i < nbRow(); ++i)
-   //          ksum += A(i, 0)->size();
-   //       Un.A(0, 0) = new ItemList<dim>(ksum);
-   //       for (int i = 0; i < nbRow(); ++i) {
-   //          for (int ui = 0; ui < A(i, 0)->size(); ++ui, ++k) {
-   //             ItemTestFunction<dim> &v(A(i, 0)->getItem(ui));
-   //             ItemTestFunction<dim> &u(Un.A(0, 0)->getItem(k));
-   //             u = v;
-   //             u.addNormal(i);
-   //          }
-   //       }
-   //    } else {
-   //       for (int i = 0; i < nbRow(); ++i) {
-   //          int ksum = 0, k = 0;
-   //          for (int j = 0; j < nbCol(); ++j)
-   //             ksum += A(i, j)->size();
-   //          Un.A(i, 0) = new ItemList<dim>(ksum);
-   //          for (int j = 0; j < nbCol(); ++j) {
-   //             for (int ui = 0; ui < A(i, j)->size(); ++ui, ++k) {
-   //                ItemTestFunction<dim> &v(A(i, j)->getItem(ui));
-   //                ItemTestFunction<dim> &u(Un.A(i, 0)->getItem(k));
-   //                u = v;
-   //                u.addNormal(j);
-   //             }
-   //          }
-   //       }
-   //    }
-   //    return Un;
-   // }
-   // TestFunction operator*(const Tangent &N) {
-   //    // assert(!(nbCol() == 1 && nbRow() == dim ));// no column accepted
-   //    assert(nbCol() == dim || nbCol() == 1);
-   //    bool scalar(nbCol() == 1 && nbRow() == 1);
-   //    bool line(nbCol() == dim && nbRow() == 1);
-   //    bool column(nbCol() == 1 && nbRow() == dim);
-
-   //    int s = (scalar) ? dim : ((column) ? 1 : nbRow());
-
-   //    TestFunction Un(s);
-   //    if (scalar) {
-   //       int ksum = 0;
-   //       ksum += A(0, 0)->size();
-   //       for (int i = 0; i < dim; ++i) {
-   //          int k      = 0;
-   //          Un.A(i, 0) = new ItemList<dim>(ksum);
-   //          for (int ui = 0; ui < A(0, 0)->size(); ++ui, ++k) {
-   //             ItemTestFunction<dim> &v(A(0, 0)->getItem(ui));
-   //             ItemTestFunction<dim> &u(Un.A(i, 0)->getItem(k));
-   //             u = v;
-   //             u.addTangent(i);
-   //          }
-   //       }
-   //    } else if (column) {
-   //       int ksum = 0, k = 0;
-   //       for (int i = 0; i < nbRow(); ++i)
-   //          ksum += A(i, 0)->size();
-   //       Un.A(0, 0) = new ItemList<dim>(ksum);
-   //       for (int i = 0; i < nbRow(); ++i) {
-   //          for (int ui = 0; ui < A(i, 0)->size(); ++ui, ++k) {
-   //             ItemTestFunction<dim> &v(A(i, 0)->getItem(ui));
-   //             ItemTestFunction<dim> &u(Un.A(0, 0)->getItem(k));
-   //             u = v;
-   //             u.addTangent(i);
-   //          }
-   //       }
-   //    } else {
-   //       for (int i = 0; i < nbRow(); ++i) {
-   //          int ksum = 0, k = 0;
-   //          for (int j = 0; j < nbCol(); ++j)
-   //             ksum += A(i, j)->size();
-   //          Un.A(i, 0) = new ItemList<dim>(ksum);
-   //          for (int j = 0; j < nbCol(); ++j) {
-   //             for (int ui = 0; ui < A(i, j)->size(); ++ui, ++k) {
-   //                ItemTestFunction<dim> &v(A(i, j)->getItem(ui));
-   //                ItemTestFunction<dim> &u(Un.A(i, 0)->getItem(k));
-   //                u = v;
-   //                u.addTangent(j);
-   //             }
-   //          }
-   //       }
-   //    }
-   //    return Un;
-   // }
-   // TestFunction operator*(const Conormal &N) {
-   //    // assert(!(nbCol() == 1 && nbRow() == dim ));// no column accepted
-   //    assert(nbCol() == dim || nbCol() == 1);
-   //    bool scalar(nbCol() == 1 && nbRow() == 1);
-   //    bool line(nbCol() == dim && nbRow() == 1);
-   //    bool column(nbCol() == 1 && nbRow() == dim);
-
-   //    int s = (scalar) ? dim : ((column) ? 1 : nbRow());
-
-   //    TestFunction Un(s);
-   //    if (scalar) {
-   //       int ksum = 0;
-   //       ksum += A(0, 0)->size();
-   //       for (int i = 0; i < dim; ++i) {
-   //          int k      = 0;
-   //          Un.A(i, 0) = new ItemList<dim>(ksum);
-   //          for (int ui = 0; ui < A(0, 0)->size(); ++ui, ++k) {
-   //             ItemTestFunction<dim> &v(A(0, 0)->getItem(ui));
-   //             ItemTestFunction<dim> &u(Un.A(i, 0)->getItem(k));
-   //             u = v;
-   //             u.addCoNormal(i);
-   //          }
-   //       }
-   //    } else if (column) {
-   //       int ksum = 0, k = 0;
-   //       for (int i = 0; i < nbRow(); ++i)
-   //          ksum += A(i, 0)->size();
-   //       Un.A(0, 0) = new ItemList<dim>(ksum);
-   //       for (int i = 0; i < nbRow(); ++i) {
-   //          for (int ui = 0; ui < A(i, 0)->size(); ++ui, ++k) {
-   //             ItemTestFunction<dim> &v(A(i, 0)->getItem(ui));
-   //             ItemTestFunction<dim> &u(Un.A(0, 0)->getItem(k));
-   //             u = v;
-   //             u.addCoNormal(i);
-   //          }
-   //       }
-   //    } else {
-   //       for (int i = 0; i < nbRow(); ++i) {
-   //          int ksum = 0, k = 0;
-   //          for (int j = 0; j < nbCol(); ++j)
-   //             ksum += A(i, j)->size();
-   //          Un.A(i, 0) = new ItemList<dim>(ksum);
-   //          for (int j = 0; j < nbCol(); ++j) {
-   //             for (int ui = 0; ui < A(i, j)->size(); ++ui, ++k) {
-   //                ItemTestFunction<dim> &v(A(i, j)->getItem(ui));
-   //                ItemTestFunction<dim> &u(Un.A(i, 0)->getItem(k));
-   //                u = v;
-   //                u.addCoNormal(j);
-   //             }
-   //          }
-   //       }
-   //    }
-   //    return Un;
-   // }
-   // TestFunction operator*(const Projection &Pg) {
-   //    // Only for scalr right now
-   //    assert(nbRow() == 1 && nbCol() == 1);
-   //    int N = dim;
-   //    int s = 1;
-   //    TestFunction Un(N, N);
-   //    // Un.init(N, N);
-   //    const int ksum = A(0, 0)->size();
-
-   //    for (int i = 0; i < N; ++i) {
-   //       for (int j = 0; j < N; ++j) {
-   //          int k      = 0;
-   //          int cst    = 1 + (i == j);
-   //          Un.A(i, j) = new ItemList<dim>(cst * ksum);
-
-   //          for (int ui = 0; ui < ksum; ++ui, ++k) {
-   //             ItemTestFunction<dim> &v(A(0, 0)->getItem(ui));
-
-   //             if (i == j) {
-   //                ItemTestFunction<dim> &u(Un.A(i, j)->getItem(k));
-   //                u = v;
-   //                k++;
-   //             }
-   //             ItemTestFunction<dim> &u(Un.A(i, j)->getItem(k));
-   //             u = v;
-   //             u.c *= -1;
-   //             u.addNormal(i);
-   //             u.addNormal(j);
-   //             k++;
-   //          }
-   //       }
-   //    }
-   //    return Un;
-   // }
-
    friend std::ostream &operator<<(std::ostream &f, const TestFunction &u) {
       f << u.nbRow() << " * " << u.nbCol() << std::endl;
       for (int i = 0; i < u.nbRow(); ++i) {
@@ -453,7 +233,7 @@ template <int D> void simplify(TestFunction<D> &T) {
    for (auto &row_i : T.A) {
       for (auto &list_item : row_i) {
          for (int i = 0; i < list_item.size(); ++i) {
-            for (int j = i + 1; j <= list_item.size(); ++j) {
+            for (int j = i + 1; j < list_item.size(); ++j) {
                if (list_item(i) == list_item(j)) {
                   list_item.U[i].c += list_item.U[j].c;
                   list_item.U[j].c = 0;
@@ -475,6 +255,18 @@ template <int D> void simplify(TestFunction<D> &T) {
       }
    }
 }
+
+template <int D> TestFunction<D> transpose(TestFunction<D> &T) {
+   TestFunction<D> Ut;
+   for (int i = 0; i < T.nbRow(); ++i) {
+      for (int j = 0; j < T.nbCol(); ++j) {
+         auto list = T.getList(i, j);
+         Ut.push({j, i}, list);
+      }
+   }
+   return Ut;
+}
+
 template <int D>
 TestFunction<D> operator+(const TestFunction<D> &f1,
                           const TestFunction<D> &f2) {
@@ -528,6 +320,211 @@ TestFunction<D> operator*(const TestFunction<D> &T, double cc) {
 template <int D>
 TestFunction<D> operator*(double cc, const TestFunction<D> &T) {
    return T * cc;
+}
+
+template <int D>
+TestFunction<D> operator*(const TestFunction<D> &T, const BaseVector &vec) {
+   auto [N, M] = T.size();
+
+   TestFunction<D> Un;
+
+   if (T.isScalar()) {
+      for (int i = 0; i < D; ++i) {
+         auto new_list = T.getList(0, 0);
+         for (auto &item : new_list.U) {
+            item.addNormal(vec[i]);
+            item.c *= vec.cst(i);
+         }
+         Un.push(new_list);
+      }
+   } else if (N == D && M == 1) {
+      for (int i = 0; i < D; ++i) {
+         auto new_list = T.getList(i, 0);
+         for (auto &item : new_list.U) {
+            item.addNormal(vec[i]);
+            item.c *= vec.cst(i);
+         }
+         Un.push({0, 0}, new_list);
+      }
+   } else if (N == D && M == D) {
+      for (int i = 0; i < T.nbRow(); ++i) {
+         for (int j = 0; j < T.nbCol(); ++j) {
+            auto new_list = T.getList(i, j);
+            for (auto &item : new_list.U) {
+               item.addNormal(vec[j]);
+               item.c *= vec.cst(j);
+            }
+            Un.push({i, 0}, new_list);
+         }
+      }
+   } else {
+      std::cout << " Cannot operate the multiplication witht the normal vector"
+                << std::endl;
+      assert(0);
+   }
+   return Un;
+}
+
+template <int D>
+TestFunction<D> operator*(const TestFunction<D> &T, const Conormal &vec) {
+   auto [N, M] = T.size();
+
+   TestFunction<D> Un;
+
+   if (T.isScalar()) {
+      for (int i = 0; i < D; ++i) {
+         auto new_list = T.getList(0, 0);
+         for (auto &item : new_list.U) {
+            item.addCoNormal(vec[i]);
+            item.c *= vec.cst(i);
+         }
+         Un.push(new_list);
+      }
+   } else if (N == D && M == 1) {
+      for (int i = 0; i < D; ++i) {
+         auto new_list = T.getList(i, 0);
+         for (auto &item : new_list.U) {
+            item.addCoNormal(vec[i]);
+            item.c *= vec.cst(i);
+         }
+         Un.push({0, 0}, new_list);
+      }
+   } else if (N == D && M == D) {
+      for (int i = 0; i < T.nbRow(); ++i) {
+         for (int j = 0; j < T.nbCol(); ++j) {
+            auto new_list = T.getList(i, j);
+            for (auto &item : new_list.U) {
+               item.addCoNormal(vec[j]);
+               item.c *= vec.cst(j);
+            }
+            Un.push({i, 0}, new_list);
+         }
+      }
+   } else {
+      std::cout << " Cannot operate the multiplication witht the normal vector"
+                << std::endl;
+      assert(0);
+   }
+   return Un;
+}
+
+template <int D>
+TestFunction<D> operator*(const TestFunction<D> &T,
+                          const Normal_Component &cc) {
+   TestFunction<D> multU;
+   auto [N, M] = T.size();
+   for (int i = 0; i < N; ++i) {
+      for (int j = 0; j < M; ++j) {
+         auto new_list = T.getList(i, j);
+         for (auto &item : new_list) {
+            item.addNormal(cc.component());
+         }
+         multU.push({i, j}, new_list);
+      }
+   }
+   return multU;
+}
+
+template <int D>
+TestFunction<D>
+operator*(const std::list<std::shared_ptr<const ExpressionVirtual>> &fh,
+          const TestFunction<D> &T) {
+   auto [N, M] = T.size();
+   assert(M == 1);
+
+   TestFunction<D> Un;
+   if (N == fh.size()) {
+      auto it = fh.begin();
+      for (int i = 0; i < T.nbCol(); i++) {
+         auto new_list = T.getList(i, 0);
+         for (auto &item : new_list.U) {
+            item.expru = (*it);
+         }
+         it++;
+         Un.push({0, 0}, new_list);
+      }
+   } else if (N == D && fh.size() == 1) {
+      auto it = fh.begin();
+      for (int i = 0; i < T.nbCol(); i++) {
+         auto new_list = T.getList(i, 0);
+         for (auto &item : new_list.U) {
+            item.expru = (*it);
+         }
+         Un.push({i, 0}, new_list);
+      }
+   } else if (N == 1 && fh.size() == D) {
+      for (const auto &ff : fh) {
+         auto new_list = T.getList(0, 0);
+         for (auto &item : new_list.U) {
+            item.expru = ff;
+         }
+         Un.push(new_list);
+      }
+   } else {
+      assert(0);
+   }
+   return Un;
+}
+
+template <int D>
+TestFunction<D>
+operator*(const TestFunction<D> &T,
+          const std::list<std::shared_ptr<const ExpressionVirtual>> &fh) {
+   return fh * T;
+}
+
+template <int D>
+TestFunction<D>
+operator*(const ExpressionFunFEM<typename typeMesh<D>::Mesh> &fh,
+          const TestFunction<D> &T) {
+   auto fh_p =
+       std::make_shared<const ExpressionFunFEM<typename typeMesh<D>::Mesh>>(fh);
+   std::list<
+       std::shared_ptr<const ExpressionFunFEM<typename typeMesh<D>::Mesh>>>
+       ff = {fh_p};
+   return ff * T;
+}
+
+template <int D>
+TestFunction<D>
+operator*(const TestFunction<D> &T,
+          const ExpressionFunFEM<typename typeMesh<D>::Mesh> &fh) {
+   return fh * T;
+}
+
+template <int D>
+TestFunction<D> operator*(const std::shared_ptr<const ExpressionVirtual> &fh,
+                          const TestFunction<D> &T) {
+   std::list<std::shared_ptr<const ExpressionVirtual>> ff = {fh};
+   return ff * T;
+}
+
+template <int D>
+TestFunction<D> operator*(const TestFunction<D> &T,
+                          const std::shared_ptr<const ExpressionVirtual> &fh) {
+   std::list<std::shared_ptr<const ExpressionVirtual>> ff = {fh};
+   return ff * T;
+}
+
+template <int D>
+TestFunction<D> operator*(const VirtualParameter &cc,
+                          const TestFunction<D> &T) {
+   TestFunction<D> multU;
+   for (auto row_i : T.A) {
+      for (auto &list : row_i) {
+         for (auto &item : list.U) {
+            item.addParameter(cc);
+         }
+      }
+      multU.push(row_i);
+   }
+   return multU;
+}
+
+template <int D>
+TestFunction<D> operator*(const TestFunction<D> &T,
+                          const VirtualParameter &cc) {
+   return cc * T;
 }
 
 template <int D> TestFunction<D> dt(const TestFunction<D> &T) {
@@ -587,7 +584,6 @@ template <int D> TestFunction<D> dz(const TestFunction<D> &T) {
 }
 
 template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
-
    auto [N, M] = T.size();
    TestFunction<D> gradU;
    for (int i = 0; i < N; ++i) {
@@ -605,172 +601,85 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
    return gradU;
 }
 
-// template <int N>
-// TestFunction<N>
-// operator*(std::list<ExpressionFunFEM<typename typeMesh<N>::Mesh>> fh,
-//           const TestFunction<N> &F) {
-//    assert(F.nbCol() == 1);
-//    assert(fh.size() == 1 || fh.size() == N);
-//    assert(F.nbRow() == 1 || F.nbRow() == N);
-//    int dim_vh = F.nbRow();
-//    int dim_fh = fh.size();
-//    bool scalar(fh.size() == F.nbRow());
-//    int s = (scalar) ? 1 : N;
-//    TestFunction<N> Un(s); // initialize a scalar or vector
-//    if (scalar) {
-//       int ksum = 0;
-//       for (int i = 0; i < dim_vh; ++i)
-//          ksum += F.A(i, 0)->size();
-//       Un.A(0, 0) = new ItemList<N>(ksum);
-//       auto it    = fh.begin();
-//       if (dim_fh == 1) {
-//          int k = 0;
-//          for (int i = 0; i < F.nbRow(); ++i) {
-//             for (int j = 0; j < F.nbCol(); ++j) {
-//                for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-//                   const ItemTestFunction<N> &v(F.A(i, j)->getItem(ui));
-//                   ItemTestFunction<N> &u(Un.A(0, 0)->getItem(k));
-//                   u       = v;
-//                   u.expru = &(*it);
-//                   k++;
-//                }
-//             }
-//          }
-//       } else {
-//          int k = 0;
-//          for (int i = 0; i < F.nbRow(); ++i, ++it) {
-//             for (int j = 0; j < F.nbCol(); ++j) {
-//                for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-//                   const ItemTestFunction<N> &v(F.A(i, j)->getItem(ui));
-//                   ItemTestFunction<N> &u(Un.A(0, 0)->getItem(k));
-//                   u       = v;
-//                   u.expru = &(*it);
-//                   k++;
-//                }
-//             }
-//          }
-//       }
-//    } else {              // result is a vector
-//       if (dim_fh == 1) { // v_h is a vector , fh is a scalar
-//          auto it = fh.begin();
-//          for (int i = 0; i < F.nbRow(); ++i) {
-//             int k      = 0;
-//             int ksum   = F.A(i, 0)->size();
-//             Un.A(i, 0) = new ItemList<N>(ksum);
-//             for (int ui = 0; ui < ksum; ++ui) {
-//                const ItemTestFunction<N> &v(F.A(i, 0)->getItem(ui));
-//                ItemTestFunction<N> &u(Un.A(i, 0)->getItem(k));
-//                u       = v;
-//                u.expru = &(*it);
-//                k++;
-//             }
-//          }
-//       } else { // v_h is a scalar , fh is a vector
-//          int ksum = F.A(0, 0)->size();
-//          auto it  = fh.begin();
-//          for (int i = 0; i < dim_fh; ++i, ++it) {
-//             int k      = 0;
-//             Un.A(i, 0) = new ItemList<N>(ksum);
-//             for (int ui = 0; ui < ksum; ++ui) {
-//                const ItemTestFunction<N> &v(F.A(0, 0)->getItem(ui));
-//                ItemTestFunction<N> &u(Un.A(i, 0)->getItem(k));
-//                u       = v;
-//                u.expru = &(*it);
-//                k++;
-//             }
+template <int D> TestFunction<D> div(const TestFunction<D> &T) {
+   auto [N, M] = T.size();
+   assert(M == 1);
+   assert(N == D);
+   TestFunction<D> divU;
+
+   for (int i = 0; i < N; ++i) {
+      assert(T.nbCol(i) == 1);
+      auto new_list = T.getList(i, 0);
+      for (auto &item : new_list.U) {
+         item.du = D1(i);
+      }
+      divU.push({0, 0}, new_list);
+   }
+   return divU;
+}
+
+template <int D> TestFunction<D> Eps(const TestFunction<D> &T) {
+   auto [N, M] = T.size();
+   assert(N == D && M == 1);
+   TestFunction<D> gradU = grad(T);
+   TestFunction<D> epsU  = 0.5 * gradU + 0.5 * transpose(gradU);
+   return epsU;
+}
+
+// template <int d> TestFunction<d> grad2(const TestFunction<d> &T) {
+//    assert(T.nbCol() == 1);
+//    assert(T.nbRow() == d || T.nbRow() == 1);
+//    int N = T.nbRow();
+
+//    TestFunction<d> DDU(T.nbRow(),
+//                        T.nbCol()); // DDU.init(T.nbRow(), T.nbCol());
+//    for (int i = 0; i < N; ++i)
+//       assert(T.A(i, 0)->size() == 1);
+
+//    for (int i = 0; i < N; ++i) {
+//       DDU.A(i, 0) = new ItemList<d>(3);
+//       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
+//       int k = 0;
+//       for (int i1 = 0; i1 < d; ++i1) {
+//          for (int i2 = i1; i2 < d; ++i2) {
+//             // 0,0-> dxx, 0,1->2dxy  1,1->dyy
+//             ItemTestFunction<d> &u(DDU.A(i, 0)->getItem(k));
+//             u    = v;
+//             u.du = D2(i1, i2);
+//             u.c  = (i1 != i2) + 1;
+//             k++;
 //          }
 //       }
 //    }
-//    // int k = 0,ksum=0;
-//    // for(int i=0;i<N;++i) ksum += F.A(i,0)->size();
-//    // multU.A(0,0) = new ItemList<N>(ksum);
-//    //
-//    // auto it = fh.begin();
-//    // for(int i=0;i<F.nbRow();++i, ++it) {
-//    //   for(int j=0;j<F.nbCol();++j) {
-//    //     for(int ui=0;ui<F.A(i,j)->size();++ui) {
-//    //       const ItemTestFunction<N>& v(F.A(i,j)->getItem(ui));
-//    //       ItemTestFunction<N>& u(multU.A(0,0)->getItem(k));
-//    //       u = v;
-//    //       u.expru = &(*it);
-//    //       k++;
-//    //     }
-//    //   }
-//    // }
-//    return Un;
+//    return DDU;
 // }
 
-// template <int N>
-// TestFunction<N> operator*(const ExpressionVirtual &expr,
-//                           const TestFunction<N> &F) {
-//    TestFunction<N> multU(F);
-//    for (int i = 0; i < F.nbRow(); ++i) {
-//       for (int j = 0; j < F.nbCol(); ++j) {
-//          for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-//             ItemTestFunction<N> &v(multU.A(i, j)->getItem(ui));
-//             v.expru = &expr;
-//          }
-//       }
-//    }
-//    return multU;
-// }
+template <int D>
+TestFunction<D> average(const TestFunction<D> &T, double v1 = 0.5,
+                        double v2 = 0.5) {
+   double vv[2] = {v1, v2};
+   int N        = T.nbRow();
+   TestFunction<D> jumpU;
+   for (int row = 0; row < N; ++row) {
+      int M = T.nbCol();
+      for (int col = 0; col < M; ++col) {
+         for (int i = 0; i <= 1; ++i) {
+            auto new_list = T.getList(row, col);
+            for (auto &item : new_list.U) {
+               item.c *= vv[i];
+               item.face_side_ = i;
+            }
+            jumpU.push({row, col}, new_list);
+         }
+      }
+   }
 
-// template <int N>
-// TestFunction<N> operator*(const TestFunction<N> &F,
-//                           const ExpressionVirtual &expr) {
-//    TestFunction<N> multU(F);
-//    for (int i = 0; i < F.nbRow(); ++i) {
-//       for (int j = 0; j < F.nbCol(); ++j) {
-//          for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-//             ItemTestFunction<N> &v(multU.A(i, j)->getItem(ui));
-//             v.expru = &expr;
-//          }
-//       }
-//    }
-//    return multU;
-// }
+   return jumpU;
+}
 
-// template <int N>
-// TestFunction<N> operator*(const TestFunction<N> &F, const
-// Normal_Component &c) {
-//    TestFunction<N> multU(F);
-//    for (int i = 0; i < F.nbRow(); ++i) {
-//       for (int j = 0; j < F.nbCol(); ++j) {
-//          *multU.A(i, j) *= c;
-//       }
-//    }
-//    return multU;
-// }
-
-// template <int N>
-// TestFunction<N> operator*(const TestFunction<N> &F,
-//                           const VirtualParameter &cc) {
-//    TestFunction<N> multU(F);
-//    for (int i = 0; i < F.nbRow(); ++i) {
-//       for (int j = 0; j < F.nbCol(); ++j) {
-//          for (int ui = 0; ui < multU.A(i, j)->size(); ++ui) {
-//             ItemTestFunction<N> &v(multU.A(i, j)->getItem(ui));
-//             v.addParameter(cc);
-//          }
-//       }
-//    }
-//    return multU;
-// }
-
-// template <int N>
-// TestFunction<N> operator*(const VirtualParameter &cc,
-//                           const TestFunction<N> &F) {
-//    TestFunction<N> multU(F);
-//    for (int i = 0; i < F.nbRow(); ++i) {
-//       for (int j = 0; j < F.nbCol(); ++j) {
-//          for (int ui = 0; ui < multU.A(i, j)->size(); ++ui) {
-//             ItemTestFunction<N> &v(multU.A(i, j)->getItem(ui));
-//             v.addParameter(cc);
-//          }
-//       }
-//    }
-//    return multU;
-// }
+template <int D> TestFunction<D> jump(const TestFunction<D> &T) {
+   return average(T, 1, -1);
+}
 
 // template <int d>
 // TestFunction<d> operator*(const CutFEM_Rd<d> &cc, const TestFunction<d>
@@ -880,13 +789,13 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 //                u    = v;
 //                // u.c = 1;
 //                // u.cu = i;
-//                u.du = D(i);
+//                u.du = D1(i);
 //             }
 //             ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
 //             u = v;
 //             u.c *= -1;
 //             // u.cu = i;
-//             u.du = D(j);
+//             u.du = D1(j);
 //             u.addNormal(i);
 //             u.addNormal(j);
 //          }
@@ -914,10 +823,10 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 //                for (int j = 0; j < d; ++j) {
 //                   if (col == j) {
 //                      ItemTestFunction<d> &u(gradU.A(row,
-//                      col)->getItem(kk++)); u    = v; u.du = D(col);
+//                      col)->getItem(kk++)); u    = v; u.du = D1(col);
 //                   }
 //                   ItemTestFunction<d> &u(gradU.A(row,
-//                   col)->getItem(kk++)); u = v; u.c *= -1; u.du = D(j);
+//                   col)->getItem(kk++)); u = v; u.c *= -1; u.du = D1(j);
 //                   u.addNormal(col);
 //                   u.addNormal(j);
 //                }
@@ -927,28 +836,6 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 //    }
 
 //    return gradU;
-// }
-
-// template <int d> TestFunction<d> div(const TestFunction<d> &T) {
-//    assert(T.nbCol() == 1);
-//    assert(T.nbRow() == d);
-//    int N = T.nbRow();
-
-//    TestFunction<d> divU(1);
-//    int k = 0, ksum = 0;
-//    for (int i = 0; i < N; ++i)
-//       ksum += T.A(i, 0)->size();
-//    divU.A(0, 0) = new ItemList<d>(ksum);
-
-//    for (int i = 0; i < N; ++i) {
-//       assert(T.A(i, 0)->size() == 1);
-//       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-//       ItemTestFunction<d> &u(divU.A(0, 0)->getItem(k));
-//       u    = v;
-//       u.du = D(i);
-//       k++;
-//    }
-//    return divU;
 // }
 
 // template <int d> TestFunction<d> divS(const TestFunction<d> &T) {
@@ -968,47 +855,16 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 
 //       ItemTestFunction<d> &u(divU.A(0, 0)->getItem(k));
 //       u    = v;
-//       u.du = D(i);
+//       u.du = D1(i);
 //       k++;
 
 //       for (int j = 0; j < d; ++j) {
 //          ItemTestFunction<d> &u(divU.A(0, 0)->getItem(k));
 //          u = v;
 //          u.c *= -1;
-//          u.du = D(j);
+//          u.du = D1(j);
 //          u.addNormal(i);
 //          u.addNormal(j);
-//          k++;
-//       }
-//    }
-//    return divU;
-// }
-
-// template <int d> TestFunction<d> divT(const TestFunction<d> &T) {
-//    assert(T.nbCol() == 1);
-//    assert(T.nbRow() == d);
-//    assert(d == 2);
-//    int N = T.nbRow();
-
-//    TestFunction<d> divU(1);
-//    int k = 0, ksum = 0;
-//    for (int i = 0; i < N; ++i)
-//       ksum += T.A(i, 0)->size();
-//    divU.A(0, 0) = new ItemList<d>(ksum * (d));
-
-//    for (int i = 0; i < N; ++i) {
-//       assert(T.A(i, 0)->size() == 1);
-//       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-
-//       for (int j = 0; j < d; ++j) {
-//          int ii = (i == 0);
-//          int jj = (j == 0);
-//          ItemTestFunction<d> &u(divU.A(0, 0)->getItem(k));
-//          u = v;
-//          u.c *= (ii == jj) ? 1 : -1;
-//          u.du = D(j);
-//          u.addNormal(jj);
-//          u.addNormal(ii);
 //          k++;
 //       }
 //    }
@@ -1028,14 +884,14 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 //       {
 //          ItemTestFunction<d> &u1(gradU.A(i, 0)->getItem(0));
 //          u1    = v;
-//          u1.du = D(0);
+//          u1.du = D1(0);
 //       }
 //       int kk = 1;
 //       for (int j = 0; j < d; ++j) {
 //          ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
 //          u = v;
 //          u.c *= -1;
-//          u.du = D(j);
+//          u.du = D1(j);
 //          u.addNormal(0);
 //          u.addNormal(j);
 //       }
@@ -1056,14 +912,14 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 //       {
 //          ItemTestFunction<d> &u1(gradU.A(i, 0)->getItem(0));
 //          u1    = v;
-//          u1.du = D(1);
+//          u1.du = D1(1);
 //       }
 //       int kk = 1;
 //       for (int j = 0; j < d; ++j) {
 //          ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
 //          u = v;
 //          u.c *= -1;
-//          u.du = D(j);
+//          u.du = D1(j);
 //          u.addNormal(1);
 //          u.addNormal(j);
 //       }
@@ -1084,117 +940,19 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 //       {
 //          ItemTestFunction<d> &u1(gradU.A(i, 0)->getItem(0));
 //          u1    = v;
-//          u1.du = D(2);
+//          u1.du = D1(2);
 //       }
 //       int kk = 1;
 //       for (int j = 0; j < d; ++j) {
 //          ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
 //          u = v;
 //          u.c *= -1;
-//          u.du = D(j);
+//          u.du = D1(j);
 //          u.addNormal(2);
 //          u.addNormal(j);
 //       }
 //    }
 //    return gradU;
-// }
-
-// template <int d> TestFunction<d> Eps(const TestFunction<d> &T) {
-//    assert(T.nbRow() == d && T.nbCol() == 1);
-
-//    TestFunction<d> epsU(d, d); // epsU.init(d, d);
-//    for (int i = 0; i < d; ++i) {
-//       assert(T.A(i, 0)->size() == 1);
-//       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-//       for (int j = 0; j < d; ++j) {
-//          if (i == j) {
-//             epsU.A(i, j) = new ItemList<d>(1);
-//             ItemTestFunction<d> &u(epsU.A(i, j)->getItem(0));
-//             u    = v;
-//             u.du = D(i);
-
-//          } else {
-//             epsU.A(i, j) = new ItemList<d>(2);
-//             {
-//                ItemTestFunction<d> &u(epsU.A(i, j)->getItem(0));
-//                u    = v;
-//                u.c  = 0.5 * v.c;
-//                u.cu = i;
-//                u.du = D(j);
-//             }
-//             {
-//                ItemTestFunction<d> &u(epsU.A(i, j)->getItem(1));
-//                u    = v;
-//                u.c  = 0.5 * v.c;
-//                u.cu = j;
-//                u.du = D(i);
-//             }
-//          }
-//       }
-//    }
-//    return epsU;
-// }
-// //
-// //
-// template <int d> TestFunction<d> grad2(const TestFunction<d> &T) {
-//    assert(T.nbCol() == 1);
-//    assert(T.nbRow() == d || T.nbRow() == 1);
-//    int N = T.nbRow();
-
-//    TestFunction<d> DDU(T.nbRow(),
-//                        T.nbCol()); // DDU.init(T.nbRow(), T.nbCol());
-//    for (int i = 0; i < N; ++i)
-//       assert(T.A(i, 0)->size() == 1);
-
-//    for (int i = 0; i < N; ++i) {
-//       DDU.A(i, 0) = new ItemList<d>(3);
-//       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-//       int k = 0;
-//       for (int i1 = 0; i1 < d; ++i1) {
-//          for (int i2 = i1; i2 < d; ++i2) {
-//             // 0,0-> dxx, 0,1->2dxy  1,1->dyy
-//             ItemTestFunction<d> &u(DDU.A(i, 0)->getItem(k));
-//             u    = v;
-//             u.du = D2(i1, i2);
-//             u.c  = (i1 != i2) + 1;
-//             k++;
-//          }
-//       }
-//    }
-//    return DDU;
-// }
-
-// template <int d>
-// TestFunction<d> jump(const TestFunction<d> &T, int c1, int c2) {
-//    // assert(T.nbCol() == 1);
-//    int N = T.nbRow();
-//    int M = T.nbCol();
-//    TestFunction<d> jumpU(T.nbRow(),
-//                          T.nbCol()); // jumpU.init(T.nbRow(),
-//                          T.nbCol());
-//    for (int i = 0; i < N; ++i) {
-//       for (int j = 0; j < M; ++j) {
-//          int l         = T.A(i, j)->size();
-//          jumpU.A(i, j) = new ItemList<d>(2 * l);
-//          for (int e = 0; e < l; ++e) {
-//             const ItemTestFunction<d> &v(T.A(i, j)->getItem(e));
-//             {
-//                ItemTestFunction<d> &u(jumpU.A(i, j)->getItem(2 * e));
-//                u = v;
-//                u.c *= c1;
-//                u.face_side_ = 0;
-//             }
-//             {
-//                ItemTestFunction<d> &u(jumpU.A(i, j)->getItem(2 * e +
-//                1)); u = v; u.c *= c2; u.face_side_ = 1;
-//             }
-//          }
-//       }
-//    }
-//    return jumpU;
-// }
-// template <int d> TestFunction<d> jump(const TestFunction<d> &T) {
-//    return jump(T, 1, -1);
 // }
 
 // // NEED DO FIXE THIS FUNCTION
@@ -1241,36 +999,6 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 // }
 
 // template <int d>
-// TestFunction<d> average(const TestFunction<d> &T, double v1 = 0.5,
-//                         double v2 = 0.5) {
-//    assert(T.nbCol() == 1);
-//    int N = T.nbRow();
-//    TestFunction<d> jumpU(T.nbRow(),
-//                          T.nbCol()); // jumpU.init(T.nbRow(),
-//                          T.nbCol());
-//    for (int i = 0; i < N; ++i) {
-//       int l         = T.A(i, 0)->size();
-//       jumpU.A(i, 0) = new ItemList<d>(2 * l);
-//       for (int e = 0; e < l; ++e) {
-//          const ItemTestFunction<d> &v(T.A(i, 0)->getItem(e));
-//          {
-//             ItemTestFunction<d> &u(jumpU.A(i, 0)->getItem(2 * e));
-//             u = v;
-//             u.c *= v1;
-//             u.face_side_ = 0;
-//          }
-//          {
-//             ItemTestFunction<d> &u(jumpU.A(i, 0)->getItem(2 * e + 1));
-//             u = v;
-//             u.c *= v2;
-//             u.face_side_ = 1;
-//          }
-//       }
-//    }
-//    return jumpU;
-// }
-
-// template <int d>
 // TestFunction<d> average(const TestFunction<d> &T, const
 // VirtualParameter &para1,
 //                         const VirtualParameter &para2) {
@@ -1305,6 +1033,41 @@ template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
 // TestFunction<d> average(const TestFunction<d> &T,
 //                         const VirtualParameter &para1) {
 //    return average(T, para1, para1);
+// }
+
+// TestFunction operator*(const Projection &Pg) {
+//    // Only for scalr right now
+//    assert(nbRow() == 1 && nbCol() == 1);
+//    int N = dim;
+//    int s = 1;
+//    TestFunction Un(N, N);
+//    // Un.init(N, N);
+//    const int ksum = A(0, 0)->size();
+
+//    for (int i = 0; i < N; ++i) {
+//       for (int j = 0; j < N; ++j) {
+//          int k      = 0;
+//          int cst    = 1 + (i == j);
+//          Un.A(i, j) = new ItemList<dim>(cst * ksum);
+
+//          for (int ui = 0; ui < ksum; ++ui, ++k) {
+//             ItemTestFunction<dim> &v(A(0, 0)->getItem(ui));
+
+//             if (i == j) {
+//                ItemTestFunction<dim> &u(Un.A(i, j)->getItem(k));
+//                u = v;
+//                k++;
+//             }
+//             ItemTestFunction<dim> &u(Un.A(i, j)->getItem(k));
+//             u = v;
+//             u.c *= -1;
+//             u.addNormal(i);
+//             u.addNormal(j);
+//             k++;
+//          }
+//       }
+//    }
+//    return Un;
 // }
 
 typedef TestFunction<2> TestFunction2;

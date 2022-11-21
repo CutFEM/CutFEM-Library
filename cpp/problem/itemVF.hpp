@@ -17,8 +17,8 @@ template <int N = 2> struct ItemVF {
 
    std::vector<const VirtualParameter *> coefu, coefv;
    int dtu, dtv;
-   const ExpressionVirtual *expru = nullptr;
-   const ExpressionVirtual *exprv = nullptr;
+   std::shared_ptr<const ExpressionVirtual> expru = nullptr;
+   std::shared_ptr<const ExpressionVirtual> exprv = nullptr;
 
    FESpace const *fespaceU = nullptr;
    FESpace const *fespaceV = nullptr;
@@ -95,8 +95,9 @@ template <int N = 2> struct ItemVF {
           F.face_sideU_ == face_sideU_ && face_sideV_ == F.face_sideV_ &&
           dtu == F.dtu && dtv == F.dtv && domainU_id_ == F.domainU_id_ &&
           domainV_id_ == F.domainV_id_ && fespaceU == F.fespaceU &&
-          fespaceV == F.fespaceV && expru == F.expru && exprv == F.exprv &&
-          ar_nu == F.ar_nu && ar_nv == F.ar_nv && conormalU_ == F.conormalU_ &&
+          fespaceV == F.fespaceV && expru.get() == F.expru.get() &&
+          exprv.get() == F.exprv.get() && ar_nu == F.ar_nu &&
+          ar_nv == F.ar_nv && conormalU_ == F.conormalU_ &&
           conormalV_ == F.conormalV_) {
       } else
          return false;
@@ -278,12 +279,13 @@ template <int N = 2> class ListItemVF {
    typedef GFESpace<Mesh> FESpace;
 
  public:
-   KN<ItemVF<N>> VF;
+   std::vector<ItemVF<N>> VF;
+
    bool isRHS_ = true;
    ListItemVF(int l) : VF(l){};
-   const ItemVF<N> &operator()(int i) const { return VF(i); }
+   const ItemVF<N> &operator()(int i) const { return VF[i]; }
    const ItemVF<N> &operator[](int i) const { return VF[i]; }
-   ItemVF<N> &operator()(int i) { return VF(i); }
+   ItemVF<N> &operator()(int i) { return VF[i]; }
    ItemVF<N> &operator[](int i) { return VF[i]; }
    int size() const { return VF.size(); }
 
@@ -323,14 +325,14 @@ template <int N = 2> class ListItemVF {
       KN<int> s2k(VF.size(), -1);
 
       for (int i = 0; i < VF.size(); ++i) {
-         if (VF(i).c == 0) {
+         if (VF[i].c == 0) {
             l -= 1;
             continue;
          }
          if (s(i) != -1)
             continue;
          for (int j = i + 1; j < VF.size(); ++j) {
-            if (VF(i) == VF(j)) {
+            if (VF[i] == VF[j]) {
                s(j) = i;
                l -= 1;
             }
@@ -338,20 +340,18 @@ template <int N = 2> class ListItemVF {
       }
       if (l == VF.size())
          return;
-      KN_<ItemVF<N>> v(VF);
-      ItemVF<N> *u = new ItemVF<N>[l];
-      VF.set(u, l);
+      std::vector<ItemVF<N>> u(l);
       int k = 0;
 
-      for (int i = 0; i < v.size(); ++i) {
-         if (v(i).c == 0) {
+      for (int i = 0; i < VF.size(); ++i) {
+         if (VF[i].c == 0) {
             continue;
          }
          if (s(i) == -1) {
             s2k[i] = k;
-            u[k++] = v(i);
+            u[k++] = VF[i];
          } else {
-            u[s2k(s(i))].c += v(i).c;
+            u[s2k(s(i))].c += VF[i].c;
          }
       }
    }
@@ -365,12 +365,12 @@ template <int N = 2> class ListItemVF {
 
    bool isRHS() const { return isRHS_; }
    const FESpace &get_spaceU(int i) const {
-      assert(VF(i).fespaceU || isRHS_);
-      return (VF(i).fespaceU) ? *VF(i).fespaceU : *VF(i).fespaceV;
+      assert(VF[i].fespaceU || isRHS_);
+      return (VF[i].fespaceU) ? *VF[i].fespaceU : *VF[i].fespaceV;
    }
    const FESpace &get_spaceV(int i) const {
-      assert(VF(i).fespaceV);
-      return *VF(i).fespaceV;
+      assert(VF[i].fespaceV);
+      return *VF[i].fespaceV;
    }
 
    friend std::ostream &operator<<(std::ostream &f, const ListItemVF &u) {
@@ -423,24 +423,24 @@ template <int d> ListItemVF<d> average(const ListItemVF<d> &L, int v1, int v2) {
 // only for vectors
 template <int d>
 ListItemVF<d> operator,(const TestFunction<d> &uu, const TestFunction<d> &vv) {
-   assert(uu.A.N() == vv.A.N());
-   assert(uu.A.M() == vv.A.M()); // && A.M()==1);
+   assert(uu.nbRow() == vv.nbRow());
+   assert(uu.nbCol() == vv.nbCol()); // && nbCol()==1);
    int l = 0;
-   for (int i = 0; i < uu.A.N(); ++i) {
-      for (int j = 0; j < uu.A.M(); ++j) {
-         l += uu.A(i, j)->size() * vv.A(i, j)->size();
+   for (int i = 0; i < uu.nbRow(); ++i) {
+      for (int j = 0; j < uu.nbCol(); ++j) {
+         l += uu(i, j).size() * vv(i, j).size();
       }
    }
 
    ListItemVF<d> item(l);
    item.isRHS_ = false;
    int k = 0, kloc = 0;
-   for (int i = 0; i < uu.A.N(); ++i) {
-      for (int j = 0; j < uu.A.M(); ++j) {
-         for (int ui = 0; ui < uu.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &u(uu.A(i, j)->getItem(ui));
-            for (int vi = 0; vi < vv.A(i, j)->size(); ++vi) {
-               const ItemTestFunction<d> &v(vv.A(i, j)->getItem(vi));
+   for (int i = 0; i < uu.nbRow(); ++i) {
+      for (int j = 0; j < uu.nbCol(); ++j) {
+         for (int ui = 0; ui < uu(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &u(uu(i, j).getItem(ui));
+            for (int vi = 0; vi < vv(i, j).size(); ++vi) {
+               const ItemTestFunction<d> &v(vv(i, j).getItem(vi));
                item(k) = ItemVF<d>(u, v);
                k++;
             }
@@ -454,18 +454,18 @@ ListItemVF<d> operator,(const TestFunction<d> &uu, const TestFunction<d> &vv) {
 // only for vectors
 template <int d> ListItemVF<d> operator,(const R c, const TestFunction<d> &F) {
    int l = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         l += F.A(i, j)->size();
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         l += F(i, j).size();
       }
    }
 
    ListItemVF<d> item(l);
    int k = 0, kloc = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         for (int ui = 0; ui < F(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
             item(k)             = ItemVF<d>(v.c * c, v.cu, 0, v.cu, v.du,
                                 std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
@@ -488,20 +488,20 @@ template <int d> ListItemVF<d> operator,(const R c, const TestFunction<d> &F) {
 // only for vectors
 template <int d>
 ListItemVF<d> operator,(const Rnm &c, const TestFunction<d> &F) {
-   assert(c.N() == F.A.N() && c.M() == F.A.M());
+   assert(c.N() == F.nbRow() && c.M() == F.nbCol());
    int l = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         l += F.A(i, j)->size();
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         l += F(i, j).size();
       }
    }
 
    ListItemVF<d> item(l);
    int k = 0, kloc = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         for (int ui = 0; ui < F(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
             item(k)             = ItemVF<d>(v.c * c(i, j), v.cu, 0, v.cu, v.du,
                                 std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
@@ -526,18 +526,18 @@ ListItemVF<d> operator,(const Rnm &c, const TestFunction<d> &F) {
 template <int d>
 ListItemVF<d> operator,(const Projection &c, const TestFunction<d> &F) {
    int l = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         l += F.A(i, j)->size() * (1 + (i == j));
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         l += F(i, j).size() * (1 + (i == j));
       }
    }
 
    ListItemVF<d> item(l);
    int k = 0, kloc = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         for (int ui = 0; ui < F(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
 
             if (i == j) {
                item(k) = ItemVF<d>(v.c, v.cu, 0, v.cu, v.du, 0, v.ar_nu);
@@ -577,18 +577,18 @@ ListItemVF<d> operator,(const Projection &c, const TestFunction<d> &F) {
 template <int d>
 ListItemVF<d> operator,(const ExpressionVirtual &fh, const TestFunction<d> &F) {
    int l = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         l += F.A(i, j)->size();
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         l += F(i, j).size();
       }
    }
 
    ListItemVF<d> item(l);
    int k = 0, kloc = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         for (int ui = 0; ui < F(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
             item(k) =
                 ItemVF<d>(v.c, 0, -1, v.cu, v.du, std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
@@ -614,19 +614,19 @@ ListItemVF<d> operator,(const ExpressionVirtual &fh, const TestFunction<d> &F) {
 template <int d>
 ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
    int l = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         l += F.A(i, j)->size();
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         l += F(i, j).size();
       }
    }
    l *= 2;
 
    ListItemVF<d> item(l);
    int k = 0, kloc = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         for (int ui = 0; ui < F(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
             item(k) = ItemVF<d>(v.c * fh.k1, 0, -1, v.cu, v.du, 0, v.ar_nu);
             item(k).face_sideU_ = 0;
             item(k).face_sideV_ = v.face_side_;
@@ -643,10 +643,10 @@ ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
       }
    }
 
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         for (int ui = 0; ui < F(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
             item(k) = ItemVF<d>(v.c * fh.k2, 0, -1, v.cu, v.du, 0, v.ar_nu);
             item(k).face_sideU_ = 1;
             item(k).face_sideV_ = v.face_side_;
@@ -668,29 +668,74 @@ ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
    return item;
 }
 
+// ListItemVF<d>
+// operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> fh,
+//           const TestFunction<d> &F) {
+//    if (F.nbRow() != fh.size()) {
+//       std::cout << "size expression \t" << fh.size() << std::endl;
+//       std::cout << "size test function \t" << F.nbRow() << std::endl;
+//    }
+//    assert(F.nbRow() == fh.size());
+//    int l = 0;
+//    for (int i = 0; i < F.nbRow(); ++i) {
+//       for (int j = 0; j < F.nbCol(); ++j) {
+//          l += F(i, j).size();
+//       }
+//    }
+
+//    ListItemVF<d> item(l);
+//    int k = 0, kloc = 0;
+//    auto it = fh.begin();
+//    for (int i = 0; i < F.nbRow(); ++i, ++it) {
+//       for (int j = 0; j < F.nbCol(); ++j) {
+//          for (int ui = 0; ui < F(i, j).size(); ++ui) {
+//             const ItemTestFunction<d> &v(F(i, j).getItem(ui));
+//             item(k) =
+//                 ItemVF<d>(v.c, i, -1, v.cu, v.du, std::vector<int>(),
+//                 v.ar_nu);
+//             item(k).face_sideU_ = v.face_side_;
+//             item(k).face_sideV_ = v.face_side_;
+//             item(k).domainU_id_ = v.domain_id_;
+//             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
+//             item(k).dtu      = 0;
+//             item(k).dtv      = v.dtu;
+//             item(k).expru    = *it;
+//             item(k).exprv    = v.expru;
+//             item(k).fespaceV = v.fespace;
+
+//             k++;
+//          }
+//       }
+//    }
+
+//    item.reduce();
+
+//    return item;
+// }
+
 template <int d>
 ListItemVF<d>
-operator,(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> fh,
+operator,(const std::list<std::shared_ptr<const ExpressionVirtual>> &fh,
           const TestFunction<d> &F) {
-   if (F.A.N() != fh.size()) {
+   if (F.nbRow() != fh.size()) {
       std::cout << "size expression \t" << fh.size() << std::endl;
-      std::cout << "size test function \t" << F.A.N() << std::endl;
+      std::cout << "size test function \t" << F.nbRow() << std::endl;
    }
-   assert(F.A.N() == fh.size());
+   assert(F.nbRow() == fh.size());
    int l = 0;
-   for (int i = 0; i < F.A.N(); ++i) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         l += F.A(i, j)->size();
+   for (int i = 0; i < F.nbRow(); ++i) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         l += F(i, j).size();
       }
    }
 
    ListItemVF<d> item(l);
    int k = 0, kloc = 0;
    auto it = fh.begin();
-   for (int i = 0; i < F.A.N(); ++i, ++it) {
-      for (int j = 0; j < F.A.M(); ++j) {
-         for (int ui = 0; ui < F.A(i, j)->size(); ++ui) {
-            const ItemTestFunction<d> &v(F.A(i, j)->getItem(ui));
+   for (int i = 0; i < F.nbRow(); ++i, ++it) {
+      for (int j = 0; j < F.nbCol(); ++j) {
+         for (int ui = 0; ui < F(i, j).size(); ++ui) {
+            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
             item(k) =
                 ItemVF<d>(v.c, i, -1, v.cu, v.du, std::vector<int>(), v.ar_nu);
             item(k).face_sideU_ = v.face_side_;
@@ -732,13 +777,9 @@ ListItemVF<d> innerProduct(const ExpressionVirtual &fh,
 
 template <int d>
 ListItemVF<d>
-innerProduct(std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh>> fh,
+innerProduct(const std::list<std::shared_ptr<const ExpressionVirtual>> &fh,
              const TestFunction<d> &F) {
-   std::list<ExpressionFunFEM<typename typeMesh<d>::Mesh> *> pointer2fh;
-   for (auto it = fh.begin(); it != fh.end(); ++it) {
-      pointer2fh.push_back(&(*it));
-   }
-   return operator,(pointer2fh, F);
+   return operator,(fh, F);
 }
 
 template <int d>

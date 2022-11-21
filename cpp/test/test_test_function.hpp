@@ -10,6 +10,7 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
 
    Mesh2 mesh(3, 3, 0., 0., 1., 1);
    FESpace2 Vh(mesh, DataFE<Mesh2>::P1);
+   FESpace2 Rh(mesh, DataFE<Mesh2>::RT0);
 
    SECTION("Constructor") {
       TestFunction<2> u(Vh, 1);
@@ -160,6 +161,349 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
          REQUIRE(item.fespace == &Vh);
          REQUIRE(item.root_fun_p == &u);
          REQUIRE(item.expru == nullptr);
+      }
+   }
+
+   SECTION("Test grad^2") {
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> grad_u(grad(grad(u)));
+
+      REQUIRE(!grad_u.isScalar());
+      REQUIRE(grad_u.sizeItemList(0, 0) == 1);
+      REQUIRE(grad_u.sizeItemList(1, 0) == 1);
+      REQUIRE(grad_u.sizeItemList(0, 1) == 1);
+      REQUIRE(grad_u.sizeItemList(1, 1) == 1);
+
+      {
+         const auto &item(grad_u.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_dxx);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+      }
+      {
+         const auto &item(grad_u.getItem({1, 0}, 0));
+         REQUIRE(item.du == op_dxy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+      }
+      {
+         const auto &item(grad_u.getItem({0, 1}, 0));
+         REQUIRE(item.du == op_dxy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+      }
+      {
+         const auto &item(grad_u.getItem({1, 1}, 0));
+         REQUIRE(item.du == op_dyy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+      }
+   }
+
+   SECTION("Test Average") {
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> jump_u(average(u, 1.5, -1.5));
+
+      REQUIRE(jump_u.isScalar());
+      REQUIRE(jump_u.sizeItemList(0, 0) == 2);
+
+      {
+         const auto &item(jump_u.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_id);
+         REQUIRE(item.c == 1.5);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == 0);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+      }
+      {
+         const auto &item(jump_u.getItem({0, 0}, 1));
+         REQUIRE(item.du == op_id);
+         REQUIRE(item.c == -1.5);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == 1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+      }
+   }
+
+   SECTION("Test Normal multiplication with scalar") {
+      Normal N;
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> un(u * N);
+
+      REQUIRE(!un.isScalar());
+      REQUIRE(un.nbRow() == 2);
+      REQUIRE(un.nbCol() == 1);
+      {
+         const auto &item(un.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_id);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 0);
+      }
+      {
+         const auto &item(un.getItem({1, 0}, 0));
+         REQUIRE(item.du == op_id);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 1);
+      }
+   }
+
+   SECTION("Test Normal multiplication with vector") {
+      Normal N;
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> un(grad(u) * N);
+
+      REQUIRE(un.isScalar());
+      REQUIRE(un.sizeItemList(0, 0) == 2);
+
+      {
+         const auto &item(un.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_dx);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 0);
+      }
+      {
+         const auto &item(un.getItem({0, 0}, 1));
+         REQUIRE(item.du == op_dy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 1);
+      }
+   }
+
+   SECTION("Test Normal multiplication with matrix") {
+      Normal N;
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> un(grad(grad(u)) * N);
+
+      REQUIRE(!un.isScalar());
+      REQUIRE(un.sizeItemList(0, 0) == 2);
+      REQUIRE(un.sizeItemList(1, 0) == 2);
+
+      {
+         const auto &item(un.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_dxx);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 0);
+      }
+      {
+         const auto &item(un.getItem({0, 0}, 1));
+         REQUIRE(item.du == op_dxy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 1);
+      }
+      {
+         const auto &item(un.getItem({1, 0}, 0));
+         REQUIRE(item.du == op_dxy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 0);
+      }
+      {
+         const auto &item(un.getItem({1, 0}, 1));
+         REQUIRE(item.du == op_dyy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 1);
+      }
+   }
+
+   SECTION("Test Tangent multiplication with scalar") {
+      Tangent T;
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> un(u * T);
+
+      REQUIRE(!un.isScalar());
+      REQUIRE(un.nbRow() == 2);
+      REQUIRE(un.nbCol() == 1);
+      {
+         const auto &item(un.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_id);
+         REQUIRE(item.c == -1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 1);
+      }
+      {
+         const auto &item(un.getItem({1, 0}, 0));
+         REQUIRE(item.du == op_id);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru == nullptr);
+         REQUIRE(item.ar_nu.size() == 1);
+         REQUIRE(item.ar_nu[0] == 0);
+      }
+   }
+
+   SECTION("Test Expression multiplication with scalar") {
+
+      auto g = [](double *x) -> double { return 1; };
+      FunFEM<Mesh2> gh(Vh, g);
+      ExpressionFunFEM<Mesh2> expr(gh, 0, 0);
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> unn(gh.expression() * u);
+      TestFunction<2> un(expr * expr * u);
+
+      REQUIRE(un.isScalar());
+      REQUIRE(un.nbRow() == 1);
+      REQUIRE(un.nbCol() == 1);
+      {
+         const auto &item(un.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_id);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Vh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru.get() != nullptr);
+         REQUIRE(item.ar_nu.size() == 0);
+      }
+   }
+
+   SECTION("Test Eps operator") {
+
+      TestFunction<2> u(Rh, 2);
+      TestFunction<2> epsU(Eps(u));
+
+      REQUIRE(!epsU.isScalar());
+      REQUIRE(epsU.nbRow() == 2);
+      REQUIRE(epsU.nbCol() == 2);
+      {
+         REQUIRE(epsU.sizeItemList(0, 0) == 1);
+         const auto &item(epsU.getItem({0, 0}, 0));
+         REQUIRE(item.du == op_dx);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Rh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru.get() == nullptr);
+         REQUIRE(item.ar_nu.size() == 0);
+      }
+      {
+         REQUIRE(epsU.sizeItemList(1, 0) == 2);
+         const auto &item(epsU.getItem({1, 0}, 0));
+         REQUIRE(item.du == op_dx);
+         REQUIRE(item.c == 0.5);
+         REQUIRE(item.cu == 1);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Rh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru.get() == nullptr);
+         REQUIRE(item.ar_nu.size() == 0);
+         const auto &item1(epsU.getItem({1, 0}, 1));
+         REQUIRE(item1.du == op_dy);
+         REQUIRE(item1.c == 0.5);
+         REQUIRE(item1.cu == 0);
+         REQUIRE(item1.face_side_ == -1);
+         REQUIRE(item1.fespace == &Rh);
+         REQUIRE(item1.root_fun_p == &u);
+         REQUIRE(item1.expru.get() == nullptr);
+         REQUIRE(item1.ar_nu.size() == 0);
+      }
+      {
+         REQUIRE(epsU.sizeItemList(0, 1) == 2);
+         const auto &item(epsU.getItem({0, 1}, 0));
+         REQUIRE(item.du == op_dy);
+         REQUIRE(item.c == 0.5);
+         REQUIRE(item.cu == 0);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Rh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru.get() == nullptr);
+         REQUIRE(item.ar_nu.size() == 0);
+         const auto &item1(epsU.getItem({0, 1}, 1));
+         REQUIRE(item1.du == op_dx);
+         REQUIRE(item1.c == 0.5);
+         REQUIRE(item1.cu == 1);
+         REQUIRE(item1.face_side_ == -1);
+         REQUIRE(item1.fespace == &Rh);
+         REQUIRE(item1.root_fun_p == &u);
+         REQUIRE(item1.expru.get() == nullptr);
+         REQUIRE(item1.ar_nu.size() == 0);
+      }
+      {
+         REQUIRE(epsU.sizeItemList(1, 1) == 1);
+         const auto &item(epsU.getItem({1, 1}, 0));
+         REQUIRE(item.du == op_dy);
+         REQUIRE(item.c == 1.);
+         REQUIRE(item.cu == 1);
+         REQUIRE(item.face_side_ == -1);
+         REQUIRE(item.fespace == &Rh);
+         REQUIRE(item.root_fun_p == &u);
+         REQUIRE(item.expru.get() == nullptr);
+         REQUIRE(item.ar_nu.size() == 0);
       }
    }
    // SECTION("Test average operator") {
