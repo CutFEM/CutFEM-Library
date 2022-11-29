@@ -1449,6 +1449,36 @@ void BaseCutFEM<M>::addFaceStabilization(
    number_of_stabilized_edges /= number_of_quadrature_points;
 }
 
+template <typename M>
+void BaseCutFEM<M>::addFaceStabilizationRHS(const ListItemVF<Rd::d> &VF,
+                                            const CutMesh &Th,
+                                            const MacroElement<M> &macro) {
+
+   progress bar(" Add Maro Stabilization RHS CutMesh",
+                macro.macro_element.size(), globalVariable::verbose);
+
+   assert(!VF.isRHS());
+   for (auto me = macro.macro_element.begin(); me != macro.macro_element.end();
+        ++me) {
+      bar += 1;
+      for (auto it = me->second.inner_edge.begin();
+           it != me->second.inner_edge.end(); ++it) {
+
+         int k    = it->first;
+         int ifac = it->second;
+         int jfac = ifac;
+         int kn   = Th.ElementAdj(k, jfac);
+
+         std::pair<int, int> e1 = std::make_pair(k, ifac);
+         std::pair<int, int> e2 = std::make_pair(kn, jfac);
+
+         BaseFEM<M>::addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
+      }
+      this->addLocalContribution();
+   }
+   bar.end();
+}
+
 // LAGRANGE MULTIPLIER
 template <typename M>
 void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF,
