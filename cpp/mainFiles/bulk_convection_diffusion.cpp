@@ -515,7 +515,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Irrelevant if "cg" is defined instead of "dg")
 #define conservative
 // Set stabilization method (options: "fullstab", "macro")
-#define fullstab
+#define macro
 // Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
