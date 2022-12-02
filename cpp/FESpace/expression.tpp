@@ -173,28 +173,32 @@ double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R *x, const R t,
 }
 
 template <typename M>
-std::list<std::shared_ptr<const ExpressionVirtual>>
-FunFEM<M>::expression(int n) const {
+std::list<std::shared_ptr<ExpressionVirtual>> FunFEM<M>::exprList(int n) const {
    if (n == -1)
       n = Vh->N;
    assert(n <= Vh->N);
-   std::list<std::shared_ptr<const ExpressionVirtual>> l;
+   std::list<std::shared_ptr<ExpressionVirtual>> l;
    for (int i = 0; i < n; ++i) {
-      l.push_back(
-          std::make_shared<const ExpressionFunFEM<Mesh>>(*this, i, op_id));
+      l.push_back(std::make_shared<ExpressionFunFEM<Mesh>>(*this, i, op_id));
    }
 
    return l;
 }
 
 template <typename M>
-std::list<std::shared_ptr<const ExpressionFunFEM<M>>>
-FunFEM<M>::expression(int n, int i0) const {
+std::shared_ptr<ExpressionVirtual> FunFEM<M>::expr(int i0) const {
+   assert(i0 < Vh->N);
+   return std::make_shared<ExpressionFunFEM<Mesh>>(*this, i0, op_id);
+}
+
+template <typename M>
+std::list<std::shared_ptr<ExpressionFunFEM<M>>>
+FunFEM<M>::exprList(int n, int i0) const {
    assert(n <= Vh->N);
    std::list<std::shared_ptr<const ExpressionFunFEM<Mesh>>> l;
    for (int i = 0; i < n; ++i) {
       l.push_back(
-          std::make_shared<const ExpressionFunFEM<Mesh>>(*this, i + i0, op_id));
+          std::make_shared<ExpressionFunFEM<Mesh>>(*this, i + i0, op_id));
    }
    return l;
 }

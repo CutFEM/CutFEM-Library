@@ -768,7 +768,7 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
    problem.set_map(Ah);
    double tt = getTime();
 
-   problem.addBilinear(innerProduct(beta.expression(2) * u, grad(v)), Khi);
+   problem.addBilinear(innerProduct(beta.exprList(2) * u, grad(v)), Khi);
 
    // problem.addBilinear(
    //   - jump(innerProduct(beta*u,v*n))
@@ -785,7 +785,7 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
 
    // F(u)_e = {B.u} - lambda_e/2 [u]
    problem.addBilinear(
-       -innerProduct(average(beta.expression(2) * u * n), jump(v)) -
+       -innerProduct(average(beta.exprList(2) * u * n), jump(v)) -
            innerProduct(0.5 * lambdaE * jump(u), jump(v)),
        Khi, INTEGRAL_INNER_EDGE_2D);
 

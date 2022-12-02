@@ -64,7 +64,10 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
    void cut_partition(Physical_Partition<Element> &local_partition,
                       std::vector<ElementIdx> &new_element_idx,
                       std::list<int> &erased_element, int sign_part) const {
-      assert(0);
+      std::cout << " An element might be cut multiplue time, and it is not "
+                   "suppose to happen"
+                << std::endl;
+      exit(EXIT_FAILURE);
    };
 
  private:

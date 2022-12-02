@@ -6,6 +6,7 @@
 template <typename Mesh>
 class BaseFEM : public ShapeOfProblem<Mesh>, public QuadratureOfProblem<Mesh> {
 
+   typedef ActiveMesh<Mesh> CutMesh;
    typedef typename Mesh::Element Element;
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -125,6 +126,7 @@ class BaseFEM : public ShapeOfProblem<Mesh>, public QuadratureOfProblem<Mesh> {
 
    // Integral on K
    void addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &);
+   void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &);
    void addLinear(const ListItemVF<Rd::d> &VF, const Mesh &);
    void addElementContribution(const ListItemVF<Rd::d> &VF, const int k,
                                const TimeSlab *In, int itq, double cst_time);

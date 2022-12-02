@@ -515,7 +515,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Irrelevant if "cg" is defined instead of "dg")
 #define conservative
 // Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 // Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
@@ -526,7 +526,7 @@ typedef FunFEM<Mesh2> Fun_h;
 #define dirichlet1
 
 #define use_h
-#define use_t
+#define use_tnot
 
 #ifdef example1
 #ifdef omega1
@@ -549,7 +549,7 @@ using namespace Lehrenfeld; // on Omega 2
 int main(int argc, char **argv) {
 
    // Mesh settings and data objects
-   const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+   const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                 // only once and plot to paraview)
    int nx = 15, ny = 15;        // starting mesh size
    // int nx = 25, ny = 25;       // starting mesh size
@@ -851,7 +851,7 @@ int main(int argc, char **argv) {
          convdiff.addBilinear(+innerProduct(u, v), Kh2, (int)lastQuadTime, In);
 
          // Time penalty term bulk RHS
-         convdiff.addLinear(+innerProduct(b0h.expression(), v), Kh2, 0, In);
+         convdiff.addLinear(+innerProduct(b0h.expr(), v), Kh2, 0, In);
 
 // classical scheme
 #else
@@ -894,7 +894,7 @@ int main(int argc, char **argv) {
                               Kh2, In);
 
 #elif defined(cg) && defined(conservative) // classic CG scheme
-      convdiff.addBilinear(-innerProduct(u, (vel.expression() * grad(v))), Kh2,
+      convdiff.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), Kh2,
                            In);
 
 #endif
@@ -976,8 +976,7 @@ int main(int argc, char **argv) {
 
 #ifdef neumann
          Fun_h g_Neumann(Wh, In, fun_neumann_Gamma);
-         convdiff.addLinear(+innerProduct(g_Neumann.expression(), v), interface,
-                            In);
+         convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
 #if defined(classical) && defined(dg)
 
          // convdiff.mat_.clear();
@@ -1069,7 +1068,7 @@ int main(int argc, char **argv) {
 #endif
 
          // Add RHS on bulk
-         convdiff.addLinear(+innerProduct(f.expression(), v), Kh2, In);
+         convdiff.addLinear(+innerProduct(f.expr(), v), Kh2, In);
 
          // Compute integrals
          Expression2 bhexp(b0h, 0, op_id);

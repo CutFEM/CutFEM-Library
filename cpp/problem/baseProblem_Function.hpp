@@ -129,6 +129,23 @@ void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &Th) {
    bar.end();
 }
 template <typename Mesh>
+void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF,
+                                const CutMesh &Th) {
+   assert(!VF.isRHS());
+   progress bar("Add Bilinear Mesh", Th.last_element(),
+                globalVariable::verbose);
+
+   for (int k = Th.first_element(); k < Th.last_element();
+        k += Th.next_element()) {
+      bar += Th.next_element();
+      BaseFEM<Mesh>::addElementContribution(VF, k, nullptr, 0, 1.);
+
+      this->addLocalContribution();
+   }
+   bar.end();
+}
+
+template <typename Mesh>
 void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &VF, const Mesh &Th) {
    assert(VF.isRHS());
    progress bar("Add Linear Mesh", Th.last_element(), globalVariable::verbose);

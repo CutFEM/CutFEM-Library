@@ -11,5 +11,5 @@
 #include "FESpace/expression.hpp"
 #include "FESpace/paraview.hpp"
 #include "problem/generalNorm.hpp"
-
+#include "problem/projection.hpp"
 #include "solver/solver.hpp"

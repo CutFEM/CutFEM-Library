@@ -1457,7 +1457,7 @@ void BaseCutFEM<M>::addFaceStabilizationRHS(const ListItemVF<Rd::d> &VF,
    progress bar(" Add Maro Stabilization RHS CutMesh",
                 macro.macro_element.size(), globalVariable::verbose);
 
-   assert(!VF.isRHS());
+   assert(VF.isRHS());
    for (auto me = macro.macro_element.begin(); me != macro.macro_element.end();
         ++me) {
       bar += 1;

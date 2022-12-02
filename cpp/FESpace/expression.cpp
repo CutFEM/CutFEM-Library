@@ -32,6 +32,12 @@ std::shared_ptr<const ExpressionProduct>
 operator*(const ExpressionVirtual &f1, const ExpressionVirtual &f2) {
    return std::make_shared<const ExpressionProduct>(ExpressionProduct(f1, f2));
 }
+// std::shared_ptr<const ExpressionProduct>
+// operator*(const ExpressionVirtual &f1, const ExpressionVirtual &f2) {
+//    return std::make_shared<const ExpressionProduct>(ExpressionProduct(f1,
+//    f2));
+// }
+
 ExpressionDivision operator/(const ExpressionVirtual &f1,
                              const ExpressionVirtual &f2) {
    return ExpressionDivision(f1, f2);
@@ -59,12 +65,12 @@ ExpressionNormal3 operator*(const FunFEM<Mesh3> &f1, const Normal &n) {
    return ExpressionNormal3(f1);
 }
 
-ExpressionAverage average(const ExpressionVirtual &f1, const double kk1,
-                          const double kk2) {
+ExpressionAverage average(const std::shared_ptr<ExpressionVirtual> &f1,
+                          const double kk1, const double kk2) {
    return ExpressionAverage(f1, kk1, kk2);
 }
-ExpressionAverage jump(const ExpressionVirtual &f1, const double kk1,
-                       const double kk2) {
+ExpressionAverage jump(const std::shared_ptr<ExpressionVirtual> &f1,
+                       const double kk1, const double kk2) {
    return ExpressionAverage(f1, 1, -1);
 }
 ExpressionAverage operator*(double c, const ExpressionAverage &fh) {

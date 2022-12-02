@@ -40,9 +40,9 @@ template <int N = 2> struct ItemTestFunction {
    std::vector<int> ar_nu, conormal;
    std::vector<const VirtualParameter *> coefu;
    int domain_id_, face_side_;
-   std::shared_ptr<const ExpressionVirtual> expru = nullptr;
-   const GFESpace<Mesh> *fespace                  = nullptr;
-   const testFun_t *root_fun_p                    = nullptr;
+   std::shared_ptr<ExpressionVirtual> expru = nullptr;
+   const GFESpace<Mesh> *fespace            = nullptr;
+   const testFun_t *root_fun_p              = nullptr;
 
    void (*pfun)(RNMK_ &, int, int) = f_id;
 
@@ -427,7 +427,7 @@ TestFunction<D> operator*(const TestFunction<D> &T,
 
 template <int D>
 TestFunction<D>
-operator*(const std::list<std::shared_ptr<const ExpressionVirtual>> &fh,
+operator*(const std::list<std::shared_ptr<ExpressionVirtual>> &fh,
           const TestFunction<D> &T) {
    auto [N, M] = T.size();
    assert(M == 1);
@@ -435,20 +435,29 @@ operator*(const std::list<std::shared_ptr<const ExpressionVirtual>> &fh,
    TestFunction<D> Un;
    if (N == fh.size()) {
       auto it = fh.begin();
-      for (int i = 0; i < T.nbCol(); i++) {
+      for (int i = 0; i < N; i++, it++) {
          auto new_list = T.getList(i, 0);
          for (auto &item : new_list.U) {
+            // if (item.expru.get() == nullptr)
             item.expru = (*it);
+            // else {
+            //    auto temp_p = item.expru;
+            //    item.expru  = temp_p * (*it);
+            // }
          }
-         it++;
          Un.push({0, 0}, new_list);
       }
    } else if (N == D && fh.size() == 1) {
       auto it = fh.begin();
-      for (int i = 0; i < T.nbCol(); i++) {
+      for (int i = 0; i < N; i++) {
          auto new_list = T.getList(i, 0);
          for (auto &item : new_list.U) {
+            // if (item.expru.get() == nullptr)
             item.expru = (*it);
+            // else {
+            //    auto temp_p = item.expru;
+            //    item.expru  = temp_p * (*it);
+            // }
          }
          Un.push({i, 0}, new_list);
       }
@@ -456,7 +465,12 @@ operator*(const std::list<std::shared_ptr<const ExpressionVirtual>> &fh,
       for (const auto &ff : fh) {
          auto new_list = T.getList(0, 0);
          for (auto &item : new_list.U) {
+            // if (item.expru.get() == nullptr)
             item.expru = ff;
+            // else {
+            //    auto temp_p = item.expru;
+            //    item.expru  = temp_p * ff;
+            // }
          }
          Un.push(new_list);
       }
@@ -469,40 +483,37 @@ operator*(const std::list<std::shared_ptr<const ExpressionVirtual>> &fh,
 template <int D>
 TestFunction<D>
 operator*(const TestFunction<D> &T,
-          const std::list<std::shared_ptr<const ExpressionVirtual>> &fh) {
+          const std::list<std::shared_ptr<ExpressionVirtual>> &fh) {
    return fh * T;
 }
 
 template <int D>
-TestFunction<D>
-operator*(const ExpressionFunFEM<typename typeMesh<D>::Mesh> &fh,
-          const TestFunction<D> &T) {
-   auto fh_p =
-       std::make_shared<const ExpressionFunFEM<typename typeMesh<D>::Mesh>>(fh);
-   std::list<
-       std::shared_ptr<const ExpressionFunFEM<typename typeMesh<D>::Mesh>>>
-       ff = {fh_p};
-   return ff * T;
-}
-
-template <int D>
-TestFunction<D>
-operator*(const TestFunction<D> &T,
-          const ExpressionFunFEM<typename typeMesh<D>::Mesh> &fh) {
-   return fh * T;
-}
-
-template <int D>
-TestFunction<D> operator*(const std::shared_ptr<const ExpressionVirtual> &fh,
+TestFunction<D> operator*(ExpressionFunFEM<typename typeMesh<D>::Mesh> &fh,
                           const TestFunction<D> &T) {
-   std::list<std::shared_ptr<const ExpressionVirtual>> ff = {fh};
+   auto fh_p =
+       std::make_shared<ExpressionFunFEM<typename typeMesh<D>::Mesh>>(fh);
+   std::list<std::shared_ptr<ExpressionFunFEM<typename typeMesh<D>::Mesh>>> ff =
+       {fh_p};
    return ff * T;
 }
 
 template <int D>
 TestFunction<D> operator*(const TestFunction<D> &T,
-                          const std::shared_ptr<const ExpressionVirtual> &fh) {
-   std::list<std::shared_ptr<const ExpressionVirtual>> ff = {fh};
+                          ExpressionFunFEM<typename typeMesh<D>::Mesh> &fh) {
+   return fh * T;
+}
+
+template <int D>
+TestFunction<D> operator*(const std::shared_ptr<ExpressionVirtual> &fh,
+                          const TestFunction<D> &T) {
+   std::list<std::shared_ptr<ExpressionVirtual>> ff = {fh};
+   return ff * T;
+}
+
+template <int D>
+TestFunction<D> operator*(const TestFunction<D> &T,
+                          const std::shared_ptr<ExpressionVirtual> &fh) {
+   std::list<std::shared_ptr<ExpressionVirtual>> ff = {fh};
    return ff * T;
 }
 

@@ -585,12 +585,12 @@ R fun_div(double *Pp, int compInd, int dom) {
 
    return (dom == 0) * val;
 }
-R fun_interfacePr(R2 Pp, int compInd) {
+R fun_interfacePr(double *Pp, int compInd) {
    return (-1. / 8 * mu_G + c / (2. * 1e2));
 }
 } // namespace Data_CutMixedDarcy_Star
-// using namespace Data_CutMixedDarcy_Star;
-using namespace Data_CutMixedDarcy;
+using namespace Data_CutMixedDarcy_Star;
+// using namespace Data_CutMixedDarcy;
 
 void addExactLinearForm(R (*f)(double *, int, int), const GFESpace<Mesh2> &Vh,
                         int n0, Rn &rhs) {
@@ -660,7 +660,7 @@ int main(int argc, char **argv) {
    // const int thread_count = thread_count_tmp;
    // omp_set_num_threads(thread_count);
    // const double cpubegin   = MPIcf::Wtime();
-   globalVariable::verbose = 1;
+   globalVariable::verbose = 0;
 
    int nx = 11; // 6
    int ny = 11; // 6
@@ -697,11 +697,11 @@ int main(int argc, char **argv) {
 
       // Lagrange2 FEvelocity(2);
       // Space Vh(Kh, FEvelocity);
-      Space Vh(Kh, DataFE<Mesh2>::RT0);
-      Space Qh(Kh, DataFE<Mesh2>::P0);
+      Space Vh(Kh, DataFE<Mesh2>::RT1);
+      Space Qh(Kh, DataFE<Mesh2>::P1dc);
 
       ActiveMesh<Mesh> Kh_i(Kh, interface);
-      Kh_i.info();
+      // Kh_i.info();
       CutSpace Wh(Kh_i, Vh);
       // Wh.info();
       CutSpace Ph(Kh_i, Qh);
@@ -729,25 +729,28 @@ int main(int argc, char **argv) {
       // const CutFEM_Parameter& lambdaB(Parameter::lambdaB);
       // const R hei = Th[0].lenEdge(0);
 
-      // Lagrange2 FEvelocity(4);
-      // Space V2h(Kh, FEvelocity);
-      // CutSpace W2h(Kh_i, V2h);
-      // Space Q2h(Kh, DataFE<Mesh2>::P2dc);
-      // CutSpace P2h(Kh_i, Q2h);
+      Lagrange2 FEvelocity(4);
+      Space V2h(Kh, FEvelocity);
+      CutSpace W2h(Kh_i, V2h);
+      Space Q2h(Kh, DataFE<Mesh2>::P2dc);
+      CutSpace P2h(Kh_i, Q2h);
 
       // We define fh on the cutSpace
-      // Fun_h fv(W2h, fun_force);
-      // Fun_h fq(P2h, fun_div);
-      // Fun_h u0(W2h, fun_exact_u);
-      // Fun_h p0(P2h, fun_exact_p);
-      // Fun_h phat(Ph, fun_interfacePr);
-      Fun_h fq(Ph, fun_div);
-      Fun_h fv(Wh, fun_force);
-      Fun_h p0(Lh, fun_neumann);
+      Fun_h fv(W2h, fun_force);
+      Fun_h fq(P2h, fun_div);
+      Fun_h u0(W2h, fun_exact_u);
+      Fun_h p0(P2h, fun_exact_p);
       Fun_h phat(Ph, fun_interfacePr);
       Fun_h pex(Ph, fun_exact_p);
       ExpressionFunFEM<Mesh> exactp(pex, 0, op_id);
-      Fun_h u0(Wh, fun_exact_u);
+
+      // Fun_h fq(Ph, fun_div);
+      // Fun_h fv(Wh, fun_force);
+      // Fun_h p0(Lh, fun_neumann);
+      // Fun_h phat(Ph, fun_interfacePr);
+      // Fun_h pex(Ph, fun_exact_p);
+      // ExpressionFunFEM<Mesh> exactp(pex, 0, op_id);
+      // Fun_h u0(Wh, fun_exact_u);
 
       Normal n;
       Tangent t;
@@ -769,7 +772,7 @@ int main(int argc, char **argv) {
           ,
           interface);
 
-      darcy.addLinear(-innerProduct(phat.expression(), jump(v * n))
+      darcy.addLinear(-innerProduct(phat.expr(), jump(v * n))
                       // -innerProduct(phat.expression(), jump(v.t()*n))
                       ,
                       interface);
@@ -781,12 +784,11 @@ int main(int argc, char **argv) {
 
       // l(v)_Omega
       darcy.addLinear(
-          // innerProduct(fv.expression(2), v)
-          +innerProduct(fq.expression(), q), Kh_i);
+          innerProduct(fv.exprList(2), v) + innerProduct(fq.expr(), q), Kh_i);
       // addExactLinearForm(fun_div, Ph, Wh.get_nb_dof(), darcy.rhs_);
 
       darcy.addLinear(
-          -innerProduct(p0.expression(), v * n) // Only on Gamma_N (pressure)
+          -innerProduct(p0.expr(), v * n) // Only on Gamma_N (pressure)
           // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D (vel
           // normal comp)
           // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
@@ -832,6 +834,12 @@ int main(int argc, char **argv) {
               innerProduct(pPenParam * pow(h_i, 3) * jump(grad(div(v))),
                            jump(grad(q))),
           Kh_i, macro);
+
+      Fun_h fqq(Ph);
+      projection(fqq, fun_div);
+      // darcy.addFaceStabilizationRHS(
+      //     -innerProduct(pPenParam * h_i * jump(fqq.expr()), jump(q)), Kh_i,
+      //     macro);
 
       // double t1 = MPIcf::Wtime();
       //
@@ -927,7 +935,8 @@ int main(int argc, char **argv) {
       // std::cout << " hey" << std::endl;
       // getchar();
       // [PLOTTING]
-      // if (MPIcf::IamMaster()) {
+      // if (MPIcf::IamMaster())
+      // {
       //    Fun_h solh(Wh, fun_exact_u);
       //    // solh.v -= uh.v;
       //    // solh.v.map(fabs);
@@ -943,6 +952,8 @@ int main(int argc, char **argv) {
       //    writer.add(solh, "velocityExact", 0, 2);
       //    writer.add(fabs((femSol_0dx + femSol_1dy) - femDiv),
       //               "divergenceError");
+      //    writer.add(fq, "divu", 0, 1);
+      //    writer.add(fqq, "divuex", 0, 1);
       // }
 
       pPrint.push_back(errP);
