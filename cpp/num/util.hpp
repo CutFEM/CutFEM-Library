@@ -10,14 +10,15 @@
 #include <cstring>
 #include <limits>
 #include "../common/RNM.hpp"
+#include "../common/global.hpp"
 #include <sys/stat.h>
 #include <list>
 #include <time.h>
 #include <ctime>
 /// Used in equality-tests for floating point numbers.
 const double DoubleEpsC = 1.0e-9; // numeric_limits<double>::epsilon();
-const double Epsilon    = 10 * std::numeric_limits<double>::epsilon();
-const double pi         = 3.14159265359;
+// const double Epsilon    = 10 * std::numeric_limits<double>::epsilon();
+// const double pi         = 3.14159265359;
 
 typedef double R;
 
@@ -110,10 +111,17 @@ template <typename T> inline const T *Addr(const std::vector<T> &x) {
 /// Get the address of the first element in a vector
 template <typename T> inline T *Addr(std::vector<T> &x) { return &(x[0]); }
 
-static bool equal(double a, double b, double eps = Epsilon) {
+static bool equal(double a, double b, double eps = globalVariable::Epsilon) {
    return (std::fabs(a - b) < eps);
 }
-static bool nequal(double a, double b, double eps = Epsilon) {
+inline bool isEqual(double a, double b, double eps = globalVariable::Epsilon) {
+   return (std::fabs(a - b) < eps);
+}
+inline bool isNotEqual(double a, double b,
+                       double eps = globalVariable::Epsilon) {
+   return (std::fabs(a - b) > eps);
+}
+static bool nequal(double a, double b, double eps = globalVariable::Epsilon) {
    return (std::fabs(a - b) > eps);
 }
 

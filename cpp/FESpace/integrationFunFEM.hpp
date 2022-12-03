@@ -524,10 +524,10 @@ double integral(FunFEM<M> &fh, const Interface<M> &interface, int cu,
    typedef typename FElement::Rd Rd;
    typedef typename QFB::QuadraturePoint QuadraturePoint;
 
-   if (t > -Epsilon && fh.In) {
+   if (t > -globalVariable::Epsilon && fh.In) {
       assert(fh.In->Pt(0) <= t && t <= fh.In->Pt(1));
    }
-   if (t < -Epsilon && fh.In) {
+   if (t < -globalVariable::Epsilon && fh.In) {
       t = fh.In->Pt(0);
       std::cout << " Use default value In(0) \t -> " << t << std::endl;
    }

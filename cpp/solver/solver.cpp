@@ -10,12 +10,10 @@
 #include "lapacke.h"
 #endif
 
-// #include "dmumps_c.h"
 // #include "petsc.h"
 #ifdef USE_MUMPS
 #include "solverMumps.hpp"
 #endif
-// #include "../num/matlab.hpp"
 
 void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 

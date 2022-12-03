@@ -115,7 +115,7 @@ template <typename Kernel> class Darcy {
                             innerProduct(div(u), q),
                         *Khi_p);
 
-      darcy.addLinear(innerProduct(fq.expression(), q), *Khi_p);
+      darcy.addLinear(innerProduct(fq.expr(), q), *Khi_p);
    }
    void add_interface_integral(double (*f)(double *, int, int)) {
 
@@ -130,7 +130,7 @@ template <typename Kernel> class Darcy {
       darcy.addBilinear(innerProduct(mu_G * average(u * n), average(v * n)) +
                             innerProduct(xi0 * mu_G * jump(u * n), jump(v * n)),
                         *inter_p);
-      darcy.addLinear(-innerProduct(phat.expression(), jump(v * n)), *inter_p);
+      darcy.addLinear(-innerProduct(phat.expr(), jump(v * n)), *inter_p);
    }
    void add_natural_BC(double (*f)(double *, int, int)) {
 
@@ -140,7 +140,7 @@ template <typename Kernel> class Darcy {
       Normal n;
       TestFunction<2> v(*Wh_p, 2);
       darcy.addLinear(
-          -innerProduct(p0.expression(), v * n) // Only on Gamma_N (pressure)
+          -innerProduct(p0.expr(), v * n) // Only on Gamma_N (pressure)
           ,
           *Khi_p, INTEGRAL_BOUNDARY);
    }
