@@ -112,4 +112,17 @@ class BoundaryPoint1 : public GenericElement<DataPoint1> {
    }
 };
 
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg1>::nvedge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg1>::nvface;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg1>::nvhyperFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg1>::edgeOfFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg1>::faceOfEdge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg1>::commonVertOfEdges;
+
 #endif

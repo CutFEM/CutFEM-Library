@@ -398,7 +398,8 @@ template <class MMesh> class GFESpace : public DataFENodeDF {
    virtual const GFESpace<Mesh> &get_back_space() const { return *this; }
    virtual const ActiveMesh<Mesh> &get_mesh() const {
       assert(0);
-      return ActiveMesh<Mesh>(Th);
+      auto m = std::make_shared<ActiveMesh<Mesh>>(Th);
+      return *m;
    }
 
    int NbNode() const { return this->nbNode; }

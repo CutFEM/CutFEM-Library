@@ -413,4 +413,43 @@ class Hexa : public GenericElement<DataHexa> {
    // R mesureBord(int i) const ;
 };
 
+// Forward declaration
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::nvedge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::nvface;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::nvhyperFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::edgeOfFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle3>::faceOfEdge;
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataTriangle3>::commonVertOfEdges;
+
+template <> const std::vector<std::vector<int>> GenericElement<DataTet>::nvedge;
+template <> const std::vector<std::vector<int>> GenericElement<DataTet>::nvface;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::nvhyperFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::edgeOfFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::faceOfEdge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTet>::commonVertOfEdges;
+
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::nvedge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::nvface;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::nvhyperFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::edgeOfFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::faceOfEdge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataHexa>::commonVertOfEdges;
+
 #endif
