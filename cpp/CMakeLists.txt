@@ -1,26 +1,28 @@
 cmake_minimum_required(VERSION 3.10)
 
-
-set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang")
-set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang++")
-
-
 project(CutFEM VERSION 1.0)
-
-# set(CMAKE_CXX_STANDARD 15)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
+## ##############################
+## Options
+## ##############################
 option(USE_MPI "Perform a parallel computation" OFF)
 option(USE_OMP "Perform a parallel omp computation" OFF)
-option(USE_UMFPACK "Found the UMFpack library" ON)
+option(USE_UMFPACK "Found the UMFpack library" OFF)
 option(USE_LAPACK "Found the lapacke library" OFF)
 option(USE_MUMPS "Found the MUMPS library" OFF)
+
+option(CUTFEM_BUILD_TESTS "Build and run library tests" OFF)
+option(CUTFEM_BUILD_PYTHON_WRAPPER "Build a library for Python" ON)
+option(CUTFEM_BUILD_EXE "Build the cpp example" OFF)
 
 
 if(USE_MPI)
   set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.4_2/bin/mpic++")
 endif()
+
 ## ##############################
 ## Configuration
 ## ##############################
@@ -30,9 +32,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -fPIC -std=c++17  -DCHECK_KN -O3 -w  -D_Float128=__float128")
-
-message( " cxx compiler ${CMAKE_CXX_COMPILER}")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -fPIC -std=c++20  -O3 ")
 
 
 if(USE_MPI)
@@ -49,27 +49,33 @@ add_subdirectory(solver)
 list(APPEND EXTRA_LIBS solver)
 add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
-#list(APPEND EXTRA_LIBS -lstdc++fs)
-list(APPEND EXTRA_LIBS /usr/local/opt/libomp/lib/libomp.dylib)
-list(APPEND EXTRA_INCLUDES /usr/local/opt/libomp/include)
 
-## for the test
+
+if(${CUTFEM_BUILD_TESTS})
 add_subdirectory(test/)
+endif()
 
+if(${CUTFEM_BUILD_PYTHON_WRAPPER})
 get_directory_property(COMMON_SOURCES DIRECTORY common DEFINITION COMMON_SOURCES)
 get_directory_property(FESPACE_SOURCES DIRECTORY FESpace DEFINITION FESPACE_SOURCES)
 get_directory_property(PROBLEM_SOURCES DIRECTORY problem DEFINITION PROBLEM_SOURCES)
 get_directory_property(SOLVER_SOURCES DIRECTORY solver DEFINITION SOLVER_SOURCES)
+add_library(_darcy SHARED wrap_lib/lib_darcy.cpp)
+target_include_directories(_darcy
+PUBLIC
+"${CMAKE_CURRENT_SOURCE_DIR}"
+"${PROJECT_BINARY_DIR}")
+target_sources(_darcy PRIVATE ${COMMON_SOURCES} ${FESPACE_SOURCES} ${SOLVER_SOURCES} ${PROBLEM_SOURCES})
+endif()
 
 
-# add_library(_darcy SHARED wrap_lib/lib_darcy.cpp)
-# target_include_directories(_darcy
-# PUBLIC
-# "${CMAKE_CURRENT_SOURCE_DIR}"
-# "${PROJECT_BINARY_DIR}")
-# target_sources(_darcy PRIVATE ${COMMON_SOURCES} ${FESPACE_SOURCES} ${SOLVER_SOURCES} ${PROBLEM_SOURCES})
-
-
+if(${CUTFEM_BUILD_EXE})
+set(EX_NAME darcy)
+add_executable(${EX_NAME}  mainFiles/darcy.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                       "${PROJECT_BINARY_DIR}"
+                       ${EXTRA_INCLUDES})
 #
 set(EX_NAME bulkCD)
 add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
@@ -84,13 +90,6 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 target_include_directories(${EX_NAME} PUBLIC
                         "${PROJECT_BINARY_DIR}"
                         ${EXTRA_INCLUDES})
-#
-set(EX_NAME darcy)
-add_executable(${EX_NAME}  mainFiles/darcy.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-target_include_directories(${EX_NAME} PUBLIC
-                       "${PROJECT_BINARY_DIR}"
-                       ${EXTRA_INCLUDES})
 
 
 #
@@ -115,3 +114,6 @@ target_include_directories(${EX_NAME} PUBLIC
 # target_include_directories(${EX_NAME} PUBLIC
 #                         "${PROJECT_BINARY_DIR}"
 #                         ${EXTRA_INCLUDES})
+
+
+endif()

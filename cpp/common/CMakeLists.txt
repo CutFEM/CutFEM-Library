@@ -18,17 +18,18 @@ ${CMAKE_CURRENT_SOURCE_DIR}/geometry.cpp
 # ${CMAKE_CURRENT_SOURCE_DIR}/parametrization.cpp
 # ${CMAKE_CURRENT_SOURCE_DIR}/spline.cpp
 )
-add_library(common SHARED ${COMMON_SOURCES})
 
+if(${CUTFEM_BUILD_EXE} OR ${CUTFEM_BUILD_TESTS})
+add_library(common SHARED ${COMMON_SOURCES})
 target_include_directories(common
 PUBLIC
 "${CMAKE_CURRENT_SOURCE_DIR}"
 "${PROJECT_BINARY_DIR}")
-
 if(USE_MPI)                   
 target_link_libraries(common PRIVATE parallel)
 else()
 target_link_libraries(common)
+endif()
 endif()
 
 
