@@ -5,6 +5,16 @@
 #include "/usr/local/opt/libomp/include/omp.h"
 #endif
 
+#include <cassert>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <fstream>
+#include <iostream>
+#include <vector>
+
+#include "common/global.hpp"
+#include "common/Mesh3dn.hpp"
 #include "num/print_container.hpp"
 #include "num/util.hpp"
 #include "problem/baseProblem.hpp"

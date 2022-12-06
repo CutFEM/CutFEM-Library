@@ -112,7 +112,10 @@ template <typename T, typename B, typename V> class GenericMesh {
  public:
    int nbElmts() const { return nt; }
    int get_nb_element() const { return nt; }
+   int getNbElement() const { return nt; }
+   int getNbNode() const { return nv; }
    int nbBrdElmts() const { return nbe; }
+   int getNbBorder() const { return nbe; }
    int nbVertices() const { return nv; }
    int nbElements() const { return nt; }
    int NbElement() const { return nt; }
@@ -213,6 +216,12 @@ template <typename T, typename B, typename V> class GenericMesh {
       j     = p % nea;
       return p >= 0 ? p / nea : -1;
    }
+   std::tuple<int, int> getElementAdj(const int k, const int j) const {
+      int p  = TheAdjacencesLink[nea * k + j];
+      int jj = p % nea;
+      int kn = p >= 0 ? p / nea : -1;
+      return {kn, jj};
+   }
 
    int GetAllElementAdj(int it, int *tabk)
        const { //  get the tab of all adj element (std::max ne)
@@ -242,10 +251,19 @@ template <typename T, typename B, typename V> class GenericMesh {
       ItemInK = i % nea;
       return i / nea;
    }
-
    int BoundaryElement(int bbe) const {
       int ItemInK;
       return BoundaryElement(bbe, ItemInK);
+   }
+   std::tuple<int, int> getBoundaryElement(const int bbe,
+                                           const int ItemInK) const {
+      int i = BoundaryElementHeadLink[bbe];
+      int j = i % nea;
+      return {i / nea, j};
+   }
+   std::tuple<int, int> getBoundaryElement(int bbe) const {
+      int ItemInK;
+      return getBoundaryElement(bbe, ItemInK);
    }
 
    template <int N, int M>

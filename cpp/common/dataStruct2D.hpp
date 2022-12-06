@@ -34,9 +34,10 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #ifndef COMMON_DATA_STRUCT_2D_HPP
 #define COMMON_DATA_STRUCT_2D_HPP
+#include <cassert>
+#include <array>
 
 #include "GenericElement.hpp"
-#include <array>
 
 typedef GenericVertex<R2> Vertex2;
 

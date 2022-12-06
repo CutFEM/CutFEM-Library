@@ -176,6 +176,16 @@ template <typename T> struct SortArray<T, 4> {
 };
 
 template <typename T, int N>
+bool operator==(const SortArray<T, N> &v1, const SortArray<T, N> &v2) {
+   for (int j = 0; j < N; j++) {
+      if (v1.v[j] != v2.v[j]) {
+         return false;
+      }
+   }
+   return true;
+}
+
+template <typename T, int N>
 std::ostream &operator<<(std::ostream &f, const SortArray<T, N> &item) {
    for (int i = 0; i < N; ++i)
       f << " " << item.v[i];
