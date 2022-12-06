@@ -1,4 +1,19 @@
 /*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
+/*
    We consider a time-dependent bulk problem on Omega2.
    We consider problems with both Neumann and Dirichlet boundary conditions,
    and we consider scheme II, III and the Reynold scheme.
@@ -36,7 +51,7 @@
 #include "../num/matlab.hpp"
 #include "paraview.hpp"
 
-//using namespace std;
+// using namespace std;
 using namespace globalVariable;
 
 // Numerical examples
@@ -921,7 +936,9 @@ int main(int argc, char **argv) {
          number_of_stabilized_edges.at(j) = TimeMacro.number_of_inner_edges();
 
          if (iterations == 1 && h > 0.01) {
-            Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" + std::to_string(iter + 1) + ".vtk");
+            Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" +
+                                               std::to_string(iter + 1) +
+                                               ".vtk");
             writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
             writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
             writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
@@ -932,21 +949,24 @@ int main(int argc, char **argv) {
                                       pathOutputFigures + "FullStabilization" +
                                           std::to_string(iter + 1) + ".vtk");
             writerMacro.writeActiveMesh(Kh2, pathOutputFigures + "ActiveMesh" +
-                                                 std::to_string(iter + 1) + ".vtk");
+                                                 std::to_string(iter + 1) +
+                                                 ".vtk");
             writerMacro.writeMacroElement(TimeMacro, 0,
                                           pathOutputFigures + "macro" +
-                                              std::to_string(iter + 1) + ".vtk");
-            writerMacro.writeMacroInnerEdge(TimeMacro, 0,
-                                            pathOutputFigures +
-                                                "macro_inner_edge" +
-                                                std::to_string(iter + 1) + ".vtk");
-            writerMacro.writeMacroOutterEdge(TimeMacro, 0,
-                                             pathOutputFigures +
-                                                 "macro_outer_edge" +
-                                                 std::to_string(iter + 1) + ".vtk");
+                                              std::to_string(iter + 1) +
+                                              ".vtk");
+            writerMacro.writeMacroInnerEdge(
+                TimeMacro, 0,
+                pathOutputFigures + "macro_inner_edge" +
+                    std::to_string(iter + 1) + ".vtk");
+            writerMacro.writeMacroOutterEdge(
+                TimeMacro, 0,
+                pathOutputFigures + "macro_outer_edge" +
+                    std::to_string(iter + 1) + ".vtk");
             writerMacro.writeSmallElements(TimeMacro, 0,
                                            pathOutputFigures + "small_element" +
-                                               std::to_string(iter + 1) + ".vtk");
+                                               std::to_string(iter + 1) +
+                                               ".vtk");
          }
 
          // Stabilization of the bulk
@@ -1102,9 +1122,9 @@ int main(int argc, char **argv) {
 #endif
 
          if (iter == total_number_iteration - 1)
-            matlab::Export(convdiff.mat_[0], pathOutputFolder + "mat_h" +
-                                                 std::to_string(h) + "_" +
-                                                 std::to_string(j + 1) + ".dat");
+            matlab::Export(convdiff.mat_[0],
+                           pathOutputFolder + "mat_h" + std::to_string(h) +
+                               "_" + std::to_string(j + 1) + ".dat");
 
          // Solve linear system
          convdiff.solve("mumps");

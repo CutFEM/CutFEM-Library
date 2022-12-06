@@ -56,7 +56,6 @@ elseif(USE_MUMPS)
 list(APPEND  SOLVER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/solverMumps.cpp)
 endif()
 
-if(${CUTFEM_BUILD_MAIN} OR ${CUTFEM_BUILD_TESTS})
 add_library(solver SHARED ${SOLVER_SOURCES})
 target_include_directories(solver
 PUBLIC
@@ -64,5 +63,3 @@ PUBLIC
 "${PROJECT_BINARY_DIR}"
 )
 target_link_libraries(solver PRIVATE ${LINK_LIBRARY})
-
-endif()

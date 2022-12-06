@@ -19,7 +19,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/geometry.cpp
 # ${CMAKE_CURRENT_SOURCE_DIR}/spline.cpp
 )
 
-if(${CUTFEM_BUILD_MAIN} OR ${CUTFEM_BUILD_TESTS})
 add_library(common SHARED ${COMMON_SOURCES})
 target_include_directories(common
 PUBLIC
@@ -29,7 +28,6 @@ if(USE_MPI)
 target_link_libraries(common PRIVATE parallel)
 else()
 target_link_libraries(common)
-endif()
 endif()
 
 

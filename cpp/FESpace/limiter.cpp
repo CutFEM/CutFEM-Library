@@ -1,14 +1,30 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #include "limiter.hpp"
 
-void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_u, double max_u) {
+void Limiter::check_maximum_principle(std::map<int, double> &u_mean,
+                                      double min_u, double max_u) {
 
-  for (auto& p : u_mean) {
-    double val = p.second;
-    if( min_u > val || max_u < val) {
-      std::cout << "element \t" << p.first << "\t" << min_u
-      << "\t" << val << "\t" << max_u << std::endl;
-    }
-  }
+   for (auto &p : u_mean) {
+      double val = p.second;
+      if (min_u > val || max_u < val) {
+         std::cout << "element \t" << p.first << "\t" << min_u << "\t" << val
+                   << "\t" << max_u << std::endl;
+      }
+   }
 }
 
 // void Limiter::KXRCF_indicator(const Fun2_h& uh, const Fun2_h& flux){
@@ -30,9 +46,8 @@ void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_
 //     local_flux.x = flux.evalOnBackMesh(kb, x_mid, 0, op_id, the_domain);
 //     local_flux.y = flux.evalOnBackMesh(kb, x_mid, 1, op_id, the_domain);
 //
-//     const R h = FK.T.hMax() / 2; // lenght of the radius of the circomscribed triangle
-//     double measB = 1e-15;
-//     double maxQj = 1e-15;
+//     const R h = FK.T.hMax() / 2; // lenght of the radius of the circomscribed
+//     triangle double measB = 1e-15; double maxQj = 1e-15;
 //
 //     // compute the local norm
 //     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
@@ -41,7 +56,8 @@ void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_
 //       maxQj = max(maxQj, fabs(uh.eval(k, mip, 0, op_id)));
 //     }
 //
-//     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
+//     for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges
+//     / faces
 //
 //       const R2 normal = FK.T.N(ifac);
 //       if( (normal, local_flux) > 0 ) continue;
@@ -60,7 +76,8 @@ void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_
 //         const R2 mip = FK.T(FK.T.toKref((R1)ip, ifac));
 //         const R Cint = meas * ip.getWeight();
 //
-//         indicator(k) += Cint * (uh.eval(k, mip, 0, op_id) - uh.eval(kn, mip, 0, op_id));
+//         indicator(k) += Cint * (uh.eval(k, mip, 0, op_id) - uh.eval(kn, mip,
+//         0, op_id));
 //       }
 //     }
 //     data_send(k) = fabs(indicator(k))/ (h*measB*maxQj);
@@ -69,10 +86,12 @@ void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_
 //   MPIcf::AllReduce(data_send, indicator, MPI_MIN);
 // }
 //
-// void Limiter::min_and_max_average_neighbor(const FElement& FK, const Fun2_h&uh, double&m, double&M){
+// void Limiter::min_and_max_average_neighbor(const FElement& FK, const
+// Fun2_h&uh, double&m, double&M){
 //   m=1e300, M=-1e300;
 //   int the_domain = FK.whichDomain();
-//   for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
+//   for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges /
+//   faces
 //     int ifacn = ifac;
 //     int kn = FK.Vh.getNeighborElement(FK.index(), ifacn, the_domain);
 //     if(kn == -1) continue;         // border edge
@@ -98,11 +117,13 @@ void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_
 //   return Uj;
 // }
 //
-// double Limiter::compute_alpha(const FElement& FK, const Fun2_h&uh, double Uj, double m, double M) {
+// double Limiter::compute_alpha(const FElement& FK, const Fun2_h&uh, double Uj,
+// double m, double M) {
 //   double min_alpha_i = 1e300;
 //   int the_domain = FK.whichDomain();
 //
-//   for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges / faces
+//   for(int ifac = 0; ifac < Element::nea; ++ifac) {    //loop over the edges /
+//   faces
 //     int ifacn = ifac;
 //     int kn = FK.Vh.getNeighborElement(FK.index(), ifacn, the_domain);
 //     if(kn == -1) continue;
@@ -204,7 +225,8 @@ void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_
 //           int i0 = temp_triangles_[k][Element::nvedge[ie_cut][0]];
 //           int i1 = temp_triangles_[k][Element::nvedge[ie_cut][1]];
 //           cut[ie] = vertices_.size();
-//           vertices_.push_back(it->get_cut_node(vertices_[i0], vertices_[i1]));
+//           vertices_.push_back(it->get_cut_node(vertices_[i0],
+//           vertices_[i1]));
 //         }
 //         // find nodes in domain ( 1 or 2)
 //         int nb_node = 0;
@@ -215,16 +237,17 @@ void Limiter::check_maximum_principle(std::map<int, double>& u_mean, double min_
 //             nb_node++;
 //           }
 //         }
-//         const int v = Element::commonVertOfEdges[idx_edge_cut[0]][idx_edge_cut[1]];
+//         const int v =
+//         Element::commonVertOfEdges[idx_edge_cut[0]][idx_edge_cut[1]];
 //         if(nb_node == 1){
 //           // ADD TRIANGLE
 //           triangles_.push_back(TriaIdx(idx_nodes[0], cut[0], cut[1]));
 //         }
 //         else {
 //           // ADD 2 TRIANGLES
-//           const int i0 = temp_triangles_[k][Element::oppVertOfEdge( idx_edge_cut[0], v)];
-//           const int i1 = cut[0];
-//           const int i2 = temp_triangles_[k][Element::oppVertOfEdge( idx_edge_cut[1], v)];
+//           const int i0 = temp_triangles_[k][Element::oppVertOfEdge(
+//           idx_edge_cut[0], v)]; const int i1 = cut[0]; const int i2 =
+//           temp_triangles_[k][Element::oppVertOfEdge( idx_edge_cut[1], v)];
 //           const int i3 = cut[1];
 //           triangles_.push_back(TriaIdx(i0, i1, i2));
 //           triangles_.push_back(TriaIdx(i1, i3, i2));

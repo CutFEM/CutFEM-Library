@@ -1,34 +1,25 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
+
 #ifndef COMMON_CUT_MESH_HPP
 #define COMMON_CUT_MESH_HPP
 
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"
 #include "base_interface.hpp"
-
-// struct CBorder {
-//    CBorder() {}
-// };
-// const CBorder INTEGRAL_BOUNDARY;
-// struct CFacet {
-//    CFacet() {}
-// };
-// const CFacet INTEGRAL_INNER_FACET;
-// const CFacet INTEGRAL_INNER_EDGE_2D;
-// const CFacet INTEGRAL_INNER_FACE_3D;
-
-// struct CRidge {
-//    CRidge() {}
-// };
-// const CRidge INTEGRAL_INNER_RIDGE;
-// const CRidge INTEGRAL_INNER_NODE_2D;
-// const CRidge INTEGRAL_INNER_EDGE_3D;
-
-// struct CExtension {
-//    CExtension() {}
-// };
-// const CExtension INTEGRAL_EXTENSION;
-
-// class enum{Explicit_Partition}
 
 template <typename E> struct Cut_Part {
    static const int dim = E::RdHat::d;

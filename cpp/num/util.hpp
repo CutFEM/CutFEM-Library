@@ -1,3 +1,18 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #ifndef UTIL_HPP_
 #define UTIL_HPP_
 
@@ -15,10 +30,6 @@
 #include <list>
 #include <time.h>
 #include <ctime>
-/// Used in equality-tests for floating point numbers.
-const double DoubleEpsC = 1.0e-9; // numeric_limits<double>::epsilon();
-// const double Epsilon    = 10 * std::numeric_limits<double>::epsilon();
-// const double pi         = 3.14159265359;
 
 typedef double R;
 
