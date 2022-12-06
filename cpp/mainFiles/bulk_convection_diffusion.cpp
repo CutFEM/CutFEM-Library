@@ -36,7 +36,7 @@
 #include "../num/matlab.hpp"
 #include "paraview.hpp"
 
-using namespace std;
+//using namespace std;
 using namespace globalVariable;
 
 // Numerical examples
@@ -727,7 +727,7 @@ int main(int argc, char **argv) {
       // Set up level-set function
       FESpace2 Lh(Th, DataFE<Mesh2>::P1);
       double dt_levelSet = dT / (nbTime - 1);
-      vector<Fun_h> ls(nbTime);
+      std::vector<Fun_h> ls(nbTime);
 
 #if defined(levelsetexact)
       for (int i = 0; i < nbTime; i++)
@@ -921,8 +921,7 @@ int main(int argc, char **argv) {
          number_of_stabilized_edges.at(j) = TimeMacro.number_of_inner_edges();
 
          if (iterations == 1 && h > 0.01) {
-            Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" +
-                                               to_string(iter + 1) + ".vtk");
+            Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" + std::to_string(iter + 1) + ".vtk");
             writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
             writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
             writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
@@ -931,23 +930,23 @@ int main(int argc, char **argv) {
 
             writerMacro.writeFaceStab(Kh2, 0,
                                       pathOutputFigures + "FullStabilization" +
-                                          to_string(iter + 1) + ".vtk");
+                                          std::to_string(iter + 1) + ".vtk");
             writerMacro.writeActiveMesh(Kh2, pathOutputFigures + "ActiveMesh" +
-                                                 to_string(iter + 1) + ".vtk");
+                                                 std::to_string(iter + 1) + ".vtk");
             writerMacro.writeMacroElement(TimeMacro, 0,
                                           pathOutputFigures + "macro" +
-                                              to_string(iter + 1) + ".vtk");
+                                              std::to_string(iter + 1) + ".vtk");
             writerMacro.writeMacroInnerEdge(TimeMacro, 0,
                                             pathOutputFigures +
                                                 "macro_inner_edge" +
-                                                to_string(iter + 1) + ".vtk");
+                                                std::to_string(iter + 1) + ".vtk");
             writerMacro.writeMacroOutterEdge(TimeMacro, 0,
                                              pathOutputFigures +
                                                  "macro_outer_edge" +
-                                                 to_string(iter + 1) + ".vtk");
+                                                 std::to_string(iter + 1) + ".vtk");
             writerMacro.writeSmallElements(TimeMacro, 0,
                                            pathOutputFigures + "small_element" +
-                                               to_string(iter + 1) + ".vtk");
+                                               std::to_string(iter + 1) + ".vtk");
          }
 
          // Stabilization of the bulk
@@ -1104,8 +1103,8 @@ int main(int argc, char **argv) {
 
          if (iter == total_number_iteration - 1)
             matlab::Export(convdiff.mat_[0], pathOutputFolder + "mat_h" +
-                                                 to_string(h) + "_" +
-                                                 to_string(j + 1) + ".dat");
+                                                 std::to_string(h) + "_" +
+                                                 std::to_string(j + 1) + ".dat");
 
          // Solve linear system
          convdiff.solve("mumps");
@@ -1132,7 +1131,7 @@ int main(int argc, char **argv) {
                q0_1 = integral(Kh2, b0h, 0, 0);
             }
 
-            outputData << setprecision(10);
+            outputData << std::setprecision(10);
             outputData << current_time << "," << (q_1 - qp_1) << "," << intF
                        << ","
 #ifdef neumann
@@ -1171,7 +1170,7 @@ int main(int argc, char **argv) {
          if ((iterations == 1)) {
 #endif
             Paraview<Mesh> writer(Kh2, pathOutputFigures + "Bulk" +
-                                           to_string(iter + 1) + "DG.vtk");
+                                           std::to_string(iter + 1) + "DG.vtk");
             writer.add(b0h, "bulk", 0, 1);
 
             Fun_h uBex(Wh, fun_uBulk, current_time);

@@ -5,8 +5,6 @@
 #include <iostream>
 #include "../tool.hpp"
 
-using namespace std;
-
 // #define TEST_PIOLA
 // #define DARCY_FEM
 // #define DARCY_FEM_3D
@@ -123,9 +121,9 @@ int main(int argc, char **argv) {
    int nx                = 2; // 6
    int ny                = 2; // 6
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
-   vector<double> ratioCut1, ratioCut2;
+   std::vector<double> ratioCut1, ratioCut2;
    int iters = 5;
 
    for (int i = 0; i < iters; ++i) {
@@ -232,7 +230,7 @@ int main(int argc, char **argv) {
    int ny = 11; // 6
    // Kh_init0.truncate(interface_init, -1);
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
 
    int iters = 1;
@@ -665,14 +663,14 @@ int main(int argc, char **argv) {
    int nx = 11; // 6
    int ny = 11; // 6
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
-   vector<double> ratioCut1, ratioCut2;
+   std::vector<double> ratioCut1, ratioCut2;
    int iters = 5;
 
    // int nn = 1001;
    // double  hh = 1./(nn-1);
-   // std::vector<R2>  sampling_node;
+   // std::std::vector<R2>  sampling_node;
    // sampling_node.reserve(nn*nn);
    // for (int j = 0; j < nn; ++j)
    // {
@@ -1165,7 +1163,7 @@ int main(int argc, char **argv) {
    int nx = 11; // 6
    int ny = 11; // 6
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
 
    int iters = 1;
@@ -1450,7 +1448,7 @@ int main(int argc, char **argv) {
    int nx = 10; // 6
    int ny = 10; // 6
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
 
    int iters = 3;
@@ -1694,7 +1692,7 @@ int main(int argc, char **argv) {
 
    int nx = 50;
    int ny = 50;
-   std::vector<int> idx0;
+   std::std::vector<int> idx0;
 
    int iters = 1;
 
@@ -2159,9 +2157,9 @@ int main(int argc, char **argv) {
 
    int nx = 20;
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
-   vector<double> ratioCut1, ratioCut2;
+   std::vector<double> ratioCut1, ratioCut2;
    int iters = 1;
 
    for (int i = 0; i < iters; ++i) {
@@ -2390,9 +2388,9 @@ int main(int argc, char **argv) {
 
    int nx = 10;
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
-   vector<double> ratioCut1, ratioCut2;
+   std::vector<double> ratioCut1, ratioCut2;
    int iters = 1;
 
    for (int i = 0; i < iters; ++i) {
@@ -2667,9 +2665,9 @@ int main(int argc, char **argv) {
 
    int nx = 21;
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
-   vector<double> ratioCut1, ratioCut2;
+   std::vector<double> ratioCut1, ratioCut2;
    int iters = 2;
 
    for (int i = 0; i < iters; ++i) {
@@ -2968,9 +2966,9 @@ int main(int argc, char **argv) {
 
    int nx = 11;
 
-   vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
+   std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
-   vector<double> ratioCut1, ratioCut2;
+   std::vector<double> ratioCut1, ratioCut2;
    int iters = 4;
 
    for (int i = 0; i < iters; ++i) {
