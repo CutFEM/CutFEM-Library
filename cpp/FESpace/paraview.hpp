@@ -1372,7 +1372,11 @@ template <class M> class Paraview {
 
    void add(Fun_h &, std::string, int, int);
    void add(const ExpressionVirtual &fh, std::string);
+   void add(const std::shared_ptr<ExpressionVirtual> &fh, std::string);
+
    void writeFileScalarData(const ExpressionVirtual &, std::string);
+   void writeFileScalarData(const std::shared_ptr<ExpressionVirtual> &,
+                            std::string);
    void writeFileVectorData(Fun_h &, int, std::string);
 };
 
@@ -1444,6 +1448,13 @@ void Paraview<M>::add(const ExpressionVirtual &fh, std::string nameField) {
 }
 
 template <class M>
+void Paraview<M>::add(const std::shared_ptr<ExpressionVirtual> &fh,
+                      std::string nameField) {
+
+   writeFileScalarData(fh, nameField);
+}
+
+template <class M>
 void Paraview<M>::writeFileScalarData(const ExpressionVirtual &fh,
                                       std::string name) {
 
@@ -1460,6 +1471,31 @@ void Paraview<M>::writeFileScalarData(const ExpressionVirtual &fh,
       int domain = k_dom.second;
       for (int i = 0; i < mesh_data.mesh_node[k].size(); ++i) {
          R1 val = fh.evalOnBackMesh(kb, domain, mesh_data.node(k, i));
+         data << paraviewFormat(val) << std::endl;
+         ;
+      }
+   }
+   data.close();
+   nbDataFile++;
+}
+
+template <class M>
+void Paraview<M>::writeFileScalarData(
+    const std::shared_ptr<ExpressionVirtual> &fh, std::string name) {
+
+   std::ofstream data(outFile_.c_str(),
+                      std::ofstream::out | std::ofstream::app);
+   if (nbDataFile == 0)
+      data << "POINT_DATA " << mesh_data.nbNode() << std::endl;
+   data << "SCALARS " + name + " float" << std::endl;
+   data << "LOOKUP_TABLE default" << std::endl;
+
+   for (int k = 0; k < mesh_data.nbElement(); ++k) {
+      auto k_dom = mesh_data.idx_in_Vh[k];
+      int kb     = k_dom.first;
+      int domain = k_dom.second;
+      for (int i = 0; i < mesh_data.mesh_node[k].size(); ++i) {
+         R1 val = fh->evalOnBackMesh(kb, domain, mesh_data.node(k, i));
          data << paraviewFormat(val) << std::endl;
          ;
       }

@@ -916,8 +916,8 @@ int main(int argc, char **argv) {
       Rn_ data_ph = darcy.rhs_(SubArray(Ph.get_nb_dof(), idx0_s));
       Fun_h uh(Wh, data_uh);
       Fun_h ph(Ph, data_ph);
-      ExpressionFunFEM<Mesh> femSol_0dx(uh, 0, op_dx);
-      ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
+      auto femSol_0dx = dx(uh.expr(0));
+      auto femSol_1dy = dy(uh.expr(1));
 
       //
 

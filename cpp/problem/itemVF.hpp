@@ -715,8 +715,8 @@ ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
 //    return item;
 // }
 
-template <int d>
-ListItemVF<d> operator,(const std::list<std::shared_ptr<ExpressionVirtual>> &fh,
+template <int d, typename Expr>
+ListItemVF<d> operator,(const std::list<std::shared_ptr<Expr>> &fh,
                         const TestFunction<d> &F) {
    if (F.nbRow() != fh.size()) {
       std::cout << "size expression \t" << fh.size() << std::endl;
@@ -785,10 +785,9 @@ ListItemVF<d> innerProduct(const ExpressionVirtual &fh,
    return operator,(fh, F);
 }
 
-template <int d>
-ListItemVF<d>
-innerProduct(const std::list<std::shared_ptr<ExpressionVirtual>> &fh,
-             const TestFunction<d> &F) {
+template <int d, typename Expr>
+ListItemVF<d> innerProduct(const std::list<std::shared_ptr<Expr>> &fh,
+                           const TestFunction<d> &F) {
    return operator,(fh, F);
 }
 

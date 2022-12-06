@@ -173,11 +173,12 @@ double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R *x, const R t,
 }
 
 template <typename M>
-std::list<std::shared_ptr<ExpressionVirtual>> FunFEM<M>::exprList(int n) const {
+std::list<std::shared_ptr<ExpressionFunFEM<M>>>
+FunFEM<M>::exprList(int n) const {
    if (n == -1)
       n = Vh->N;
    assert(n <= Vh->N);
-   std::list<std::shared_ptr<ExpressionVirtual>> l;
+   std::list<std::shared_ptr<ExpressionFunFEM<Mesh>>> l;
    for (int i = 0; i < n; ++i) {
       l.push_back(std::make_shared<ExpressionFunFEM<Mesh>>(*this, i, op_id));
    }
@@ -186,7 +187,7 @@ std::list<std::shared_ptr<ExpressionVirtual>> FunFEM<M>::exprList(int n) const {
 }
 
 template <typename M>
-std::shared_ptr<ExpressionVirtual> FunFEM<M>::expr(int i0) const {
+std::shared_ptr<ExpressionFunFEM<M>> FunFEM<M>::expr(int i0) const {
    assert(i0 < Vh->N);
    return std::make_shared<ExpressionFunFEM<Mesh>>(*this, i0, op_id);
 }

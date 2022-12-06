@@ -425,10 +425,9 @@ TestFunction<D> operator*(const TestFunction<D> &T,
    return multU;
 }
 
-template <int D>
-TestFunction<D>
-operator*(const std::list<std::shared_ptr<ExpressionVirtual>> &fh,
-          const TestFunction<D> &T) {
+template <int D, typename Expr>
+TestFunction<D> operator*(const std::list<std::shared_ptr<Expr>> &fh,
+                          const TestFunction<D> &T) {
    auto [N, M] = T.size();
    assert(M == 1);
 

@@ -16,8 +16,7 @@ option(USE_MUMPS "Found the MUMPS library" OFF)
 
 option(CUTFEM_BUILD_TESTS "Build and run library tests" OFF)
 option(CUTFEM_BUILD_PYTHON_WRAPPER "Build a library for Python" ON)
-option(CUTFEM_BUILD_EXE "Build the cpp example" OFF)
-
+option(CUTFEM_BUILD_MAIN "Build the cpp example" OFF)
 
 if(USE_MPI)
   set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.4_2/bin/mpic++")
@@ -69,7 +68,7 @@ target_sources(_darcy PRIVATE ${COMMON_SOURCES} ${FESPACE_SOURCES} ${SOLVER_SOUR
 endif()
 
 
-if(${CUTFEM_BUILD_EXE})
+if(${CUTFEM_BUILD_MAIN})
 set(EX_NAME darcy)
 add_executable(${EX_NAME}  mainFiles/darcy.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})

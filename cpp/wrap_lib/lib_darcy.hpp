@@ -227,8 +227,8 @@ template <typename Kernel> class Darcy {
    double L2error_div(double (*f)(double *, int, int)) {
       Rn_ data_uh = sub_array(darcy.rhs_, 0, Wh_p->get_nb_dof());
       FunFEM<Mesh> uh(*Wh_p, data_uh);
-      ExpressionFunFEM<Mesh> femSol_0dx(uh, 0, op_dx);
-      ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
+      auto femSol_0dx = dx(uh.expr(0));
+      auto femSol_1dy = dy(uh.expr(1));
 
       return L2normCut(femSol_0dx + femSol_1dy, f, *Khi_p);
    }
@@ -251,8 +251,8 @@ template <typename Kernel> class Darcy {
 
       FunFEM<Mesh> uh(*Wh_p, data_uh);
       FunFEM<Mesh> ph(*Ph_p, data_ph);
-      ExpressionFunFEM<Mesh> femSol_0dx(uh, 0, op_dx);
-      ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
+      auto femSol_0dx = dx(uh.expr(0));
+      auto femSol_1dy = dy(uh.expr(1));
 
       Paraview<Mesh> writer(*Khi_p, filename);
 
