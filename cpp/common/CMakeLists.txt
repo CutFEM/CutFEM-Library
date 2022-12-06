@@ -19,7 +19,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/geometry.cpp
 # ${CMAKE_CURRENT_SOURCE_DIR}/spline.cpp
 )
 
-if(${CUTFEM_BUILD_EXE} OR ${CUTFEM_BUILD_TESTS})
+if(${CUTFEM_BUILD_MAIN} OR ${CUTFEM_BUILD_TESTS})
 add_library(common SHARED ${COMMON_SOURCES})
 target_include_directories(common
 PUBLIC

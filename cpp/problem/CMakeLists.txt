@@ -12,7 +12,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/baseProblem.cpp
   #  reinitialization.cpp
 
 )
-if(${CUTFEM_BUILD_EXE} OR ${CUTFEM_BUILD_TESTS})
+if(${CUTFEM_BUILD_MAIN} OR ${CUTFEM_BUILD_TESTS})
 add_library(problem SHARED ${PROBLEM_SOURCES})
 target_include_directories(problem 
 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
