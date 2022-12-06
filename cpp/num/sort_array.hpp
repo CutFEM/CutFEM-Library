@@ -1,3 +1,22 @@
+/*
+
+ This file is part of Freefem++
+
+ Freefem++ is free software; you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation; either version 2.1 of the License, or
+ (at your option) any later version.
+
+ Freefem++  is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with Freefem++; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 #ifndef COMMON_SORT_ARRAY_HPP
 #define COMMON_SORT_ARRAY_HPP
 
@@ -155,6 +174,16 @@ template <typename T> struct SortArray<T, 4> {
    }
    size_t hash() const { return (size_t)v[0]; }
 };
+
+template <typename T, int N>
+bool operator==(const SortArray<T, N> &v1, const SortArray<T, N> &v2) {
+   for (int j = 0; j < N; j++) {
+      if (v1.v[j] != v2.v[j]) {
+         return false;
+      }
+   }
+   return true;
+}
 
 template <typename T, int N>
 std::ostream &operator<<(std::ostream &f, const SortArray<T, N> &item) {

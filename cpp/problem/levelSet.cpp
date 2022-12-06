@@ -1,7 +1,23 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #include "levelSet.hpp"
-// 
 //
-// void LevelSet2::assembly(const Fun& up, const Fun& Betap, const Fun& Beta, double dt) {
+//
+// void LevelSet2::assembly(const Fun& up, const Fun& Betap, const Fun& Beta,
+// double dt) {
 //   typedef typename QF::QuadraturePoint QuadraturePoint;
 //
 //   const int d = Rd::d;
@@ -35,7 +51,8 @@
 //       for(int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
 //         for(int j = FK.dfcbegin(0); j < FK.dfcend(0); ++j) {
 //           (*this)(FK.loc2glb(i),FK.loc2glb(j)) +=  Cint * (
-//             ((1./dt)*fu(j,0,op_id) + 0.5*(Bx*fu(j,0,op_dx)+ By*fu(j,0,op_dy)))
+//             ((1./dt)*fu(j,0,op_id) + 0.5*(Bx*fu(j,0,op_dx)+
+//             By*fu(j,0,op_dy)))
 //             *
 //             (fu(i,0,op_id) + Tsd * (Bx*fu(i,0,op_dx) + By*fu(i,0,op_dy)))
 //           );
@@ -56,7 +73,8 @@
 //     }
 //   }
 // }
-// void LevelSet3::assembly(const Fun& up, const Fun& Betap, const Fun& Beta, double dt) {
+// void LevelSet3::assembly(const Fun& up, const Fun& Betap, const Fun& Beta,
+// double dt) {
 //   typedef typename QF::QuadraturePoint QuadraturePoint;
 //
 //   const int d = Rd::d;
@@ -93,9 +111,11 @@
 //       for(int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
 //         for(int j = FK.dfcbegin(0); j < FK.dfcend(0); ++j) {
 //           (*this)(FK.loc2glb(i),FK.loc2glb(j)) +=  Cint * (
-//             ((1./dt)*fu(j,0,op_id) + 0.5*(Bx*fu(j,0,op_dx)+ By*fu(j,0,op_dy)+ Bz*fu(j,0,op_dz)))
+//             ((1./dt)*fu(j,0,op_id) + 0.5*(Bx*fu(j,0,op_dx)+ By*fu(j,0,op_dy)+
+//             Bz*fu(j,0,op_dz)))
 //             *
-//             (fu(i,0,op_id) + Tsd * (Bx*fu(i,0,op_dx) + By*fu(i,0,op_dy)+ Bz*fu(i,0,op_dz)))
+//             (fu(i,0,op_id) + Tsd * (Bx*fu(i,0,op_dx) + By*fu(i,0,op_dy)+
+//             Bz*fu(i,0,op_dz)))
 //             // + epsilon_diffusion*fu(i,0,op_dx)*fu(j,0,op_dx)
 //             // + epsilon_diffusion*fu(i,0,op_dy)*fu(j,0,op_dy)
 //             // + epsilon_diffusion*fu(i,0,op_dz)*fu(j,0,op_dz)
@@ -106,7 +126,8 @@
 //         Cint*(
 //           ((1./dt)*Up - 0.5*(Bpx*dxup + Bpy*dyup+ Bpz*dzup))
 //           *
-//           (fu(i,0,op_id) + Tsd * (Bx*fu(i,0,op_dx) + By*fu(i,0,op_dy)+ Bz*fu(i,0,op_dz)))
+//           (fu(i,0,op_id) + Tsd * (Bx*fu(i,0,op_dx) + By*fu(i,0,op_dy)+
+//           Bz*fu(i,0,op_dz)))
 //         )
 //         ;
 //       }

@@ -1,3 +1,18 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
@@ -304,25 +319,27 @@ int main(int argc, char **argv) {
       // ==================================================
       if (MPIcf::IamMaster() && i % 10 == 0 || i + 1 == niteration) {
 
-         Paraview<Mesh> writer(Kh,
-                               "smooth_FEM_P0_" + std::to_string(ifig++) + ".vtk");
+         Paraview<Mesh> writer(Kh, "smooth_FEM_P0_" + std::to_string(ifig++) +
+                                       ".vtk");
          writer.add(fun_uh, "uhNoLimiter", 0, 1);
          writer.add(fun_u1, "uhLimiter", 0, 1);
          writer.add(fun_ex, "u_exact", 0, 1);
       }
 
       std::cout << " || u-uex ||_2 = " << errU << std::endl;
-      std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0)
-                << std::setprecision(6) << std::endl;
+      std::cout << std::setprecision(16)
+                << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                << std::endl;
 
       if (i == 0) {
          outputData << "it \t tid \t errU \t q \t\t errQ \t\t minU \t\t maxU "
                     << std::endl;
       }
-      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU << "\t"
-                 << std::setprecision(16) << qu << "\t" << std::setprecision(16)
-                 << fabs(qu - qu0) << "\t" << std::setprecision(16) << min_uh_tild
-                 << "\t" << std::setprecision(16) << max_uh_tild << "\t"
+      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU
+                 << "\t" << std::setprecision(16) << qu << "\t"
+                 << std::setprecision(16) << fabs(qu - qu0) << "\t"
+                 << std::setprecision(16) << min_uh_tild << "\t"
+                 << std::setprecision(16) << max_uh_tild << "\t"
                  << std::setprecision(5) << std::endl;
 
       // return 0;
@@ -630,8 +647,9 @@ int main(int argc, char **argv) {
       auto [min_u1, max_u1] = limiter::CutFEM::findMinAndMaxValue(fun_uh_tild);
       // if(MPIcf::IamMaster()) {
       //   Paraview<Mesh> writer(Khi,
-      //   "smoothSol_CutFEM_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh,
-      //   "uhNoLimiter", 0, 1); writer.add(fun_uh_tild, "uhLimiter", 0, 1);
+      //   "smoothSol_CutFEM_"+std::to_string(ifig++)+".vtk");
+      //   writer.add(fun_uh, "uhNoLimiter", 0, 1); writer.add(fun_uh_tild,
+      //   "uhLimiter", 0, 1);
       //   // writer.add(fun_uM, "macroExtend", 0, 1);
       // }
 
@@ -681,8 +699,8 @@ int main(int argc, char **argv) {
       // ==================================================
       if (MPIcf::IamMaster() && i % 5 == 0 || i + 1 == niteration) {
 
-         Paraview<Mesh> writer(Khi,
-                               "smoothSolCutFEM_" + std::to_string(ifig++) + ".vtk");
+         Paraview<Mesh> writer(Khi, "smoothSolCutFEM_" +
+                                        std::to_string(ifig++) + ".vtk");
          writer.add(fun_uh, "uhNoLimiter", 0, 1);
          writer.add(fun_uh_tild, "uhLimiter", 0, 1);
          writer.add(femErrh, "error", 0, 1);
@@ -691,11 +709,13 @@ int main(int argc, char **argv) {
 
       // std::cout << std::setprecision(16) << "q(u) = " << qu << std::endl;
       std::cout << " || u-uex ||_2 = " << errU << std::endl;
-      std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0)
-                << std::setprecision(6) << std::endl;
-      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU << "\t"
-                 << std::setprecision(16) << qu << "\t" << std::setprecision(16)
-                 << fabs(qu - qu0) << "\t" << std::setprecision(5) << std::endl;
+      std::cout << std::setprecision(16)
+                << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                << std::endl;
+      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU
+                 << "\t" << std::setprecision(16) << qu << "\t"
+                 << std::setprecision(16) << fabs(qu - qu0) << "\t"
+                 << std::setprecision(5) << std::endl;
    }
 
    std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration
@@ -1069,8 +1089,8 @@ int main(int argc, char **argv) {
       if (i % 1 == 0 || i + 1 == niteration) {
 #endif
          // Fun_h fun_thet (Wh, fun_theta);
-         Paraview<Mesh> writer(Khi,
-                               "test_accuracyP0_" + std::to_string(ifig++) + ".vtk");
+         Paraview<Mesh> writer(Khi, "test_accuracyP0_" +
+                                        std::to_string(ifig++) + ".vtk");
          writer.add(fun_uh, "uhNoLimiter", 0, 1);
          writer.add(fun_uh_tild, "uhLimiter", 0, 1);
          writer.add(femErrh, "error", 0, 1);
@@ -1081,18 +1101,20 @@ int main(int argc, char **argv) {
          return 0;
       // std::cout << std::setprecision(16) << "q(u) = " << qu << std::endl;
       std::cout << " || u-uex ||_2 = " << errU << std::endl;
-      std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0)
-                << std::setprecision(6) << std::endl;
+      std::cout << std::setprecision(16)
+                << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                << std::endl;
 
       if (i == 0) {
          outputData << "it \t tid \t errU \t q \t\t errQ \t\t minU \t\t maxU "
                     << std::endl;
       }
-      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU << "\t"
-                 << std::setprecision(16) << qu << "\t" << std::setprecision(16)
-                 << fabs(qu - qu0) << "\t" << std::setprecision(16) << min_u1 << "\t"
-                 << std::setprecision(16) << max_u1 << "\t" << std::setprecision(5)
-                 << std::endl;
+      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU
+                 << "\t" << std::setprecision(16) << qu << "\t"
+                 << std::setprecision(16) << fabs(qu - qu0) << "\t"
+                 << std::setprecision(16) << min_u1 << "\t"
+                 << std::setprecision(16) << max_u1 << "\t"
+                 << std::setprecision(5) << std::endl;
    }
 
    std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration
@@ -1437,8 +1459,8 @@ int main(int argc, char **argv) {
       // if(MPIcf::IamMaster() && i%5 == 0 || i+1 == niteration) {
       //   // Fun_h fun_thet (Wh, fun_theta);
       //   Paraview<Mesh> writer(Th,
-      //   "test_burgerFEM_P01_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh,
-      //   "uhNoLimiter", 0, 1);
+      //   "test_burgerFEM_P01_"+std::to_string(ifig++)+".vtk");
+      //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
       //   // writer.add(fun_uh_tild, "uhLimiter", 0, 1);
       //   writer.add(femErrh, "error"  , 0, 1);
       //   writer.add(fun_ex , "u_exact", 0, 1);
@@ -1448,18 +1470,20 @@ int main(int argc, char **argv) {
 
       // std::cout << std::setprecision(16) << "q(u) = " << qu << std::endl;
       std::cout << " || u-uex ||_2 = " << errU << std::endl;
-      std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0)
-                << std::setprecision(6) << std::endl;
+      std::cout << std::setprecision(16)
+                << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                << std::endl;
 
       if (i == 0) {
          outputData << "it \t tid \t errU \t q \t\t errQ \t\t minU \t\t maxU "
                     << std::endl;
       }
-      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU << "\t"
-                 << std::setprecision(16) << qu << "\t" << std::setprecision(16)
-                 << fabs(qu - qu0) << "\t" << std::setprecision(16) << min_u1 << "\t"
-                 << std::setprecision(16) << max_u1 << "\t" << std::setprecision(5)
-                 << std::endl;
+      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU
+                 << "\t" << std::setprecision(16) << qu << "\t"
+                 << std::setprecision(16) << fabs(qu - qu0) << "\t"
+                 << std::setprecision(16) << min_u1 << "\t"
+                 << std::setprecision(16) << max_u1 << "\t"
+                 << std::setprecision(5) << std::endl;
 
       std::cout << " Iteration computation time \t" << getTime() - tt_iter
                 << std::endl;
@@ -1839,8 +1863,8 @@ int main(int argc, char **argv) {
       // ==================================================
       if (MPIcf::IamMaster() && i % 5 == 0 || i + 1 == niteration) {
          // Fun_h fun_thet (Wh, fun_theta);
-         Paraview<Mesh> writer(Khi,
-                               "test_burger_P1_" + std::to_string(ifig++) + ".vtk");
+         Paraview<Mesh> writer(Khi, "test_burger_P1_" + std::to_string(ifig++) +
+                                        ".vtk");
          writer.add(fun_uh, "uhNoLimiter", 0, 1);
          writer.add(fun_uh_tild, "uhLimiter", 0, 1);
          writer.add(femErrh, "error", 0, 1);
@@ -1849,18 +1873,20 @@ int main(int argc, char **argv) {
       }
 
       std::cout << " || u-uex ||_2 = " << errU << std::endl;
-      std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0)
-                << std::setprecision(6) << std::endl;
+      std::cout << std::setprecision(16)
+                << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                << std::endl;
 
       if (i == 0) {
          outputData << "it \t tid \t errU \t q \t\t errQ \t\t minU \t\t maxU "
                     << std::endl;
       }
-      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU << "\t"
-                 << std::setprecision(16) << qu << "\t" << std::setprecision(16)
-                 << fabs(qu - qu0) << "\t" << std::setprecision(16) << min_u1 << "\t"
-                 << std::setprecision(16) << max_u1 << "\t" << std::setprecision(5)
-                 << std::endl;
+      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << errU
+                 << "\t" << std::setprecision(16) << qu << "\t"
+                 << std::setprecision(16) << fabs(qu - qu0) << "\t"
+                 << std::setprecision(16) << min_u1 << "\t"
+                 << std::setprecision(16) << max_u1 << "\t"
+                 << std::setprecision(5) << std::endl;
 
       std::cout << " Iteration computation time \t" << getTime() - tt_iter
                 << std::endl;
@@ -2127,8 +2153,9 @@ int main(int argc, char **argv) {
 
       // if(MPIcf::IamMaster()) {
       //   Paraview<Mesh> writer(Khi,
-      //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh,
-      //   "uhNoLimiter", 0, 1); writer.add(fun_uh_tild, "uhLimiter", 0, 1);
+      //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
+      //   writer.add(fun_uh, "uhNoLimiter", 0, 1); writer.add(fun_uh_tild,
+      //   "uhLimiter", 0, 1);
       //   // writer.add(fun_uM, "macroExtend", 0, 1);
       // }
 
@@ -2161,21 +2188,23 @@ int main(int argc, char **argv) {
       // ==================================================
       // if(MPIcf::IamMaster() && i%1 == 0 || i+1 == niteration) {
       //   Paraview<Mesh> writer(Khi,
-      //   "conservationP1_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh     ,
+      //   "conservationP1_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh ,
       //   "uhNoLimiter", 0, 1); writer.add(fun_uh_tild, "uhLimiter"  , 0, 1);
       // }
 
-      std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0)
-                << std::setprecision(6) << std::endl;
+      std::cout << std::setprecision(16)
+                << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                << std::endl;
 
       if (i == 0) {
          outputData << "it \t tid \t errU \t q \t\t errQ \t\t minU \t\t maxU "
                     << std::endl;
       }
-      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << qu << "\t"
-                 << std::setprecision(16) << fabs(qu - qu0) << "\t"
-                 << std::setprecision(16) << min_u1 << "\t" << std::setprecision(16)
-                 << max_u1 << "\t" << std::setprecision(5) << std::endl;
+      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << qu
+                 << "\t" << std::setprecision(16) << fabs(qu - qu0) << "\t"
+                 << std::setprecision(16) << min_u1 << "\t"
+                 << std::setprecision(16) << max_u1 << "\t"
+                 << std::setprecision(5) << std::endl;
       // getchar();
       // return 0;
       // if(i==10) return 0;
@@ -2537,8 +2566,9 @@ int main(int argc, char **argv) {
 
       // if(MPIcf::IamMaster()) {
       //   Paraview<Mesh> writer(Khi,
-      //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh,
-      //   "uhNoLimiter", 0, 1); writer.add(fun_uh_tild, "uhLimiter", 0, 1);
+      //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
+      //   writer.add(fun_uh, "uhNoLimiter", 0, 1); writer.add(fun_uh_tild,
+      //   "uhLimiter", 0, 1);
       //   // writer.add(fun_uM, "macroExtend", 0, 1);
       // }
 
@@ -2570,23 +2600,25 @@ int main(int argc, char **argv) {
       // PLOT THE SOLUTION
       // ==================================================
       if (MPIcf::IamMaster() && i % 1 == 0 || i + 1 == niteration) {
-         Paraview<Mesh> writer(Khi,
-                               "conservationP1_" + std::to_string(ifig++) + ".vtk");
+         Paraview<Mesh> writer(Khi, "conservationP1_" + std::to_string(ifig++) +
+                                        ".vtk");
          writer.add(fun_uh, "uhNoLimiter", 0, 1);
          writer.add(fun_uh_tild, "uhLimiter", 0, 1);
       }
 
-      std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0)
-                << std::setprecision(6) << std::endl;
+      std::cout << std::setprecision(16)
+                << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                << std::endl;
 
       if (i == 0) {
          outputData << "it \t tid \t errU \t q \t\t errQ \t\t minU \t\t maxU "
                     << std::endl;
       }
-      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << qu << "\t"
-                 << std::setprecision(16) << fabs(qu - qu0) << "\t"
-                 << std::setprecision(16) << min_u1 << "\t" << std::setprecision(16)
-                 << max_u1 << "\t" << std::setprecision(5) << std::endl;
+      outputData << i << "\t" << tid << "\t" << std::setprecision(16) << qu
+                 << "\t" << std::setprecision(16) << fabs(qu - qu0) << "\t"
+                 << std::setprecision(16) << min_u1 << "\t"
+                 << std::setprecision(16) << max_u1 << "\t"
+                 << std::setprecision(5) << std::endl;
       // getchar();
       // return 0;
       // if(i==10) return 0;

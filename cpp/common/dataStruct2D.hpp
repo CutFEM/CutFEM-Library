@@ -1,8 +1,43 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
+/*
+
+ This file is part of Freefem++
+
+ Freefem++ is free software; you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation; either version 2.1 of the License, or
+ (at your option) any later version.
+
+ Freefem++  is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with Freefem++; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 #ifndef COMMON_DATA_STRUCT_2D_HPP
 #define COMMON_DATA_STRUCT_2D_HPP
+#include <cassert>
+#include <array>
 
 #include "GenericElement.hpp"
-#include <array>
 
 typedef GenericVertex<R2> Vertex2;
 
@@ -248,18 +283,11 @@ class Quad2 : public GenericElement<DataQuad2> {
    //   R2 E=Edge(i);return E.perp()/(2.*this->mesure());
    // } // heigth
 
-   // void Gradlambda(R2 * GradL) const
-   // {
-   //   GradL[1]= H(1);
-   //   GradL[2]= H(2);
-   //   GradL[0]=-GradL[1]-GradL[2];
-   // }
-   void Gradlambda(R2 * GradL) const
-   {
-     GradL[1]= R2(1./4, 1./4);
-     GradL[2]= R2(1./4, 1./4);
-     GradL[0]= R2(1./4, 1./4);
-     GradL[4] = R2(1./4, 1./4);
+   void Gradlambda(R2 *GradL) const {
+      GradL[1] = R2(1. / 4, 1. / 4);
+      GradL[2] = R2(1. / 4, 1. / 4);
+      GradL[3] = R2(1. / 4, 1. / 4);
+      GradL[0] = R2(1. / 4, 1. / 4);
    }
 
    R2 toKref(const R2 &P) const {

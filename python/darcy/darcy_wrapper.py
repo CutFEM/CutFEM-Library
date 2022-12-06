@@ -3,8 +3,7 @@ import ctypes as ct
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 
-lib = ct.cdll.LoadLibrary('cpp/build/lib/lib_darcy.so')
-#lib = ct.cdll.LoadLibrary('lib_darcy.so')
+lib = ct.cdll.LoadLibrary('../../cpp/build/lib/lib_darcy.dylib')
 
 USER_FUNC = ct.CFUNCTYPE(ct.c_double, ct.POINTER(
     ct.c_double), ct.c_int, ct.c_int)
@@ -16,8 +15,8 @@ USER_FUN_LS = ct.CFUNCTYPE(ct.c_double, ct.POINTER(
 class Darcy2(object):
 
     def __init__(self):
-        lib.Darcy2_new.argtypes = None
         lib.Darcy2_new.restype = ct.c_void_p
+        lib.Darcy2_new.argtypes = None
         self.obj = lib.Darcy2_new()
 
     def __del__(self):
@@ -126,6 +125,3 @@ def set_verbose(s):
     lib.set_verbose.restype = None
     lib.set_verbose.argtypes = [ct.c_int]
     lib.set_verbose(s)
-
-
-#

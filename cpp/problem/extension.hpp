@@ -1,12 +1,24 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #ifndef _EXTENSION_HPP
 #define _EXTENSION_HPP
 
-
 #include "../FESpace/macroElement.hpp"
 #include "baseProblem.hpp"
-#include<set>
-
-
+#include <set>
 
 //
 // class Extension {
@@ -21,14 +33,17 @@
 //   std::map<std::pair<int,int>,double> P, Pt;
 //
 //   CutFEM<Mesh2>& problem;
-//   std::map<const FESpace2*,std::pair<int,int>> mapIdx0_K; // space -> idxK_begin , idxK_end
-//   std::map<const FESpace2*,const GMacro* > mapMacro; // space -> macro_class
+//   std::map<const FESpace2*,std::pair<int,int>> mapIdx0_K; // space ->
+//   idxK_begin , idxK_end std::map<const FESpace2*,const GMacro* > mapMacro; //
+//   space -> macro_class
 //
 // public:
-//   std::map<std::pair<int ,int>, int> element_edge_handle; //(id_element, id_edge) => what_to_do
+//   std::map<std::pair<int ,int>, int> element_edge_handle; //(id_element,
+//   id_edge) => what_to_do
 //
 //   Extension(CutFEM<Mesh2>& pp) : problem(pp) {
-//     for(auto it =problem.mapIdx0_K.begin();it != problem.mapIdx0_K.end();++it){
+//     for(auto it =problem.mapIdx0_K.begin();it !=
+//     problem.mapIdx0_K.end();++it){
 //       std:pair<int,int> v(it->second, it->second+it->first->NbElement());
 //       mapIdx0_K[it->first] = v;
 //       mapMacro[it->first] = nullptr;
@@ -37,10 +52,11 @@
 //   }
 //
 //   public:
-//     void tag_extension_edges(const MacroElement& macro) {return tag_extension_edges(macro, macro.Vh);};
-//     void tag_extension_edges(const MacroElement& macro, const FESpace2& Vh);
-//     void tag_extension_edges(const MacroElement& macro, const CHyperFace& b);
-//     void tag_extension_edges(const MacroElement& macro, const CHyperFace& ed, const CBorder& bo);
+//     void tag_extension_edges(const MacroElement& macro) {return
+//     tag_extension_edges(macro, macro.Vh);}; void tag_extension_edges(const
+//     MacroElement& macro, const FESpace2& Vh); void tag_extension_edges(const
+//     MacroElement& macro, const CHyperFace& b); void tag_extension_edges(const
+//     MacroElement& macro, const CHyperFace& ed, const CBorder& bo);
 //
 //     void tag_exhaust_edges(const MacroElement& macro) ;
 //     void solve(string solverName = "mumps");
@@ -48,23 +64,32 @@
 //
 //     void do_extension();
 //   private:
-//     void do_extension_edge(const std::map<std::pair<int,int>,int>::const_iterator& it);
-//     void do_extension_element(const SmallElement&);
+//     void do_extension_edge(const
+//     std::map<std::pair<int,int>,int>::const_iterator& it); void
+//     do_extension_element(const SmallElement&);
 //
 //     void do_extension_P0  (const FElement2& Ks, const FElement2& Kf, int ic);
-//     void do_weak_extension_P0  (const FElement2& Ks, const FElement2& Kf, int ic);
+//     void do_weak_extension_P0  (const FElement2& Ks, const FElement2& Kf, int
+//     ic);
 //
-//   //   void do_extension_P1dc  (const FElement2& Ks, const FElement2& Kf, int ic);
-//     void do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
-//     void do_weak_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
+//   //   void do_extension_P1dc  (const FElement2& Ks, const FElement2& Kf, int
+//   ic);
+//     void do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int
+//     id_e, int ic); void do_weak_extension_RT0 (const FElement2& Ks, const
+//     FElement2& Kf, int id_e, int ic);
 //
-//   //   void do_extension_BDM1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
-//   //   void do_extension_RT1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic);
+//   //   void do_extension_BDM1(const FElement2& Ks, const FElement2& Kf, int
+//   id_e, int ic);
+//   //   void do_extension_RT1(const FElement2& Ks, const FElement2& Kf, int
+//   id_e, int ic);
 //   //
-//   //   void evaluate_dofP1dc(const FElement2& FKs, const FElement2& FKf, Rnm& val, int ic) ;
-//     void evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) ;
-//     void evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
-//   //   void evaluate_dofRT1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val);
+//   //   void evaluate_dofP1dc(const FElement2& FKs, const FElement2& FKf, Rnm&
+//   val, int ic) ;
+//     void evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FKf,
+//     Rnm& val) ; void evaluate_dofBDM1(const FElement2& FKs, int e, const
+//     FElement2& FKf, Rnm& val);
+//   //   void evaluate_dofRT1(const FElement2& FKs, int e, const FElement2&
+//   FKf, Rnm& val);
 //
 //
 //   // int map_to_global(const FESpace2& vh, int k) const {
@@ -109,8 +134,5 @@
 // // friend void save(const MacroElement & macro, const Extension& extension) ;
 // };
 //
-
-
-
 
 #endif

@@ -1,7 +1,23 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #include "extension.hpp"
 
-// 
-// void Extension::tag_extension_edges(const MacroElement& macro, const FESpace2& Vh) {
+//
+// void Extension::tag_extension_edges(const MacroElement& macro, const
+// FESpace2& Vh) {
 //
 //   // get all the dof of small Elements
 //   std::vector<std::pair<int, int>> df2fix;
@@ -10,7 +26,8 @@
 //   int k0 = k_begin(Vh);
 //
 //   // First set the trivial dof (good and trivial exhaust)
-//   for(auto it = macro.small_element.begin(); it!=macro.small_element.end();++it) {
+//   for(auto it = macro.small_element.begin();
+//   it!=macro.small_element.end();++it) {
 //     int k = it->second.index;
 //     const FElement2& FK(Vh[k]);
 //     int the_domain = FK.whichDomain();
@@ -25,11 +42,13 @@
 //       }
 //       else{
 //         auto it_neigh =  macro.small_element.find(kn);
-//         // int pos_kn = (kn == -1) ? pos_k + 1 : macro.small_element[kn].chain_position;
-//         int pos_kn = (kn == -1) ? pos_k + 1 : it->second.chain_position;
+//         // int pos_kn = (kn == -1) ? pos_k + 1 :
+//         macro.small_element[kn].chain_position; int pos_kn = (kn == -1) ?
+//         pos_k + 1 : it->second.chain_position;
 //
 //         if (pos_kn > pos_k || (pos_kn == pos_k && kn > k) ){
-//             df2fix.push_back(std::make_pair(k, 3*e+extension));  // default value
+//             df2fix.push_back(std::make_pair(k, 3*e+extension));  // default
+//             value
 //         }
 //       }
 //     }
@@ -42,7 +61,8 @@
 //     element_edge_handle[std::make_pair(k+k0, id_e)] = handle;
 //   }
 // }
-// void Extension::tag_extension_edges(const MacroElement& macro, const CHyperFace& b) {
+// void Extension::tag_extension_edges(const MacroElement& macro, const
+// CHyperFace& b) {
 //
 //
 //   element_edge_handle.clear();
@@ -51,7 +71,8 @@
 //   int k0 = k_begin(Vh);
 //
 //   // INNER EDGES
-//   for(auto it = macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+//   for(auto it = macro.macro_element.begin();
+//   it!=macro.macro_element.end();++it) {
 //     for( int ie=0; ie<it->second.inner_edge.size(); ++ie) {
 //
 //       int k = it->second.inner_edge[ie].first;
@@ -62,7 +83,8 @@
 //   }
 //
 // }
-// void Extension::tag_extension_edges(const MacroElement& macro, const CHyperFace& ed, const CBorder& bo) {
+// void Extension::tag_extension_edges(const MacroElement& macro, const
+// CHyperFace& ed, const CBorder& bo) {
 //
 //   element_edge_handle.clear();
 //   const FESpace2& Vh(macro.Vh);
@@ -70,7 +92,8 @@
 //   int k0 = k_begin(Vh);
 //
 //   // INNER EDGES
-//   for(auto it = macro.macro_element.begin(); it!=macro.macro_element.end();++it) {
+//   for(auto it = macro.macro_element.begin();
+//   it!=macro.macro_element.end();++it) {
 //     for( int ie=0; ie<it->second.inner_edge.size(); ++ie) {
 //
 //       int k = it->second.inner_edge[ie].first;
@@ -81,7 +104,8 @@
 //   }
 //
 //   // BOUNDARY EDGES
-//   for(auto it = macro.small_element.begin(); it!=macro.small_element.end();++it) {
+//   for(auto it = macro.small_element.begin();
+//   it!=macro.small_element.end();++it) {
 //     int k = it->second.index;
 //     const FElement2& FK(Vh[k]);
 //     int the_domain = FK.whichDomain();
@@ -107,7 +131,8 @@
 //
 //   int artificial_good_df = 0;
 //   // First set the trivial dof (good and trivial exhaust)
-//   for (auto it=macro.small_element.begin();it!=macro.small_element.end();++it) {
+//   for (auto
+//   it=macro.small_element.begin();it!=macro.small_element.end();++it) {
 //     int k = it->second.index;//.first;
 //
 //     // need to check this loop using map
@@ -165,9 +190,11 @@
 //     // }
 //   }
 //   // ALL ELEMENTS MUST BECOME EXHAUST
-//   while (exhaust_element.size() < macro.small_element.size() - artificial_good_df) {
+//   while (exhaust_element.size() < macro.small_element.size() -
+//   artificial_good_df) {
 //     // LOOP OVER SMALL ELEMENTS
-//     for(auto it_small = macro.small_element.begin(); it_small!= macro.small_element.end();++it_small){
+//     for(auto it_small = macro.small_element.begin(); it_small!=
+//     macro.small_element.end();++it_small){
 //       int k = it_small->second.index;
 //
 //       // CHECK IF ALREADY EXHAUST
@@ -186,8 +213,8 @@
 //
 //         it_exhaust = exhaust_element.find(kn);
 //
-//         bool neighIsExhaust = (it_exhaust != exhaust_element.end() ); // is neighbor exhaust?
-//         if(neighIsExhaust) {  // if my neighbor is exhaust
+//         bool neighIsExhaust = (it_exhaust != exhaust_element.end() ); // is
+//         neighbor exhaust? if(neighIsExhaust) {  // if my neighbor is exhaust
 //           df2fix[std::make_pair(k, e)] = exhaust;
 //           exhaust_element.insert(k);
 //           break;  // can stop now, only one exhaust edge
@@ -208,7 +235,8 @@
 //   dof2rm.clear();
 //
 //   // for handeling RT0,1 and BDM1
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     if(handle == good) {
 //       continue;         // do nothing
@@ -223,9 +251,11 @@
 //
 //   // loop over small elements to extend other bf
 //   // for handeling RT0,1 and BDM1
-//   // for(auto it_macro = mapMacro.begin(); it_macro != mapMacro.end();++it_macro){
+//   // for(auto it_macro = mapMacro.begin(); it_macro !=
+//   mapMacro.end();++it_macro){
 //   //   const GMacro& macro(*it_macro->second);
-//   //   for(auto it=macro.small_element.begin(); it !=macro.small_element.end();++it) {
+//   //   for(auto it=macro.small_element.begin(); it
+//   !=macro.small_element.end();++it) {
 //   //
 //   //     // if(handle == good) {
 //   //     //   continue;         // do nothing
@@ -254,7 +284,8 @@
 //
 //   //FOR RT0 - FIND DOF corresponding to edge marked
 //   // this has to become different for different element
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -276,7 +307,8 @@
 //   problem.mat = R;
 //
 //   // 3) modify A Matrix
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -298,7 +330,8 @@
 //       evaluate_dofRT0(Ks, id_e, Kf, val);
 //
 //       for(int i = Kf.dfcbegin(0); i < Kf.dfcend(0); ++i) {
-//         problem.mat[std::make_pair(df,Kf.loc2glb(i))]  = -val(0,i);        // 1st component small element
+//         problem.mat[std::make_pair(df,Kf.loc2glb(i))]  = -val(0,i);        //
+//         1st component small element
 //       }
 //       problem.rhs[df] = 0;
 //     }
@@ -322,7 +355,8 @@
 //
 //   //FOR RT0 - FIND DOF corresponding to edge marked
 //   // this has to become different for different element
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -344,7 +378,8 @@
 //   problem.mat = R;
 //
 //   // 3) modify A Matrix
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -365,7 +400,8 @@
 //     //   KNM<double> val(1, ndof);
 //     //   evaluate_dofRT0(Ks, id_e, Kf, val);
 //     //   for(int i = Kf.dfcbegin(0); i < Kf.dfcend(0); ++i) {
-//     //     problem.mat[std::make_pair(df,Kf.loc2glb(i))]  = -val(0,i);        // 1st component small element
+//     //     problem.mat[std::make_pair(df,Kf.loc2glb(i))]  = -val(0,i); // 1st
+//     component small element
 //     //   }
 //     //   problem.rhs[df] = 0;
 //     // }
@@ -390,7 +426,8 @@
 //
 //   //FOR RT0 - FIND DOF corresponding to edge marked
 //   // this has to become different for different element
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -412,7 +449,8 @@
 //   problem.mat = R;
 //
 //   // 3) modify A Matrix
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -440,7 +478,8 @@
 //       double C = (idx_Kf == idx_Kfn)? 1. : 0.5;
 //
 //       for(int i = Kf.dfcbegin(0); i < Kf.dfcend(0); ++i) {
-//         problem.mat[std::make_pair(df,Kf.loc2glb(i))]  = -C*val(0,i);        // 1st component small element
+//         problem.mat[std::make_pair(df,Kf.loc2glb(i))]  = -C*val(0,i); // 1st
+//         component small element
 //       }
 //       problem.rhs[df] = 0;
 //
@@ -449,7 +488,8 @@
 //       const FElement2& Ksn(Vh[idx_Ksn]);
 //       evaluate_dofRT0(Ksn, j, Kfn, val);
 //       for(int i = Kfn.dfcbegin(0); i < Kfn.dfcend(0); ++i) {
-//         problem.mat[std::make_pair(df,Kfn.loc2glb(i))]  = -C*val(0,i);        // 1st component small element
+//         problem.mat[std::make_pair(df,Kfn.loc2glb(i))]  = -C*val(0,i); // 1st
+//         component small element
 //       }
 //
 //     }
@@ -474,7 +514,8 @@
 //
 //   //FOR RT0 - FIND DOF corresponding to edge marked
 //   // this has to become different for different element
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -488,8 +529,8 @@
 //     if( handle == exhaust) {
 //
 //       for(int i=0;i< ndofOnEdge;++i){
-//         int df = Ks.loc2glb(ndofOnEdge*id_e+i) + problem.mapIdx0[&Ks.Vh];  // ONLY FOR RT0
-//         S[std::make_pair(df ,df)] = 0;
+//         int df = Ks.loc2glb(ndofOnEdge*id_e+i) + problem.mapIdx0[&Ks.Vh];  //
+//         ONLY FOR RT0 S[std::make_pair(df ,df)] = 0;
 //       }
 //     }
 //   }
@@ -502,7 +543,8 @@
 //   problem.mat = R;
 //
 //   // 3) modify A Matrix
-//   for(auto it=element_edge_handle.begin(); it !=element_edge_handle.end();++it) {
+//   for(auto it=element_edge_handle.begin(); it
+//   !=element_edge_handle.end();++it) {
 //     int handle = it->second;
 //     int idxG_Ks = it->first.first;
 //     int k_begin = 0;
@@ -524,10 +566,12 @@
 //       //
 //       // for(int df=0;df< ndofOnEdge;++df){
 //       //   int id_df = Ks.loc2glb(ndofOnEdge*id_e+df) +ig0;
-//       //   problem.mat[std::make_pair(id_df,id_df)] = 1; // [no orientation??]
+//       //   problem.mat[std::make_pair(id_df,id_df)] = 1; // [no
+//       orientation??]
 //       //
 //       //   for(int i = Kf.dfcbegin(0); i < Kf.dfcend(0); ++i) {
-//       //     problem.mat[std::make_pair(id_df,Kf.loc2glb(i))]  = -val(df,i);        // 1st component small element
+//       //     problem.mat[std::make_pair(id_df,Kf.loc2glb(i))]  = -val(df,i);
+//       // 1st component small element
 //       //   }
 //       //   problem.rhs[id_df] = 0;
 //       // }
@@ -539,7 +583,8 @@
 //         // for(int df=0;df< 1;++df){
 //
 //         int id_df = Ks.loc2glb(ndofOnEdge*id_e+df) + ig0;
-//         // problem.mat[std::make_pair(id_df,id_df)] = 1; // [no orientation??]
+//         // problem.mat[std::make_pair(id_df,id_df)] = 1; // [no
+//         orientation??]
 //
 //         problem.mat[std::make_pair(id_df,Ks.loc2glb(idx0))] = 1;
 //         problem.mat[std::make_pair(id_df,Kf.loc2glb(idx0))] = -1;
@@ -550,7 +595,8 @@
 //   }
 //
 // }
-// void Extension::do_extension_edge(const std::map<std::pair<int,int>,int>::const_iterator& it){
+// void Extension::do_extension_edge(const
+// std::map<std::pair<int,int>,int>::const_iterator& it){
 //   int idxG_Ks = it->first.first;
 //   int k_begin;
 //   const FESpace2& Vh(get_space_from_idxK(idxG_Ks, k_begin));
@@ -629,12 +675,13 @@
 // }
 //
 //
-// void Extension::do_extension_P0   (const FElement2& Ks, const FElement2& Kf, int ic){
+// void Extension::do_extension_P0   (const FElement2& Ks, const FElement2& Kf,
+// int ic){
 //   int idx0 = Kf.dfcbegin(ic);   // the pressure index
 //   int ig0 = problem.mapIdx0[&Ks.Vh];
 //
-//   if (S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] == 0) return;
-//   S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] = 0;
+//   if (S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] == 0)
+//   return; S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] = 0;
 //   St[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] = 0;
 //   S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Kf.loc2glb(idx0))] = 1;
 //   St[std::make_pair(ig0+Kf.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] = 1;
@@ -642,23 +689,29 @@
 //   dof2rm.insert(ig0+Ks.loc2glb(idx0));
 //
 // }
-// void Extension::do_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic){
+// void Extension::do_extension_RT0 (const FElement2& Ks, const FElement2& Kf,
+// int id_e, int ic){
 //   int ndof = Kf.NbDoF();
 //   KNM<double> val(1, ndof);
 //   evaluate_dofRT0(Ks, id_e, Kf, val);
 //   int id_df = id_e;
 //   int ig0 = problem.mapIdx0[&Ks.Vh];
 //
-//   S [std::make_pair(ig0+Ks.loc2glb(id_df),ig0+Ks.loc2glb(id_df))] = 0.;        // 1st component small element
-//   St[std::make_pair(ig0+Ks.loc2glb(id_df),ig0+Ks.loc2glb(id_df))] = 0.;        // 1st component small element
-//   for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic); ++i) {
-//     S[std::make_pair(ig0+Ks.loc2glb(id_df),ig0+Kf.loc2glb(i))]  = val(0,i);        // 1st component small element
-//     St[std::make_pair(ig0+Kf.loc2glb(i),ig0+Ks.loc2glb(id_df))] = val(0,i);        // 1st component small element
+//   S [std::make_pair(ig0+Ks.loc2glb(id_df),ig0+Ks.loc2glb(id_df))] = 0.; //
+//   1st component small element
+//   St[std::make_pair(ig0+Ks.loc2glb(id_df),ig0+Ks.loc2glb(id_df))] = 0.; //
+//   1st component small element for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic);
+//   ++i) {
+//     S[std::make_pair(ig0+Ks.loc2glb(id_df),ig0+Kf.loc2glb(i))]  = val(0,i);
+//     // 1st component small element
+//     St[std::make_pair(ig0+Kf.loc2glb(i),ig0+Ks.loc2glb(id_df))] = val(0,i);
+//     // 1st component small element
 //   }
 //
 //   dof2rm.insert(ig0+Ks.loc2glb(id_df));
 // }
-// void Extension::do_weak_extension_RT0 (const FElement2& Ks, const FElement2& Kf, int id_e, int ic){
+// void Extension::do_weak_extension_RT0 (const FElement2& Ks, const FElement2&
+// Kf, int id_e, int ic){
 //   int ndof = Kf.NbDoF();
 //   KNM<double> val(1, ndof);
 //
@@ -666,29 +719,34 @@
 //   int id_df = id_e;
 //   int ig0 = problem.mapIdx0[&Ks.Vh];
 //   double C= 1e-2;
-//   problem(ig0+Ks.loc2glb(id_df),ig0+Ks.loc2glb(id_df)) += C*1.;        // 1st component small element
-//   for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic); ++i) {
-//     problem(ig0+Ks.loc2glb(id_df),ig0+Kf.loc2glb(i))  += -C*val(0,i);        // 1st component small element
-//     problem(ig0+Kf.loc2glb(i),ig0+Ks.loc2glb(id_df))  += -C*val(0,i);        // 1st component small element
-//     for(int j = Kf.dfcbegin(ic); j < Kf.dfcend(ic); ++j) {
-//       problem(ig0+Kf.loc2glb(i),ig0+Kf.loc2glb(j))  += C*val(0,i)*val(0,j);        // 1st component small element
+//   problem(ig0+Ks.loc2glb(id_df),ig0+Ks.loc2glb(id_df)) += C*1.;        // 1st
+//   component small element for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic);
+//   ++i) {
+//     problem(ig0+Ks.loc2glb(id_df),ig0+Kf.loc2glb(i))  += -C*val(0,i); // 1st
+//     component small element problem(ig0+Kf.loc2glb(i),ig0+Ks.loc2glb(id_df))
+//     += -C*val(0,i);        // 1st component small element for(int j =
+//     Kf.dfcbegin(ic); j < Kf.dfcend(ic); ++j) {
+//       problem(ig0+Kf.loc2glb(i),ig0+Kf.loc2glb(j))  += C*val(0,i)*val(0,j);
+//       // 1st component small element
 //     }
 //   }
 // }
-// void Extension::do_weak_extension_P0   (const FElement2& Ks, const FElement2& Kf, int ic){
+// void Extension::do_weak_extension_P0   (const FElement2& Ks, const FElement2&
+// Kf, int ic){
 //   int idx0 = Kf.dfcbegin(ic);   // the pressure index
 //   int ig0 = problem.mapIdx0[&Ks.Vh];
 //   double C= 1e-2;
-//   if (S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] == 0) return;
-//   S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] = 0;
+//   if (S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] == 0)
+//   return; S[std::make_pair(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0))] = 0;
 //
-//   problem(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0)) += C*1.;        // 1st component small element
-//   problem(ig0+Ks.loc2glb(idx0),ig0+Kf.loc2glb(idx0)) += -C*1;
-//   problem(ig0+Kf.loc2glb(idx0),ig0+Ks.loc2glb(idx0)) += -C*1;
+//   problem(ig0+Ks.loc2glb(idx0),ig0+Ks.loc2glb(idx0)) += C*1.;        // 1st
+//   component small element problem(ig0+Ks.loc2glb(idx0),ig0+Kf.loc2glb(idx0))
+//   += -C*1; problem(ig0+Kf.loc2glb(idx0),ig0+Ks.loc2glb(idx0)) += -C*1;
 //   problem(ig0+Kf.loc2glb(idx0),ig0+Kf.loc2glb(idx0)) += C*1;
 //
 // }
-// void Extension::evaluate_dofRT0(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) {
+// void Extension::evaluate_dofRT0(const FElement2& FKs, int e, const FElement2&
+// FKf, Rnm& val) {
 //
 //   val = 0.;
 //   KNMK<double> bf(FKf.NbDoF(),FKf.N,1); //  the value for basic fonction
@@ -705,11 +763,13 @@
 //     FKf.BF(Fop_D0, ip_KfHat, bf);
 //
 //     for(int i=0;i<3;++i) {
-//       val(0,i) += meas*ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
+//       val(0,i) += meas*ip_1d.getWeight()*(bf(i,0,0)*normal.x +
+//       bf(i,1,0)*normal.y) ;
 //     }
 //   }
 // }
-// void Extension::evaluate_dofBDM1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) {
+// void Extension::evaluate_dofBDM1(const FElement2& FKs, int e, const
+// FElement2& FKf, Rnm& val) {
 //   val = 0.;
 //   KNMK<double> bf(FKf.NbDoF(),FKf.N,1); //  the value for basic fonction
 //   What_d Fop = Fwhatd(0);
@@ -729,8 +789,10 @@
 //     FKf.BF(Fop_D0, ip_KfHat, bf);
 //
 //     for(int i=0;i<6;++i) {
-//       val(0,i) += FKs.T.EdgeOrientation(e)*ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
-//       val(1,i) += (-6*ip_1d.x+3)          *ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
+//       val(0,i) +=
+//       FKs.T.EdgeOrientation(e)*ip_1d.getWeight()*(bf(i,0,0)*normal.x +
+//       bf(i,1,0)*normal.y) ; val(1,i) += (-6*ip_1d.x+3)
+//       *ip_1d.getWeight()*(bf(i,0,0)*normal.x + bf(i,1,0)*normal.y) ;
 //     }
 //   }
 //
@@ -811,7 +873,8 @@
 //
 //   std::cout << " time precond \t" << MPIcf::Wtime() - t0 << std::endl;
 // }
-// void Extension::removeDF( int N, std::map<std::pair<int,int>,double>& A, Rn& b){
+// void Extension::removeDF( int N, std::map<std::pair<int,int>,double>& A, Rn&
+// b){
 //
 //   std::map<std::pair<int,int>,double>  C;
 //
@@ -858,7 +921,8 @@
 // }
 //
 //
-// // void MacroElement::do_extension_BDM1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic){
+// // void MacroElement::do_extension_BDM1(const FElement2& Ks, const FElement2&
+// Kf, int id_e, int ic){
 // //   int ndofOnEdge = Kf.tfe->ndfonEdge;
 // //   int ndof = Kf.NbDoF();
 // //   KNM<double> val(ndofOnEdge, ndof);
@@ -867,15 +931,19 @@
 // //   for(int df = 0; df < ndofOnEdge; ++df) {
 // //     // if(  df==1) {
 // //       int id_df = ndofOnEdge*id_e + df;
-// //       S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))]  = 0.;        // 1st component small element
-// //       St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
+// //       S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))]  = 0.; //
+// 1st component small element
+// //       St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.; // 1st
+// component small element
 // //       for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic); ++i) {
 // //         // for(int i = 0; i < 6; ++i) {
 // //         // if( (df==0 && i%2==0) || (df==1 && i%2==1) ) {
 // //         // if(df==1 && i%2==1 ) {
 // //         // if(  df==1) {
-// //         S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,i);        // 1st component small element
-// //         St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,i);        // 1st component small element
+// //         S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,i);
+// // 1st component small element
+// //         St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,i);
+// // 1st component small element
 // //         // }
 // //
 // //       }
@@ -887,25 +955,32 @@
 // // }
 //
 //
-// // void MacroElement::do_extension_P1dc (const FElement2& Ks, const FElement2& Kf, int ic){
+// // void MacroElement::do_extension_P1dc (const FElement2& Ks, const
+// FElement2& Kf, int ic){
 // //   int idx0 = Kf.dfcbegin(ic);   // the pressure index
 // //   if (S[std::make_pair(Ks.loc2glb(idx0),Ks.loc2glb(idx0))] == 0) return;
 // //
 // //   int ndof = Kf.NbDoF();
 // //   KNM<double> val(3, 3);
 // //   evaluate_dofP1dc(Kf, Ks, val, ic);
-// //   for(int id_df = Ks.dfcbegin(ic),df=0 ; id_df < Ks.dfcend(ic); ++id_df,++df) {
-// //     S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
-// //     St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
+// //   for(int id_df = Ks.dfcbegin(ic),df=0 ; id_df < Ks.dfcend(ic);
+// ++id_df,++df) {
+// //     S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.; // 1st
+// component small element
+// //     St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.; // 1st
+// component small element
 // //     for(int i = Kf.dfcbegin(ic),j=0; i < Kf.dfcend(ic); ++i,++j) {
-// //       S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,j);        // 1st component small element
-// //       St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,j);        // 1st component small element
+// //       S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,j); //
+// 1st component small element
+// //       St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,j); //
+// 1st component small element
 // //     }
 // //     dof2rm.insert(Ks.loc2glb(id_df));
 // //   }
 // // }
 //
-// // void MacroElement::do_extension_RT1(const FElement2& Ks, const FElement2& Kf, int id_e, int ic){
+// // void MacroElement::do_extension_RT1(const FElement2& Ks, const FElement2&
+// Kf, int id_e, int ic){
 // //   int ndofOnEdge = Kf.tfe->ndfonEdge;
 // //   int ndof = Kf.NbDoF();
 // //   KNM<double> val(ndofOnEdge+2, ndof); // 2 bubble bf
@@ -914,11 +989,15 @@
 // //   for(int df = 0; df < ndofOnEdge; ++df) {
 // //     // if(  df==1) {
 // //       int id_df = ndofOnEdge*id_e + df;
-// //       S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))]  = 0.;        // 1st component small element
-// //       St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
+// //       S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))]  = 0.; //
+// 1st component small element
+// //       St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.; // 1st
+// component small element
 // //       for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic); ++i) {
-// //         S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,i);        // 1st component small element
-// //         St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,i);        // 1st component small element
+// //         S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df,i);
+// // 1st component small element
+// //         St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df,i);
+// // 1st component small element
 // //       }
 // //       dof2rm.insert(Ks.loc2glb(id_df));
 // //     // }
@@ -926,11 +1005,15 @@
 // //
 // //   for(int df = 0; df < 2; ++df) {
 // //     int id_df = 3*ndofOnEdge + df;
-// //     S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
-// //     St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.;        // 1st component small element
+// //     S [std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.; // 1st
+// component small element
+// //     St[std::make_pair(Ks.loc2glb(id_df),Ks.loc2glb(id_df))] = 0.; // 1st
+// component small element
 // //     for(int i = Kf.dfcbegin(ic); i < Kf.dfcend(ic); ++i) {
-// //       S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  = val(df+ndofOnEdge,i);        // 1st component small element
-// //       St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] = val(df+ndofOnEdge,i);        // 1st component small element
+// //       S[std::make_pair(Ks.loc2glb(id_df),Kf.loc2glb(i))]  =
+// val(df+ndofOnEdge,i);        // 1st component small element
+// //       St[std::make_pair(Kf.loc2glb(i),Ks.loc2glb(id_df))] =
+// val(df+ndofOnEdge,i);        // 1st component small element
 // //     }
 // //     dof2rm.insert(Ks.loc2glb(id_df));
 // //   }
@@ -941,7 +1024,8 @@
 //
 //
 //
-// // void MacroElement::evaluate_dofP1dc(const FElement2& FKs, const FElement2& FKf, Rnm& val, int ic) {
+// // void MacroElement::evaluate_dofP1dc(const FElement2& FKs, const FElement2&
+// FKf, Rnm& val, int ic) {
 // //
 // //   val = 0.;
 // //   KNMK<double> bf(FKf.NbDoF(),FKf.N,1); //  the value for basic fonction
@@ -960,7 +1044,8 @@
 // // }
 //
 //
-// // void MacroElement::evaluate_dofRT1(const FElement2& FKs, int e, const FElement2& FKf, Rnm& val) {
+// // void MacroElement::evaluate_dofRT1(const FElement2& FKs, int e, const
+// FElement2& FKf, Rnm& val) {
 // //   val = 0.;
 // //   int ndf = FKf.NbDoF();
 // //   KNMK<double> bf(FKf.NbDoF(),FKf.N,1); //  the value for basic fonction
@@ -968,7 +1053,8 @@
 // //   double meas = FKs.T.lenEdge(e);
 // //   int eOrientation = FKs.T.EdgeOrientation(e);
 // //   // R2 normal = FKs.T.EdgeOrientation(e)*FKs.T.N(e);
-// //   R2 normal = -FKs.T.Edge(e).perp();//*eOrientation; // contain the mesure of edge
+// //   R2 normal = -FKs.T.Edge(e).perp();//*eOrientation; // contain the mesure
+// of edge
 // //
 // //   for(int iq=0;iq<QF.getNbrOfQuads();++iq) {
 // //
@@ -983,7 +1069,8 @@
 // //     R l0 = QF[iq].x, l1 = 1 - QF[iq].x;
 // //     R p0 = (2 * l0 - l1) * 2;     // poly othogonaux to \lambda_1
 // //     R p1 = (2 * l1 - l0) * 2;     // poly othogonaux to \lambda_0
-// //     R lambda1 = eOrientation * p0 * QF[iq].a;    // [some quadrature function?]
+// //     R lambda1 = eOrientation * p0 * QF[iq].a;    // [some quadrature
+// function?]
 // //     R lambda0 = eOrientation * p1 * QF[iq].a;    //
 // //     if(eOrientation < 0) {
 // //       Exchange(lambda1, lambda0);

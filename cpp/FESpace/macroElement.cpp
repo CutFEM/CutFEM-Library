@@ -1,7 +1,23 @@
+/*
+This file is part of CutFEM-Library.
+
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #include "macroElement.hpp"
 #include "../common/SparseMatMap.hpp"
-// 
-// MacroElement::MacroElement(const FESpace2& vh, const double C) : GMacro() , Vh(vh) {
+//
+// MacroElement::MacroElement(const FESpace2& vh, const double C) : GMacro() ,
+// Vh(vh) {
 //   double h = Vh[0].T.lenEdge(0);
 //   double meas = Vh[0].T.mesure();
 //   nb_element_0 = 0;
@@ -23,10 +39,10 @@
 //     const int kb = Vh.Th(FK.T);
 //     const int domain = FK.whichDomain();
 //
-//     CutData2 cutData(Vh.getInterface(0).getCutData(kb));     // get the cut data
-//     const Partition2& cutK =  Partition2(FK.T, cutData);  // build the cut
-//     ElementSignEnum the_part = cutK.what_part(domain);
-//     double areaCut = cutK.mesure(domain);
+//     CutData2 cutData(Vh.getInterface(0).getCutData(kb));     // get the cut
+//     data const Partition2& cutK =  Partition2(FK.T, cutData);  // build the
+//     cut ElementSignEnum the_part = cutK.what_part(domain); double areaCut =
+//     cutK.mesure(domain);
 //
 //     if(areaCut < tol) {
 //       small_element[k] = SmallElement(k);
@@ -107,20 +123,22 @@
 // }
 //
 //
-// MacroElementSurface::MacroElementSurface(const Interface2& gh, const double C) : GMacro() , interface(gh) {
+// MacroElementSurface::MacroElementSurface(const Interface2& gh, const double
+// C) : GMacro() , interface(gh) {
 //   double h = (*interface.backMesh)[0].lenEdge(0);
 //   tol = C * h;
 //
 //   std::cout << " tolerance macro surface\t" << tol << std::endl;
 //   find_small_element();
-//   std::cout << " Found " << small_element.size() << " small elements " << std::endl;
-//   find_root_element();
+//   std::cout << " Found " << small_element.size() << " small elements " <<
+//   std::endl; find_root_element();
 //
 //
 // }
 //
 // void MacroElementSurface::find_small_element() {
-//   for(int iface=interface.first_element(); iface<interface.last_element(); iface+= interface.next_element()) {
+//   for(int iface=interface.first_element(); iface<interface.last_element();
+//   iface+= interface.next_element()) {
 //
 //     const Face& face = interface[iface];
 //     const int kb = interface.idxElementOfFace(iface);
@@ -186,7 +204,8 @@
 //   }
 //
 // }
-// int MacroElementSurface::check_direction(const int k, const int ie, int& chain_position){
+// int MacroElementSurface::check_direction(const int k, const int ie, int&
+// chain_position){
 //   assert(chain_position < interface.nbElement());
 //   const Mesh2& Th(*interface.backMesh);
 //   int e1 = ie;
@@ -210,88 +229,88 @@
 //   return check_direction(kn, ie_next, chain_position);
 // }
 
-
-  // vector<std::pair<int,int>> idx_small_K_temp(small_element.size());
-  // map<int,int> chain_position;
-  // vector<int> small_or_fat_K(Vh.nbElement);
-  //
-  //
-  // for(int i=0;i<small_or_fat_K.size();++i) small_or_fat_K[i] = i;
-  // int ii = 0;
-  // for(auto it=small_element.begin(); it!= small_element.end();++it) {
-  //   idx_small_K_temp[ii++] = std::make_pair(it->second.index, it->first);;
-  //   chain_position[it->second.index] = 0;
-  //   small_or_fat_K[it->second.index] = small;
-  // }
-  //
-  // ii = 0;
-  // while (idx_small_K_temp.size() > 0) {
-  //   int nb_of_small_K_left = idx_small_K_temp.size();
-  //   // std::cout << nb_of_small_K_left << std::endl;
-  //   for (int i=nb_of_small_K_left-1;i>=0;--i) {
-  //
-  //     int k = idx_small_K_temp[i].first;
-  //     int idx_Ks = idx_small_K_temp[i].second;
-  //     SmallElement& Ks(small_element[idx_Ks]);
-  //     const FElement2& FK(Vh[k]);
-  //     int k_back = Vh.Th(FK.T);
-  //     int the_domain = FK.whichDomain();
-  //
-  //     int kn, ie;
-  //     bool found_fat_neigh = false;
-  //     for(int ifac = 0; ifac < 3; ++ifac) {    //loop over the edges / faces
-  //
-  //       int ifacn = ifac;
-  //       int kn_back = Vh.Th.ElementAdj(k_back,ifacn);
-  //       if(kn_back == -1) continue;
-  //       int kn_tmp = Vh.idxElementFromBackMesh(kn_back, the_domain);   // not in the domain
-  //       if(kn_tmp ==-1) continue;
-  //
-  //       if(small_or_fat_K[kn_tmp] == kn_tmp) {   // means kn_tmp is a root fat
-  //         kn = kn_tmp;
-  //         ie = (k < kn)? ifac : ifacn;
-  //         int kk = (k < kn)?k: kn;
-  //         chain_position[k] = 1;
-  //         Ks.setChainPosition(1);
-  //         found_fat_neigh = true;
-  //         auto it = macro_element.find(kn);
-  //         if(it != macro_element.end()){ // already exist
-  //           it->second.add(k, std::make_pair(kk,ie));
-  //         }
-  //         else{
-  //           macro_element[kn] = MElement(kn);
-  //           macro_element[kn].add(k, std::make_pair(kk, ie));
-  //         }
-  //         break;
-  //       }
-  //       else if((small_or_fat_K[kn_tmp] != small)) {  // means it is a new fat
-  //
-  //         if(chain_position[k] == 0 ||  chain_position[k] > chain_position[kn_tmp]){
-  //           kn = kn_tmp;
-  //           ie = (k < kn)? ifac : ifacn;;
-  //           chain_position[k] = chain_position[kn_tmp]+1;
-  //           Ks.setChainPosition(chain_position[kn_tmp]+1);
-  //           found_fat_neigh = true;
-  //         }
-  //       }
-  //
-  //     }
-  //
-  //     // if(isFat(kn)) {
-  //     if(found_fat_neigh) {
-  //       int kk = (k<kn)? k:kn;
-  //       small_or_fat_K[k] = small_or_fat_K[kn];
-  //       idx_small_K_temp.erase(idx_small_K_temp.begin()+i); // remove the element.
-  //       Ks.setRoot(small_or_fat_K[kn]);
-  //
-  //       if(chain_position[k] != 1){
-  //         int idx_root = small_or_fat_K[kn];
-  //         auto it = macro_element.find(idx_root);
-  //         it->second.add(k, std::make_pair(kk, ie));
-  //
-  //       }
-  //     }
-  //   }
-  //   ii++;
-  // }
+// vector<std::pair<int,int>> idx_small_K_temp(small_element.size());
+// map<int,int> chain_position;
+// vector<int> small_or_fat_K(Vh.nbElement);
+//
+//
+// for(int i=0;i<small_or_fat_K.size();++i) small_or_fat_K[i] = i;
+// int ii = 0;
+// for(auto it=small_element.begin(); it!= small_element.end();++it) {
+//   idx_small_K_temp[ii++] = std::make_pair(it->second.index, it->first);;
+//   chain_position[it->second.index] = 0;
+//   small_or_fat_K[it->second.index] = small;
+// }
+//
+// ii = 0;
+// while (idx_small_K_temp.size() > 0) {
+//   int nb_of_small_K_left = idx_small_K_temp.size();
+//   // std::cout << nb_of_small_K_left << std::endl;
+//   for (int i=nb_of_small_K_left-1;i>=0;--i) {
+//
+//     int k = idx_small_K_temp[i].first;
+//     int idx_Ks = idx_small_K_temp[i].second;
+//     SmallElement& Ks(small_element[idx_Ks]);
+//     const FElement2& FK(Vh[k]);
+//     int k_back = Vh.Th(FK.T);
+//     int the_domain = FK.whichDomain();
+//
+//     int kn, ie;
+//     bool found_fat_neigh = false;
+//     for(int ifac = 0; ifac < 3; ++ifac) {    //loop over the edges / faces
+//
+//       int ifacn = ifac;
+//       int kn_back = Vh.Th.ElementAdj(k_back,ifacn);
+//       if(kn_back == -1) continue;
+//       int kn_tmp = Vh.idxElementFromBackMesh(kn_back, the_domain);   // not
+//       in the domain if(kn_tmp ==-1) continue;
+//
+//       if(small_or_fat_K[kn_tmp] == kn_tmp) {   // means kn_tmp is a root fat
+//         kn = kn_tmp;
+//         ie = (k < kn)? ifac : ifacn;
+//         int kk = (k < kn)?k: kn;
+//         chain_position[k] = 1;
+//         Ks.setChainPosition(1);
+//         found_fat_neigh = true;
+//         auto it = macro_element.find(kn);
+//         if(it != macro_element.end()){ // already exist
+//           it->second.add(k, std::make_pair(kk,ie));
+//         }
+//         else{
+//           macro_element[kn] = MElement(kn);
+//           macro_element[kn].add(k, std::make_pair(kk, ie));
+//         }
+//         break;
+//       }
+//       else if((small_or_fat_K[kn_tmp] != small)) {  // means it is a new fat
+//
+//         if(chain_position[k] == 0 ||  chain_position[k] >
+//         chain_position[kn_tmp]){
+//           kn = kn_tmp;
+//           ie = (k < kn)? ifac : ifacn;;
+//           chain_position[k] = chain_position[kn_tmp]+1;
+//           Ks.setChainPosition(chain_position[kn_tmp]+1);
+//           found_fat_neigh = true;
+//         }
+//       }
+//
+//     }
+//
+//     // if(isFat(kn)) {
+//     if(found_fat_neigh) {
+//       int kk = (k<kn)? k:kn;
+//       small_or_fat_K[k] = small_or_fat_K[kn];
+//       idx_small_K_temp.erase(idx_small_K_temp.begin()+i); // remove the
+//       element. Ks.setRoot(small_or_fat_K[kn]);
+//
+//       if(chain_position[k] != 1){
+//         int idx_root = small_or_fat_K[kn];
+//         auto it = macro_element.find(idx_root);
+//         it->second.add(k, std::make_pair(kk, ie));
+//
+//       }
+//     }
+//   }
+//   ii++;
+// }
 // }

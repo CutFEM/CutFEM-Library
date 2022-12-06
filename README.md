@@ -1,6 +1,12 @@
-# cutfem
+# CutFEM-Library
 
-to install 
+to create theD Darcy library to reproduce results
+
+1 - Build the library
+"cd cpp; mkdir build; cd build; cmake ..; make -j4;"
+2 - Go to the python folder
+cd ../../python/darcy;
+
 
 ** set the variable in the cutFEMConfig.in
 ** need cmake

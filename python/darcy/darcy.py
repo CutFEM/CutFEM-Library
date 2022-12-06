@@ -11,14 +11,13 @@ fun_pressure = USER_FUNC(func_pressure)
 
 set_verbose(0)
 
-nx = 21
+nx = 11
 
-for x in range(3):
-
+for x in range(4):
     darcy = Darcy2()
 
     darcy.build_mesh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH)
-    darcy.init_space(fun_level_set, 'BDM1')
+    darcy.init_space(fun_level_set, 'RT0')
 
     darcy.add_bulk_integral(fun_div)
     darcy.add_interface_integral(fun_phat)
@@ -29,7 +28,7 @@ for x in range(3):
 
     darcy.solve_umfpack()
 
-    # darcy.write_vtk_file('../output/example.vtk')
+    darcy.write_vtk_file('../output/example.vtk')
 
     error_divu_L2 = darcy.L2error_div(fun_div)
     error_u_L2 = darcy.L2error_vel(fun_velocity)
@@ -38,5 +37,6 @@ for x in range(3):
     print(error_divu_L2)
     print(error_p_L2)
     print(error_u_L2)
+    print("-----------------")
 
     nx = 2*nx - 1
