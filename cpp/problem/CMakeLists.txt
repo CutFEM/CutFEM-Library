@@ -19,8 +19,8 @@ target_include_directories(problem
 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(USE_MPI)
-target_link_libraries(problem PRIVATE parallel common FESpace solver /usr/local/opt/libomp/lib/libomp.dylib)
+target_link_libraries(problem PRIVATE parallel common FESpace solver )
 else()
-target_link_libraries(problem PRIVATE common FESpace solver /usr/local/opt/libomp/lib/libomp.dylib)
+target_link_libraries(problem PRIVATE common FESpace solver)
 endif()
 #

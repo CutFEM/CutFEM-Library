@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 
-set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang")
-set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang++")
+#set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang")
+#set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/15.0.3/bin/clang++")
 
 
 project(CutFEM VERSION 1.0)
@@ -50,8 +50,8 @@ list(APPEND EXTRA_LIBS solver)
 add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 #list(APPEND EXTRA_LIBS -lstdc++fs)
-list(APPEND EXTRA_LIBS /usr/local/opt/libomp/lib/libomp.dylib)
-list(APPEND EXTRA_INCLUDES /usr/local/opt/libomp/include)
+#list(APPEND EXTRA_LIBS /usr/local/opt/libomp/lib/libomp.dylib)
+#list(APPEND EXTRA_INCLUDES /usr/local/opt/libomp/include)
 
 ## for the test
 add_subdirectory(test/)
@@ -69,6 +69,13 @@ get_directory_property(SOLVER_SOURCES DIRECTORY solver DEFINITION SOLVER_SOURCES
 # "${PROJECT_BINARY_DIR}")
 # target_sources(_darcy PRIVATE ${COMMON_SOURCES} ${FESPACE_SOURCES} ${SOLVER_SOURCES} ${PROBLEM_SOURCES})
 
+
+set(EX_NAME surfactant)
+add_executable(${EX_NAME}  mainFiles/surfactant_cg.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+target_include_directories(${EX_NAME} PUBLIC
+                        "${PROJECT_BINARY_DIR}"
+                        ${EXTRA_INCLUDES})
 
 #
 set(EX_NAME bulkCD)

@@ -6,28 +6,31 @@
 #include <iostream>
 // #include "../parallel/cfmpi.hpp"
 
-// struct CoutFileAndScreen {
-//   ofstream outFile;
-//    ~CoutFileAndScreen(void){outFile.close();}
+struct CoutFileAndScreen {
+   std::ofstream outFile;
+   ~CoutFileAndScreen(void) { outFile.close(); }
 
-//   CoutFileAndScreen(std::string path2File) : outFile(path2File.c_str()) {
-//     if(!MPIcf::IamMaster()) outFile.close();
-//   }
+   CoutFileAndScreen(std::string path2File) : outFile(path2File.c_str()) {
+#ifdef USE_MPI
+      if (!MPIcf::IamMaster())
+         outFile.close();
+#else
+      outFile.close();
+#endif
+   }
 
-//   CoutFileAndScreen& operator<< (ostream& (*pfun)(ostream&))
-//    {
-//      pfun(outFile);
-//      pfun(cout);
-//      return *this;
-//    }
-// };
+   CoutFileAndScreen &operator<<(std::ostream &(*pfun)(std::ostream &)) {
+      pfun(outFile);
+      pfun(std::cout);
+      return *this;
+   }
+};
 
-// template <class T>
-// CoutFileAndScreen& operator<< (CoutFileAndScreen& st, T val)
-// {
-//   if(st.outFile.is_open()) st.outFile << val;
-//   cout << val;
-//   return st;
-// };
+template <class T> CoutFileAndScreen &operator<<(CoutFileAndScreen &st, T val) {
+   if (st.outFile.is_open())
+      st.outFile << val;
+   std::cout << val;
+   return st;
+};
 
 #endif
