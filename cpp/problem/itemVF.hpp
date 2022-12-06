@@ -332,7 +332,7 @@ template <int N = 2> class ListItemVF {
          if (s(i) != -1)
             continue;
          for (int j = i + 1; j < VF.size(); ++j) {
-            if (VF[i] == VF[j]) {
+            if (VF.at(i).operator == (VF.at(j))) {
                s(j) = i;
                l -= 1;
             }
