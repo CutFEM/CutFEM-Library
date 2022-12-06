@@ -254,6 +254,13 @@ class Quad2 : public GenericElement<DataQuad2> {
    //   GradL[2]= H(2);
    //   GradL[0]=-GradL[1]-GradL[2];
    // }
+   void Gradlambda(R2 * GradL) const
+   {
+     GradL[1]= R2(1./4, 1./4);
+     GradL[2]= R2(1./4, 1./4);
+     GradL[0]= R2(1./4, 1./4);
+     GradL[4] = R2(1./4, 1./4);
+   }
 
    R2 toKref(const R2 &P) const {
       const R2 &A = *vertices[0];

@@ -246,97 +246,98 @@ GTypeOfFE<Mesh2> &P1Lagrange2d(P1_2d);
 template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::P1 = P1_2d;
 
 // P1 for quad
-// class TypeOfFE_P1QLagrange2d : public GTypeOfFE<MeshQuad2> {
-//
-//   typedef   MeshQuad2 Mesh;
-//   typedef  typename Mesh::Element  E;
-//   static const int nbNodeOnItem[4];
-// public:
-//
-//   static const int k = 1;
-//   static const int ndf = (k + 1) * (k + 1);
-//   static int Data[];
-//   static double alpha_Pi_h[];
-//
-//   TypeOfFE_P1QLagrange2d(): GTypeOfFE<MeshQuad2>(4, 1, Data, 4, 4,
-//   alpha_Pi_h) {
-//
-//     static const R2 Pt[4] = {R2(0., 0.), R2(1., 0.), R2(1., 1.), R2(0., 1.)};
-//
-//     for(int i=0;i<ndf;++i) {
-//       Pt_Pi_h[i] = Pt[i];
-//       ipj_Pi_h[i] = IPJ(i,i,0);
-//     }
-//   }
-//
-//
-//   void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
-// } ;
-//
-// const int TypeOfFE_P1QLagrange2d::nbNodeOnItem[4] = {1,0,0,0};
-// int TypeOfFE_P1QLagrange2d::Data[] = {
-//   0, 1, 2, 3,    // the support number  of the node of the df
-//   0, 0, 0, 0,    // the number of the df on  the node
-//   0, 1, 2, 3,    // the node of the df
-//   0, 1, 2, 3,    // which are de df on sub FE
-//   1, 0, 0, 0,    // nb node on what
-//   0,          // for each compontant $j=0,N-1$ it give the sub FE associated
-//   0,          // begin_dfcomp
-//   4           // end_dfcomp
-// };
-//
-// double TypeOfFE_P1QLagrange2d::alpha_Pi_h[] = {1. ,1. ,1., 1.};
-//
-// void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element & K,
-// 			       const R2 & P,RNMK_ & val) const
-// {
-//   R lx[] = {1.-P.x,P.x};
-//   R ly[] = {1.-P.y,P.y};
-//
-//   Linear_Transformation<Element> map(K);
-//
-//   assert(val.N() >= Element::nv);
-//   assert(val.M()==1 );
-//
-//   val=0;
-//   RN_ f0(val('.',0,op_id));
-//
-//   if (whatd & Fop_D0) {
-//     f0[0] = lx[0]*ly[0];
-//     f0[1] = lx[1]*ly[0];
-//     f0[2] = lx[1]*ly[1];
-//     f0[3] = lx[0]*ly[1];
-//   }
-//
-//   if (whatd & Fop_D1) {
-//     R2 phi_hat[4];
-//     R Dl[] = {-1, 1};
-//     phi_hat[0][0] = Dl[0]*ly[0];
-//     phi_hat[0][1] = lx[0]*Dl[0];
-//     phi_hat[1][0] = Dl[1]*ly[0];
-//     phi_hat[1][1] = lx[1]*Dl[0];
-//     phi_hat[2][0] = Dl[1]*ly[1];
-//     phi_hat[2][1] = lx[1]*Dl[1];
-//     phi_hat[3][0] = Dl[0]*ly[1];
-//     phi_hat[3][1] = lx[0]*Dl[1];
-//
-//
-//   //   K.Gradlambda(Dl);
-//     if (whatd & Fop_dx)  {
-//       RN_ f0x(val('.',0,op_dx));
-//       map.transform_gradient(phi_hat, f0x, op_dx);
-//     }
-//
-//     if (whatd & Fop_dy) {
-//       RN_ f0y(val('.',0,op_dy));
-//       map.transform_gradient(phi_hat, f0y, op_dy);
-//     }
-//   }
-// }
-//
-// static TypeOfFE_P1QLagrange2d  P1Q_2d;
-// GTypeOfFE<MeshQuad2> & P1QLagrange2d(P1Q_2d);
-// template<> GTypeOfFE<MeshQuad2> & DataFE<MeshQuad2>::P1=P1Q_2d;
+class TypeOfFE_P1QLagrange2d : public GTypeOfFE<MeshQuad2> {
+
+  typedef   MeshQuad2 Mesh;
+  typedef  typename Mesh::Element  E;
+  static const int nbNodeOnItem[4];
+public:
+
+  static const int k = 1;
+  static const int ndf = (k + 1) * (k + 1);
+  static int Data[];
+  static double alpha_Pi_h[];
+
+  TypeOfFE_P1QLagrange2d(): GTypeOfFE<MeshQuad2>(4, 1, Data, 4, 4,
+  alpha_Pi_h) {
+
+    static const R2 Pt[4] = {R2(0., 0.), R2(1., 0.), R2(1., 1.), R2(0., 1.)};
+
+    for(int i=0;i<ndf;++i) {
+      Pt_Pi_h[i] = Pt[i];
+      ipj_Pi_h[i] = IPJ(i,i,0);
+    }
+  }
+
+
+  void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
+} ;
+
+const int TypeOfFE_P1QLagrange2d::nbNodeOnItem[4] = {1,0,0,0};
+int TypeOfFE_P1QLagrange2d::Data[] = {
+  0, 1, 2, 3,    // the support number  of the node of the df
+  0, 0, 0, 0,    // the number of the df on  the node
+  0, 1, 2, 3,    // the node of the df
+  0, 1, 2, 3,    // which are de df on sub FE
+  1, 0, 0, 0,    // nb node on what
+  0,          // for each compontant $j=0,N-1$ it give the sub FE associated
+  0,          // begin_dfcomp
+  4           // end_dfcomp
+};
+
+double TypeOfFE_P1QLagrange2d::alpha_Pi_h[] = {1. ,1. ,1., 1.};
+
+void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element & K,
+			       const R2 & P,RNMK_ & val) const
+{
+  R lx[] = {1.-P.x,P.x};
+  R ly[] = {1.-P.y,P.y};
+
+  //Linear_Transformation<Element> map(K);
+
+  assert(val.N() >= Element::nv);
+  assert(val.M()==1 );
+
+  val=0;
+  RN_ f0(val('.',0,op_id));
+
+  if (whatd & Fop_D0) {
+    f0[0] = lx[0]*ly[0];
+    f0[1] = lx[1]*ly[0];
+    f0[2] = lx[1]*ly[1];
+    f0[3] = lx[0]*ly[1];
+  }
+
+  if (whatd & Fop_D1) {
+    R2 phi_hat[4];
+    R Dl[] = {-1, 1};
+    phi_hat[0][0] = Dl[0]*ly[0];
+    phi_hat[0][1] = lx[0]*Dl[0];
+    phi_hat[1][0] = Dl[1]*ly[0];
+    phi_hat[1][1] = lx[1]*Dl[0];
+    phi_hat[2][0] = Dl[1]*ly[1];
+    phi_hat[2][1] = lx[1]*Dl[1];
+    phi_hat[3][0] = Dl[0]*ly[1];
+    phi_hat[3][1] = lx[0]*Dl[1];
+
+
+  //   K.Gradlambda(Dl);
+   //  if (whatd & Fop_dx)  {
+   //    RN_ f0x(val('.',0,op_dx));
+   //    map.transform_gradient(phi_hat, f0x, op_dx);
+   //  }
+
+   //  if (whatd & Fop_dy) {
+   //    RN_ f0y(val('.',0,op_dy));
+   //    map.transform_gradient(phi_hat, f0y, op_dy);
+   //  }
+   
+  }
+}
+
+static TypeOfFE_P1QLagrange2d  P1Q_2d;
+GTypeOfFE<MeshQuad2> & P1QLagrange2d(P1Q_2d);
+template<> GTypeOfFE<MeshQuad2> & DataFE<MeshQuad2>::P1=P1Q_2d;
 
 // 3D
 // P1

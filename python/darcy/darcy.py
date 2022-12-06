@@ -4,7 +4,7 @@ from darcy_data_example1_2D import *
 
 fun_level_set = USER_FUN_LS(func_level_set)
 fun_div = USER_FUNC(func_div)
-fun_neumann = USER_FUNC(func_neumann)
+fun_neumann = USER_FUNC(func_neumann) 
 fun_phat = USER_FUNC(func_phat)
 fun_velocity = USER_FUNC(func_velocity)
 fun_pressure = USER_FUNC(func_pressure)

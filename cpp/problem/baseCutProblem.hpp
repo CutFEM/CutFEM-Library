@@ -219,6 +219,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
    // For time problem
    void saveSolution(const Rn &);
    void initialSolution(Rn &);
+
+   int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 };
 
 template <typename Mesh> class CutFEM : public BaseCutFEM<Mesh>, public Solver {
