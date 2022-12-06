@@ -661,7 +661,7 @@ template <typename Mesh> void TimeMacroElement<Mesh>::createMacroElement() {
             if (kn == -1)
                continue;
 
-            if ((small_or_fat_K[kn] == small))
+            if (small_or_fat_K[kn] == small)
                continue;
 
             // set position of the small element
