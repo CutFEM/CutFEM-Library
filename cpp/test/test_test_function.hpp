@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "../tool.hpp"
-#include "/usr/local/include/catch2/catch_all.hpp"
 
 TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
 
@@ -508,29 +507,29 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
       }
    }
    // SECTION("Test average operator") {
-   //   TestFunction<1> u(Vh, 1);
-   //   TestFunction<1> avgu(average(dx(u), 1., -1.));
+   //    TestFunction<1> u(Vh, 1);
+   //    TestFunction<1> avgu(average(dx(u), 1., -1.));
 
-   //   REQUIRE(avgu.isScalar());
-   //   REQUIRE(avgu.sizeItemList(0) == 2);
+   //    REQUIRE(avgu.isScalar());
+   //    REQUIRE(avgu.sizeItemList(0) == 2);
 
-   //   const auto &item0(avgu.getItem(0, 0));
-   //   const auto &item1(avgu.getItem(0, 1));
+   //    const auto &item0(avgu.getItem(0, 0));
+   //    const auto &item1(avgu.getItem(0, 1));
 
-   //   REQUIRE(item0.oper == op_dx);
-   //   REQUIRE(item0.cst == 1.);
-   //   REQUIRE(item0.comp == 0);
-   //   REQUIRE(item0.side_edge == 0);
-   //   REQUIRE(item0.fespace_p == &Vh);
-   //   REQUIRE(item0.root_fun_p == &u);
-   //   REQUIRE(item0.function_p == nullptr);
+   //    REQUIRE(item0.oper == op_dx);
+   //    REQUIRE(item0.cst == 1.);
+   //    REQUIRE(item0.comp == 0);
+   //    REQUIRE(item0.side_edge == 0);
+   //    REQUIRE(item0.fespace_p == &Vh);
+   //    REQUIRE(item0.root_fun_p == &u);
+   //    REQUIRE(item0.function_p == nullptr);
 
-   //   REQUIRE(item1.oper == op_dx);
-   //   REQUIRE(item1.cst == -1.);
-   //   REQUIRE(item1.comp == 0);
-   //   REQUIRE(item1.side_edge == 1);
-   //   REQUIRE(item1.fespace_p == &Vh);
-   //   REQUIRE(item1.root_fun_p == &u);
-   //   REQUIRE(item1.function_p == nullptr);
+   //    REQUIRE(item1.oper == op_dx);
+   //    REQUIRE(item1.cst == -1.);
+   //    REQUIRE(item1.comp == 0);
+   //    REQUIRE(item1.side_edge == 1);
+   //    REQUIRE(item1.fespace_p == &Vh);
+   //    REQUIRE(item1.root_fun_p == &u);
+   //    REQUIRE(item1.function_p == nullptr);
    // }
 }

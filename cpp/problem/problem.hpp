@@ -20,7 +20,6 @@
 #include "itemVF.hpp"
 #include "mapping.hpp"
 #include "../solver/solver.hpp"
-//#include "/usr/local/opt/libomp/include/omp.h"
 
 // Base class for problem.
 // contain info about the linear system

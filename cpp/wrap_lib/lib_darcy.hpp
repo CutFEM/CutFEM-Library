@@ -115,7 +115,7 @@ template <typename Kernel> class Darcy {
                             innerProduct(div(u), q),
                         *Khi_p);
 
-      darcy.addLinear(innerProduct(fq.expression(), q), *Khi_p);
+      darcy.addLinear(innerProduct(fq.expr(), q), *Khi_p);
    }
    void add_interface_integral(double (*f)(double *, int, int)) {
 
@@ -130,7 +130,7 @@ template <typename Kernel> class Darcy {
       darcy.addBilinear(innerProduct(mu_G * average(u * n), average(v * n)) +
                             innerProduct(xi0 * mu_G * jump(u * n), jump(v * n)),
                         *inter_p);
-      darcy.addLinear(-innerProduct(phat.expression(), jump(v * n)), *inter_p);
+      darcy.addLinear(-innerProduct(phat.expr(), jump(v * n)), *inter_p);
    }
    void add_natural_BC(double (*f)(double *, int, int)) {
 
@@ -140,7 +140,7 @@ template <typename Kernel> class Darcy {
       Normal n;
       TestFunction<2> v(*Wh_p, 2);
       darcy.addLinear(
-          -innerProduct(p0.expression(), v * n) // Only on Gamma_N (pressure)
+          -innerProduct(p0.expr(), v * n) // Only on Gamma_N (pressure)
           ,
           *Khi_p, INTEGRAL_BOUNDARY);
    }
@@ -227,8 +227,8 @@ template <typename Kernel> class Darcy {
    double L2error_div(double (*f)(double *, int, int)) {
       Rn_ data_uh = sub_array(darcy.rhs_, 0, Wh_p->get_nb_dof());
       FunFEM<Mesh> uh(*Wh_p, data_uh);
-      ExpressionFunFEM<Mesh> femSol_0dx(uh, 0, op_dx);
-      ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
+      auto femSol_0dx = dx(uh.expr(0));
+      auto femSol_1dy = dy(uh.expr(1));
 
       return L2normCut(femSol_0dx + femSol_1dy, f, *Khi_p);
    }
@@ -251,8 +251,8 @@ template <typename Kernel> class Darcy {
 
       FunFEM<Mesh> uh(*Wh_p, data_uh);
       FunFEM<Mesh> ph(*Ph_p, data_ph);
-      ExpressionFunFEM<Mesh> femSol_0dx(uh, 0, op_dx);
-      ExpressionFunFEM<Mesh> femSol_1dy(uh, 1, op_dy);
+      auto femSol_0dx = dx(uh.expr(0));
+      auto femSol_1dy = dy(uh.expr(1));
 
       Paraview<Mesh> writer(*Khi_p, filename);
 

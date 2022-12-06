@@ -436,11 +436,13 @@ void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new,
       }
 
       // 3) compute theta
-      double v1    = fabs((min_val - u_bar_M) / (min_M - u_bar_M - Epsilon));
-      double v2    = fabs((max_val - u_bar_M) / (max_M - u_bar_M + Epsilon));
+      double v1    = fabs((min_val - u_bar_M) /
+                          (min_M - u_bar_M - globalVariable::Epsilon));
+      double v2    = fabs((max_val - u_bar_M) /
+                          (max_M - u_bar_M + globalVariable::Epsilon));
       double theta = std::min(std::min(v1, v2), 1.);
       // std::cout << theta << std::endl;
-      if (fabs(theta) < Epsilon)
+      if (fabs(theta) < globalVariable::Epsilon)
          theta = 0.;
       // 4) replace the dof
       for (auto k : MK.idx_element) {
@@ -555,7 +557,8 @@ void check_mean_value(const FunFEM<Mesh> &uh, const MacroElement<Mesh> &macro,
    }
    for (int i = 0; i < u_mean.size(); ++i) {
       double u_bar_K = u_mean(i);
-      if (u_bar_K < minV - Epsilon || maxV + Epsilon < u_bar_K) {
+      if (u_bar_K < minV - globalVariable::Epsilon ||
+          maxV + globalVariable::Epsilon < u_bar_K) {
          std::cout << " Mean value does not satisfies maximum principle "
                    << std::endl;
          std::cout << "[m, M] = [ " << minV << "\t" << u_bar_K << "\t" << maxV

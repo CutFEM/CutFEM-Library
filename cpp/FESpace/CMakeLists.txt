@@ -26,17 +26,16 @@ ${CMAKE_CURRENT_SOURCE_DIR}/RT0.cpp
 )
 
 
+if(${CUTFEM_BUILD_EXE} OR ${CUTFEM_BUILD_TESTS})
 
 add_library(FESpace SHARED ${FESPACE_SOURCES})
-
 target_include_directories(FESpace
 PUBLIC
 "${CMAKE_CURRENT_SOURCE_DIR}"
 "${PROJECT_BINARY_DIR}")
-            ##               INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-
 if(USE_MPI)                   
 target_link_libraries(FESpace PRIVATE common parallel)
 else()
 target_link_libraries(FESpace PRIVATE common)
+endif()
 endif()

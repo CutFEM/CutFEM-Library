@@ -3,86 +3,86 @@
 #include <map>
 #include <vector>
 
-#include "../calculus/RNM.hpp"
-#include "../mesh/mesh.hpp"
-#include "../fem/basisFct.hpp"
-#include "../fem/fespace.hpp"
-#include "../fem/function_expression.hpp"
-#include "../operator/test_function.hpp"
-#include "/usr/local/include/catch2/catch_all.hpp"
+TEST_CASE("Test Expression class for scalar functions", "[Expression]") {
 
-TEST_CASE("Test Expression class", "[Expression]") {
-   typedef typename Mesh<1>::v_t v_t;
-   Mesh<1> mesh(2, -1., 1.);
-   P1_1D shapeFct;
-   FESpace Vh(mesh, shapeFct);
+   Mesh2 mesh(2, 2, -1., -1., 2., 2);
+   FESpace2 Vh(mesh, DataFE<Mesh2>::P1);
+   //    FESpace2 Rh(mesh, DataFE<Mesh2>::RT0);
 
-   auto f1 = [](const v_t x) -> double { return x[0]; };
-   auto f2 = [](const v_t x) -> double { return x[0] + 2; };
+   auto f1 = [](double *x) -> double { return x[0] + x[1]; };
+   auto f2 = [](double *x) -> double { return x[0] - 2; };
 
-   Function1 f1h(Vh, f1);
-   Function1 f2h(Vh, f2);
+   FunFEM<Mesh2> f1h(Vh, f1);
+   FunFEM<Mesh2> f2h(Vh, f2);
 
    auto expr1 = f1h.expr();
    auto expr2 = f2h.expr();
+   R2 x1(-1. / Pi, 3. / Pi);
+   R2 x2(0, 0.3333);
 
-   SECTION("Evaluation") {
-      REQUIRE(std::fabs(f1h.eval(0, -1. / Pi) + 1. / Pi) < Epsilon);
-      REQUIRE(std::fabs(f1h.eval(0, 0.5) - 0.5) < Epsilon);
-      REQUIRE(std::fabs(f1h.eval(0, 0.25) - 0.25) < Epsilon);
-      REQUIRE(std::fabs(f1h.eval(0, -1. / Pi) - expr1->eval(0, -1. / Pi)) <
-              Epsilon);
-      REQUIRE(std::fabs(f1h.eval(0, 0.5) - expr1->eval(0, 0.5)) < Epsilon);
-      REQUIRE(std::fabs(f1h.eval(0, 0.25) - expr1->eval(0, 0.25)) < Epsilon);
+   {
+      REQUIRE(isEqual(f1h.eval(0, x1, 0, op_id), f1(x1)));
+      REQUIRE(isEqual(f1h.eval(0, x1), f1(x1)));
+      REQUIRE(isEqual(f1h.eval(0, x1), expr1->eval(0, x1, nullptr)));
+
+      REQUIRE(isEqual(f1h.eval(0, x2, 0, op_id), f1(x2)));
+      REQUIRE(isEqual(f1h.eval(0, x2), f1(x2)));
+      REQUIRE(isEqual(f1h.eval(0, x2), expr1->eval(0, x2, nullptr)));
    }
-
-   SECTION("Product of expression") {
+   {
       const auto p = expr1 * expr2;
-      REQUIRE(std::fabs(p->eval(0, -1. / Pi) - (-1. / Pi) * (-1. / Pi + 2)) <
-              Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.5) - 0.5 * (0.5 + 2)) < Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.25) - 0.25 * (0.25 + 2)) < Epsilon);
+      REQUIRE(isEqual(p->eval(0, x1, nullptr), f1(x1) * f2(x1)));
+      REQUIRE(isEqual(p->eval(0, x2, nullptr), f1(x2) * f2(x2)));
    }
-
-   SECTION("operator ^ for expression") {
+   {
       const auto p = (expr2 ^ 3);
-      REQUIRE(std::fabs(p->eval(0, -1. / Pi) - pow(-1. / Pi + 2, 3)) < Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.5) - pow(0.5 + 2, 3)) < Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.25) - pow(0.25 + 2, 3)) < Epsilon);
+      REQUIRE(isEqual(p->eval(0, x1, nullptr), pow(f2(x1), 3), 1e-12));
+      REQUIRE(isEqual(p->eval(0, x2, nullptr), pow(f2(x2), 3), 1e-12));
    }
-   SECTION("Pow function on expression") {
-      const auto p = pow(expr2, 3);
-      REQUIRE(std::fabs(p->eval(0, -1. / Pi) - pow(-1. / Pi + 2, 3)) < Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.5) - pow(0.5 + 2, 3)) < Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.25) - pow(0.25 + 2, 3)) < Epsilon);
+   {
+      const auto p = pow(expr2, 3); //(expr2 ^ 3);
+      REQUIRE(isEqual(p->eval(0, x1, nullptr), pow(f2(x1), 3), 1e-12));
+      REQUIRE(isEqual(p->eval(0, x2, nullptr), pow(f2(x2), 3), 1e-12));
+
+      const auto q = fabs(p);
+      REQUIRE(
+          isEqual(q->eval(0, x1, nullptr), std::fabs(pow(f2(x1), 3)), 1e-12));
+      REQUIRE(
+          isEqual(q->eval(0, x2, nullptr), std::fabs(pow(f2(x2), 3)), 1e-12));
+
+      const auto r = sqrt(q);
+      REQUIRE(isEqual(r->eval(0, x1, nullptr),
+                      std::sqrt(std::fabs(pow(f2(x1), 3))), 1e-12));
+      REQUIRE(isEqual(r->eval(0, x2, nullptr),
+                      std::sqrt(std::fabs(pow(f2(x2), 3))), 1e-12));
    }
+   {
+      const auto p = dx(expr2);
+      REQUIRE(p->cu == 0);
+      REQUIRE(p->op == op_dx);
+      REQUIRE(p->opt == op_id);
+      REQUIRE(isEqual(p->eval(0, x1, nullptr), 1.));
 
-   SECTION("Product of expression with constant") {
-      const double c = Pi;
-      const auto p   = c * expr1 * expr2;
-      REQUIRE(std::fabs(p->eval(0, -1. / Pi) -
-                        c * (-1. / Pi) * (-1. / Pi + 2)) < Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.5) - c * 0.5 * (0.5 + 2)) < Epsilon);
-      REQUIRE(std::fabs(p->eval(0, 0.25) - c * 0.25 * (0.25 + 2)) < Epsilon);
+      const auto q = dy(expr2);
+      REQUIRE(q->cu == 0);
+      REQUIRE(q->op == op_dy);
+      REQUIRE(isEqual(q->eval(0, x1, nullptr), 0.));
+
+      const auto r = dt(expr2);
+      REQUIRE(r->cu == 0);
+      REQUIRE(r->opt == op_dx);
    }
+   {
+      const auto p = expr1 + expr2;
+      REQUIRE(isEqual(p->eval(0, x1, nullptr), f1(x1) + f2(x1)));
+      REQUIRE(isEqual(p->eval(0, x2, nullptr), f1(x2) + f2(x2)));
 
-   SECTION("Test when wrap in a test function") {
-      TestFunction<1> u(Vh, 1, 0);
-      const auto u1 = expr1 * u;
-      const auto &item(u1.getItem(0, 0));
-      REQUIRE(item.function_p.get() != nullptr);
-      REQUIRE(std::fabs(item.function_p->eval(0, 0.5) - 0.5) < Epsilon);
+      const auto q = p / expr2;
+      REQUIRE(isEqual(q->eval(0, x1, nullptr), (f1(x1) + f2(x1)) / f2(x1)));
+      REQUIRE(isEqual(q->eval(0, x2, nullptr), (f1(x2) + f2(x2)) / f2(x2)));
 
-      const auto u2 = expr2 * u1;
-      const auto &item2(u2.getItem(0, 0));
-      REQUIRE(item2.function_p.get() != nullptr);
-      REQUIRE(std::fabs(item2.function_p->eval(0, 0.5) - 0.5 * (0.5 + 2)) <
-              Epsilon);
-
-      const auto u3 = u2 * expr1;
-      const auto &item3(u3.getItem(0, 0));
-      REQUIRE(item3.function_p.get() != nullptr);
-      REQUIRE(std::fabs(item3.function_p->eval(0, 0.5) -
-                        0.5 * (0.5 + 2) * 0.5) < Epsilon);
+      const auto r = p - expr2;
+      REQUIRE(isEqual(r->eval(0, x1, nullptr), f1(x1)));
+      REQUIRE(isEqual(r->eval(0, x2, nullptr), f1(x2)));
    }
 }

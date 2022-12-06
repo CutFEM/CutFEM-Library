@@ -11,7 +11,7 @@ double L2normCut(const FunFEM<M> &fh,
    const ActiveMesh<M> &Th(Vh.get_mesh());
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
-      ExpressionFunFEM<M> ui(fh, i, op_id);
+      auto ui = fh.expr(i);
       val += L2normCut_2(ui, fex, Th, t, macro);
    }
    return sqrt(val);
@@ -24,21 +24,22 @@ double L2normCut(const FunFEM<M> &fh, R(fex)(double *, int i, int dom), int c0,
    const ActiveMesh<M> &Th(Vh.get_mesh());
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
-      ExpressionFunFEM<M> ui(fh, i, op_id);
+      auto ui = fh.expr(i);
       val += L2normCut_2(ui, fex, Th, macro);
    }
    return sqrt(val);
 }
 
 template <typename M>
-double L2normCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
-                 const ActiveMesh<M> &Th,
+double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                 R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th,
                  const MacroElement<M> *macro = nullptr) {
    double val = L2normCut_2(fh, fex, Th, macro);
    return sqrt(val);
 }
 template <typename M>
-double L2normCut(const ExpressionVirtual &fh, const ActiveMesh<M> &Th,
+double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                 const ActiveMesh<M> &Th,
                  const MacroElement<M> *macro = nullptr) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
@@ -49,13 +50,15 @@ double L2normCut(const ExpressionVirtual &fh, const ActiveMesh<M> &Th,
 }
 
 template <typename M>
-double L2normCut(const ExpressionVirtual &fh, const ActiveMesh<M> &Th, int dom,
+double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                 const ActiveMesh<M> &Th, int dom,
                  const MacroElement<M> *macro = nullptr) {
    double val = L2normCut_2(fh, dom, Th, macro);
    return sqrt(val);
 }
+
 template <typename M>
-double L2normCut_2(const ExpressionVirtual &fh,
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
                    R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th,
                    const MacroElement<M> *macro) {
    int nb_dom = Th.get_nb_domain();
@@ -65,8 +68,9 @@ double L2normCut_2(const ExpressionVirtual &fh,
    }
    return val;
 }
+
 template <typename M>
-double L2normCut_2(const ExpressionVirtual &fh,
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
                    R(fex)(double *, int i, int dom, double tt),
                    const ActiveMesh<M> &Th, double t,
                    const MacroElement<M> *macro) {
@@ -79,7 +83,7 @@ double L2normCut_2(const ExpressionVirtual &fh,
 }
 
 template <typename Mesh>
-double L2normCut_2(const ExpressionVirtual &fh, int domain,
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, int domain,
                    const ActiveMesh<Mesh> &Th,
                    const MacroElement<Mesh> *macro) {
    typedef GFESpace<Mesh> FESpace;
@@ -120,7 +124,7 @@ double L2normCut_2(const ExpressionVirtual &fh, int domain,
             const R Cint = meas * ip.getWeight();
             // std::cout << " before "  << std::endl;
 
-            double a = fh.eval(kk, mip);
+            double a = fh->eval(kk, mip);
             // std::cout << " after "  << std::endl;
 
             val += Cint * a * a;
@@ -136,7 +140,7 @@ double L2normCut_2(const ExpressionVirtual &fh, int domain,
    return val_receive;
 }
 template <typename Mesh>
-double L2normCut_2(const ExpressionVirtual &fh,
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
                    R(fex)(double *, int i, int dom), int domain,
                    const ActiveMesh<Mesh> &Th,
                    const MacroElement<Mesh> *macro) {
@@ -172,7 +176,7 @@ double L2normCut_2(const ExpressionVirtual &fh,
             Rd mip       = cutK.mapToPhysicalElement(it, ip);
             const R Cint = meas * ip.getWeight();
 
-            double a = fh.eval(kk, mip) - fex(mip, fh.cu, domain);
+            double a = fh->eval(kk, mip) - fex(mip, fh->cu, domain);
 
             val += Cint * a * a;
          }
@@ -187,7 +191,7 @@ double L2normCut_2(const ExpressionVirtual &fh,
    return val_receive;
 }
 template <typename Mesh>
-double L2normCut_2(const ExpressionVirtual &fh,
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
                    R(fex)(double *, int i, int dom, double tt), int domain,
                    const ActiveMesh<Mesh> &Th, double t,
                    const MacroElement<Mesh> *macro) {
@@ -227,7 +231,7 @@ double L2normCut_2(const ExpressionVirtual &fh,
             Rd mip       = cutK.mapToPhysicalElement(it, ip);
             const R Cint = meas * ip.getWeight();
 
-            double a = fh.eval(kk, mip) - fex(mip, fh.cu, domain, t);
+            double a = fh->eval(kk, mip) - fex(mip, fh->cu, domain, t);
 
             val += Cint * a * a;
          }
@@ -555,7 +559,8 @@ template <typename M> double L2norm(const ExpressionVirtual &fh, const M &Th) {
 //   return val_receive;
 // }
 template <typename M>
-double maxNormCut(const ExpressionVirtual &fh, const ActiveMesh<M> &Th) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                  const ActiveMesh<M> &Th) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
@@ -564,8 +569,8 @@ double maxNormCut(const ExpressionVirtual &fh, const ActiveMesh<M> &Th) {
    return val;
 }
 template <typename Mesh>
-double maxNormCut(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
-                  int domain) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                  const ActiveMesh<Mesh> &Th, int domain) {
 
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -595,7 +600,7 @@ double maxNormCut(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
             QuadraturePoint ip(qf[ipq]); // integration point
             Rd mip = cutK.mapToPhysicalElement(it, ip);
 
-            val = std::max(val, fabs(fh.eval(k, mip)));
+            val = std::max(val, fabs(fh->eval(k, mip)));
          }
       }
    }
@@ -610,8 +615,8 @@ double maxNormCut(const ExpressionVirtual &fh, const ActiveMesh<Mesh> &Th,
 }
 
 template <typename M>
-double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
-                  const ActiveMesh<M> &Th) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                  R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
@@ -620,8 +625,9 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
    return val;
 }
 template <typename Mesh>
-double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
-                  const ActiveMesh<Mesh> &Th, int domain) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                  R(fex)(double *, int i, int dom), const ActiveMesh<Mesh> &Th,
+                  int domain) {
 
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -655,8 +661,8 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
             auto ip(qf[ipq]); // integration point
             Rd mip = cutK.mapToPhysicalElement(it, ip);
 
-            val =
-                std::max(val, fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
+            val = std::max(val,
+                           fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
          }
 
          for (int ifac = 0; ifac < Element::nea; ++ifac) {
@@ -664,8 +670,8 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
                auto ip(qfb[ipq]); // integration point
                auto ipf = K.mapToReferenceElement(ip, ifac);
                Rd mip   = cutK.mapToPhysicalElement(it, ipf);
-               val      = std::max(val,
-                                   fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
+               val      = std::max(
+                   val, fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
             }
          }
       }
@@ -681,8 +687,9 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
 }
 
 template <typename M>
-double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
-                  const ActiveMesh<M> &Th, const std::vector<R2> &sample_node) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                  R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th,
+                  const std::vector<R2> &sample_node) {
    int nb_dom = Th.get_nb_domain();
    double val = 0.;
    for (int i = 0; i < nb_dom; ++i) {
@@ -691,7 +698,8 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
    return val;
 }
 template <typename Mesh>
-double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
+                  R(fex)(double *, int i, int dom),
                   const ActiveMesh<Mesh> &cutTh, int domain,
                   const std::vector<R2> &sample_node) {
 
@@ -724,7 +732,7 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
                                         cutK.get_vertex(it, 1),
                                         cutK.get_vertex(it, 2)))
             continue;
-         val = std::max(val, fabs(fh.eval(k, mip) - fex(mip, fh.cu, domain)));
+         val = std::max(val, fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
       }
    }
    bar.end();
@@ -738,7 +746,7 @@ double maxNormCut(const ExpressionVirtual &fh, R(fex)(double *, int i, int dom),
 }
 
 template <typename Mesh>
-double maxNorm(const ExpressionVirtual &fh, const Mesh &Th) {
+double maxNorm(const std::shared_ptr<ExpressionVirtual> &fh, const Mesh &Th) {
 
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
@@ -761,7 +769,7 @@ double maxNorm(const ExpressionVirtual &fh, const Mesh &Th) {
          QuadraturePoint ip(qf[ipq]); // integration point
          Rd mip = K.mapToPhysicalElement(ip);
 
-         val = std::max(val, fabs(fh.eval(k, mip)));
+         val = std::max(val, fabs(fh->eval(k, mip)));
       }
    }
    double val_receive = 0;

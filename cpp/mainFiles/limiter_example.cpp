@@ -6,6 +6,7 @@
 #include "../tool.hpp"
 
 using namespace std;
+using namespace globalVariable;
 
 typedef std::map<std::pair<int, int>, R> MatMap;
 typedef Mesh2 Mesh;
@@ -263,7 +264,8 @@ int main(int argc, char **argv) {
       //   "maxPrincipleFEM_"+to_string(ifig++)+".vtk"); writer.add(fun_uh,
       //   "uhNoLimiter", 0, 1); writer.add(fun_uh_tild, "uhLimiter", 0, 1);
       // }
-      // if( (min_u0-Epsilon) < min_u1 && max_u1< (max_u0+Epsilon)) {
+      // if( (min_u0-Epsilon) < min_u1 && max_u1<
+      // (max_u0+Epsilon)) {
       if (min_u0 <= min_uh_tild + Epsilon && max_uh_tild + Epsilon <= max_u0) {
 
          std::cout << " Maximum principle satified! " << std::endl;
@@ -634,7 +636,8 @@ int main(int argc, char **argv) {
       //   // writer.add(fun_uM, "macroExtend", 0, 1);
       // }
 
-      // if( (min_u0-Epsilon) < min_u1 && max_u1< (max_u0+Epsilon)) {
+      // if( (min_u0-Epsilon) < min_u1 && max_u1<
+      // (max_u0+Epsilon)) {
       if (min_u0 <= min_u1 + Epsilon && max_u1 <= max_u0 + Epsilon) {
 
          std::cout << " Maximum principle satified! " << std::endl;
@@ -1055,8 +1058,8 @@ int main(int argc, char **argv) {
       Fun_h femErrh(Wh, uerr);
       Fun_h fun_ex(Wh, usol);
 
-      Expression2 femErr(femErrh, 0, op_id);
-      R errU = sqrt(integral(Khi, femErr * femErr));
+      // Expression2 femErr(femErrh, 0, op_id);
+      R errU = sqrt(integral(Khi, femErrh.expr() * femErrh.expr()));
       errSum += errU;
 
       // PLOT THE SOLUTION
@@ -2130,7 +2133,8 @@ int main(int argc, char **argv) {
       //   // writer.add(fun_uM, "macroExtend", 0, 1);
       // }
 
-      // if( (min_u0-Epsilon) < min_u1 && max_u1< (max_u0+Epsilon)) {
+      // if( (min_u0-Epsilon) < min_u1 && max_u1<
+      // (max_u0+Epsilon)) {
       if (min_u0 <= min_u1 && max_u1 <= max_u0) {
 
          std::cout << " Maximum principle satified! " << std::endl;
@@ -2539,7 +2543,8 @@ int main(int argc, char **argv) {
       //   // writer.add(fun_uM, "macroExtend", 0, 1);
       // }
 
-      // if( (min_u0-Epsilon) < min_u1 && max_u1< (max_u0+Epsilon)) {
+      // if( (min_u0-Epsilon) < min_u1 && max_u1<
+      // (max_u0+Epsilon)) {
       if (min_u0 <= min_u1 && max_u1 <= max_u0) {
 
          std::cout << " Maximum principle satified! " << std::endl;

@@ -37,6 +37,8 @@
 #include "paraview.hpp"
 
 using namespace std;
+using namespace globalVariable;
+
 // Numerical examples
 
 namespace Example1_Convection_Dominated {

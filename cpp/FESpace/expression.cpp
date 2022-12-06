@@ -1,57 +1,72 @@
 #include "expression.hpp"
 #include "../problem/CutFEM_parameter.hpp"
 
-ExpressionMultConst operator*(const ExpressionVirtual &f1, double cc) {
-   return ExpressionMultConst(f1, cc);
+std::shared_ptr<ExpressionMultConst>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1, double cc) {
+   return std::make_shared<ExpressionMultConst>(f1, cc);
 }
-ExpressionMultConst operator*(double cc, const ExpressionVirtual &f1) {
-   return ExpressionMultConst(f1, cc);
+std::shared_ptr<ExpressionMultConst>
+operator*(double cc, const std::shared_ptr<ExpressionVirtual> &f1) {
+   return std::make_shared<ExpressionMultConst>(f1, cc);
 }
-ExpressionMultConst operator*(const ExpressionVirtual &f1,
-                              const Normal_Component_X &cc) {
-   return ExpressionMultConst(f1, cc);
+std::shared_ptr<ExpressionMultConst>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+          const Normal_Component_X &cc) {
+   return std::make_shared<ExpressionMultConst>(f1, cc);
 }
-ExpressionMultConst operator*(const ExpressionVirtual &f1,
-                              const Normal_Component_Y &cc) {
-   return ExpressionMultConst(f1, cc);
+std::shared_ptr<ExpressionMultConst>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+          const Normal_Component_Y &cc) {
+   return std::make_shared<ExpressionMultConst>(f1, cc);
 }
-ExpressionMultConst operator*(const ExpressionVirtual &f1,
-                              const Normal_Component_Z &cc) {
-   return ExpressionMultConst(f1, cc);
-}
-// ExpressionMultConst operator*(const CutFEM_Parameter& v, const
-// ExpressionVirtual& f1){
-//   return ExpressionMultConst(f1, R2(v.val1, v.val2));
-// }
-
-ExpressionAbs fabs(const ExpressionVirtual &f1) { return ExpressionAbs(f1); }
-
-ExpressionSqrt sqrt(const ExpressionVirtual &f1) { return ExpressionSqrt(f1); }
-
-std::shared_ptr<const ExpressionProduct>
-operator*(const ExpressionVirtual &f1, const ExpressionVirtual &f2) {
-   return std::make_shared<const ExpressionProduct>(ExpressionProduct(f1, f2));
-}
-// std::shared_ptr<const ExpressionProduct>
-// operator*(const ExpressionVirtual &f1, const ExpressionVirtual &f2) {
-//    return std::make_shared<const ExpressionProduct>(ExpressionProduct(f1,
-//    f2));
-// }
-
-ExpressionDivision operator/(const ExpressionVirtual &f1,
-                             const ExpressionVirtual &f2) {
-   return ExpressionDivision(f1, f2);
+std::shared_ptr<ExpressionMultConst>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+          const Normal_Component_Z &cc) {
+   return std::make_shared<ExpressionMultConst>(f1, cc);
 }
 
-ExpressionSum operator+(const ExpressionVirtual &f1,
-                        const ExpressionVirtual &f2) {
-   return ExpressionSum(f1, f2);
+std::shared_ptr<ExpressionAbs>
+fabs(const std::shared_ptr<ExpressionVirtual> &f1) {
+   return std::make_shared<ExpressionAbs>(f1);
 }
 
-ExpressionDif operator-(const ExpressionVirtual &f1,
-                        const ExpressionVirtual &f2) {
-   return ExpressionDif(f1, f2);
+std::shared_ptr<ExpressionProduct>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2) {
+   return std::make_shared<ExpressionProduct>(f1, f2);
 }
+
+std::shared_ptr<ExpressionPow> pow(const std::shared_ptr<ExpressionVirtual> &f1,
+                                   const double nn) {
+   return std::make_shared<ExpressionPow>(f1, nn);
+}
+std::shared_ptr<ExpressionPow>
+operator^(const std::shared_ptr<ExpressionVirtual> &f1, const double nn) {
+   return std::make_shared<ExpressionPow>(f1, nn);
+}
+std::shared_ptr<ExpressionPow>
+sqrt(const std::shared_ptr<ExpressionVirtual> &f1) {
+   return pow(f1, 1. / 2);
+}
+
+std::shared_ptr<ExpressionDivision>
+operator/(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2) {
+   return std::make_shared<ExpressionDivision>(f1, f2);
+}
+
+std::shared_ptr<ExpressionSum>
+operator+(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2) {
+   return std::make_shared<ExpressionSum>(f1, f2);
+}
+
+std::shared_ptr<ExpressionSum>
+operator-(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2) {
+   return f1 + (-1. * f2);
+}
+
 ExpressionNormal2 operator*(const FunFEM<Mesh2> &f1, const Normal &n) {
    return ExpressionNormal2(f1, n);
 }

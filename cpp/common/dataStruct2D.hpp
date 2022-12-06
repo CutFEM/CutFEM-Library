@@ -285,4 +285,46 @@ class Quad2 : public GenericElement<DataQuad2> {
    // double mesureBord(int i) const ;
 };
 
+// Forward declaration
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg2>::nvedge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg2>::nvface;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg2>::nvhyperFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg2>::edgeOfFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg2>::faceOfEdge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataSeg2>::commonVertOfEdges;
+
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle2>::nvedge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle2>::nvface;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle2>::nvhyperFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle2>::edgeOfFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataTriangle2>::faceOfEdge;
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataTriangle2>::commonVertOfEdges;
+
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad2>::nvedge;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad2>::nvface;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad2>::nvhyperFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad2>::edgeOfFace;
+template <>
+const std::vector<std::vector<int>> GenericElement<DataQuad2>::faceOfEdge;
+template <>
+const std::vector<std::vector<int>>
+    GenericElement<DataQuad2>::commonVertOfEdges;
+
 #endif

@@ -52,6 +52,10 @@ struct Projection {
 
 class ExpressionVirtual;
 template <typename M> class ExpressionFunFEM;
+class ParameterCutFEM;
+// template <typename M> class ExpressionFunFEM;
+// class ExpressionProduct;
+// class ExpressionDif;
 
 template <typename M> class FunFEM : public FunFEMVirtual {
  public:
@@ -218,8 +222,8 @@ template <typename M> class FunFEM : public FunFEMVirtual {
    const FESpace &getSpace() const { return *Vh; }
    BasisFctType getBasisFctType() const { return Vh->basisFctType; }
    int getPolynomialOrder() const { return Vh->polynomialOrder; }
-   std::shared_ptr<ExpressionVirtual> expr(int i0 = 0) const;
-   std::list<std::shared_ptr<ExpressionVirtual>> exprList(int n = -1) const;
+   std::shared_ptr<ExpressionFunFEM<M>> expr(int i0 = 0) const;
+   std::list<std::shared_ptr<ExpressionFunFEM<M>>> exprList(int n = -1) const;
    std::list<std::shared_ptr<ExpressionFunFEM<M>>> exprList(int n,
                                                             int i0) const;
 
@@ -234,16 +238,6 @@ template <typename M> class FunFEM : public FunFEMVirtual {
    FunFEM(const FunFEM &f);
    void operator=(const FunFEM &f);
 };
-
-class ParameterCutFEM;
-template <typename M> class ExpressionFunFEM;
-class ExpressionProduct;
-class ExpressionDif;
-
-template <typename M> ExpressionFunFEM<M> dx(const ExpressionFunFEM<M> &u);
-template <typename M> ExpressionFunFEM<M> dy(const ExpressionFunFEM<M> &u);
-template <typename M> ExpressionFunFEM<M> dz(const ExpressionFunFEM<M> &u);
-template <typename M> ExpressionFunFEM<M> dt(const ExpressionFunFEM<M> &u);
 
 class ExpressionVirtual {
  public:
@@ -309,7 +303,6 @@ class ExpressionVirtual {
    }
    ~ExpressionVirtual() {}
 };
-
 template <typename M> class ExpressionFunFEM : public ExpressionVirtual {
 
  protected:
@@ -325,7 +318,7 @@ template <typename M> class ExpressionFunFEM : public ExpressionVirtual {
        : ExpressionVirtual(cc, opp, oppt, dom), fun(fh) {}
 
    R operator()(long i) const { return fun(i); }
-   virtual int size() const { fun.size(); }
+   virtual int size() const { return fun.size(); }
 
    void whoAmI() const {
       std::cout << " I am class ExpressionFunFEM" << std::endl;
@@ -376,280 +369,321 @@ template <typename M> class ExpressionFunFEM : public ExpressionVirtual {
       return ff;
    }
 
-   friend ExpressionFunFEM dx<M>(const ExpressionFunFEM<M> &u);
-   friend ExpressionFunFEM dy<M>(const ExpressionFunFEM<M> &u);
-   friend ExpressionFunFEM dz<M>(const ExpressionFunFEM<M> &u);
-   friend ExpressionFunFEM dt<M>(const ExpressionFunFEM<M> &u);
+   // friend ExpressionFunFEM dx<M>(const ExpressionFunFEM<M> &u);
+   // friend ExpressionFunFEM dy<M>(const ExpressionFunFEM<M> &u);
+   // friend ExpressionFunFEM dz<M>(const ExpressionFunFEM<M> &u);
+   // friend ExpressionFunFEM dt<M>(const ExpressionFunFEM<M> &u);
 };
 
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>>
+dx(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dx, u->opt,
+                                                u->domain);
+}
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>>
+dy(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dy, u->opt,
+                                                u->domain);
+}
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>>
+dz(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dz, u->opt,
+                                                u->domain);
+}
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>>
+dt(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, u->op, op_dx,
+                                                u->domain);
+}
+
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>> dx(const ExpressionFunFEM<M> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u.fun, u.cu, op_dx, u.opt,
+                                                u.domain);
+}
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>> dy(const ExpressionFunFEM<M> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u.fun, u.cu, op_dy, u.opt,
+                                                u.domain);
+}
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>> dz(const ExpressionFunFEM<M> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u.fun, u.cu, op_dz, u.opt,
+                                                u.domain);
+}
+template <typename M>
+std::shared_ptr<ExpressionFunFEM<M>> dt(const ExpressionFunFEM<M> &u) {
+   return std::make_shared<ExpressionFunFEM<M>>(u.fun, u.cu, u.op, op_dx,
+                                                u.domain);
+}
+
 class ExpressionMultConst : public ExpressionVirtual {
-   const ExpressionVirtual &fun1;
+   const std::shared_ptr<ExpressionVirtual> fun1;
    const double c;
    const bool nx, ny, nz;
    const R2 p;
 
  public:
-   ExpressionMultConst(const ExpressionVirtual &fh1, const double &cc)
+   ExpressionMultConst(const std::shared_ptr<ExpressionVirtual> &fh1,
+                       const double &cc)
        : fun1(fh1), c(cc), nx(false), ny(false), nz(false), p(R2(1, 1)) {}
-   ExpressionMultConst(const ExpressionVirtual &fh1,
+   ExpressionMultConst(const std::shared_ptr<ExpressionVirtual> &fh1,
                        const Normal_Component_X &nnx)
        : fun1(fh1), c(1.), nx(true), ny(false), nz(false), p(R2(1, 1)) {}
-   ExpressionMultConst(const ExpressionVirtual &fh1,
+   ExpressionMultConst(const std::shared_ptr<ExpressionVirtual> &fh1,
                        const Normal_Component_Y &nny)
        : fun1(fh1), c(1.), nx(false), ny(true), nz(false), p(R2(1, 1)) {}
-   ExpressionMultConst(const ExpressionVirtual &fh1,
+   ExpressionMultConst(const std::shared_ptr<ExpressionVirtual> &fh1,
                        const Normal_Component_Z &nnz)
        : fun1(fh1), c(1.), nx(false), ny(true), nz(true), p(R2(1, 1)) {}
-   // ExpressionMultConst(const ExpressionVirtual & fh1, const R2& v)
-   // : fun1(fh1) , c(1.), nx(false), ny(false), nz(false), p(R2(v)){
-   // }
-
-   R operator()(long i) const { return c * fun1(i); }
+   R operator()(long i) const { return c * ((*fun1)(i)); }
 
    R eval(const int k, const R *x, const R *normal) const {
       double compN = ((nx) ? normal[0] : 1) * ((ny) ? normal[1] : 1) *
                      ((nz) ? normal[2] : 1);
-      return fun1.eval(k, x, normal) * c * compN * p[0];
+      return fun1->eval(k, x, normal) * c * compN * p[0];
    }
    R eval(const int k, const R *x, const R t, const R *normal) const {
       double compN = ((nx) ? normal[0] : 1) * ((ny) ? normal[1] : 1) *
                      ((nz) ? normal[2] : 1);
-      return fun1.eval(k, x, t, normal) * c * compN * p[0];
+      return fun1->eval(k, x, t, normal) * c * compN * p[0];
    }
 
    R evalOnBackMesh(const int k, const int dom, const R *x,
                     const R *normal) const {
       double compN = ((nx) ? normal[0] : 1) * ((ny) ? normal[1] : 1) *
                      ((nz) ? normal[2] : 1);
-      return fun1.evalOnBackMesh(k, dom, x, normal) * c * compN * p[dom == 1];
+      return fun1->evalOnBackMesh(k, dom, x, normal) * c * compN * p[dom == 1];
    }
    R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
                     const R *normal) const {
       double compN = ((nx) ? normal[0] : 1) * ((ny) ? normal[1] : 1) *
                      ((nz) ? normal[2] : 1);
-      return fun1.evalOnBackMesh(k, dom, x, t, normal) * c * compN *
+      return fun1->evalOnBackMesh(k, dom, x, t, normal) * c * compN *
              p[dom == 1];
    }
    int idxElementFromBackMesh(int kb, int dd = 0) const {
-      return fun1.idxElementFromBackMesh(kb, dd);
+      return fun1->idxElementFromBackMesh(kb, dd);
    }
    ~ExpressionMultConst() {}
 };
-ExpressionMultConst operator*(const ExpressionVirtual &f1, double cc);
-ExpressionMultConst operator*(double cc, const ExpressionVirtual &f1);
-ExpressionMultConst operator*(const ExpressionVirtual &f1,
-                              const Normal_Component_X &cc);
-ExpressionMultConst operator*(const ExpressionVirtual &f1,
-                              const Normal_Component_Y &cc);
-ExpressionMultConst operator*(const ParameterCutFEM &v,
-                              const ExpressionVirtual &f1);
+std::shared_ptr<ExpressionMultConst>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1, double cc);
+std::shared_ptr<ExpressionMultConst>
+operator*(double cc, const std::shared_ptr<ExpressionVirtual> &f1);
+std::shared_ptr<ExpressionMultConst>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+          const Normal_Component_X &cc);
+std::shared_ptr<ExpressionMultConst>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+          const Normal_Component_Y &cc);
+std::shared_ptr<ExpressionMultConst>
+operator*(const ParameterCutFEM &v,
+          const std::shared_ptr<ExpressionVirtual> &f1);
 
 class ExpressionAbs : public ExpressionVirtual {
-   const ExpressionVirtual &fun1;
+   const std::shared_ptr<ExpressionVirtual> fun1;
 
  public:
-   ExpressionAbs(const ExpressionVirtual &fh1) : fun1(fh1) {}
+   ExpressionAbs(const std::shared_ptr<ExpressionVirtual> &fh1) : fun1(fh1) {}
 
-   R operator()(long i) const { return fabs(fun1(i)); }
+   R operator()(long i) const { return fabs((*fun1)(i)); }
 
    R eval(const int k, const R *x, const R *normal) const {
-      return fabs(fun1.eval(k, x, normal));
+      return fabs(fun1->eval(k, x, normal));
    }
    R eval(const int k, const R *x, const R t, const R *normal) const {
-      return fabs(fun1.eval(k, x, t, normal));
+      return fabs(fun1->eval(k, x, t, normal));
    }
 
    R evalOnBackMesh(const int k, const int dom, const R *x,
                     const R *normal) const {
-      return fabs(fun1.evalOnBackMesh(k, dom, x, normal));
+      return fabs(fun1->evalOnBackMesh(k, dom, x, normal));
    }
    R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
                     const R *normal) const {
-      return fabs(fun1.evalOnBackMesh(k, dom, x, t, normal));
+      return fabs(fun1->evalOnBackMesh(k, dom, x, t, normal));
    }
    int idxElementFromBackMesh(int kb, int dd = 0) const {
-      return fun1.idxElementFromBackMesh(kb, dd);
+      return fun1->idxElementFromBackMesh(kb, dd);
    }
    ~ExpressionAbs() {}
 };
-ExpressionAbs fabs(const ExpressionVirtual &f1);
-
-class ExpressionSqrt : public ExpressionVirtual {
-   const ExpressionVirtual &fun1;
-
- public:
-   ExpressionSqrt(const ExpressionVirtual &fh1) : fun1(fh1) {}
-
-   R operator()(long i) const { return sqrt(fun1(i)); }
-
-   R eval(const int k, const R *x, const R *normal) const {
-      return sqrt(fun1.eval(k, x, normal));
-   }
-   R eval(const int k, const R *x, const R t, const R *normal) const {
-      return sqrt(fun1.eval(k, x, t, normal));
-   }
-
-   R evalOnBackMesh(const int k, const int dom, const R *x,
-                    const R *normal) const {
-      return sqrt(fun1.evalOnBackMesh(k, dom, x, normal));
-   }
-   R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
-                    const R *normal) const {
-      return sqrt(fun1.evalOnBackMesh(k, dom, x, t, normal));
-   }
-   int idxElementFromBackMesh(int kb, int dd = 0) const {
-      return fun1.idxElementFromBackMesh(kb, dd);
-   }
-   ~ExpressionSqrt() {}
-};
-ExpressionSqrt sqrt(const ExpressionVirtual &f1);
+std::shared_ptr<ExpressionAbs>
+fabs(const std::shared_ptr<ExpressionVirtual> &f1);
 
 class ExpressionProduct : public ExpressionVirtual {
-   const ExpressionVirtual &fun1;
-   const ExpressionVirtual &fun2;
+   const std::shared_ptr<ExpressionVirtual> fun1;
+   const std::shared_ptr<ExpressionVirtual> fun2;
 
  public:
-   ExpressionProduct(const ExpressionVirtual &fh1, const ExpressionVirtual &fh2)
+   ExpressionProduct(const std::shared_ptr<ExpressionVirtual> &fh1,
+                     const std::shared_ptr<ExpressionVirtual> &fh2)
        : fun1(fh1), fun2(fh2) {}
 
-   R operator()(long i) const { return fun1(i) * fun2(i); }
+   R operator()(long i) const { return (*fun1)(i) * (*fun2)(i); }
 
    R eval(const int k, const R *x, const R *normal) const {
-      return fun1.eval(k, x, normal) * fun2.eval(k, x, normal);
+      return fun1->eval(k, x, normal) * fun2->eval(k, x, normal);
    }
    R eval(const int k, const R *x, const R t, const R *normal) const {
-      return fun1.eval(k, x, t, normal) * fun2.eval(k, x, t, normal);
+      return fun1->eval(k, x, t, normal) * fun2->eval(k, x, t, normal);
    }
 
    R evalOnBackMesh(const int k, const int dom, const R *x,
                     const R *normal) const {
-      return fun1.evalOnBackMesh(k, dom, x, normal) *
-             fun2.evalOnBackMesh(k, dom, x, normal);
+      return fun1->evalOnBackMesh(k, dom, x, normal) *
+             fun2->evalOnBackMesh(k, dom, x, normal);
    }
    R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
                     const R *normal) const {
-      return fun1.evalOnBackMesh(k, dom, x, t, normal) *
-             fun2.evalOnBackMesh(k, dom, x, t, normal);
+      return fun1->evalOnBackMesh(k, dom, x, t, normal) *
+             fun2->evalOnBackMesh(k, dom, x, t, normal);
    }
    int idxElementFromBackMesh(int kb, int dd = 0) const {
-      return fun1.idxElementFromBackMesh(kb, dd);
+      return fun1->idxElementFromBackMesh(kb, dd);
    }
    ~ExpressionProduct() {}
 };
-std::shared_ptr<const ExpressionProduct> operator*(const ExpressionVirtual &f1,
-                                                   const ExpressionVirtual &f2);
+std::shared_ptr<ExpressionProduct>
+operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2);
 
-class ExpressionDivision : public ExpressionVirtual {
-   const ExpressionVirtual &fun1;
-   const ExpressionVirtual &fun2;
+/// @brief Class that compute an function or expression to a power of n
+/// @tparam D The dimension
+class ExpressionPow : public ExpressionVirtual {
 
  public:
-   ExpressionDivision(const ExpressionVirtual &fh1,
-                      const ExpressionVirtual &fh2)
-       : fun1(fh1), fun2(fh2) {}
+   typedef std::shared_ptr<ExpressionVirtual> ptr_expr_t;
 
-   R operator()(long i) const { return fun1(i) / fun2(i); }
+ private:
+   const ptr_expr_t fun1;
+   const double n;
+
+ public:
+   ExpressionPow(const ptr_expr_t &f1h, const double nn) : fun1(f1h), n(nn) {}
+
+   R operator()(long i) const { return pow((*fun1)(i), n); }
 
    R eval(const int k, const R *x, const R *normal) const {
-      double v = fun2.eval(k, x, normal);
-      assert(fabs(v) > 1e-15);
-      return fun1.eval(k, x, normal) / v;
+      const double val = fun1->eval(k, x, normal);
+      return pow(val, n);
    }
    R eval(const int k, const R *x, const R t, const R *normal) const {
-      double v = fun2.eval(k, x, t, normal);
-      assert(fabs(v) > 1e-15);
-      return fun1.eval(k, x, t, normal) / v;
+      const double val = fun1->eval(k, x, t, normal);
+      return pow(val, n);
    }
 
    R evalOnBackMesh(const int k, const int dom, const R *x,
                     const R *normal) const {
-      double v = fun2.evalOnBackMesh(k, dom, x, normal);
-      assert(fabs(v) > 1e-15);
-      return fun1.evalOnBackMesh(k, dom, x, normal) / v;
+      const double val = fun1->evalOnBackMesh(k, dom, x, normal);
+      return pow(val, n);
    }
    R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
                     const R *normal) const {
-      double v = fun2.evalOnBackMesh(k, dom, x, t, normal);
-      assert(fabs(v) > 1e-15);
-      return fun1.evalOnBackMesh(k, dom, x, t, normal) / v;
+      const double val = fun1->evalOnBackMesh(k, dom, x, t, normal);
+      return pow(val, n);
    }
    int idxElementFromBackMesh(int kb, int dd = 0) const {
-      return fun1.idxElementFromBackMesh(kb, dd);
+      return fun1->idxElementFromBackMesh(kb, dd);
+   }
+};
+
+std::shared_ptr<ExpressionPow> pow(const std::shared_ptr<ExpressionVirtual> &f1,
+                                   const double nn);
+std::shared_ptr<ExpressionPow>
+operator^(const std::shared_ptr<ExpressionVirtual> &f1, const double nn);
+
+std::shared_ptr<ExpressionPow>
+sqrt(const std::shared_ptr<ExpressionVirtual> &f1);
+
+class ExpressionDivision : public ExpressionVirtual {
+   const std::shared_ptr<ExpressionVirtual> fun1;
+   const std::shared_ptr<ExpressionVirtual> fun2;
+
+ public:
+   ExpressionDivision(const std::shared_ptr<ExpressionVirtual> &fh1,
+                      const std::shared_ptr<ExpressionVirtual> &fh2)
+       : fun1(fh1), fun2(fh2) {}
+
+   R operator()(long i) const { return (*fun1)(i) / ((*fun2)(i)); }
+
+   R eval(const int k, const R *x, const R *normal) const {
+      double v = fun2->eval(k, x, normal);
+      assert(fabs(v) > 1e-15);
+      return fun1->eval(k, x, normal) / v;
+   }
+   R eval(const int k, const R *x, const R t, const R *normal) const {
+      double v = fun2->eval(k, x, t, normal);
+      assert(fabs(v) > 1e-15);
+      return fun1->eval(k, x, t, normal) / v;
+   }
+
+   R evalOnBackMesh(const int k, const int dom, const R *x,
+                    const R *normal) const {
+      double v = fun2->evalOnBackMesh(k, dom, x, normal);
+      assert(fabs(v) > 1e-15);
+      return fun1->evalOnBackMesh(k, dom, x, normal) / v;
+   }
+   R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
+                    const R *normal) const {
+      double v = fun2->evalOnBackMesh(k, dom, x, t, normal);
+      assert(fabs(v) > 1e-15);
+      return fun1->evalOnBackMesh(k, dom, x, t, normal) / v;
+   }
+   int idxElementFromBackMesh(int kb, int dd = 0) const {
+      return fun1->idxElementFromBackMesh(kb, dd);
    }
    ~ExpressionDivision() {}
 };
-ExpressionDivision operator/(const ExpressionVirtual &f1,
-                             const ExpressionVirtual &f2);
+std::shared_ptr<ExpressionDivision>
+operator/(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2);
 
 class ExpressionSum : public ExpressionVirtual {
-   const ExpressionVirtual &fun1;
-   const ExpressionVirtual &fun2;
+   const std::shared_ptr<ExpressionVirtual> fun1;
+   const std::shared_ptr<ExpressionVirtual> fun2;
 
  public:
-   ExpressionSum(const ExpressionVirtual &fh1, const ExpressionVirtual &fh2)
+   ExpressionSum(const std::shared_ptr<ExpressionVirtual> &fh1,
+                 const std::shared_ptr<ExpressionVirtual> &fh2)
        : fun1(fh1), fun2(fh2) {}
-   R operator()(long i) const { return fun1(i) + fun2(i); }
+   R operator()(long i) const { return (*fun1)(i) + (*fun2)(i); }
 
    R eval(const int k, const R *x, const R *normal) const {
-      return fun1.eval(k, x, normal) + fun2.eval(k, x, normal);
+      return fun1->eval(k, x, normal) + fun2->eval(k, x, normal);
    }
    R eval(const int k, const R *x, const R t, const R *normal) const {
-      return fun1.eval(k, x, t, normal) + fun2.eval(k, x, t, normal);
+      return fun1->eval(k, x, t, normal) + fun2->eval(k, x, t, normal);
    }
 
    R evalOnBackMesh(const int k, const int dom, const R *x,
                     const R *normal) const {
-      return fun1.evalOnBackMesh(k, dom, x, normal) +
-             fun2.evalOnBackMesh(k, dom, x, normal);
+      return fun1->evalOnBackMesh(k, dom, x, normal) +
+             fun2->evalOnBackMesh(k, dom, x, normal);
    }
    R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
                     const R *normal) const {
-      return fun1.evalOnBackMesh(k, dom, x, t, normal) +
-             fun2.evalOnBackMesh(k, dom, x, t, normal);
+      return fun1->evalOnBackMesh(k, dom, x, t, normal) +
+             fun2->evalOnBackMesh(k, dom, x, t, normal);
    }
    int idxElementFromBackMesh(int kb, int dd = 0) const {
-      return fun1.idxElementFromBackMesh(kb, dd);
+      return fun1->idxElementFromBackMesh(kb, dd);
    }
    ~ExpressionSum() {}
 };
 
-ExpressionSum operator+(const ExpressionVirtual &f1,
-                        const ExpressionVirtual &f2);
+std::shared_ptr<ExpressionSum>
+operator+(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2);
 
-class ExpressionDif : public ExpressionVirtual {
-   const ExpressionVirtual &fun1;
-   const ExpressionVirtual &fun2;
-
- public:
-   ExpressionDif(const ExpressionVirtual &fh1, const ExpressionVirtual &fh2)
-       : fun1(fh1), fun2(fh2) {}
-
-   R operator()(long i) const { return fun1(i) - fun2(i); }
-
-   R eval(const int k, const R *x, const R *normal) const {
-      return fun1.eval(k, x, normal) - fun2.eval(k, x, normal);
-   }
-   R eval(const int k, const R *x, const R t, const R *normal) const {
-      return fun1.eval(k, x, t, normal) - fun2.eval(k, x, t, normal);
-   }
-
-   R evalOnBackMesh(const int k, const int dom, const R *x,
-                    const R *normal) const {
-      return fun1.evalOnBackMesh(k, dom, x, normal) -
-             fun2.evalOnBackMesh(k, dom, x, normal);
-   }
-   R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
-                    const R *normal) const {
-      return fun1.evalOnBackMesh(k, dom, x, t, normal) -
-             fun2.evalOnBackMesh(k, dom, x, t, normal);
-   }
-   int idxElementFromBackMesh(int kb, int dd = 0) const {
-      return fun1.idxElementFromBackMesh(kb, dd);
-   }
-   ~ExpressionDif() {}
-};
-ExpressionDif operator-(const ExpressionVirtual &f1,
-                        const ExpressionVirtual &f2);
+std::shared_ptr<ExpressionSum>
+operator-(const std::shared_ptr<ExpressionVirtual> &f1,
+          const std::shared_ptr<ExpressionVirtual> &f2);
 
 class ExpressionNormal2 : public ExpressionVirtual {
    typedef Mesh2 M;
@@ -1242,19 +1276,6 @@ ExpressionAverage operator*(const ExpressionAverage &fh, double c);
 // ExpressionAverage<M> operator* ( const ExpressionAverage<M>& fh, double c){
 //   return ExpressionAverage<M>(fh.fun1,c*fh.k1, c*fh.k2);
 // }
-
-template <typename M> ExpressionFunFEM<M> dx(const ExpressionFunFEM<M> &u) {
-   return ExpressionFunFEM<M>(u.fun, u.cu, op_dx, u.opt, u.domain);
-}
-template <typename M> ExpressionFunFEM<M> dy(const ExpressionFunFEM<M> &u) {
-   return ExpressionFunFEM<M>(u.fun, u.cu, op_dy, u.opt, u.domain);
-}
-template <typename M> ExpressionFunFEM<M> dz(const ExpressionFunFEM<M> &u) {
-   return ExpressionFunFEM<M>(u.fun, u.cu, op_dz, u.opt, u.domain);
-}
-template <typename M> ExpressionFunFEM<M> dt(const ExpressionFunFEM<M> &u) {
-   return ExpressionFunFEM<M>(u.fun, u.cu, u.op, op_dx, u.domain);
-}
 
 class ExpressionBurgerFlux : public ExpressionVirtual {
    const ExpressionVirtual &fun1;
