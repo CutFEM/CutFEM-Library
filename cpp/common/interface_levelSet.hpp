@@ -17,7 +17,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #define COMMON_LEVELSET_INTERFACE_HPP
 
 #include "base_interface.hpp"
-// #include "../FESpace/expression.hpp"
 
 template <typename M> class InterfaceLevelSet : public Interface<M> {
 
@@ -32,10 +31,11 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
    KN<double> ls_;
 
  public:
-   InterfaceLevelSet(const Mesh &MM, const FunFEMVirtual &lss, int label = 0)
+   template <typename Fct>
+   InterfaceLevelSet(const Mesh &MM, const Fct &lss, int label = 0)
 
        : Interface<M>(MM), ls_(lss.getArray()) {
-      make_patch(ls_, label);
+      make_patch(label);
    }
 
    SignElement<Element> get_SignElement(int k) const {
@@ -78,7 +78,7 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
    };
 
  private:
-   void make_patch(const KN<double> &ls, int label);
+   void make_patch(int label);
 
    const Face make_face(const typename RefPatch<Element>::FaceIdx &ref_tri,
                         const typename Mesh::Element &K,
@@ -108,8 +108,7 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
    }
 };
 
-template <typename M>
-void InterfaceLevelSet<M>::make_patch(const KN<double> &ls, int label) {
+template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
 
    assert(this->backMesh);
    this->faces_.resize(0); // reinitialize arrays
@@ -119,7 +118,7 @@ void InterfaceLevelSet<M>::make_patch(const KN<double> &ls, int label) {
    this->face_of_element_.clear();
 
    const Mesh &Th = *(this->backMesh);
-   util::copy_levelset_sign(ls, ls_sign);
+   util::copy_levelset_sign(ls_, ls_sign);
 
    const Uint nb_vertex_K = Element::nv;
    double loc_ls[nb_vertex_K];
@@ -131,17 +130,16 @@ void InterfaceLevelSet<M>::make_patch(const KN<double> &ls, int label) {
 
       for (Uint i = 0; i < K.nv; ++i) {
          loc_ls_sign[i] = ls_sign[Th(K[i])];
-         loc_ls[i]      = ls[Th(K[i])];
+         loc_ls[i]      = ls_[Th(K[i])];
       }
       const RefPatch<Element> &cut = RefPatch<Element>::instance(loc_ls_sign);
       if (cut.empty())
          continue;
-      // int iii=0;
+
       for (typename RefPatch<Element>::const_face_iterator
                it  = cut.face_begin(),
                end = cut.face_end();
            it != end; ++it) {
-         // std::cout << " face numero " << iii++ << std::endl;
          this->face_of_element_[k] = this->element_of_face_.size();
          this->faces_.push_back(make_face(*it, K, loc_ls, label));
          this->element_of_face_.push_back(k);
@@ -165,11 +163,13 @@ InterfaceLevelSet<M>::make_face(
       loc_vert_num = ref_tri[j];
 
       if (loc_vert_num < K.nv) { // zero vertex
-         const Uint idx = (*this->backMesh)(K[loc_vert_num]);
-         Rd Q           = (*this->backMesh)(idx);
-         this->vertices_.push_back(Q);
-         triIdx[j] = this->vertices_.size() - 1;
-         assert(0);
+         // const Uint idx = (*this->backMesh)(K[loc_vert_num]);
+         // Rd Q           = (*this->backMesh)(idx);
+         // this->vertices_.push_back(Q);
+         // triIdx[j] = this->vertices_.size() - 1;
+         std::cout << " Interface cuting through a node " << std::endl;
+         exit(EXIT_FAILURE);
+         // assert(0);
       } else { // genuine edge vertex
 
          const Ubyte i0 = Mesh::Element::nvedge[loc_vert_num - K.nv][0],
@@ -200,35 +200,6 @@ InterfaceLevelSet<M>::make_normal(const typename Mesh::Element &K,
    }
    normal_ls /= normal_ls.norm();
    return normal_ls;
-}
-
-template <typename Mesh>
-void TimeInterface<Mesh>::init(int i, const Mesh &Th, const FunFEMVirtual &ls) {
-   assert(0 <= i && i < n_);
-   if (interface_[i]) {
-      // std::cout << interface_[i] << std::endl;
-      // std::cout << "interface delete" << std::endl;
-      // delete interface_[i];
-   }
-   // std::cout << "interface create" << std::endl;
-   interface_[i] = new InterfaceLevelSet<Mesh>(Th, ls);
-   // std::cout << interface_[i] << std::endl;
-}
-
-template <typename Mesh>
-void TimeInterface<Mesh>::init(const Mesh &Th, const KN<FunFEMVirtual> &ls) {
-   for (int i = 0; i < n_; ++i) {
-      if (interface_[i]) {
-         delete interface_[i];
-      }
-   }
-   if (n_ != ls.size()) {
-      n_ = ls.size();
-      interface_.resize(n_);
-   }
-   for (int i = 0; i < n_; ++i) {
-      interface_[i] = new InterfaceLevelSet<Mesh>(Th, ls[i]);
-   }
 }
 
 #endif

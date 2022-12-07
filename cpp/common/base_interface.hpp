@@ -31,46 +31,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifdef USE_MPI
 #include "../parallel/cfmpi.hpp"
 #endif
-// #include "GenericInterface.hpp"
 #include "../FESpace/QuadratureFormular.hpp"
-
-class FunFEMVirtual {
- public:
-   double *data = nullptr;
-   KN_<double> v;
-
-   FunFEMVirtual() : v(data, 0) {}
-   FunFEMVirtual(int df) : data(new double[df]), v(data, df) { v = 0.; }
-   FunFEMVirtual(KN_<double> &u) : v(u) {}
-   FunFEMVirtual(double *u, int n) : v(u, n) {}
-
-   virtual double eval(const int k, const R *x, int cu = 0, int op = 0) const {
-      assert(0);
-      return 0.;
-   };
-   virtual double eval(const int k, const R *x, const R t, int cu, int op,
-                       int opt) const {
-      assert(0);
-      return 0.;
-   };
-   virtual double evalOnBackMesh(const int k, int dom, const R *x, int cu = 0,
-                                 int op = 0) const {
-      assert(0);
-      return 0.;
-   };
-   virtual double evalOnBackMesh(const int k, int dom, const R *x, const R t,
-                                 int cu, int op, int opt) const {
-      assert(0);
-      return 0.;
-   };
-   virtual int idxElementFromBackMesh(int, int = 0) const {
-      assert(0);
-      return 0.;
-   };
-
-   const KN_<double> &getArray() const { return v; }
-   // const KN_<double>& data() const {return v;}
-};
 
 template <int N> struct FaceInterface {};
 template <> struct FaceInterface<2> : public SortArray<Uint, 2>, public Label {
@@ -89,6 +50,8 @@ template <> struct FaceInterface<3> : public SortArray<Uint, 3>, public Label {
    FaceInterface(Uint *a, int l = 0) : FaceIdx(a), Label(l) {}
    FaceInterface() : FaceIdx(), Label(0) {}
 };
+
+template <typename M> class InterfaceLevelSet;
 
 template <typename M> class Interface {
 
@@ -117,8 +80,6 @@ template <typename M> class Interface {
 
  public:
    Interface(const Mesh &MM) : backMesh(&MM) {}
-   // Interface(const std::shared_ptr<Mesh> &MM) : backMesh(MM.get()) {}
-
    Rd operator()(const int k, const int i) const {
       return vertices_[faces_[k][i]];
    }
@@ -206,57 +167,67 @@ template <typename M> class Interface {
 
 template <typename Mesh> class TimeInterface {
  public:
-   // typedef FunFEM<Mesh> Fun_h;
+   typedef InterfaceLevelSet<Mesh> interface_t;
+
  private:
-   KN<Interface<Mesh> *> interface_;
+   std::vector<std::unique_ptr<interface_t>> interface_;
    int n_;
-   const QuadratureFormular1d &time_quadrature_;
+   const QuadratureFormular1d *time_quadrature_;
 
  public:
-   // TimeInterface(int nt) : interface(nt), n(nt) {
-   //   for(int i=0;i<n;++i){ interface[i] = nullptr;}
-   // }
-
    TimeInterface(const QuadratureFormular1d &qTime)
-       : interface_(qTime.n), n_(qTime.n), time_quadrature_(qTime) {
-      for (int i = 0; i < n_; ++i) {
-         interface_[i] = nullptr;
-      }
-   }
+       : interface_(qTime.n), n_(qTime.n), time_quadrature_(&qTime) {}
+
+   TimeInterface(const QuadratureFormular1d *qTime)
+       : interface_(qTime->n), n_(qTime->n), time_quadrature_(qTime) {}
+
    TimeInterface(int nt)
        : interface_(nt), n_(nt),
-         time_quadrature_(*Lobatto(exactLobatto_nPt(nt))) {
+         time_quadrature_(Lobatto(exactLobatto_nPt(nt))) {}
+
+   /// @brief Copy constructor is removed
+   TimeInterface(const TimeInterface &) = delete;
+
+   /// @brief Assigment is removed
+   void operator=(const TimeInterface &) = delete;
+
+   /// @brief Move constructor
+   TimeInterface(TimeInterface &&v) = default;
+
+   /// @brief Move assignment
+   TimeInterface &operator=(TimeInterface &&v) = default;
+
+   /// @brief Destructor
+   ~TimeInterface() = default;
+
+   template <typename Fct> void init(int i, const Mesh &Th, const Fct &ls) {
+      assert(0 <= i && i < n_);
+      interface_[i] = std::make_unique<interface_t>(Th, ls);
+   }
+   template <typename Fct> void init(const Mesh &Th, const KN<Fct> &ls) {
+      assert(n_ == ls.size());
       for (int i = 0; i < n_; ++i) {
-         interface_[i] = nullptr;
+         interface_[i] = std::make_unique<interface_t>(Th, ls[i]);
       }
    }
 
-   void init(int i, const Mesh &Th, const FunFEMVirtual &ls);
-   void init(const Mesh &Th, const KN<FunFEMVirtual> &ls);
-
-   Interface<Mesh> *operator[](int i) const {
+   interface_t *operator[](int i) const {
       assert(0 <= i && i < n_);
-      return interface_[i];
+      return interface_[i].get();
    }
-   Interface<Mesh> *operator()(int i) const {
+   interface_t *operator()(int i) const {
       assert(0 <= i && i < n_);
-      return interface_[i];
+      return interface_[i].get();
    }
 
    int size() const { return n_; }
-   const QuadratureFormular1d &get_quadrature_time() const {
+   const QuadratureFormular1d *get_quadrature_time() const {
       return time_quadrature_;
    }
 
-   ~TimeInterface() {
-      // for(int i=0;i<n_;++i){
-      //   if(interface_[i]) delete interface_[i];
-      // }
+   const std::vector<std::unique_ptr<interface_t>> &interface() const {
+      return interface_;
    }
-
- private:
-   TimeInterface(const TimeInterface &);
-   void operator=(const TimeInterface &);
 };
 
 #endif

@@ -21,5 +21,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 using namespace globalVariable;
 
 #include "test_mesh.hpp"
+#include "test_TimeInterface.hpp"
 #include "test_test_function.hpp"
 #include "test_expression.hpp"
