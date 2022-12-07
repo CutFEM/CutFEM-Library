@@ -37,7 +37,7 @@ template <typename Kernel> class Darcy {
    typedef typename Kernel::Space Space;
    typedef typename Kernel::CutSpace CutSpace;
    typedef typename Kernel::Rd Rd;
-   typedef InterfaceLevelSet<Mesh> Interface;
+   // typedef InterfaceLevelSet<Mesh> Interface;
 
    const int D = Kernel::D;
 
@@ -45,7 +45,7 @@ template <typename Kernel> class Darcy {
    std::shared_ptr<ActiveMesh<Mesh>> Khi_p;
    std::shared_ptr<Space> Vh_p, Qh_p;
    std::shared_ptr<CutSpace> Wh_p, Ph_p;
-   std::shared_ptr<Interface> inter_p;
+   std::shared_ptr<InterfaceLevelSet<Mesh>> inter_p;
    std::shared_ptr<MacroElement<Mesh>> macro_p;
 
    CutFEM<Mesh> darcy;
@@ -93,7 +93,7 @@ template <typename Kernel> class Darcy {
       Space Lh(*Kh_p, DataFE<Mesh>::P1);
 
       FunFEM<Mesh> levelSet(Lh, f); // fun_levelSet);
-      inter_p = std::make_shared<Interface>(*Kh_p, levelSet);
+      inter_p = std::make_shared<InterfaceLevelSet<Mesh>>(*Kh_p, levelSet, 0);
       const auto &interface(*inter_p);
 
       if (FE_type == "RT0") {
@@ -112,12 +112,15 @@ template <typename Kernel> class Darcy {
          Khi_p->info();
       }
       Wh_p = std::make_shared<CutSpace>(*Khi_p, *Vh_p);
-      if (globalVariable::verbose > 0)
+      if (globalVariable::verbose > 0) {
+         std::cout << " Velocity space : " << std::endl;
          Wh_p->info();
+      }
       Ph_p = std::make_shared<CutSpace>(*Khi_p, *Qh_p);
-      if (globalVariable::verbose > 0)
+      if (globalVariable::verbose > 0) {
+         std::cout << " Pressure space : " << std::endl;
          Ph_p->info();
-
+      }
       darcy.initSpace(*Wh_p);
       darcy.add(*Ph_p);
    }

@@ -1,5 +1,7 @@
 from darcy_wrapper import *
 from darcy_data_example1_2D import *
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 fun_level_set = USER_FUN_LS(func_level_set)
@@ -11,9 +13,13 @@ fun_pressure = USER_FUNC(func_pressure)
 
 set_verbose(0)
 
-nx = 11
+nx = 5
+h = np.empty(0)
+err_u = np.empty(0)
+err_p = np.empty(0)
+err_div = np.empty(0)
 
-for x in range(4):
+for x in range(1):
     darcy = Darcy2()
 
     darcy.build_mesh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH)
@@ -28,15 +34,29 @@ for x in range(4):
 
     darcy.solve_umfpack()
 
-    darcy.write_vtk_file('../output/example.vtk')
+    # darcy.write_vtk_file('../output/example.vtk')
 
     error_divu_L2 = darcy.L2error_div(fun_div)
     error_u_L2 = darcy.L2error_vel(fun_velocity)
     error_p_L2 = darcy.L2error_pressure(fun_pressure)
 
-    print(error_divu_L2)
-    print(error_p_L2)
-    print(error_u_L2)
-    print("-----------------")
+    h = np.append(h, [1./nx])
+    err_u = np.append(err_u, error_u_L2)
+    err_p = np.append(err_p, error_p_L2)
+    err_div = np.append(err_div, error_divu_L2)
 
     nx = 2*nx - 1
+
+print(h)
+print(err_p)
+print(err_u)
+print(err_div)
+
+# plot
+plt.plot(h, err_p, 'r*--', h, err_u, 'b^--')
+plt.plot(h, h, 'k-.', h, 3*h**2, 'k--')
+plt.xscale('log')
+plt.yscale('log')
+plt.title('Darcy - Example 1 - RT0')
+plt.grid(True)
+plt.show()
