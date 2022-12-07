@@ -1,3 +1,0 @@
-[submodule "cpp/test/Catch"]
-	path = cpp/test/Catch
-	url = https://github.com/catchorg/Catch2.git
