@@ -1,3 +1,3 @@
-[submodule "cpp/test/Catch"]
-	path = cpp/test/Catch
+[submodule "cpp/test/Catch2"]
+	path = cpp/test/Catch2
 	url = https://github.com/catchorg/Catch2.git
