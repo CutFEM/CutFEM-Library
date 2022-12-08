@@ -535,7 +535,7 @@ int main(int argc, char **argv) {
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(3));
+        const QuadratureFormular1d &qTime(*Lobatto(7));
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;

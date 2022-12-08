@@ -16,6 +16,7 @@ find_path(UMFPACK_INCLUDES
   PATHS
   /usr/local/Cellar/suite-sparse/5.6.0/include
   /usr/include/suitesparse/
+  /opt/homebrew/include
   $ENV{UMFPACKDIR}
   ${INCLUDE_INSTALL_DIR}
   PATH_SUFFIXES
@@ -48,5 +49,5 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(UMFPACK DEFAULT_MSG
                                   UMFPACK_INCLUDES UMFPACK_LIBRARIES)
 
-#message( "umfpack_include = ${UMFPACK_INCLUDES}")
-#message( "umfpack_libraries = ${UMFPACK_LIBRARIES}")
+message( "umfpack_include = ${UMFPACK_INCLUDES}")
+message( "umfpack_libraries = ${UMFPACK_LIBRARIES}")
