@@ -33,28 +33,49 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 
    double tsolver = this->get_Time();
+
+#ifndef USE_MUMPS
+   if (solver_name_ == "mumps") {
+      std::cout << " MUMPS not linked" << std::endl;
+      exit(EXIT_FAILURE);
+   }
+#endif
+#ifndef USE_UMFPACK
+   if (solver_name_ == "umfpack") {
+      std::cout << " umfpack not linked" << std::endl;
+      exit(EXIT_FAILURE);
+   }
+#endif
+#ifdef USE_MUMPS
+   if (solver_name_ == "mumps") {
+#ifndef USE_MPI
+      std::cout << " You need to compile using MPI to be able to use MUMPS"
+                << std::endl;
+      exit(EXIT_FAILURE);
+#endif
+   }
+#endif
+
+   if (solver_name_ == "default") {
+#ifdef USE_MUMPS
+      solver_name_ = "mumps";
+#else
+#ifdef USE_UMFPACK
+      solver_name_ = "umfpack";
+#else
+      std::cout << " Solver unknown " << std::endl;
+      exit(EXIT_FAILURE);
+#endif
+#endif
+   }
+
    if (solver_name_ == "mumps") {
 #ifdef USE_MUMPS
       MUMPS(*this, A, b);
-#else
-#ifdef USE_UMFPACK
-      solver::umfpack(A, b, clearMatrix_);
-#else
-      // assert(0);
-#endif
 #endif
    } else if (solver_name_ == "umfpack") {
-      if (verbose_ > 1)
-         std::cout << " solve using umfpack" << std::endl;
-#ifdef USE_UMFPACK
       solver::umfpack(A, b, clearMatrix_);
-#else
-         // assert(0);
-#endif
-   } else {
-      // assert(0);
    }
-   // solver::umfpack(A,b);
 
    tsolver = this->get_Time() - tsolver;
 
@@ -94,7 +115,8 @@ void LAPACK(Rnm &a, Rn &b) {
 
 } // namespace solver
 
-//   void MUMPS(std::map<std::pair<int,int>,R> & Amap, Rn & rhs, const int nloc)
+//   void MUMPS(std::map<std::pair<int,int>,R> & Amap, Rn & rhs, const int
+//   nloc)
 //   {
 
 //     NoOrdering mapp;
@@ -186,8 +208,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     // The full rhs is saved on the root.
 //     // the rhs will also be used to save the solution
 //     //-------------------------------------------------------
-//     Rn rhs_sum(ndof_glob*(MPIcf::IamMaster()));                     // alloc
-//     mem for global rhs MPIcf::Reduce(rhs, rhs_sum , MPI_SUM,
+//     Rn rhs_sum(ndof_glob*(MPIcf::IamMaster()));                     //
+//     alloc mem for global rhs MPIcf::Reduce(rhs, rhs_sum , MPI_SUM,
 //     MPIcf::Master());
 
 //     Rn rhsMapp;
@@ -208,8 +230,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     R ta1 = MPI_Wtime();
 //     ierr = mumps_par.INFO(1);
 //     if(ierr != 0) {
-//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr <<
-//       std::endl; std::cout <<mumps_par.INFO(2)  << std::endl; std::cout
+//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr
+//       << std::endl; std::cout <<mumps_par.INFO(2)  << std::endl; std::cout
 //       <<mumps_par.ICNTL(2) << std::endl; MPIcf::Barrier(); assert(0);
 //     }
 
@@ -222,7 +244,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     ierr = mumps_par.INFO(1);
 
 //     if(ierr != 0) {
-//       std::cout << " Error in factorization phase of MUMPS : ierr = " << ierr
+//       std::cout << " Error in factorization phase of MUMPS : ierr = " <<
+//       ierr
 //       << std::endl; MPIcf::Barrier(); assert(0);
 //     }
 
@@ -268,26 +291,28 @@ void LAPACK(Rnm &a, Rn &b) {
 //     szlumx = int((szlumx*8.0)/(1024.0*1024.0));
 
 //     R ratio = ((R)(mumps_par.nz/mumps_par.n)/mumps_par.n)*100.0;
-//     std::cout << " --------------------------------------------------------
-//     \n"; std::cout << "                MUMPS DIRECT SOLVER               " <<
+//     std::cout << "
+//     -------------------------------------------------------- \n";
+//     std::cout << "                MUMPS DIRECT SOLVER               " <<
 //     std::endl; std::cout << "
-//     -------------------------------------------------------- \n"; std::cout
-//     <<" STATISTICS OF THE GLOBAL MATRIX " << std::endl; std::cout << " Matrix
-//     order                         " << mumps_par.n << std::endl; std::cout <<
-//     " Number of non-zero entries           " << mumps_par.nz << std::endl;
-//     std::cout << " Fill-in ratio percentage             " << ratio <<
-//     std::endl; std::cout << "\n STATISTICS OF THE LU FACTORIZATION " <<
-//     std::endl; std::cout << " Number of entries in the factors     " <<
-//     mumps_par.infog[19] << std::endl; std::cout << "\n Storage of the factors
-//     " << std::endl; std::cout << " Minimum memory                       " <<
-//     szlumn << std::endl; std::cout << " Maximum memory " << szlumx <<
+//     -------------------------------------------------------- \n";
+//     std::cout
+//     <<" STATISTICS OF THE GLOBAL MATRIX " << std::endl; std::cout << "
+//     Matrix order                         " << mumps_par.n << std::endl;
+//     std::cout << " Number of non-zero entries           " << mumps_par.nz
+//     << std::endl; std::cout << " Fill-in ratio percentage             " <<
+//     ratio << std::endl; std::cout << "\n STATISTICS OF THE LU
+//     FACTORIZATION " << std::endl; std::cout << " Number of entries in the
+//     factors     " << mumps_par.infog[19] << std::endl; std::cout << "\n
+//     Storage of the factors " << std::endl; std::cout << " Minimum memory
+//     " << szlumn << std::endl; std::cout << " Maximum memory " << szlumx <<
 //     std::endl; std::cout << "\n Working memory for factorization   " <<
 //     std::endl; std::cout << " Minimum memory                       " <<
 //     szwkmn << std::endl; std::cout << " Maximum memory " << szwkmx <<
-//     std::endl; std::cout << std::endl; std::cout << " Time of analysis phase
-//     " << ta1 - ta0 << std::endl; std::cout << " Time of factorization phase
-//     " << tf1 - tf0 << std::endl; std::cout << " Time for solving " << ts1 -
-//     ts0 << std::endl << std::endl;
+//     std::endl; std::cout << std::endl; std::cout << " Time of analysis
+//     phase " << ta1 - ta0 << std::endl; std::cout << " Time of
+//     factorization phase " << tf1 - tf0 << std::endl; std::cout << " Time
+//     for solving " << ts1 - ts0 << std::endl << std::endl;
 //   }
 
 //   }
@@ -404,8 +429,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     R ta1 = MPI_Wtime();
 //     ierr = mumps_par.INFO(1);
 //     if(ierr != 0) {
-//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr <<
-//       std::endl; std::cout <<mumps_par.INFO(2)  << std::endl; std::cout
+//       std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr
+//       << std::endl; std::cout <<mumps_par.INFO(2)  << std::endl; std::cout
 //       <<mumps_par.ICNTL(2) << std::endl;
 //       // MPIcf::Barrier();
 //       assert(0);
@@ -420,7 +445,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     ierr = mumps_par.INFO(1);
 
 //     if(ierr != 0) {
-//       std::cout << " Error in factorization phase of MUMPS : ierr = " << ierr
+//       std::cout << " Error in factorization phase of MUMPS : ierr = " <<
+//       ierr
 //       << std::endl;
 //       // MPIcf::Barrier();
 //       assert(0);
@@ -504,7 +530,8 @@ void LAPACK(Rnm &a, Rn &b) {
 
 //    int argc = 0;
 //    char ** argv = NULL;
-//    PetscInitialize(&argc, &argv, NULL, NULL);             // initialize PETSC
+//    PetscInitialize(&argc, &argv, NULL, NULL);             // initialize
+//    PETSC
 
 //    Vec            x, b, D;         /* approx solution, RHS */
 //    Mat            A, M;            /* linear system matrix */
@@ -572,7 +599,8 @@ void LAPACK(Rnm &a, Rn &b) {
 
 //    /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //       Create the linear solver and set various options
-//       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+//       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//       */
 //    KSPCreate(PETSC_COMM_WORLD,&solver);
 
 //    /*
@@ -601,9 +629,8 @@ void LAPACK(Rnm &a, Rn &b) {
 
 //   /*
 // 89:    * Now that the factorisation is done, show the pivots;
-// 90:    * note that the last one is negative. This in itself is not an error,
-// 91:    * but it will make the iterative method diverge.
-// 92:    */
+// 90:    * note that the last one is negative. This in itself is not an
+// error, 91:    * but it will make the iterative method diverge. 92:    */
 //    PCFactorGetMatrix(pc,&M);
 //    VecDuplicate(b,&D);
 //    MatGetDiagonal(M,D);
@@ -695,8 +722,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //       then duplicate as needed.
 //     */
 //     VecCreateMPI(PETSC_COMM_WORLD, sizeLoc, sizeGlob, &x);
-//     VecSetSizes(x,sizeLoc, sizeGlob);             // local size , global size
-//     VecDuplicate(x,&b);
+//     VecSetSizes(x,sizeLoc, sizeGlob);             // local size , global
+//     size VecDuplicate(x,&b);
 
 //     Rn rhs_sum(sizeGlob);
 //     MPIcf::AllReduce(rhs, rhs_sum, MPI_SUM);
@@ -726,8 +753,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     toolPETSC::transform2PETSCformat(Amap, Istart, Iend);
 
 //     // R t1 = MPIcf::Wtime();
-//     // std::cout << " Time transform matrix to PETSC format \t" << t1 - t0 <<
-//     std::endl;
+//     // std::cout << " Time transform matrix to PETSC format \t" << t1 - t0
+//     << std::endl;
 
 //     for(int i=Istart;i<=Iend;++i) Amap[std::make_pair(i,i)] += 0;
 
@@ -771,8 +798,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     }
 //     Amap.clear();
 
-//     for(int i = 1; i<=n; ++i)  Iv[i] = std::max(Iv[i-1],Iv[i]);  // pour les
-//     lignes vides
+//     for(int i = 1; i<=n; ++i)  Iv[i] = std::max(Iv[i-1],Iv[i]);  // pour
+//     les lignes vides
 
 //     assert(k==nbcoef);
 //     MatMPIAIJSetPreallocationCSR(A,Iv,Jv,a);
@@ -780,8 +807,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
 
 //     // R t2 = MPIcf::Wtime();
-//     // std::cout << " Time assembly Matrix in  PETSC solver \t" << t2 - t1 <<
-//     std::endl;
+//     // std::cout << " Time assembly Matrix in  PETSC solver \t" << t2 - t1
+//     << std::endl;
 
 //     /*
 //       Create linear solver context
@@ -921,7 +948,8 @@ void LAPACK(Rnm &a, Rn &b) {
 //     for(int i=0;i<MPIcf::size();++i) nSend[i] = m[i].size();
 
 //     for(int i=0;i<MPIcf::size();++i) {
-//       MPI_Scatter(nSend, 1, MPI_INT, &nRecv(i),1,MPI_INT, i, MPI_COMM_WORLD);
+//       MPI_Scatter(nSend, 1, MPI_INT, &nRecv(i),1,MPI_INT, i,
+//       MPI_COMM_WORLD);
 //     }
 
 //     KN<int> IvRecv[MPIcf::size()], Iv[MPIcf::size()];
@@ -954,15 +982,16 @@ void LAPACK(Rnm &a, Rn &b) {
 //       MPI_Irecv(IvRecv[iproc], nRecv[iproc], MPI_INT, iproc, iproc,
 //       MPI_COMM_WORLD, 		&request_recv[iproc]);
 
-//       MPI_Isend(Jv[iproc], nSend[iproc], MPI_INT, iproc, MPIcf::my_rank() +
-//       10, MPI_COMM_WORLD, 		&request_sendJv[iproc]);
+//       MPI_Isend(Jv[iproc], nSend[iproc], MPI_INT, iproc, MPIcf::my_rank()
+//       + 10, MPI_COMM_WORLD, 		&request_sendJv[iproc]);
 //       MPI_Irecv(JvRecv[iproc], nRecv[iproc], MPI_INT, iproc, iproc + 10,
 //       MPI_COMM_WORLD, 		&request_recvJv[iproc]);
 
-//       MPI_Isend(a[iproc], nSend[iproc], MPI_DOUBLE, iproc, MPIcf::my_rank() +
-//       20, MPI_COMM_WORLD, 		&request_sendA[iproc]);
-//       MPI_Irecv(aRecv[iproc], nRecv[iproc], MPI_DOUBLE, iproc, iproc + 20,
-//       MPI_COMM_WORLD, 		&request_recvA[iproc]);
+//       MPI_Isend(a[iproc], nSend[iproc], MPI_DOUBLE, iproc,
+//       MPIcf::my_rank() + 20, MPI_COMM_WORLD,
+//       &request_sendA[iproc]); MPI_Irecv(aRecv[iproc], nRecv[iproc],
+//       MPI_DOUBLE, iproc, iproc + 20, MPI_COMM_WORLD,
+//       &request_recvA[iproc]);
 
 //     }
 
