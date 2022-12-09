@@ -1,6 +1,6 @@
 # CutFEM-Library
 
-To create theD Darcy library to reproduce results
+To create the Darcy problem to reproduce results using Python:
 
 1 - Build the library
 "cd cpp; mkdir build; cd build; cmake ..; make -j4;"
@@ -27,4 +27,7 @@ TO INSTALL UMFPACK
 2) Go to UMFPACK folder
 "make local; make install;
 3) Fixe the cmake/FindUMFPACK.cmake
+
+
+Note : 
 
