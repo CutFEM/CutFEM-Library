@@ -74,7 +74,9 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
       MUMPS(*this, A, b);
 #endif
    } else if (solver_name_ == "umfpack") {
+#ifdef USE_UMFPACK
       solver::umfpack(A, b, clearMatrix_);
+#endif
    }
 
    tsolver = this->get_Time() - tsolver;
