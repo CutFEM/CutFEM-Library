@@ -47,4 +47,23 @@ TEST_CASE("Test Time interface class in 2D", "[TimeInterface]") {
          t += (n - 1) * dt;
       }
    }
+
+   SECTION("Test with Lobatto 6 points") {
+      const auto *qTime = Lobatto(6);
+      auto n            = qTime->n;
+      double dt         = 1e-3;
+      TimeInterface<Mesh2> interface(qTime);
+      REQUIRE(interface.interface().size() == 6);
+      double t = 0;
+      for (int iter = 0; iter < 5; ++iter) {
+         for (int i = 0; i < n; ++i) {
+            FunFEM<Mesh2> ls(Vh, f, t + i * dt);
+            interface.init(i, Th, ls);
+            const auto *gamma = interface[i];
+
+            REQUIRE(isEqual((*gamma)(3)[0], t + i * dt - 2. / 3));
+         }
+         t += (n - 1) * dt;
+      }
+   }
 }

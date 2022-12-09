@@ -725,7 +725,7 @@ int main(int argc, char **argv) {
       // 1D Time space
       FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
       // Quadrature data
-      const QuadratureFormular1d &qTime(*Lobatto(3));
+      const QuadratureFormular1d &qTime(*Lobatto(6));
       const Uint nbTime       = qTime.n;
       const Uint ndfTime      = Ih[0].NbDoF();
       const Uint lastQuadTime = nbTime - 1;
@@ -807,8 +807,8 @@ int main(int argc, char **argv) {
 
          // Create active meshes
          ActiveMesh<Mesh> Kh2(Th);
-         Kh2.truncate(interface, -1);
 
+         Kh2.truncate(interface, -1);
          // Cut FE space
          CutSpace Wh(Kh2, Vh);
 
@@ -1127,7 +1127,7 @@ int main(int argc, char **argv) {
                                "_" + std::to_string(j + 1) + ".dat");
 
          // Solve linear system
-         convdiff.solve("mumps");
+         convdiff.solve("umfpack");
 
          data_u0 = convdiff.rhs_;
          convdiff.saveSolution(data_u0);
