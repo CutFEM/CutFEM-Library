@@ -263,13 +263,10 @@ template <typename Mesh> class CutFEM : public BaseCutFEM<Mesh>, public Solver {
       gather(this->mat_);
       Solver::solve(this->mat_[0], this->rhs_);
    }
-   void solve(std::map<std::pair<int, int>, R> &A, Rn &b,
-              std::string solverName = "mumps") {
-      this->solver_name_ = solverName;
+   void solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
       Solver::solve(A, b);
    }
-   void solve(std::vector<Matrix> &A, Rn &b, std::string solverName = "mumps") {
-      this->solver_name_ = solverName;
+   void solve(std::vector<Matrix> &A, Rn &b, std::string solverName) {
       gather(A);
       Solver::solve(A[0], b);
    }
