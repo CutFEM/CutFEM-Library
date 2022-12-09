@@ -13,13 +13,13 @@ fun_pressure = USER_FUNC(func_pressure)
 
 set_verbose(0)
 
-nx = 5
+nx = 11
 h = np.empty(0)
 err_u = np.empty(0)
 err_p = np.empty(0)
 err_div = np.empty(0)
 
-for x in range(1):
+for x in range(5):
     darcy = Darcy2()
 
     darcy.build_mesh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH)
