@@ -4,3 +4,6 @@
 [submodule "SuiteSparse"]
 	path = SuiteSparse
 	url = https://github.com/DrTimothyAldenDavis/SuiteSparse.git
+[submodule "mumps"]
+	path = mumps
+	url = https://github.com/scivision/mumps.git
