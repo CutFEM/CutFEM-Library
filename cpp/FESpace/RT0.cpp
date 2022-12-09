@@ -59,8 +59,8 @@ class TypeOfFE_RT0_2d : public GTypeOfFE<Mesh2> {
              // 1, // # sub finite elements (generally 1) [??]
              6, // =kPi=m number of coeff alpha_k
              3  // =npPi=n_p number of geometry locations (points) for dofs
-               // alpha_Pi_h // array to store coeff alpha_k
-             ) // Inputs to GTypeOfFE
+                // alpha_Pi_h // array to store coeff alpha_k
+             )  // Inputs to GTypeOfFE
    {
       GTypeOfFE<Mesh>::basisFctType    = BasisFctType::RT0;
       GTypeOfFE<Mesh>::polynomialOrder = 0;
@@ -202,8 +202,8 @@ class TypeOfFE_RT0m_2d : public GTypeOfFE<Mesh2> {
              // 1, // # sub finite elements (generally 1) [??]
              6, // =kPi=m number of coeff alpha_k
              3  // =npPi=n_p number of geometry locations (points) for dofs
-               // alpha_Pi_h // array to store coeff alpha_k
-             ) // Inputs to GTypeOfFE
+                // alpha_Pi_h // array to store coeff alpha_k
+             )  // Inputs to GTypeOfFE
    {
       static const R2 Pt[3] = {R2(1. / 2, 1. / 2), R2(0., 1. / 2),
                                R2(1. / 2, 0)}; // Reference coordinate of dof
@@ -264,14 +264,12 @@ void TypeOfFE_RT0m_2d::FB(const What_d whatd, const Element &K, const R2 &PHat,
    R const2  = scaling * K.EdgeOrientation(2) * s;
 
    // whatd = 0,1,2
-   if (whatd &
-       Fop_D0) { // checks whether whatd = 0, ie function and no derivative ?
+   if (whatd & Fop_D0) {
       bfMat(0, 0, op_id) = -PHat.x; // first component, first basis fun
       bfMat(0, 1, op_id) = -PHat.y; // second comp, first basis fun
 
       bfMat(1, 0, op_id) = (PHat.x - 1); // first comp, second basis fun
-      bfMat(1, 1, op_id) =
-          PHat.y; // [???] there is a MINUS sign on these for freefem!!
+      bfMat(1, 1, op_id) = PHat.y;
 
       bfMat(2, 0, op_id) = -PHat.x;
       bfMat(2, 1, op_id) = 1 - PHat.y;
