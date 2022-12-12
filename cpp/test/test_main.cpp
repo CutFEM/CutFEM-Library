@@ -14,7 +14,6 @@ You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 #define CATCH_CONFIG_MAIN
-//#include "/usr/local/include/catch2/catch_all.hpp"
 #include "../test/Catch2/src/catch2/catch_all.hpp"
 
 #include "../tool.hpp"
@@ -22,5 +21,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 using namespace globalVariable;
 
 #include "test_mesh.hpp"
+#include "test_quadrature.hpp"
+#include "test_TimeInterface.hpp"
 #include "test_test_function.hpp"
 #include "test_expression.hpp"

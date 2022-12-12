@@ -743,8 +743,8 @@ R fun_theta(double *P) {
    else if (P[0] > Epsilon)
       return atan(P[1] / (P[0]));
    else
-      return s_y * pi / 2;
-   // return atan(P[1]/(P[0]+Epsilon));
+      // return s_y * pi / 2;
+      return atan(P[1] / (P[0] + Epsilon));
 }
 
 R fun_solution(double *P, int elementComp, int domain, double t) {
@@ -756,10 +756,11 @@ R fun_solution(double *P, int elementComp, int domain, double t) {
 }
 
 R fun_initial(double *P, int elementComp, int domain) {
-   // double r0 = 0.4;
-   // double a  = 0.2;
-   // return 0.5*(1 - tanh( ((P[0]-r0)*(P[0]-r0)+P[1]*P[1]) / (a*a) -1));
-   return fun_solution(P, elementComp, domain, 0);
+   double r0 = 0.4;
+   double a  = 0.2;
+   return 0.5 *
+          (1 - tanh(((P[0] - r0) * (P[0] - r0) + P[1] * P[1]) / (a * a) - 1));
+   // return fun_solution(P, elementComp, domain, 0);
 }
 R fun_boundary(double *P, int elementComp, double t) { return 0.; }
 R fun_velocity(double *P, int elementComp, int domain) {
@@ -773,12 +774,13 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
    CutFEM<Mesh2> problem(Wh);
    CutFEMParameter lambda(0, 1.);
-   double lambdaE = 1;
+   double lambdaE = sqrt(2) * 2 * pi;
+
    const MeshParameter &h(Parameter::h);
 
-   double lambdaB = sqrt(10);
-   double Cstab   = 1e-2;
-   double Cstabt  = 1e-2;
+   // double lambdaB = 10.; // sqrt(10);
+   double Cstab  = 1e-2;
+   double Cstabt = 1e-2;
    // Fun_h beta(Wh, fun_velocity);
    // Expression2 beta(fun_beta, 0, op_id);
 
@@ -811,26 +813,22 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah,
            innerProduct(0.5 * lambdaE * jump(u), jump(v)),
        Khi, INTEGRAL_INNER_EDGE_2D);
 
-   // problem.addBilinear(
-   //    -innerProduct(beta.expression(2)*u*n, v)
-   //    , interface
-   //    // , Khi
-   //    // , boundary
-   //    // , {2, 3}          // label other boundary
+   // problem.addBilinear(-innerProduct(beta.exprList(2) * u * n, v), interface
+   //                     // , Khi
+   //                     // , boundary
+   //                     // , {2, 3}          // label other boundary
    // );
-   // problem.addBilinear(
-   //   - innerProduct(u, beta.expression(2)*(0.5*v)*n)
-   //   - innerProduct(u, lambdaB*(0.5*v))
-   //   , interface
-   //   // , Khi
-   //   // , INTEGRAL_BOUNDARY
-   //   // , {1, 4}          // label left boundary
+   // problem.addBilinear(-innerProduct(u, beta.exprList(2) * (0.5 * v) * n) -
+   //                         innerProduct(u, lambdaB * (0.5 * v)),
+   //                     interface
+   //                     // , Khi
+   //                     // , INTEGRAL_BOUNDARY
+   //                     // , {1, 4}          // label left boundary
    // );
-   // problem.addBilinear(
-   //   - innerProduct(beta.expression(2)*u,v*n)
-   //   - innerProduct(beta.expression(2)*u*n, lambdaB*v)
-   //   , interface
-   // );
+   // problem.addBilinear(-innerProduct(beta.exprList(2) * u, v * n) -
+   //                         innerProduct(beta.exprList(2) * u * n, lambdaB *
+   //                         v),
+   //                     interface);
 
    // BUILDING (M + S)
    // =====================================================
@@ -903,7 +901,7 @@ int main(int argc, char **argv) {
    int nx = 20;                                     // 160;
    int ny = 20;                                     // 160;
    Mesh Th(nx, ny, -1.0075, -1.0075, 2.015, 2.015); // [-1,1]*[-1,1]
-   Space Vh(Th, DataFE<Mesh2>::P1dc);
+   Space Vh(Th, DataFE<Mesh2>::P0);
 
    // DEFINITION OF SPACE AND TIME PARAMETERS
    // =====================================================
@@ -935,7 +933,7 @@ int main(int argc, char **argv) {
    CutSpace Qh(Khi, Uh);
    Fun_h beta(Qh, fun_velocity);
 
-   MacroElement<Mesh> macro(Khi, 1.);
+   MacroElement<Mesh> macro(Khi, 0.5);
 
    // DECLARATION OF THE VECTOR CONTAINING THE solution
    // =====================================================
@@ -1097,8 +1095,8 @@ int main(int argc, char **argv) {
          writer.add(fun_ex, "u_exact", 0, 1);
          // writer.add(fun_thet , "yx", 0, 1);
       }
-      if (i == 10)
-         return 0;
+      // if (i == 10)
+      //    return 0;
       // std::cout << std::setprecision(16) << "q(u) = " << qu << std::endl;
       std::cout << " || u-uex ||_2 = " << errU << std::endl;
       std::cout << std::setprecision(16)

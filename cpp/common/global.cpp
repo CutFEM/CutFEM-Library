@@ -17,7 +17,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 int globalVariable::verbose        = 1;
 double globalVariable::UnSetMesure = -1e+200;
-double globalVariable::Epsilon    = 10 * std::numeric_limits<double>::epsilon();
+double globalVariable::Epsilon =
+    1e-13; // * std::numeric_limits<double>::epsilon();
 double globalVariable::DoubleEpsC = 1e-9;
 double globalVariable::Pi         = 3.14159265359;
 double globalVariable::pi         = 3.14159265359;

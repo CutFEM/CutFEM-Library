@@ -88,7 +88,6 @@ template <class Rdd> class GQuadratureFormular {
        : exact(e), n(NbOfNodes), p(pp), clean(c) {
       Verification();
    }
-
    GQuadratureFormular(int ex, QP p0, QP p1, QP p2, QP p3, QP p4)
        : exact(ex), n(5), p(new QP[5]), clean(true) {
       p[0] = p0;

@@ -375,14 +375,6 @@ static GQuadraturePoint<R1> P_QF_Lobatto7[7] = {
     QuadratureFormular1d::QP(0.023809523809523808, R1(1.))};
 const QuadratureFormular1d QF_Lobatto7(7, 7, P_QF_Lobatto7);
 
-// static GQuadraturePoint<R1> P_QF_Lobatto7[5] = {
-//   QuadratureFormular1d::QP(pLob_n7_0,R1(0.)),
-//   QuadratureFormular1d::QP(pLob_n7_1,R1(Lob_n7_1)),
-//   QuadratureFormular1d::QP(pLob_n7_2,R1(Lob_n7_2)),
-//   QuadratureFormular1d::QP(pLob_n7_1,R1(Lob_n7_3)),
-//   QuadratureFormular1d::QP(pLob_n7_0,R1(1.))};
-// const QuadratureFormular1d QF_Lobatto7(7,5,P_QF_Lobatto7);
-
 static GQuadraturePoint<R1> P_QF_Lobatto15[9] = {
     QuadratureFormular1d::QP(0.013888888888889, R1(0.)),
     QuadratureFormular1d::QP(0.082747680780403, R1(0.050121002294270)),
@@ -411,7 +403,8 @@ int exactLobatto_nPt(int n) {
    case 9:
       return 15;
    default: {
-      assert(0);
+      std::cout << " Lobatto with " << n << " not implemented " << std::endl;
+      exit(EXIT_FAILURE);
       return 0;
    }
    }

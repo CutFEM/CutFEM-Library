@@ -45,11 +45,11 @@ template <class R> void MatMul(KNM_<R> &ab, KNM_<R> &a, KNM_<R> &b) {
    // attention ne marche que si les adresses ne sont pas les memes
    long N = a.shapei.n;
    long M = a.shapej.n;
-   K_throwassert(a.shapej.n == a.shapei.n);
-   K_throwassert(a.shapei.n == ab.shapei.n);
-   K_throwassert(b.shapej.n == ab.shapej.n);
-   K_throwassert(b.v != ab.v);
-   K_throwassert(a.v != ab.v);
+   assert(a.shapej.n == a.shapei.n);
+   assert(a.shapei.n == ab.shapei.n);
+   assert(b.shapej.n == ab.shapej.n);
+   assert(b.v != ab.v);
+   assert(a.v != ab.v);
    KN_<R> ai = a(0);
    for (long i = 0; i < N; i++, ++ai) {
       KN_<R> bj = b[0];
@@ -151,7 +151,7 @@ operator<<(std::ostream &f,
 };
 
 template <class R> R KN_<R>::operator,(const KN_<R> &u) const {
-   K_throwassert(u.n == n);
+   assert(u.n == n);
    R s = 0;
    R *l(v);
    R *r(u.v);

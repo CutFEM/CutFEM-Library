@@ -16,7 +16,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef COMMON_GLOBAL_HPP
 #define COMMON_GLOBAL_HPP
 
-#include <numeric>
+// #include <numeric>
 namespace globalVariable {
 extern int verbose;
 extern double UnSetMesure;

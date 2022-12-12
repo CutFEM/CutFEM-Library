@@ -48,7 +48,7 @@ class Solver {
    int verbose_             = 0;
    bool clearMatrix_        = true;
    //   std::string reordering = "none";
-   std::string solver_name_ = "mumps";
+   std::string solver_name_ = "default";
 
    Solver(const ProblemOption &option) {
       clearMatrix_ = option.clear_matrix_;

@@ -636,8 +636,8 @@ double integral(FunFEM<M> &fh, const TimeSlab &In,
 
    for (int it = 0; it < gamma.size(); ++it) {
       const Interface<M> &interface(*gamma(it));
-      const QuadratureFormular1d &qTime(gamma.get_quadrature_time());
-      GQuadraturePoint<R1> tq((qTime)[it]);
+      const QuadratureFormular1d *qTime(gamma.get_quadrature_time());
+      GQuadraturePoint<R1> tq((*qTime)[it]);
       const double t = In.mapToPhysicalElement(tq);
 
       for (int iface = interface.first_element();

@@ -143,7 +143,7 @@ template <typename Mesh> class ActiveMesh {
       idx_in_background_mesh_.resize(1);
       idx_from_background_mesh_.resize(1);
       idx_in_background_mesh_[0].resize(Th.nt);
-      interface_id_.resize(5);
+      interface_id_.resize(10);
       nb_quadrature_time_ = 1;
       for (int k = 0; k < Th.nt; ++k) {
          idx_in_background_mesh_[0][k]   = k;
@@ -929,7 +929,8 @@ template <typename Mesh>
 void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh> &interface,
                                 int sign_domain_remove) {
 
-   int n_tid           = interface.size();
+   int n_tid = interface.size();
+   assert(n_tid < interface_id_.size());
    nb_quadrature_time_ = n_tid;
    in_active_mesh_.resize(10);
    for (int i = 0; i < 10; ++i)
@@ -968,6 +969,7 @@ void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh> &interface,
                break;
             }
          }
+
          // REMOVE THE ELEMENT IN THE INPUT DOMAIN
          if (s == sign_domain_remove && !active_element) {
             it_k = idx_from_background_mesh_[d].erase(it_k);
@@ -976,7 +978,8 @@ void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh> &interface,
 
          // SAVE AND ERASE OLD INTERFACES
          for (int it = 0; it < n_tid; ++it) {
-            auto it_gamma    = interface_id_[it].find(std::make_pair(d, k));
+            auto it_gamma = interface_id_[it].find(std::make_pair(d, k));
+
             int nb_interface = (it_gamma == interface_id_[it].end())
                                    ? 0
                                    : it_gamma->second.size();
@@ -1004,15 +1007,14 @@ void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh> &interface,
                in_active_mesh_[d][it][nt[d]] = false;
             }
          }
-
-         // SET NEW INDICES AND PUT BACK INTERFACES
+         // // SET NEW INDICES AND PUT BACK INTERFACES
          idx_in_background_mesh_[d].push_back(kb);
          it_k->second = nt[d];
          nt[d]++;
          it_k++;
       }
    }
-
+   return;
    idx_element_domain.push_back(0);
    for (int d = 0; d < dom_size; ++d) {
       idx_in_background_mesh_[d].resize(nt[d]);
