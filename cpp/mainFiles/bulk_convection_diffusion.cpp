@@ -359,7 +359,7 @@ typedef FunFEM<Mesh2> Fun_h;
 #define neumann
 // Set scheme for the dg method (options: "classical", "conservative".
 // Irrelevant if "cg" is defined instead of "dg")
-#define classical
+#define conservative
 // Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 // Decide whether to solve for level set function, or to use exact (options:
@@ -388,7 +388,7 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     // int nx = 25, ny = 25;       // starting mesh size
@@ -430,6 +430,7 @@ int main(int argc, char **argv) {
     // Arrays to hold data
     std::array<double, iterations> errors;                  // array to hold bulk errors
     std::array<int, iterations> number_of_stabilized_edges; // array to count stabilized edges
+    std::array<double, iterations> reynold_error; // array to count stabilized edges
     std::array<double, iterations> hs;                      // array to hold mesh sizes
     std::array<double, iterations> dts;
 
@@ -462,7 +463,7 @@ int main(int argc, char **argv) {
         Mesh Th(nx, ny, -3.5, -1.5, lx, ly);
 #endif
 
-        //// Parameters
+        // Parameters
         double tfinal = .5; // Final time
 
 #ifdef use_t
@@ -520,7 +521,7 @@ int main(int argc, char **argv) {
         FESpace2 Vh(Th, DataFE<Mesh>::P1dc); // discontinuous basis functions
 #elif defined(cg)
         // CG stabilization parameters
-        double tau20 = 0, tau21 = 5;
+        double tau20 = 0, tau21 = 0.1;
         FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 #endif
 
@@ -535,7 +536,7 @@ int main(int argc, char **argv) {
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(7));
+        const QuadratureFormular1d &qTime(*Lobatto(6));
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -600,8 +601,6 @@ int main(int argc, char **argv) {
                 R tt = In.Pt(R1(qTime(i).x));
                 ls[i].init(Lh, fun_levelSet, tt);
 #endif
-                // FIXME: This version of the code has a memory leak (it doesn't
-                // delete the interface pointers)
                 interface.init(i, Th, ls[i]);
 
 #if defined(levelsetsolve)
@@ -854,30 +853,9 @@ int main(int argc, char **argv) {
             // Add RHS on bulk
             convdiff.addLinear(+innerProduct(f.expr(), v), Kh2, In);
 
-            // Compute integrals
-            Expression2 bhexp(b0h, 0, op_id);
-            Expression2 ghexp(g, 0, op_id);
-            Expression2 gdx(g, 0, op_dx);
-            Expression2 gdy(g, 0, op_dy);
-            // Expression2 normalx(n, 0, op_id);
-            // Expression2 normaly(n, 1, op_id);
-
             intF = integral(Kh2, In, f, 0, qTime);
 #ifdef neumann
             intG = integral(g_Neumann, In, interface, 0);
-#elif defined(dirichlet)
-            // double intu = integralSurf(b0h, In, qTime);
-            // double intg = integralSurf(g, In, qTime);
-            // double intDiff = lambda*(intu-intg);
-            // double intGrad = integral<Mesh>((A2, grad(u)*n), b0h, In, qTime);
-            double intu       = integral(bhexp, In, interface, 0);
-            double intg       = integral(ghexp, In, interface, 0);
-            double intVelb0h1 = 0.5 * integral(fabs(vel * n) * bhexp, In, interface, 0);
-            double intVelb0h2 = 0.5 * integral((vel * n) * bhexp, In, interface, 0);
-            double intVelg1   = 0.5 * integral(fabs(vel * n) * ghexp, In, interface, 0);
-            double intVelg2   = 0.5 * integral((vel * n) * ghexp, In, interface, 0);
-            double intVel     = intVelb0h1 - intVelb0h2 - (intVelg1 - intVelg2);
-            double intGrad    = integral(A2 * gdx * n.x, In, interface, 0) + integral(A2 * gdy * n.y, In, interface, 0);
 #endif
 
             if (iter == total_number_iteration - 1)
@@ -885,10 +863,32 @@ int main(int argc, char **argv) {
                                pathOutputFolder + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
 
             // Solve linear system
-            convdiff.solve();
+            convdiff.solve("umfpack");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
+
+            // Compute error in Reynold relation
+            {
+                CutFEM<Mesh> reynold(qTime);
+                reynold.initSpace(Wh, In);
+
+                reynold.addBilinear(innerProduct(u, v), Kh2, (int)lastQuadTime, In);
+                reynold.addLinear(innerProduct(b0h.expr(), v), Kh2, 0, In);
+                reynold.addBilinear(-innerProduct(dt(u), v) - innerProduct(u, dt(v))
+                                        - innerProduct((vel.exprList() * grad(u)), v)
+                                        - innerProduct(u, (vel.exprList() * grad(v))),
+                                    Kh2, In);
+
+                int N = Wh.NbDoF();
+                Rn lhs(2 * N);
+                multiply(2 * N, 2 * N, reynold.mat_, data_u0, lhs);
+
+                lhs -= reynold.rhs_;
+
+                reynold_error.at(j) = lhs.linfty();
+                std::cout << " e_r^n = " << reynold_error.at(j) << std::endl;
+            }
 
             // Compute conservation error
             if (iterations == 1) {
@@ -930,28 +930,26 @@ int main(int argc, char **argv) {
             errBulk = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
             std::cout << " t_n -> || u-uex||_2 = " << errBulk << std::endl;
 
-            // R errBulk =  L2normCut(b0h, fun_uBulkD, current_time, 0,
-            // 1); std::cout << std::endl; std::cout << " L2 Error \t : \t" <<
-            // errBulk << std::endl;
-
-            // errors.at(j) = errBulk;
             errors.at(j) = errBulk;
 
             // #ifdef USE_MPI
             //          if ((iterations == 1) && MPIcf::IamMaster()) {
             // #else
             if ((iterations == 1)) {
-                // #endif
+                Fun_h sol(Wh, data_u0);
                 Paraview<Mesh> writer(Kh2, pathOutputFigures + "Bulk" + std::to_string(iter + 1) + "DG.vtk");
                 writer.add(b0h, "bulk", 0, 1);
 
                 Fun_h uBex(Wh, fun_uBulk, current_time);
                 Fun_h fB(Wh, fun_rhsBulk, current_time);
+                Expression2 uuh(sol, 0, op_id);
+                Expression2 uuex(uBex, 0, op_id);
                 writer.add(uBex, "bulk_exact", 0, 1);
                 writer.add(fB, "bulk_rhs", 0, 1);
+                //writer.add(fabs(uuh - uuex), "bulk_error");
                 writer.add(ls[0], "levelSet0", 0, 1);
                 writer.add(ls[1], "levelSet1", 0, 1);
-                writer.add(ls[2], "levelSet2", 0, 1);
+                // writer.add(ls[2], "levelSet2", 0, 1);
             }
 
             if (iterations > 1 && iter == total_number_iteration - 1)
@@ -993,6 +991,15 @@ int main(int argc, char **argv) {
     }
     std::cout << "]" << std::endl;
 
+    std::cout << std::endl;
+    std::cout << "Reynold error = [";
+    for (int i = 0; i < iterations; i++) {
+        std::cout << reynold_error.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << std::endl;
     std::cout << std::endl;
 
     std::cout << "h = [";

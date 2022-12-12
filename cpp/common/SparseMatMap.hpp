@@ -46,6 +46,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <algorithm>
 #include <cassert>
 
+typedef std::map<std::pair<int, int>, R> Matrix;
+
 void buil_CSR_array(int n, const std::map<std::pair<int, int>, R> &M,
                     int32_t *p, int32_t *j, double *a);
 void multiply(int N, const std::map<std::pair<int, int>, double> &A,
@@ -62,6 +64,8 @@ void eraseRow(int N, std::map<std::pair<int, int>, double> &A, Rn &b,
 // rhs, Rn& b);
 void multiply(int N, int M, const std::map<std::pair<int, int>, double> &A,
               const Rn &rhs, Rn &b);
+
+void multiply(int N, int M, const std::vector<Matrix> &A, const Rn &rhs, Rn &b);
 
 template <class R> struct VirtualMatrice {
  public:

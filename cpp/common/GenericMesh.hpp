@@ -217,6 +217,8 @@ template <typename T, typename B, typename V> class GenericMesh {
       return p >= 0 ? p / nea : -1;
    }
    std::tuple<int, int> getElementAdj(const int k, const int j) const {
+      // Input: k = element index, j = local face index
+      // Output: kn = index of element across j, jj = local face index of face j in the element kn's indexing 
       int p  = TheAdjacencesLink[nea * k + j];
       int jj = p % nea;
       int kn = p >= 0 ? p / nea : -1;
@@ -278,7 +280,10 @@ template <typename T, typename B, typename V> class GenericMesh {
 
       return SortArray<int, N>(nnv);
    }
+
    SortArray<int, B::nv> itemadj(int k, int i) {
+      // Input: k = element index, i = local face index
+      // Output: vertex indices for face 
       return iteme<B::nv, T::nea>(T::nvhyperFace, k, i);
    }
    SortArray<int, B::nv> itembe(int k) {

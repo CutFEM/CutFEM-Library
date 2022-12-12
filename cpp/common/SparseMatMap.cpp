@@ -72,6 +72,18 @@ void multiply(int N, int M, const std::map<std::pair<int, int>, double> &A,
    }
 }
 
+void multiply(int N, int M, const std::vector<Matrix> &A, const Rn &rhs,
+              Rn &b) {
+   b = 0.;
+   assert(b.size() == N && rhs.size() == M);
+
+   auto itA = A.begin()->begin();
+   while (itA != A.begin()->end()) {
+      b(itA->first.first) += itA->second * rhs(itA->first.second);
+      itA++;
+   }
+}
+
 void multiply(int N, const std::map<std::pair<int, int>, double> &AA,
               const std::map<std::pair<int, int>, double> &BB,
               std::map<std::pair<int, int>, double> &C) {
