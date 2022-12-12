@@ -4,3 +4,6 @@
 [submodule "mumps"]
 	path = mumps
 	url = https://github.com/scivision/mumps.git
+[submodule "cpp/test/Catch2"]
+	path = cpp/test/Catch2
+	url = https://github.com/catchorg/Catch2.git
