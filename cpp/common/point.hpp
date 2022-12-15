@@ -17,6 +17,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #define COMMON_POINT_HPP
 #include <cmath>
 #include <algorithm>
+#include <vector>
 
 class R0 {
  public:
