@@ -705,91 +705,67 @@ template <int D> TestFunction<D> jump(const TestFunction<D> &T) {
    return average(T, 1, -1);
 }
 
-// template <int d>
-// TestFunction<d> operator*(const CutFEM_Rd<d> &cc, const TestFunction<d>
-// &T) {
-//    assert(T.nbCol() == 1);
-//    int N = T.nbRow();
+template <int d>
+TestFunction<d> operator*(const CutFEM_Rd<d> &cc, const TestFunction<d> &T) {
+   assert(T.nbCol() == 1);
+   int N = T.nbRow();
 
-//    bool scalar = (N == 1);
-//    int r       = (scalar) ? d : 1;
-//    TestFunction<d> resU(r, 1);
-//    if (scalar) {
-//       int nitem = T.A(0, 0)->size();
-
-//       for (int j = 0; j < d; ++j) {
-//          resU.A(j, 0) = new ItemList<d>(nitem);
-//          for (int ui = 0; ui < nitem; ++ui) {
-//             const ItemTestFunction<d> &v(T.A(0, 0)->getItem(ui));
-//             ItemTestFunction<d> &u(resU.A(j, 0)->getItem(ui));
-//             u = v;
-//             u.addParameter(cc.get_parameter(j));
-//          }
-//       }
-//    } else {
-//       assert(N == d); // column
-//       int nitem = 0;
-//       for (int i = 0; i < d; ++i) {
-//          nitem += T.A(i, 0)->size();
-//       }
-//       resU.A(0, 0) = new ItemList<d>(nitem);
-//       int k        = 0;
-//       for (int j = 0; j < d; ++j) {
-//          int nloc = T.A(j, 0)->size();
-//          for (int ui = 0; ui < nloc; ++ui) {
-//             const ItemTestFunction<d> &v(T.A(j, 0)->getItem(ui));
-//             ItemTestFunction<d> &u(resU.A(0, 0)->getItem(k++));
-//             u = v;
-//             u.addParameter(cc.get_parameter(j));
-//          }
-//       }
-//    }
-//    return resU;
-// }
+   bool scalar = (N == 1);
+   int r       = (scalar) ? d : 1;
+   TestFunction<d> resU;
+   if (scalar) {
+      for (int j = 0; j < d; ++j) {
+         auto new_list = T.getList(0, 0);
+         for (auto &item : new_list.U) {
+            item.addParameter(cc.get_parameter(j));
+         }
+         resU.push({j, 0}, new_list);
+      }
+   } else {
+      assert(N == d); // column
+      for (int j = 0; j < d; ++j) {
+         auto new_list = T.getList(j, 0);
+         for (auto &item : new_list.U) {
+            item.addParameter(cc.get_parameter(j));
+         }
+         resU.push({0, 0}, new_list);
+      }
+   }
+   return resU;
+}
 
 // template <int N> TestFunction<N> ln(const TestFunction<N> &F) {
 //    return TestFunction<N>(F, f_ln);
 // }
 
-// template <int d>
-// TestFunction<d> operator*(const typename typeRd<d>::Rd &cc,
-//                           const TestFunction<d> &T) {
-//    assert(T.nbCol() == 1);
-//    int N       = T.nbRow();
-//    bool scalar = (N == 1);
-//    int r       = (scalar) ? d : 1; // dim of the result
-//    TestFunction<d> resU(r, 1);
-//    if (scalar) {
-//       int nitem = T.A(0, 0)->size();
-//       for (int j = 0; j < d; ++j) {
-//          resU.A(j, 0) = new ItemList<d>(nitem);
-//          for (int ui = 0; ui < nitem; ++ui) {
-//             const ItemTestFunction<d> &v(T.A(0, 0)->getItem(ui));
-//             ItemTestFunction<d> &u(resU.A(j, 0)->getItem(ui));
-//             u = v;
-//             u.c *= cc[j];
-//          }
-//       }
-//    } else {
-//       assert(N == d); // column
-//       int nitem = 0;
-//       for (int i = 0; i < d; ++i) {
-//          nitem += T.A(i, 0)->size();
-//       }
-//       resU.A(0, 0) = new ItemList<d>(nitem);
-//       int k        = 0;
-//       for (int j = 0; j < d; ++j) {
-//          int nloc = T.A(j, 0)->size();
-//          for (int ui = 0; ui < nloc; ++ui) {
-//             const ItemTestFunction<d> &v(T.A(j, 0)->getItem(ui));
-//             ItemTestFunction<d> &u(resU.A(0, 0)->getItem(k++));
-//             u = v;
-//             u.c *= cc[j];
-//          }
-//       }
-//    }
-//    return resU;
-// }
+template <int d>
+TestFunction<d> operator*(const typename typeRd<d>::Rd &cc,
+                          const TestFunction<d> &T) {
+   assert(T.nbCol() == 1);
+   int N       = T.nbRow();
+   bool scalar = (N == 1);
+   int r       = (scalar) ? d : 1; // dim of the result
+   TestFunction<d> resU;
+   if (scalar) {
+      for (int j = 0; j < d; ++j) {
+         auto new_list = T.getList(0, 0);
+         for (auto &item : new_list.U) {
+            item.c *= cc[j];
+         }
+         resU.push({j, 0}, new_list);
+      }
+   } else {
+      assert(N == d); // column
+      for (int j = 0; j < d; ++j) {
+         auto new_list = T.getList(j, 0);
+         for (auto &item : new_list.U) {
+            item.c *= cc[j];
+         }
+         resU.push({0, 0}, new_list);
+      }
+   }
+   return resU;
+}
 
 // template <int d> TestFunction<d> gradS(const TestFunction<d> &T) {
 //    assert(T.nbCol() == 1);

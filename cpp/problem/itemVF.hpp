@@ -589,42 +589,44 @@ ListItemVF<d> operator,(const Projection &c, const TestFunction<d> &F) {
    return item;
 }
 
-template <int d>
-ListItemVF<d> operator,(const ExpressionVirtual &fh, const TestFunction<d> &F) {
-   int l = 0;
-   for (int i = 0; i < F.nbRow(); ++i) {
-      for (int j = 0; j < F.nbCol(); ++j) {
-         l += F(i, j).size();
-      }
-   }
+// template <int d>
+// ListItemVF<d> operator,(const ExpressionVirtual &fh, const TestFunction<d>
+// &F) {
+//    int l = 0;
+//    for (int i = 0; i < F.nbRow(); ++i) {
+//       for (int j = 0; j < F.nbCol(); ++j) {
+//          l += F(i, j).size();
+//       }
+//    }
 
-   ListItemVF<d> item(l);
-   int k = 0, kloc = 0;
-   for (int i = 0; i < F.nbRow(); ++i) {
-      for (int j = 0; j < F.nbCol(); ++j) {
-         for (int ui = 0; ui < F(i, j).size(); ++ui) {
-            const ItemTestFunction<d> &v(F(i, j).getItem(ui));
-            item(k) =
-                ItemVF<d>(v.c, 0, -1, v.cu, v.du, std::vector<int>(), v.ar_nu);
-            item(k).face_sideU_ = v.face_side_;
-            item(k).face_sideV_ = v.face_side_;
-            item(k).domainU_id_ = v.domain_id_;
-            item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-            item(k).dtu      = 0;
-            item(k).dtv      = v.dtu;
-            item(k).expru    = &fh;
-            item(k).exprv    = v.expru;
-            item(k).fespaceV = v.fespace;
+//    ListItemVF<d> item(l);
+//    int k = 0, kloc = 0;
+//    for (int i = 0; i < F.nbRow(); ++i) {
+//       for (int j = 0; j < F.nbCol(); ++j) {
+//          for (int ui = 0; ui < F(i, j).size(); ++ui) {
+//             const ItemTestFunction<d> &v(F(i, j).getItem(ui));
+//             item(k) =
+//                 ItemVF<d>(v.c, 0, -1, v.cu, v.du, std::vector<int>(),
+//                 v.ar_nu);
+//             item(k).face_sideU_ = v.face_side_;
+//             item(k).face_sideV_ = v.face_side_;
+//             item(k).domainU_id_ = v.domain_id_;
+//             item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
+//             item(k).dtu      = 0;
+//             item(k).dtv      = v.dtu;
+//             item(k).expru    = &fh;
+//             item(k).exprv    = v.expru;
+//             item(k).fespaceV = v.fespace;
 
-            k++;
-         }
-      }
-   }
+//             k++;
+//          }
+//       }
+//    }
 
-   item.reduce();
+//    item.reduce();
 
-   return item;
-}
+//    return item;
+// }
 
 template <int d>
 ListItemVF<d> operator,(const ExpressionAverage &fh, const TestFunction<d> &F) {
@@ -794,11 +796,11 @@ ListItemVF<d> innerProduct(double c, const TestFunction<d> &F) {
    return operator,(c, F);
 }
 
-template <int d>
-ListItemVF<d> innerProduct(const ExpressionVirtual &fh,
-                           const TestFunction<d> &F) {
-   return operator,(fh, F);
-}
+// template <int d>
+// ListItemVF<d> innerProduct(const ExpressionVirtual &fh,
+//                            const TestFunction<d> &F) {
+//    return operator,(fh, F);
+// }
 
 template <int d, typename Expr>
 ListItemVF<d> innerProduct(const std::list<std::shared_ptr<Expr>> &fh,
