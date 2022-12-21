@@ -263,8 +263,8 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
 // -----------------------------------------------------------------------------
 
 template <typename Mesh>
-double L2normSurf_2(const ExpressionVirtual &fh, R(fex)(double *, int i),
-                    const Interface<Mesh> &interface) {
+double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
+                    R(fex)(double *, int i), const Interface<Mesh> &interface) {
    typedef GFESpace<Mesh> FESpace;
    typedef typename FESpace::FElement FElement;
    typedef typename FElement::QFB QFB;
@@ -289,7 +289,7 @@ double L2normSurf_2(const ExpressionVirtual &fh, R(fex)(double *, int i),
              iface, (typename FElement::RdHatBord)ip);
          const R Cint = meas * ip.getWeight();
 
-         double a = fh.evalOnBackMesh(kb, 0, mip) - fex(mip, fh.cu);
+         double a = fh->evalOnBackMesh(kb, 0, mip) - fex(mip, fh->cu);
          val += Cint * a * a;
       }
    }
@@ -303,7 +303,7 @@ double L2normSurf_2(const ExpressionVirtual &fh, R(fex)(double *, int i),
    return val_receive;
 }
 template <typename Mesh>
-double L2normSurf_2(const ExpressionVirtual &fh,
+double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
                     R(fex)(double *, int i, double t),
                     const Interface<Mesh> &interface, double tt) {
    typedef GFESpace<Mesh> FESpace;
@@ -331,8 +331,8 @@ double L2normSurf_2(const ExpressionVirtual &fh,
              iface, (typename FElement::RdHatBord)ip);
          const R Cint = meas * ip.getWeight();
 
-         // double a = fh.eval(k, mip, tt) - fex(mip, fh.cu, tt);
-         double a = fh.evalOnBackMesh(kb, 0, mip, tt) - fex(mip, fh.cu, tt);
+         // double a = fh->eval(k, mip, tt) - fex(mip, fh->cu, tt);
+         double a = fh->evalOnBackMesh(kb, 0, mip, tt) - fex(mip, fh->cu, tt);
 
          val += Cint * a * a;
       }
@@ -353,7 +353,7 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
 
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
-      ExpressionFunFEM<Mesh> ui(fh, i, op_id);
+      auto ui = fh.expr(i);
       val += L2normSurf_2(ui, fex, interface, tt);
    }
    return sqrt(val);
@@ -364,7 +364,7 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
 
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
-      ExpressionFunFEM<Mesh> ui(fh, i, op_id);
+      auto ui = fh.expr(i);
       val += L2normSurf_2(ui, fex, interface);
    }
    return sqrt(val);
@@ -376,7 +376,7 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
 
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
-      ExpressionFunFEM<Mesh> ui(fh, i, op_id);
+      auto ui = fh.expr(i);
       val += L2normSurf_2(ui, fex, *interface, tt);
    }
    return sqrt(val);
@@ -387,7 +387,7 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
 
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
-      ExpressionFunFEM<Mesh> ui(fh, i, op_id);
+      auto ui = fh.expr(i);
       val += L2normSurf_2(ui, fex, *interface);
    }
    return sqrt(val);
@@ -398,9 +398,8 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
 // -----------------------------------------------------------------------------
 
 template <typename M>
-double L2norm_2(const ExpressionVirtual &fh,
-                R(fex)(const typename GFESpace<M>::FElement::Rd, int i),
-                const M &Th) {
+double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh,
+                R(fex)(double *, int i), const M &Th) {
    typedef M Mesh;
    typedef GFESpace<Mesh> FESpace;
    typedef typename Mesh::Element Element;
@@ -424,7 +423,7 @@ double L2norm_2(const ExpressionVirtual &fh,
          QuadraturePoint ip(qf[ipq]); // integration point
          Rd mip       = K.mapToPhysicalElement(ip);
          const R Cint = meas * ip.getWeight();
-         double a     = fh.eval(k, mip) - fex(mip, fh.cu);
+         double a     = fh->eval(k, mip) - fex(mip, fh->cu);
          val += Cint * a * a;
       }
    }
@@ -439,7 +438,7 @@ double L2norm_2(const ExpressionVirtual &fh,
 }
 
 template <typename M>
-double L2norm_2(const ExpressionVirtual &fh, const M &Th) {
+double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, const M &Th) {
    typedef Mesh2 Mesh;
    typedef GFESpace<Mesh> FESpace;
    typedef typename Mesh::Element Element;
@@ -463,7 +462,7 @@ double L2norm_2(const ExpressionVirtual &fh, const M &Th) {
          QuadraturePoint ip(qf[ipq]); // integration point
          Rd mip       = K.mapToPhysicalElement(ip);
          const R Cint = meas * ip.getWeight();
-         double a     = fh.eval(k, mip);
+         double a     = fh->eval(k, mip);
          val += Cint * a * a;
       }
    }
@@ -478,8 +477,7 @@ double L2norm_2(const ExpressionVirtual &fh, const M &Th) {
 }
 
 template <typename M>
-double L2norm(const FunFEM<M> &fh,
-              R(fex)(const typename GFESpace<M>::FElement::Rd, int i), int c0,
+double L2norm(const FunFEM<M> &fh, R(fex)(double *, int i), int c0,
               int num_comp) {
 
    const GFESpace<M> &Vh(*fh.Vh);
@@ -487,16 +485,15 @@ double L2norm(const FunFEM<M> &fh,
 
    double val = 0;
    for (int i = c0; i < num_comp + c0; ++i) {
-      ExpressionFunFEM<M> ui(fh, i, op_id);
+      auto ui = fh.expr(i);
       val += L2norm_2(ui, fex, Th);
    }
    return sqrt(val);
 }
 
 template <typename M>
-double L2norm(const ExpressionVirtual &fh,
-              R(fex)(const typename GFESpace<M>::FElement::Rd, int i),
-              const M &Th) {
+double L2norm(const std::shared_ptr<ExpressionVirtual> &fh,
+              R(fex)(double *, int i), const M &Th) {
 
    double val = L2norm_2(fh, fex, Th);
 
@@ -556,7 +553,7 @@ template <typename M> double L2norm(const ExpressionVirtual &fh, const M &Th) {
 //       Rd mip = FK.map(ip);
 //       const R Cint = meas * ip.getWeight();
 //
-//       val = std::max(val, fabs(fh.eval(k, mip)-fex(mip, fh.cu)));
+//       val = std::max(val, fabs(fh->eval(k, mip)-fex(mip, fh->cu)));
 //     }
 //   }
 //
@@ -868,7 +865,7 @@ thereby neglecting elements messed up by the mcdonald stab
 //         Rd mip = cutK.toK(it, ip);
 //         const R Cint = meas * ip.getWeight();
 //
-//         double a = fh.eval(k, mip) - fex(mip, fh.cu, domain);
+//         double a = fh->eval(k, mip) - fex(mip, fh->cu, domain);
 //
 //         val += Cint * a * a;
 //         locV += Cint * a * a;
