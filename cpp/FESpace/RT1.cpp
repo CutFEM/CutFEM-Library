@@ -41,8 +41,7 @@ struct InitTypeOfRTk_2d {
    int npe;  // nb point on edge
    int ndf;  // nb dof
 
-   KN<R> X; // point on edge
-   // KN<R> Pi_h_coef; // 1
+   KN<R> X;      // point on edge
    KN<int> Data; // data of TypeOfFE
    const QuadratureFormular1d QFE;
    const GQuadratureFormular<R2> &QFK;
@@ -54,7 +53,6 @@ struct InitTypeOfRTk_2d {
        : k(KK), ndfi((k + 1) * (k)), npe(k + 1), ndf(3 * npe + ndfi),
          Data(4 * ndf + 7), QFE(-1 + 2 * npe, npe, GaussLegendre(npe), true),
          QFK(QuadratureFormular_T_5) {
-      // int j = 0;
       int ndfe = ndf - ndfi; //
       int o[5];
 
