@@ -6,7 +6,8 @@ To create the Darcy problem to reproduce results using Python:
 "cd cpp; mkdir build; cd build; cmake ..; make -j4;"
 2 - Go to the python folder
 "cd ../../python/darcy;"
-3 - run darcy.py
+3 - In the darcy_wrapper.py file one must link to the library. Verify that the good extension is used.
+4 - run darcy.py
 "python3 darcy.py"
 
 
