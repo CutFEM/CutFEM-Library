@@ -235,7 +235,7 @@ template <int dim = 2> struct TestFunction {
       f << u.nbRow() << " * " << u.nbCol() << std::endl;
       for (int i = 0; i < u.nbRow(); ++i) {
          for (int j = 0; j < u.nbCol(); ++j) {
-            f << u(i, j);
+            f << "( " << i << " , " << j << " ) : \t" << u(i, j);
          }
       }
       return f;
@@ -767,76 +767,91 @@ TestFunction<d> operator*(const typename typeRd<d>::Rd &cc,
    return resU;
 }
 
-// template <int d> TestFunction<d> gradS(const TestFunction<d> &T) {
-//    assert(T.nbCol() == 1);
+template <int D> TestFunction<D> gradS(const TestFunction<D> &T) {
+   assert(T.nbCol() == 1);
+   assert(T.nbRow() == 1);
 
-//    int N       = T.nbRow();
-//    bool scalar = (N == 1);
-//    int col     = (scalar) ? 1 : d;
-//    TestFunction<d> gradU(d, col);
+   auto [N, M] = T.size();
+   TestFunction<D> gradSU;
+   TestFunction<D> gradU = grad(T);
 
-//    if (scalar) {
-//       assert(T.A(0, 0)->size() == 1);
-//       const ItemTestFunction<d> &v(T.A(0, 0)->getItem(0));
+   if (T.nbRow() == 1) {
+      for (int i = 0; i < D; ++i) {
+         for (int j = 0; j < D; ++j) {
+            auto new_list = gradU.getList(j, 0);
+            if (i == j) {
+               gradSU.push({i, 0}, new_list);
+            }
+            for (auto &item : new_list.U) {
+               item.c *= -1.;
+               item.addNormal(i);
+               item.addNormal(j);
+            }
+            gradSU.push({i, 0}, new_list);
+         }
+      }
+   } else {
+      assert(0);
+   }
 
-//       for (int i = 0; i < d; ++i) {
-//          gradU.A(i, 0) = new ItemList<d>(d + 1);
+   return gradSU;
+}
 
-//          int kk = 0;
-//          for (int j = 0; j < d; ++j) {
-//             if (i == j) {
-//                ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
-//                u    = v;
-//                // u.c = 1;
-//                // u.cu = i;
-//                u.du = D1(i);
-//             }
-//             ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
-//             u = v;
-//             u.c *= -1;
-//             // u.cu = i;
-//             u.du = D1(j);
-//             u.addNormal(i);
-//             u.addNormal(j);
-//          }
-//       }
-//    } else {
-//       int n = T.A(0, 0)->size();
+template <int D> TestFunction<D> dxS(const TestFunction<D> &T) {
+   assert(T.nbCol() == 1 && T.nbRow() == 1);
+   auto [N, M] = T.size();
 
-//       for (int row = 0; row < d; ++row) {
-//          for (int col = 0; col < d; ++col) {
-//             gradU.A(row, col) = new ItemList<d>(n * (d + 1));
-//          }
-//       }
+   TestFunction<D> gradSU;
+   TestFunction<D> gradU = grad(T);
 
-//       for (int row = 0; row < d; ++row) {
-//          assert(T.A(row, 0)->size() == n);
+   if (T.nbRow() == 1) {
+      for (int j = 0; j < D; ++j) {
+         auto new_list = gradU.getList(j, 0);
+         if (0 == j) {
+            gradSU.push({0, 0}, new_list);
+         }
+         for (auto &item : new_list.U) {
+            item.c *= -1.;
+            item.addNormal(0);
+            item.addNormal(j);
+         }
+         gradSU.push({0, 0}, new_list);
+      }
 
-//          // const ItemTestFunction<d>& v(T.A(row,0)->getItem(0));
+   } else {
+      assert(0);
+   }
 
-//          for (int col = 0; col < d; ++col) {
-//             int kk = 0;
+   return gradSU;
+}
 
-//             for (int l = 0; l < n; ++l) {
-//                const ItemTestFunction<d> &v(T.A(row, 0)->getItem(l));
+template <int D> TestFunction<D> dyS(const TestFunction<D> &T) {
+   assert(T.nbCol() == 1 && T.nbRow() == 1);
+   auto [N, M] = T.size();
 
-//                for (int j = 0; j < d; ++j) {
-//                   if (col == j) {
-//                      ItemTestFunction<d> &u(gradU.A(row,
-//                      col)->getItem(kk++)); u    = v; u.du = D1(col);
-//                   }
-//                   ItemTestFunction<d> &u(gradU.A(row,
-//                   col)->getItem(kk++)); u = v; u.c *= -1; u.du = D1(j);
-//                   u.addNormal(col);
-//                   u.addNormal(j);
-//                }
-//             }
-//          }
-//       }
-//    }
+   TestFunction<D> gradSU;
+   TestFunction<D> gradU = grad(T);
 
-//    return gradU;
-// }
+   if (T.nbRow() == 1) {
+      for (int j = 0; j < D; ++j) {
+         auto new_list = gradU.getList(j, 0);
+         if (1 == j) {
+            gradSU.push({0, 0}, new_list);
+         }
+         for (auto &item : new_list.U) {
+            item.c *= -1.;
+            item.addNormal(1);
+            item.addNormal(j);
+         }
+         gradSU.push({0, 0}, new_list);
+      }
+
+   } else {
+      assert(0);
+   }
+
+   return gradSU;
+}
 
 // template <int d> TestFunction<d> divS(const TestFunction<d> &T) {
 //    assert(T.nbCol() == 1);
@@ -869,62 +884,6 @@ TestFunction<d> operator*(const typename typeRd<d>::Rd &cc,
 //       }
 //    }
 //    return divU;
-// }
-
-// template <int d> TestFunction<d> dxS(const TestFunction<d> &T) {
-//    assert(T.nbCol() == 1 && T.nbRow() == 1);
-//    int N = T.nbRow();
-
-//    TestFunction<d> gradU(N, 1); // gradU.init(N,1);
-//    for (int i = 0; i < N; ++i) {
-//       assert(T.A(i, 0)->size() == 1);
-//       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-
-//       gradU.A(i, 0) = new ItemList<d>(d + 1);
-//       {
-//          ItemTestFunction<d> &u1(gradU.A(i, 0)->getItem(0));
-//          u1    = v;
-//          u1.du = D1(0);
-//       }
-//       int kk = 1;
-//       for (int j = 0; j < d; ++j) {
-//          ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
-//          u = v;
-//          u.c *= -1;
-//          u.du = D1(j);
-//          u.addNormal(0);
-//          u.addNormal(j);
-//       }
-//    }
-//    return gradU;
-// }
-
-// template <int d> TestFunction<d> dyS(const TestFunction<d> &T) {
-//    assert(T.nbCol() == 1 && T.nbRow() == 1);
-//    int N = T.nbRow();
-
-//    TestFunction<d> gradU(N, 1); // gradU.init(N,1);
-//    for (int i = 0; i < N; ++i) {
-//       assert(T.A(i, 0)->size() == 1);
-//       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-
-//       gradU.A(i, 0) = new ItemList<d>(d + 1);
-//       {
-//          ItemTestFunction<d> &u1(gradU.A(i, 0)->getItem(0));
-//          u1    = v;
-//          u1.du = D1(1);
-//       }
-//       int kk = 1;
-//       for (int j = 0; j < d; ++j) {
-//          ItemTestFunction<d> &u(gradU.A(i, 0)->getItem(kk++));
-//          u = v;
-//          u.c *= -1;
-//          u.du = D1(j);
-//          u.addNormal(1);
-//          u.addNormal(j);
-//       }
-//    }
-//    return gradU;
 // }
 
 // template <int d> TestFunction<d> dzS(const TestFunction<d> &T) {
