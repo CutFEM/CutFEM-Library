@@ -41,6 +41,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include "../num/util.hpp"
 #include "GTypeOfFE_Sum.hpp"
 

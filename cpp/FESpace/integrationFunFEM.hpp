@@ -460,7 +460,9 @@ double integral(const Mesh &Th,
 }
 template <typename Mesh>
 double integral(const Mesh &Th, const FunFEM<Mesh> &fh, int c0) {
-   ExpressionFunFEM<Mesh> ui(fh, c0, op_id);
+   // ExpressionFunFEM<Mesh> ui(fh, c0, op_id);
+   std::shared_ptr<const ExpressionVirtual> ui =
+       std::make_shared<ExpressionFunFEM<Mesh>>(fh, c0, op_id);
    double val = integral(Th, ui, 0);
    return val;
 }

@@ -74,11 +74,11 @@ class ParameterCutFEM;
 
 class FunFEMVirtual {
  public:
-   double *data = nullptr;
+   double *data_ = nullptr;
    KN_<double> v;
 
-   FunFEMVirtual() : v(data, 0) {}
-   FunFEMVirtual(int df) : data(new double[df]), v(data, df) { v = 0.; }
+   FunFEMVirtual() : v(data_, 0) {}
+   FunFEMVirtual(int df) : data_(new double[df]), v(data_, df) { v = 0.; }
    FunFEMVirtual(KN_<double> &u) : v(u) {}
    FunFEMVirtual(double *u, int n) : v(u, n) {}
 
@@ -107,7 +107,7 @@ class FunFEMVirtual {
    };
 
    const KN_<double> &getArray() const { return v; }
-   // const KN_<double>& data() const {return v;}
+   const double *data() const { return v.data(); }
 };
 
 template <typename M> class FunFEM : public FunFEMVirtual {
@@ -174,10 +174,10 @@ template <typename M> class FunFEM : public FunFEMVirtual {
           const ExpressionVirtual &fh2);
 
    void init(const FESpace &vh) {
-      assert(!data);
-      Vh   = &vh;
-      data = new double[Vh->NbDoF()];
-      v.set(data, Vh->NbDoF());
+      assert(!data_);
+      Vh    = &vh;
+      data_ = new double[Vh->NbDoF()];
+      v.set(data_, Vh->NbDoF());
       alloc = true;
       v     = 0.;
       if (!databf)
@@ -186,14 +186,14 @@ template <typename M> class FunFEM : public FunFEMVirtual {
    void init(const KN_<R> &a) {
       assert(v.size() == a.size());
       for (int i = 0; i < v.size(); ++i)
-         data[i] = a(i);
+         data_[i] = a(i);
    }
 
    void init(const FESpace &vh, R (*f)(double *, int i)) {
-      assert(!data);
-      Vh   = &vh;
-      data = new double[Vh->NbDoF()];
-      v.set(data, Vh->NbDoF());
+      assert(!data_);
+      Vh    = &vh;
+      data_ = new double[Vh->NbDoF()];
+      v.set(data_, Vh->NbDoF());
       alloc = true;
       interpolate(*Vh, v, f);
 
@@ -202,10 +202,10 @@ template <typename M> class FunFEM : public FunFEMVirtual {
    }
 
    void init(const FESpace &vh, R (*f)(double *, int i, int doma)) {
-      assert(!data);
-      Vh   = &vh;
-      data = new double[Vh->NbDoF()];
-      v.set(data, Vh->NbDoF());
+      assert(!data_);
+      Vh    = &vh;
+      data_ = new double[Vh->NbDoF()];
+      v.set(data_, Vh->NbDoF());
       alloc = true;
       interpolate(*Vh, v, f);
       if (!databf)
@@ -213,12 +213,12 @@ template <typename M> class FunFEM : public FunFEMVirtual {
    }
 
    void init(const FESpace &vh, R (*f)(double *, int, R), R tid) {
-      // assert(!data);
-      if (data)
-         delete[] data;
-      Vh   = &vh;
-      data = new double[Vh->NbDoF()];
-      v.set(data, Vh->NbDoF());
+      // assert(!data_);
+      if (data_)
+         delete[] data_;
+      Vh    = &vh;
+      data_ = new double[Vh->NbDoF()];
+      v.set(data_, Vh->NbDoF());
       alloc = true;
       interpolate(*Vh, v, f, tid);
       if (!databf)
@@ -226,13 +226,13 @@ template <typename M> class FunFEM : public FunFEMVirtual {
    }
 
    void init(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int, R)) {
-      // assert(!data);
-      if (data)
-         delete[] data;
-      Vh   = &vh;
-      In   = &in;
-      data = new double[Vh->NbDoF() * In->NbDoF()];
-      v.set(data, Vh->NbDoF() * In->NbDoF());
+      // assert(!data_);
+      if (data_)
+         delete[] data_;
+      Vh    = &vh;
+      In    = &in;
+      data_ = new double[Vh->NbDoF() * In->NbDoF()];
+      v.set(data_, Vh->NbDoF() * In->NbDoF());
       alloc = true;
       interpolate(*Vh, *In, v, f);
       if (!databf)
@@ -241,11 +241,11 @@ template <typename M> class FunFEM : public FunFEMVirtual {
 
    void swap(FunFEM &f) {
       assert(v.size() == f.v.size());
-      double *temp = data;
-      data         = f.data;
-      f.data       = temp;
-      v.set(data, Vh->NbDoF());
-      f.v.set(f.data, f.Vh->NbDoF());
+      double *temp = data_;
+      data_        = f.data_;
+      f.data_      = temp;
+      v.set(data_, Vh->NbDoF());
+      f.v.set(f.data_, f.Vh->NbDoF());
    }
 
    double &operator()(int i) { return v(i); }
@@ -284,7 +284,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
       if (databf)
          delete[] databf;
       if (alloc)
-         delete[] data;
+         delete[] data_;
    }
 
  private:

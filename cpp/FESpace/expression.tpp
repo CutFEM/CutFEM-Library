@@ -123,7 +123,6 @@ template <typename M>
 double FunFEM<M>::eval(const int k, const R *x, int cu, int op) const {
    const FElement &FK((*Vh)[k]);
    int ndf = FK.NbDoF();
-   // std::cout << " ndf " << ndf << std::endl;
    RNMK_ w(databf, ndf, Vh->N, op_dz + 1);
    FK.BF(FK.T.toKref(x), w);
 

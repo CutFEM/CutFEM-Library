@@ -27,6 +27,7 @@
 #include <cassert>
 #include <fstream>
 #include <list>
+#include <vector>
 
 template <class R> class KNMK_;
 template <class R> class KNM_;
@@ -131,6 +132,7 @@ template <class R> class KN_ : public ShapeOfArray {
    }
    long size() const { return step ? n * step : n; }
    operator R *() const { return v; }
+   const double *data() const { return v; }
 
    KN_(const KN_<R> &u) : ShapeOfArray(u), v(u.v) {}
    KN_(const KN_<R> &U, const SubArray &sa)
@@ -231,6 +233,8 @@ template <class R> class KN_ : public ShapeOfArray {
    KN_(R *u, long nn, long s) : ShapeOfArray(nn, s), v(u) {}
    KN_(R *u, long nn, long s, long nextt) : ShapeOfArray(nn, s, nextt), v(u) {}
    KN_(R *u, long nn) : ShapeOfArray(nn), v(u) {}
+
+   KN_(std::vector<R> &u) : ShapeOfArray(u.size()), v(u.data()) {}
 
  private:
    KN_ &operator++() {
