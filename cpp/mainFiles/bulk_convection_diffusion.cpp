@@ -13,23 +13,25 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
-/*
-   We consider a time-dependent bulk problem on Omega2.
-   We consider problems with both Neumann and Dirichlet boundary conditions,
-   and we consider scheme II, III and the Reynold scheme.
 
-   // Problem:
-   Find u in Omega2 such that
+/**
+ * @brief Time-dependent convection diffusion equation.
+ * @note We consider a time-dependent bulk problem on Omega2.
+   
+ *  Problem:
+    Find u in Omega_2(t) such that
 
-    dt(u) + beta*grad(u) - D*laplace(u) = f,    on Omega2.
+    dt(u) + beta*grad(u) - D*laplace(u) = f,    in Omega_2(t).
+                                        + BCS,  on Gamma(t).
 
-    // Numerical method:
+ *  Numerical method:
     A space-time Cutfem, using the level-set method,
     which allows for both dg and cg.
 
-    Classical : Integration by parts on full convection term, no term added to
-   make anti-symmetric Conservative: Reynold's transport theorem is used to make
-   the bilinear form fulfill a conservation law
+ *  Classical scheme: Integration by parts on convection term if dg, 
+    otherwise just integration by parts on diffusion term.
+ *  Conservative scheme: Reynold's transport theorem is used to make
+    the bilinear form fulfill a conservation law.
 */
 
 // Dependencies
@@ -52,23 +54,22 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/redirectOutput.hpp"
 #include "paraview.hpp"
 
-using namespace globalVariable;
+using namespace globalVariable;     // to access some globally defined constants
 
 // Numerical examples
-
 namespace Example1 {
 /* This works for running Test – i.e. a pure bulk problem on Omega_2. */
 
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17) - Epsilon;
-    // return -(sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17);
+    return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 - Epsilon;
+    // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17) - Epsilon;
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
 }
 
 // The rhs Neumann boundary condition
@@ -197,13 +198,13 @@ double fun_levelSet(double *P, const int i, const R t) {
     double r0 = 1. + Epsilon;
     double x = P[0], y = P[1];
 
-    return -(sqrt((x - (1 - y * y) * t) * (x - (1 - y * y) * t) + y * y) - r0);
+    return sqrt((x - (1 - y * y) * t) * (x - (1 - y * y) * t) + y * y) - r0;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
     double r0 = 1. + Epsilon;
-    return -(sqrt(P[0] * P[0] + P[1] * P[1]) - r0);
+    return sqrt(P[0] * P[0] + P[1] * P[1]) - r0;
 }
 
 // The rhs Neumann boundary condition
@@ -371,8 +372,8 @@ typedef FunFEM<Mesh2> Fun_h;
 // "dirichlet1" or "neumann1")
 #define dirichlet1
 
-#define use_h
-#define use_tnot
+#define use_h       // to set mesh size using the h parameter. Write use_n to decide using nx, ny.
+#define use_tnot    // write use_t to control dT manually. Otherwise it is set proportional to h.
 
 #ifdef example1
 #ifdef omega1
@@ -388,10 +389,9 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
-                                 // only once and plot to paraview)
-    int nx = 15, ny = 15;        // starting mesh size
-    // int nx = 25, ny = 25;       // starting mesh size
+    const size_t iterations = 5;    // number of mesh refinements   (set to 1 to run
+                                    // only once and plot to paraview)
+    int nx = 15, ny = 15;           // starting mesh size
     double h  = 0.1; // starting mesh size
     double dT = 0.125;
 
@@ -437,13 +437,6 @@ int main(int argc, char **argv) {
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
 
-        // Mesh size
-        // double h = pow(0.5, j+1);   //0.9*pow(0.5, j);    //lx/(nx);
-        // double h = sqrt(lx*lx/(nx*nx) + ly*ly/(ny*ny));
-
-        // Time
-        // double dT = pow(2, -j-2);    // Time step size
-
         // Define background mesh
 #if defined(example1) || defined(example2)
         const double lx = 1., ly = 1.;
@@ -464,14 +457,12 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        double tfinal = .5; // Final time
+        const double tfinal = .5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        int divisionMeshSize = 1;
-        // int divisionMeshSize = 2*3*pi;
-        // int divisionMeshSize = 18;
+        const int divisionMeshSize = 1;        
 
         double dT              = h / divisionMeshSize;
         // double dT = 3*h;
@@ -484,44 +475,43 @@ int main(int argc, char **argv) {
         dts.at(j) = dT;
 
         if (iterations > 1) {
-            std::cout << "--------------------------------------------" << std::endl;
-            std::cout << "--------------------------------------------" << std::endl;
-            std::cout << "--------------------------------------------" << std::endl;
-            std::cout << "--------------------------------------------" << std::endl;
-            std::cout << "Iteration " << j + 1 << "/" << iterations << std::endl;
+            std::cout << "--------------------------------------------" << '\n';
+            std::cout << "--------------------------------------------" << '\n';
+            std::cout << "--------------------------------------------" << '\n';
+            std::cout << "--------------------------------------------" << '\n';
+            std::cout << "Iteration " << j + 1 << "/" << iterations << '\n';
         }
 
-        std::cout << "h  = " << h << std::endl;
-        std::cout << "nx = " << nx << std::endl;
-        std::cout << "ny = " << ny << std::endl;
-        std::cout << "dT = " << dT << std::endl;
+        std::cout << "h  = " << h << '\n';
+        std::cout << "nx = " << nx << '\n';
+        std::cout << "ny = " << ny << '\n';
+        std::cout << "dT = " << dT << '\n';
 
 #ifdef convection_dominated
-        double A2 = 0.01;
+        const double A2 = 0.01;
 #else
-        double A2              = 1;
+        const double A2 = 1;
 #endif
-        double kappaTilde2 = 1;
 
+#ifdef dg    
         // Constants for penalty terms
-        double tau_a2 = 500; // diffusion penalty scaling
-        double tau_b2 = 10;  // convection penalty scaling
+        const double tau_a2 = 500; // diffusion penalty scaling
+        const double tau_b2 = 10;  // convection penalty scaling
 
         // Bulk penalties
-        double lambdaA = tau_a2 / h; // diffusion term
-        double lambdaB = tau_b2;     // convection term
+        const double lambdaA = tau_a2 / h; // diffusion term
+        const double lambdaB = tau_b2;     // convection term
 
         // Penalty parameter for outer boundary
-        double lambda = 500 / h; // only used when Dirichlet BCs apply
+        const double lambda = 500 / h; // only used when Dirichlet BCs apply
 
-#ifdef dg
         // DG stabilization parameters
-        double tau20 = 1e-1, tau21 = 1e-1; // bulk
+        const double tau20 = 1e-1, tau21 = 1e-1; // bulk
         // DG Space
         FESpace2 Vh(Th, DataFE<Mesh>::P1dc); // discontinuous basis functions
 #elif defined(cg)
         // CG stabilization parameters
-        double tau20 = 0, tau21 = 0.1;
+        const double tau20 = 0, tau21 = 0.1;
         FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 #endif
 
@@ -536,7 +526,7 @@ int main(int argc, char **argv) {
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(6));
+        const QuadratureFormular1d &qTime(*Lobatto(3));     // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -569,11 +559,11 @@ int main(int argc, char **argv) {
         // Convection-Diffusion Problem Object
         CutFEM<Mesh> convdiff(qTime);
 
-        std::cout << "Number of time slabs \t : \t " << total_number_iteration << std::endl;
+        std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
         int iter = 0;
-        double q0_0, q0_1, qp_0, qp_1;
-        double intF = 0, intG = 0; // hold integrals of rhs and Neumann bcs
+        double q0_0, q0_1, qp_0, qp_1;  // integral values to be computed
+        double intF = 0, intG = 0;      // hold integrals of rhs and Neumann bcs
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -582,15 +572,11 @@ int main(int argc, char **argv) {
             double current_time   = iter * time_step;
             const TimeSlab &In(Ih[iter]);
 
-            std::cout << " -------------------------------------------------------"
-                         "------ "
-                      << std::endl;
-            std::cout << " -------------------------------------------------------"
-                         "------ "
-                      << std::endl;
-            std::cout << " Iteration \t : \t" << iter + 1 << "/" << total_number_iteration << std::endl;
-            std::cout << " Time      \t : \t" << current_iteration * time_step << std::endl;
-            std::cout << "dT = " << dT << std::endl;
+            std::cout << " -------------------------------------------------------\n";
+            std::cout << " -------------------------------------------------------\n";
+            std::cout << " Iteration \t : \t" << iter + 1 << "/" << total_number_iteration << '\n';
+            std::cout << " Time      \t : \t" << current_iteration * time_step << '\n';
+            std::cout << "dT = " << dT << '\n';
 
             ls.begin()->swap(ls[nbTime - 1]);
 
@@ -613,7 +599,7 @@ int main(int argc, char **argv) {
 
             // Create active meshes
             ActiveMesh<Mesh> Kh2(Th);
-            Kh2.truncate(interface, -1);
+            Kh2.truncate(interface, 1);     // remove part with positive sign of level set to get inner domain
 
             // Cut FE space
             CutSpace Wh(Kh2, Vh);
@@ -625,9 +611,9 @@ int main(int argc, char **argv) {
             Tangent t;
 
             // Right hand side functions
-            Fun_h f(Vh2, In, fun_rhsBulk);
-            Fun_h g(Vh2, In, fun_uBulk); // create an FE-function of the exact bulk
-                                         // solution Omega1
+            Fun_h f(Vh, In, fun_rhsBulk);
+            Fun_h g(Vh, In, fun_uBulk); // create an FE-function of the exact bulk
+                                         // solution Omega2
 
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1);
@@ -703,7 +689,7 @@ int main(int argc, char **argv) {
             convdiff.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), Kh2, In);
 
             // Added terms
-            convdiff.addBilinear(+innerProduct(average(vel * n * u), jump(v))
+            convdiff.addBilinear(+innerProduct((vel * n) * average(u), jump(v))
                                      //+ innerProduct(lambdaB*fabs(vel*n)*jump(u), jump(v))
                                      + innerProduct(0.5 * fabs(vel * n) * jump(u), jump(v)),
                                  Kh2, INTEGRAL_INNER_EDGE_2D, In);
@@ -756,15 +742,13 @@ int main(int argc, char **argv) {
 
             convdiff.addFaceStabilization(+innerProduct(1. / h * tau20 * jump(u), jump(v)) +
                                               innerProduct(h * tau21 * jump(grad(u)), jump(grad(v)))
-                                          //+ innerProduct(tau20*(1+dT/h)/h/h*jump(u), jump(v))
-                                          //+ innerProduct(tau21*h*h*jump(grad(u)), jump(grad(v)))
                                           ,
                                           Kh2, In);
 
 #endif
             number_of_stabilized_edges.at(j) = convdiff.get_number_of_stabilized_edges();
+            
             // Boundary conditions on interface
-
 #ifdef neumann
             Fun_h g_Neumann(Wh, In, fun_neumann_Gamma);
             convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
@@ -887,7 +871,7 @@ int main(int argc, char **argv) {
                 lhs -= reynold.rhs_;
 
                 reynold_error.at(j) = lhs.linfty();
-                std::cout << " e_r^n = " << reynold_error.at(j) << std::endl;
+                std::cout << " e_r^n = " << reynold_error.at(j) << '\n';
             }
 
             // Compute conservation error
@@ -912,10 +896,10 @@ int main(int argc, char **argv) {
                 outputData << std::setprecision(10);
                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << ","
 #ifdef neumann
-                           << intG << "," << ((q_1 - qp_1) - intF - intG) << std::endl;
+                           << intG << "," << ((q_1 - qp_1) - intF - intG) << '\n';
 #elif defined(dirichlet)
                            << intGrad << "," << intVel << "," << lambda * (intu - intg) << ","
-                           << h * ((q_1 - qp_1) - intF - intGrad + intVel) + lambda * (intu - intg) << std::endl;
+                           << h * ((q_1 - qp_1) - intF - intGrad + intVel) + lambda * (intu - intg) << '\n';
 #endif
                 qp_1 = q_1;
             }
@@ -924,11 +908,11 @@ int main(int argc, char **argv) {
             sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
             Fun_h funuh(Wh, sol);
             double errBulk = L2normCut(funuh, fun_uBulkD, current_time, 0, 1);
-            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << std::endl;
+            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
 
             sol += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
             errBulk = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
-            std::cout << " t_n -> || u-uex||_2 = " << errBulk << std::endl;
+            std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
 
             errors.at(j) = errBulk;
 
@@ -953,7 +937,7 @@ int main(int argc, char **argv) {
             }
 
             if (iterations > 1 && iter == total_number_iteration - 1)
-                outputData << h << "," << dT << "," << errBulk << std::endl;
+                outputData << h << "," << dT << "," << errBulk << '\n';
 
             iter++;
         }
@@ -969,7 +953,7 @@ int main(int argc, char **argv) {
 #endif
     }
 
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Errors Bulk = [";
     for (int i = 0; i < iterations; i++) {
 
@@ -978,9 +962,9 @@ int main(int argc, char **argv) {
             std::cout << ", ";
         }
     }
-    std::cout << "]" << std::endl;
+    std::cout << "]" << '\n';
 
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Number of stabilized edges = [";
     for (int i = 0; i < iterations; i++) {
 
@@ -989,9 +973,9 @@ int main(int argc, char **argv) {
             std::cout << ", ";
         }
     }
-    std::cout << "]" << std::endl;
+    std::cout << "]" << '\n';
 
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Reynold error = [";
     for (int i = 0; i < iterations; i++) {
         std::cout << reynold_error.at(i);
@@ -999,8 +983,8 @@ int main(int argc, char **argv) {
             std::cout << ", ";
         }
     }
-    std::cout << "]" << std::endl;
-    std::cout << std::endl;
+    std::cout << "]" << '\n';
+    std::cout << '\n';
 
     std::cout << "h = [";
     for (int i = 0; i < iterations; i++) {
@@ -1010,7 +994,7 @@ int main(int argc, char **argv) {
             std::cout << ", ";
         }
     }
-    std::cout << "]" << std::endl;
+    std::cout << "]" << '\n';
 
     std::cout << "dT = [";
     for (int i = 0; i < iterations; i++) {
@@ -1020,7 +1004,7 @@ int main(int argc, char **argv) {
             std::cout << ", ";
         }
     }
-    std::cout << "]" << std::endl;
+    std::cout << "]" << '\n';
 
     return 0;
 }

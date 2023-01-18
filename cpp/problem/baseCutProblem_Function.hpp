@@ -13,7 +13,16 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
+
 // INTEGRATION ON FULL ELEMENT
+
+/**
+ * @brief Assembles bilinear form integrated over a cut mesh
+ *
+ * @tparam M Mesh
+ * @param VF Inner products in bilinear form
+ * @param Th Active mesh
+ */
 template <typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF,
                                 const CutMesh &Th) {
@@ -76,6 +85,14 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th,
    bar.end();
 }
 
+/**
+ * @brief Bilinear form integrated over cut mesh and over time slab
+ *
+ * @tparam M
+ * @param VF Bilinear form
+ * @param Th Active mesh
+ * @param In Time slab
+ */
 template <typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th,
                                 const TimeSlab &In) {
@@ -1327,7 +1344,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF,
                                          const CutMesh &Th,
                                          const MacroElement<M> &macro) {
 
-   progress bar(" Add Maro Stabilization CutMesh", macro.macro_element.size(),
+   progress bar(" Add Macro Stabilization CutMesh", macro.macro_element.size(),
                 globalVariable::verbose);
 
    for (auto me = macro.macro_element.begin(); me != macro.macro_element.end();
