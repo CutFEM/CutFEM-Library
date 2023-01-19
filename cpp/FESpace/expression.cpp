@@ -95,19 +95,19 @@ std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Norm
    return std::make_shared<ExpressionNormal3>(f1);
 }
 
-ExpressionAverage average(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionAverage> average(const std::shared_ptr<ExpressionVirtual> &f1,
                           const double kk1, const double kk2) {
-   return ExpressionAverage(f1, kk1, kk2);
+   return std::make_shared<ExpressionAverage>(f1, kk1, kk2);
 }
-ExpressionAverage jump(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionAverage> jump(const std::shared_ptr<ExpressionVirtual> &f1,
                        const double kk1, const double kk2) {
-   return ExpressionAverage(f1, 1, -1);
+   return std::make_shared<ExpressionAverage>(f1, 1, -1);
 }
-ExpressionAverage operator*(double c, const ExpressionAverage &fh) {
-   return ExpressionAverage(fh.fun1, c * fh.k1, c * fh.k2);
+std::shared_ptr<ExpressionAverage> operator*(double c, const ExpressionAverage &fh) {
+   return std::make_shared<ExpressionAverage>(fh.fun1, c * fh.k1, c * fh.k2);
 }
-ExpressionAverage operator*(const ExpressionAverage &fh, double c) {
-   return ExpressionAverage(fh.fun1, c * fh.k1, c * fh.k2);
+std::shared_ptr<ExpressionAverage> operator*(const ExpressionAverage &fh, double c) {
+   return std::make_shared<ExpressionAverage>(fh.fun1, c * fh.k1, c * fh.k2);
 }
 
 ExpressionBurgerFlux burgerFlux(const ExpressionVirtual &f1) {

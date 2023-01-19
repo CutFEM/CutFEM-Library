@@ -1306,12 +1306,12 @@ class ExpressionAverage { //}: public ExpressionVirtual{
 
    ~ExpressionAverage() {}
 };
-ExpressionAverage average(const std::shared_ptr<ExpressionVirtual> &fh1,
+std::shared_ptr<ExpressionAverage> average(const std::shared_ptr<ExpressionVirtual> &fh1,
                           const double kk1 = 0.5, const double kk2 = 0.5);
-ExpressionAverage jump(const std::shared_ptr<ExpressionVirtual> &fh1,
+std::shared_ptr<ExpressionAverage> jump(const std::shared_ptr<ExpressionVirtual> &fh1,
                        const double kk1 = 1, const double kk2 = -1);
-ExpressionAverage operator*(double c, const ExpressionAverage &fh);
-ExpressionAverage operator*(const ExpressionAverage &fh, double c);
+std::shared_ptr<ExpressionAverage> operator*(double c, const ExpressionAverage &fh);
+std::shared_ptr<ExpressionAverage> operator*(const ExpressionAverage &fh, double c);
 
 // template<typename M>
 // ExpressionAverage<M> average(const ExpressionVirtual & fh1, const double

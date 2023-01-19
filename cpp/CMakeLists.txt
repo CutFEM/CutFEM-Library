@@ -35,6 +35,9 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -fPIC  -std=c++17 -O3 ")
 
 
+# To allow debugging
+set(CMAKE_BUILD_TYPE Debug)
+
 if(USE_MPI)
   find_package(MPI)
   include_directories(${MPI_CXX_INCLUDE_PATH})
@@ -86,8 +89,13 @@ add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
 set(EX_NAME cgbulkCD)
-add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion_cg.cpp )
+add_executable(${EX_NAME}  mainFiles/cg_bulk_convection_diffusion.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME cgcoupledCD)
+add_executable(${EX_NAME}  mainFiles/cg_coupled_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
 
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 #                        
