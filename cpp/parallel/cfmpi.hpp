@@ -16,7 +16,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef _CF_MPI_HPP_
 #define _CF_MPI_HPP_
 
-#include "/usr/local/Cellar/open-mpi/4.1.4_2/include/mpi.h"
+#include "/opt/homebrew/Cellar/open-mpi/4.1.4_2/include/mpi.h"
 #include "../num/util.hpp"
 #include "../common/RNM.hpp"
 #include <cassert>

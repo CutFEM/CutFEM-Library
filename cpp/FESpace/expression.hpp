@@ -569,6 +569,7 @@ class ExpressionAbs : public ExpressionVirtual {
 std::shared_ptr<ExpressionAbs>
 fabs(const std::shared_ptr<ExpressionVirtual> &f1);
 
+
 class ExpressionProduct : public ExpressionVirtual {
    const std::shared_ptr<ExpressionVirtual> fun1;
    const std::shared_ptr<ExpressionVirtual> fun2;
@@ -802,9 +803,9 @@ class ExpressionNormal2 : public ExpressionVirtual {
    }
    ~ExpressionNormal2() {}
 };
-ExpressionNormal2 operator*(const FunFEM<Mesh2> &f1, const Normal &n);
-ExpressionNormal2 operator*(const FunFEM<Mesh2> &f1, const Tangent &n);
-ExpressionNormal2 operator*(const FunFEM<Mesh2> &f1, const Conormal &n);
+std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Normal &n);
+std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Tangent &n);
+std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Conormal &n);
 
 class ExpressionNormal3 : public ExpressionVirtual {
    typedef Mesh3 M;
@@ -860,7 +861,7 @@ class ExpressionNormal3 : public ExpressionVirtual {
    }
    ~ExpressionNormal3() {}
 };
-ExpressionNormal3 operator*(const FunFEM<Mesh3> &f1, const Normal &n);
+std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Normal &n);
 
 // divS for 2d
 class ExpressionDSx2 : public ExpressionVirtual {
@@ -917,7 +918,7 @@ class ExpressionDSx2 : public ExpressionVirtual {
    }
    ~ExpressionDSx2() {}
 };
-ExpressionDSx2 dxS(const FunFEM<Mesh2> &f1);
+std::shared_ptr<ExpressionDSx2> dxS(const FunFEM<Mesh2> &f1);
 
 class ExpressionDSy2 : public ExpressionVirtual {
    typedef Mesh2 M;
@@ -973,13 +974,13 @@ class ExpressionDSy2 : public ExpressionVirtual {
    }
    ~ExpressionDSy2() {}
 };
-ExpressionDSy2 dyS(const FunFEM<Mesh2> &f1);
+std::shared_ptr<ExpressionDSy2> dyS(const FunFEM<Mesh2> &f1);
 
 class ExpressionDivS2 : public ExpressionVirtual {
    typedef Mesh2 M;
    const FunFEM<M> &fun;
-   const ExpressionDSx2 dx;
-   const ExpressionDSy2 dy;
+   const std::shared_ptr<ExpressionDSx2> dx;
+   const std::shared_ptr<ExpressionDSy2> dy;
    // const ExpressionDSz<M> dz;
 
  public:
@@ -1009,21 +1010,21 @@ class ExpressionDivS2 : public ExpressionVirtual {
    R evalOnBackMesh(const int k, const int dom, const R *x,
                     const R *normal) const {
       assert(normal);
-      return dx.evalOnBackMesh(k, dom, x, normal) +
-             dy.evalOnBackMesh(k, dom, x, normal);
+      return dx->evalOnBackMesh(k, dom, x, normal) +
+             dy->evalOnBackMesh(k, dom, x, normal);
    }
    R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
                     const R *normal) const {
       assert(normal);
-      return dx.evalOnBackMesh(k, dom, x, t, normal) +
-             dy.evalOnBackMesh(k, dom, x, t, normal);
+      return dx->evalOnBackMesh(k, dom, x, t, normal) +
+             dy->evalOnBackMesh(k, dom, x, t, normal);
    }
    int idxElementFromBackMesh(int kb, int dd = 0) const {
       return fun.idxElementFromBackMesh(kb, dd);
    }
    ~ExpressionDivS2() {}
 };
-ExpressionDivS2 divS(const FunFEM<Mesh2> &f1);
+std::shared_ptr<ExpressionDivS2> divS(const FunFEM<Mesh2> &f1);
 
 // divs for 3D
 class ExpressionDSx3 : public ExpressionVirtual {
@@ -1084,7 +1085,7 @@ class ExpressionDSx3 : public ExpressionVirtual {
    }
    ~ExpressionDSx3() {}
 };
-ExpressionDSx3 dxS(const FunFEM<Mesh3> &f1);
+std::shared_ptr<ExpressionDSx3> dxS(const FunFEM<Mesh3> &f1);
 
 class ExpressionDSy3 : public ExpressionVirtual {
    typedef Mesh3 M;
@@ -1144,7 +1145,7 @@ class ExpressionDSy3 : public ExpressionVirtual {
    }
    ~ExpressionDSy3() {}
 };
-ExpressionDSy3 dyS(const FunFEM<Mesh3> &f1);
+std::shared_ptr<ExpressionDSy3> dyS(const FunFEM<Mesh3> &f1);
 
 class ExpressionDSz3 : public ExpressionVirtual {
    typedef Mesh3 M;
@@ -1204,14 +1205,14 @@ class ExpressionDSz3 : public ExpressionVirtual {
    }
    ~ExpressionDSz3() {}
 };
-ExpressionDSz3 dzS(const FunFEM<Mesh3> &f1);
+std::shared_ptr<ExpressionDSz3> dzS(const FunFEM<Mesh3> &f1);
 
 class ExpressionDivS3 : public ExpressionVirtual {
    typedef Mesh3 M;
    const FunFEM<M> &fun;
-   const ExpressionDSx3 dx;
-   const ExpressionDSy3 dy;
-   const ExpressionDSz3 dz;
+   const std::shared_ptr<ExpressionDSx3> dx;
+   const std::shared_ptr<ExpressionDSy3> dy;
+   const std::shared_ptr<ExpressionDSz3> dz;
 
  public:
    ExpressionDivS3(const FunFEM<M> &fh1)
@@ -1240,16 +1241,16 @@ class ExpressionDivS3 : public ExpressionVirtual {
    R evalOnBackMesh(const int k, const int dom, const R *x,
                     const R *normal) const {
       assert(normal);
-      return dx.evalOnBackMesh(k, dom, x, normal) +
-             dy.evalOnBackMesh(k, dom, x, normal) +
-             dz.evalOnBackMesh(k, dom, x, normal);
+      return dx->evalOnBackMesh(k, dom, x, normal) +
+             dy->evalOnBackMesh(k, dom, x, normal) +
+             dz->evalOnBackMesh(k, dom, x, normal);
    }
    R evalOnBackMesh(const int k, const int dom, const R *x, const R t,
                     const R *normal) const {
       assert(normal);
-      return dx.evalOnBackMesh(k, dom, x, t, normal) +
-             dy.evalOnBackMesh(k, dom, x, t, normal) +
-             dz.evalOnBackMesh(k, dom, x, t, normal);
+      return dx->evalOnBackMesh(k, dom, x, t, normal) +
+             dy->evalOnBackMesh(k, dom, x, t, normal) +
+             dz->evalOnBackMesh(k, dom, x, t, normal);
    }
    int idxElementFromBackMesh(int kb, int dd = 0) const {
       return fun.idxElementFromBackMesh(kb, dd);
@@ -1257,7 +1258,8 @@ class ExpressionDivS3 : public ExpressionVirtual {
 
    ~ExpressionDivS3() {}
 };
-ExpressionDivS3 divS(const FunFEM<Mesh3> &f1);
+std::shared_ptr<ExpressionDivS3> divS(const FunFEM<Mesh3> &f1);
+
 
 // template<typename M>
 class ExpressionAverage { //}: public ExpressionVirtual{

@@ -327,8 +327,8 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
       for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
 
          QuadraturePoint ip(qfb[ipq]); // integration point
-         const Rd mip = interface.mapToPhysicalFace(
-             iface, (typename FElement::RdHatBord)ip);
+         Rd mip = interface.mapToPhysicalFace(
+             iface, (typename FElement::RdHatBord)ip);   // mip - map quadrature point
          const R Cint = meas * ip.getWeight();
 
          // double a = fh->eval(k, mip, tt) - fex(mip, fh->cu, tt);

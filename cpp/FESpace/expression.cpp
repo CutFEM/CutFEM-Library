@@ -82,17 +82,17 @@ operator-(const std::shared_ptr<ExpressionVirtual> &f1,
    return f1 + (-1. * f2);
 }
 
-ExpressionNormal2 operator*(const FunFEM<Mesh2> &f1, const Normal &n) {
-   return ExpressionNormal2(f1, n);
+std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Normal &n) {
+   return std::make_shared<ExpressionNormal2>(f1, n);
 }
-ExpressionNormal2 operator*(const FunFEM<Mesh2> &f1, const Tangent &n) {
-   return ExpressionNormal2(f1, n);
+std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Tangent &n) {
+   return std::make_shared<ExpressionNormal2>(f1, n);
 }
-ExpressionNormal2 operator*(const FunFEM<Mesh2> &f1, const Conormal &n) {
-   return ExpressionNormal2(f1, n);
+std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Conormal &n) {
+   return std::make_shared<ExpressionNormal2>(f1, n);
 }
-ExpressionNormal3 operator*(const FunFEM<Mesh3> &f1, const Normal &n) {
-   return ExpressionNormal3(f1);
+std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Normal &n) {
+   return std::make_shared<ExpressionNormal3>(f1);
 }
 
 ExpressionAverage average(const std::shared_ptr<ExpressionVirtual> &f1,
@@ -118,10 +118,10 @@ ExpressionNormalBurgerFlux burgerFlux(const ExpressionVirtual &f1,
    return ExpressionNormalBurgerFlux(f1);
 }
 
-ExpressionDSx2 dxS(const FunFEM<Mesh2> &f1) { return ExpressionDSx2(f1); }
-ExpressionDSy2 dyS(const FunFEM<Mesh2> &f1) { return ExpressionDSy2(f1); }
-ExpressionDivS2 divS(const FunFEM<Mesh2> &f1) { return ExpressionDivS2(f1); }
-ExpressionDSx3 dxS(const FunFEM<Mesh3> &f1) { return ExpressionDSx3(f1); }
-ExpressionDSy3 dyS(const FunFEM<Mesh3> &f1) { return ExpressionDSy3(f1); }
-ExpressionDSz3 dzS(const FunFEM<Mesh3> &f1) { return ExpressionDSz3(f1); }
-ExpressionDivS3 divS(const FunFEM<Mesh3> &f1) { return ExpressionDivS3(f1); }
+std::shared_ptr<ExpressionDSx2> dxS(const FunFEM<Mesh2> &f1) { return std::make_shared<ExpressionDSx2>(f1); }
+std::shared_ptr<ExpressionDSy2> dyS(const FunFEM<Mesh2> &f1) { return std::make_shared<ExpressionDSy2>(f1); }
+std::shared_ptr<ExpressionDivS2> divS(const FunFEM<Mesh2> &f1) { return std::make_shared<ExpressionDivS2>(f1); }
+std::shared_ptr<ExpressionDSx3> dxS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSx3>(f1); }
+std::shared_ptr<ExpressionDSy3> dyS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSy3>(f1); }
+std::shared_ptr<ExpressionDSz3> dzS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSz3>(f1); }
+std::shared_ptr<ExpressionDivS3> divS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDivS3>(f1); }

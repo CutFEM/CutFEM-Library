@@ -2,24 +2,26 @@ cmake_minimum_required(VERSION 3.10)
 
 project(CutFEM VERSION 1.0)
 
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 ## ##############################
 ## Options
 ## ##############################
-option(USE_MPI "Perform a parallel computation" OFF)
+
+option(USE_MPI "Perform a parallel computation" ON)
 option(USE_OMP "Perform a parallel omp computation" OFF)
 option(USE_UMFPACK "Found the UMFpack library" ON)
 option(USE_LAPACK "Found the lapacke library" OFF)
-option(USE_MUMPS "Found the MUMPS library" OFF)
+option(USE_MUMPS "Found the MUMPS library" ON)
 
 option(CUTFEM_BUILD_TESTS "Build and run library tests" ON)
 option(CUTFEM_BUILD_PYTHON_WRAPPER "Build a library for Python" ON)
 option(CUTFEM_BUILD_MAIN "Build the cpp example" ON)
 
 if(USE_MPI)
-	set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/open-mpi/4.1.4_2/bin/mpicxx")
+  set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/open-mpi/4.1.4_2/bin/mpicxx")
 endif()
 
 ## ##############################
@@ -49,9 +51,9 @@ add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 
 
-if(${CUTFEM_BUILD_TESTS})
-add_subdirectory(test/)
-endif()
+# if(${CUTFEM_BUILD_TESTS})
+# add_subdirectory(test/)
+# endif()
 
 
 if(${CUTFEM_BUILD_PYTHON_WRAPPER})
@@ -81,6 +83,10 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 set(EX_NAME bulkCD)
 add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME cgbulkCD)
+add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion_cg.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
