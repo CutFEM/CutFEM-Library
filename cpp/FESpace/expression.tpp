@@ -58,7 +58,7 @@ FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh)
       getchar();
    }
 #ifdef USE_MPI
-   MPIcf::AllReduce(dataSend, data, fhSend.size(), MPI_MIN);
+   MPIcf::AllReduce(dataSend, v, fhSend.size(), MPI_MIN);
 #else
    assert(0 && "need to fixe the output");
 #endif
@@ -109,7 +109,7 @@ FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh1,
       // }
    }
 #ifdef USE_MPI
-   MPIcf::AllReduce(dataSend, data, fhSend.size(), MPI_MIN);
+   MPIcf::AllReduce(dataSend, v, fhSend.size(), MPI_MIN);
 #else
    assert(0 && "need to fixe the output");
 #endif
