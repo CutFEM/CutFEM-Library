@@ -18,6 +18,11 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 // #include "baseProblem.hpp"
 
+/**
+ * @brief The actual solution object in CutFEM problems
+ *
+ * @tparam Mesh
+ */
 template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
    typedef ActiveMesh<Mesh> CutMesh;
@@ -159,7 +164,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
       return BaseFEM<Mesh>::addLinear(VF, gamma, mapping, label);
    }
 
-   // integral on inner Ridge / intersction with interface
+   // integral on inner Ridge / intersection with interface
    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
                     const CRidge &innerRidge, std::list<int> label = {});
    void addBilinear(const ListItemVF<Rd::d> &VF,
@@ -238,6 +243,11 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
    int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 };
 
+/**
+ * @brief Create main object for a CutFEM problem
+ *
+ * @tparam Mesh
+ */
 template <typename Mesh> class CutFEM : public BaseCutFEM<Mesh>, public Solver {
    typedef GFESpace<Mesh> FESpace;
    typedef std::map<std::pair<int, int>, R> Matrix;
@@ -245,17 +255,22 @@ template <typename Mesh> class CutFEM : public BaseCutFEM<Mesh>, public Solver {
  public:
    CutFEM(const ProblemOption &option = defaultProblemOption)
        : BaseCutFEM<Mesh>(option, 1), Solver(option) {}
+
    CutFEM(const QuadratureFormular1d &qt,
           const ProblemOption &option = defaultProblemOption)
        : BaseCutFEM<Mesh>(qt, option, 1), Solver(option) {}
+
    CutFEM(const FESpace &vh, const ProblemOption &option = defaultProblemOption)
        : BaseCutFEM<Mesh>(vh, option, 1), Solver(option) {}
+
    CutFEM(const QuadratureFormular1d &qt, int np,
           const ProblemOption &option = defaultProblemOption)
        : BaseCutFEM<Mesh>(qt, option, np), Solver(option) {}
+
    CutFEM(const FESpace &vh, int np,
           const ProblemOption &option = defaultProblemOption)
        : BaseCutFEM<Mesh>(vh, option, np), Solver(option) {}
+
    void solve() {
       gather(this->mat_);
       Solver::solve(this->mat_[0], this->rhs_);

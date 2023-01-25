@@ -167,7 +167,7 @@ InterfaceLevelSet<M>::make_face(
          // Rd Q           = (*this->backMesh)(idx);
          // this->vertices_.push_back(Q);
          // triIdx[j] = this->vertices_.size() - 1;
-         std::cout << " Interface cuting through a node " << std::endl;
+         std::cout << " Interface cutting through a node " << std::endl;
          exit(EXIT_FAILURE);
          // assert(0);
       } else { // genuine edge vertex
