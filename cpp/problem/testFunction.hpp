@@ -800,6 +800,35 @@ template <int D> TestFunction<D> dyS(const TestFunction<D> &T) {
     return gradSU;
 }
 
+template <int D> TestFunction<D> average(const TestFunction<D> &U, const TestFunction<D> &V, int c1, int c2) {
+    assert(U.nbCol() == V.nbCol());
+    assert(U.nbRow() == V.nbRow());
+    auto [N, M] = U.size();
+    TestFunction<D> jumpU;
+
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < M; ++j) {
+            auto new_list_U = U.getList(i, j);
+            auto new_list_V = V.getList(i, j);
+            for (auto &item : new_list_U.U) {
+                item.c *= c1;
+                item.face_side_ = 0;
+            }
+            for (auto &item : new_list_V.U) {
+                item.c *= c2;
+                item.face_side_ = 1;
+            }
+            jumpU.push({i, j}, new_list_U);
+            jumpU.push({i, j}, new_list_V);
+        }
+    }
+    return jumpU;
+}
+
+template <int D> TestFunction<D> jump(const TestFunction<D> &U, const TestFunction<D> &V) {
+    return average(U, V, 1, -1);
+}
+
 // template <int d> TestFunction<d> divS(const TestFunction<d> &T) {
 //    assert(T.nbCol() == 1);
 //    assert(T.nbRow() == d);
@@ -861,45 +890,6 @@ template <int D> TestFunction<D> dyS(const TestFunction<D> &T) {
 //    return gradU;
 // }
 
-// // NEED DO FIXE THIS FUNCTION
-// // HAS TO WORK FOR GENERAL DOMAIN
-template <int D> TestFunction<D> average(const TestFunction<D> &U, const TestFunction<D> &V, int c1, int c2) {
-    // assert scalar functions U and V
-    assert(U.nbCol() == V.nbCol());
-    assert(U.nbRow() == V.nbRow());
-
-    auto [N, M] = U.size();
-
-    TestFunction<D> jumpU;
-
-       for (int i = 0; i < N; ++i) {
-          for (int j = 0; j < M; ++j) {
-            auto new_list_U = U.getList(i, j);  // copy of what's in U
-            auto new_list_V = V.getList(i, j);  // copy of what's in V
-            
-            for (auto &item : new_list_U.U) {
-                item.c *= c1;
-                item.face_side_ = 0;
-            }
-
-            for (auto &item : new_list_V.U) {
-                item.c *= c2;
-                item.face_side_ = 1;
-            }
-            jumpU.push({i, j}, new_list_U);
-            jumpU.push({i, j}, new_list_V);
-
-          }
-       }
-       
-       return jumpU;
-}
-
-template <int D>
-TestFunction<D> jump(const TestFunction<D> &U, const TestFunction<D>&V) {
-   return average(U, V, 1, -1);
-}
-
 // template <int d>
 // TestFunction<d> average(const TestFunction<d> &T, const
 // VirtualParameter &para1,
@@ -921,9 +911,8 @@ TestFunction<D> jump(const TestFunction<D> &U, const TestFunction<D>&V) {
 //             u.addParameter(para1);
 //          }
 //          {
-//             ItemTestFunction<d> &u(jumpU.A(i, 0)->getItem(2 * e + 1));
-//             u            = v;
-//             u.face_side_ = 1;
+//             ItemTestFunction<d> &u(jumpU.A(i, 0)->getItem(2 * e +
+//             1)); u            = v; u.face_side_ = 1;
 //             u.addParameter(para2);
 //          }
 //       }
