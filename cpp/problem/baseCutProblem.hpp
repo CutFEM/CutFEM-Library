@@ -143,6 +143,11 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                   const TimeSlab &In, int itq, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);
    }
+   template<typename Fct>
+   void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
+                  const TimeSlab &In, int itq, std::list<int> label = {}) {
+      return BaseFEM<Mesh>::template addLinear<Fct>(f, VF, gamma, In, itq, label);
+   }
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
                   const TimeSlab &In, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, In, label);
@@ -151,6 +156,17 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                   const TimeSlab &In, int itq, std::list<int> label = {}) {
       return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);
    }
+   template<typename Fct>
+   void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
+                  const TimeSlab &In, std::list<int> label = {}) {
+      return BaseFEM<Mesh>::template addLinear<Fct>(f, VF, gamma, In, label);
+   }
+   template<typename Fct>
+   void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
+                  const TimeSlab &In, int itq, std::list<int> label = {}) {
+      return BaseFEM<Mesh>::template addLinear<Fct>(f, VF, gamma, In, itq, label);
+   }
+
    // void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const
    // Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double
    // cst_time);

@@ -412,7 +412,8 @@ TimeMacroElementSurface<Mesh>::TimeMacroElementSurface(
     const QuadratureFormular1d &qTime_, const double C)
     : Th(Th_), interface(gh), qTime(qTime_) {
    double h = (*(*interface(0)).backMesh)[0].lenEdge(0);
-   tol      = C * h;
+   
+   tol = C * h;
 
    std::cout << " tolerance macro surface\t" << tol << std::endl;
    findSmallElement();
@@ -425,13 +426,15 @@ template <typename Mesh>
 void TimeMacroElementSurface<Mesh>::findSmallElement() {
 
    for (int k = 0; k < Th.get_nb_element(); k += 1) {
-
-      if (!Th.isStabilizeElement(k))
-         continue;
+   
+      //if (!Th.isStabilizeElement(k))
+      //   continue;
 
       bool is_large    = false; // is element large in any quadrature point?
       bool is_inactive = false; // is element inactive in any quadrature point?
+      bool is_small    = false;
       int numb_times_inactive = 0;
+
       for (int itq = 0; itq < qTime.n; ++itq) {
 
          if (Th.isCut(k, itq)) {
@@ -442,9 +445,15 @@ void TimeMacroElementSurface<Mesh>::findSmallElement() {
             const typename Interface<Mesh>::Face &face =
                 (*interface(itq))[iface];
             const R meas = (*interface(itq)).measure(face);
+            // std::cout << "k = " << k << "\n";
+            // std::cout << "meas = " << meas << "\n";
+            // std::cout << "tol = " << tol << "\n";
 
-            if (meas > tol)
+            if (meas > tol) {
                is_large = true;
+            }
+            else
+               is_small = true;
 
          } else if (Th.isInactive(k, itq))
             is_inactive = true;
@@ -452,8 +461,10 @@ void TimeMacroElementSurface<Mesh>::findSmallElement() {
       }
 
       if (!is_large || is_inactive) {
+      //if (is_small || is_inactive) {
+      //if (!is_large) {
          // if (!is_large || numb_times_inactive>=2) {
-         //  if (!is_large) {
+         
          small_element[k] = SmallElement(k);
       }
    }
@@ -494,7 +505,7 @@ void TimeMacroElementSurface<Mesh>::createMacroElement() {
             if (kn == -1)
                continue;
 
-            if ((small_or_fat_K[kn] == small))
+            if (small_or_fat_K[kn] == small)
                continue;
 
             // set position of the small element
