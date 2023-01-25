@@ -10,13 +10,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 ## ##############################
 option(USE_MPI "Perform a parallel computation" OFF)
 option(USE_OMP "Perform a parallel omp computation" OFF)
-option(USE_UMFPACK "Found the UMFpack library" OFF)
+option(USE_UMFPACK "Found the UMFpack library" ON)
 option(USE_LAPACK "Found the lapacke library" OFF)
 option(USE_MUMPS "Found the MUMPS library" OFF)
 
 option(CUTFEM_BUILD_TESTS "Build and run library tests" OFF)
 option(CUTFEM_BUILD_PYTHON_WRAPPER "Build a library for Python" ON)
-option(CUTFEM_BUILD_MAIN "Build the cpp example" OFF)
+option(CUTFEM_BUILD_MAIN "Build the cpp example" ON)
 
 if(USE_MPI)
   set(CMAKE_CXX_COMPILER "/usr/local/Cellar/open-mpi/4.1.4_2/bin/mpic++")
@@ -59,32 +59,31 @@ add_library(_darcy SHARED wrap_lib/lib_darcy.cpp)
 target_link_libraries(_darcy PUBLIC ${EXTRA_LIBS})
 endif()
 
-#message("${EXTRA_INCLUDES}")
-#message("${UMFPACK_INCLUDES}")
 
 if(${CUTFEM_BUILD_MAIN})
-
-
-set(EX_NAME mesh)
-add_executable(${EX_NAME}  mainFiles/test_mesh.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 set(EX_NAME darcy)
 add_executable(${EX_NAME}  mainFiles/darcy.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 set(EX_NAME bulkCD)
 add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 #                        
 set(EX_NAME limiter)
 add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
+
+set(EX_NAME surfactant)
+add_executable(${EX_NAME}  mainFiles/surfactant.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+
+set(EX_NAME surfactantCG2)
+add_executable(${EX_NAME}  mainFiles/surfactantCG2.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 # set(EX_NAME showMesh)
 # add_executable(${EX_NAME}  mainFiles/showMesh.cpp )
