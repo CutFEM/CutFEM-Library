@@ -16,20 +16,28 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 /**
  * @brief Time-dependent convection diffusion equation.
- * @note We consider a time-dependent bulk problem on Omega2.
+ * @note We consider a time-dependent bulk problem on Omega1 or Omega2.
 
- *  Problem:
+ *  Problems:
+
+    * Omega_1(t):
+    Find u in Omega_1(t) such that
+
+    dt(u) + beta*grad(u) - D*laplace(u) = f,    in Omega_1(t).
+                                        BC1,  on Gamma(t),
+                                        BC2,  on \partial\Omega (outer boundary).
+
+
+    * Omega_2(t):
     Find u in Omega_2(t) such that
 
     dt(u) + beta*grad(u) - D*laplace(u) = f,    in Omega_2(t).
-                                        + BCS,  on Gamma(t).
+                                        BC,  on Gamma(t).
 
  *  Numerical method:
-    A space-time Cutfem, using the level-set method,
-    which allows for both dg and cg.
+    A space-time Cutfem, using the level-set method.
 
- *  Classical scheme: Integration by parts on convection term if dg,
-    otherwise just integration by parts on diffusion term.
+ *  Classical scheme: Standard FEM scheme.
  *  Conservative scheme: Reynold's transport theorem is used to make
     the bilinear form fulfill a conservation law.
 */
@@ -372,9 +380,8 @@ typedef CutFESpace<Mesh> CutSpace;
 typedef TestFunction<d> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 
-// Note: standard for this program is to solve the equations on the inner domain
-// Omega 2. To solve on Omega 1, define the word "omega1" for the pre-processor
-// (only works for example 1)
+// The below parameters can be varied according to the options to use different methods,
+// different numerical examples, different subdomains and boundary conditions etc.
 
 //* Set numerical example (options: "example1", "lehrenfeld")
 #define example1
@@ -382,7 +389,7 @@ typedef FunFEM<Mesh2> Fun_h;
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
-#define omega1
+#define omega2
 // If "omega1":
 // Set type of BCs on outer boundary (options: "dirichlet1" or "neumann1")
 #define neumann1
@@ -391,10 +398,10 @@ typedef FunFEM<Mesh2> Fun_h;
 
 // If "omega2":
 // Set type of BCs on interface (options: "dirichlet", "neumann")
-#define dirichlet
+#define neumann
 
-//* Set scheme for the method (options: "classical", "conservative".)
-#define classical
+//* Set scheme for the method (options: "classical", "conservative")
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
@@ -406,15 +413,9 @@ typedef FunFEM<Mesh2> Fun_h;
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
                  // proportional to h.
 
-// [0.0128738, 0.00319005, 0.00074366]
-
 // Do not touch
 #ifdef example1
-// #ifdef omega1
-// using namespace Example1_Omega1;
-// #else
-using namespace Example1; // on Omega 2
-// #endif
+    using namespace Example1; 
 #endif
 #if defined(lehrenfeld)
 using namespace Lehrenfeld_Convection_Dominated;
@@ -423,10 +424,10 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 2; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.0125;             // starting mesh size
+    double h  = 0.1;             // starting mesh size
     double dT = 0.125;
 
     int total_number_iteration;
@@ -435,21 +436,26 @@ int main(int argc, char **argv) {
 
 #ifdef example1
     // Paths to store data
-    const std::string pathOutputFolder  = "../output_files/bulk/example1/data/";
-    const std::string pathOutputFigures = "../output_files/bulk/example1/paraview/";
+    const std::string path_output_data  = "../output_files/bulk/example1/data/";
+    const std::string path_output_figures = "../output_files/bulk/example1/paraview/";
 #elif defined(example2)
     // Paths to store data
-    const std::string pathOutputFolder  = "../output_files/bulk/example2/data/";
-    const std::string pathOutputFigures = "../output_files/bulk/example2/paraview/";
+    const std::string path_output_data  = "../output_files/bulk/example2/data/";
+    const std::string path_output_figures = "../output_files/bulk/example2/paraview/";
 #elif defined(lehrenfeld)
     // Paths to store data
-    const std::string pathOutputFolder  = "../output_files/bulk/lehrenfeld/data/";
-    const std::string pathOutputFigures = "../output_files/bulk/lehrenfeld/paraview/";
+    const std::string path_output_data  = "../output_files/bulk/lehrenfeld/data/";
+    const std::string path_output_figures = "../output_files/bulk/lehrenfeld/paraview/";
 #endif
 
-    // Data file to hold problem data
+    // Create directory if not already existent
+    if (MPIcf::IamMaster()) {
+        std::filesystem::create_directories(path_output_data);
+        std::filesystem::create_directories(path_output_figures);
+    }
 
-    std::ofstream outputData(pathOutputFolder + "data.dat", std::ofstream::out);
+    // Data file to hold problem data
+    std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
@@ -484,7 +490,7 @@ int main(int argc, char **argv) {
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        const int divisionMeshSize = 2;
+        const int divisionMeshSize = 1;
 
         double dT              = h / divisionMeshSize;
         // double dT = 3*h;
@@ -566,7 +572,7 @@ int main(int argc, char **argv) {
 
         int iter = 0;
         double q0_0, q0_1, qp_0, qp_1; // integral values to be computed
-        double intF = 0, intG = 0;     // hold integrals of rhs and Neumann bcs
+        double intF = 0, int_outflow = 0, intG = 0;     // hold integrals of rhs and Neumann bcs
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -649,7 +655,7 @@ int main(int argc, char **argv) {
             // #else
             if (iter == 0) {
                 // #endif
-                Paraview<Mesh> writerInitial(Kh2, pathOutputFigures + "BulkInitial.vtk");
+                Paraview<Mesh> writerInitial(Kh2, path_output_figures + "BulkInitial.vtk");
                 writerInitial.add(b0h, "bulk", 0, 1);
 
                 // Add exact solutions
@@ -709,7 +715,7 @@ int main(int argc, char **argv) {
 
             // Visualize macro elements
             if (iterations == 1 && h > 0.01) {
-                Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" + std::to_string(iter + 1) + ".vtk");
+                Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
                 writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
                 writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
@@ -717,16 +723,16 @@ int main(int argc, char **argv) {
                 // domain = 0,
 
                 writerMacro.writeFaceStab(Kh2, 0,
-                                          pathOutputFigures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeActiveMesh(Kh2, pathOutputFigures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                                          path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeActiveMesh(Kh2, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroElement(TimeMacro, 0,
-                                              pathOutputFigures + "macro" + std::to_string(iter + 1) + ".vtk");
+                                              path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroInnerEdge(
-                    TimeMacro, 0, pathOutputFigures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
+                    TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroOutterEdge(
-                    TimeMacro, 0, pathOutputFigures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
+                    TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeSmallElements(TimeMacro, 0,
-                                               pathOutputFigures + "small_element" + std::to_string(iter + 1) + ".vtk");
+                                               path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
             }
 
             // Stabilization of the bulk
@@ -850,7 +856,7 @@ int main(int argc, char **argv) {
 // If Omega2
 #elif defined(omega2)
 #ifdef neumann
-            Fun_h g_Neumann(Wh, In, fun_neumann_Gamma);
+
             convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
 
 #elif defined(dirichlet)
@@ -877,7 +883,7 @@ int main(int argc, char **argv) {
 
             if (iter == total_number_iteration - 1)
                 matlab::Export(convdiff.mat_[0],
-                               pathOutputFolder + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
+                               path_output_data + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
 
             // Solve linear system
             convdiff.solve("umfpack");
@@ -891,6 +897,11 @@ int main(int argc, char **argv) {
                 intF = integral(Kh2, In, f, 0, qTime);
 #ifdef neumann
                 intG = integral(g_Neumann, In, interface, 0);
+                
+                // auto outflow = (vel * n) * funuh.expr();
+                // int_outflow =
+                //     integral(outflow, In, interface, 0);
+
 #endif
 
                 Fun_h funuh(Wh, data_u0);
@@ -932,7 +943,7 @@ int main(int argc, char **argv) {
             // #else
             if ((iterations == 1)) {
                 Fun_h sol(Wh, data_u0);
-                Paraview<Mesh> writer(Kh2, pathOutputFigures + "Bulk" + std::to_string(iter + 1) + "DG.vtk");
+                Paraview<Mesh> writer(Kh2, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
                 writer.add(b0h, "bulk", 0, 1);
 
                 Fun_h uBex(Wh, fun_uBulk, current_time);
@@ -944,7 +955,7 @@ int main(int argc, char **argv) {
                 // writer.add(fabs(uuh - uuex), "bulk_error");
                 writer.add(ls[0], "levelSet0", 0, 1);
                 writer.add(ls[1], "levelSet1", 0, 1);
-                // writer.add(ls[2], "levelSet2", 0, 1);
+                writer.add(ls[2], "levelSet2", 0, 1);
             }
 
             if (iterations > 1 && iter == total_number_iteration - 1)

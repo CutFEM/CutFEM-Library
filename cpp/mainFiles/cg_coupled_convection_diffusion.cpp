@@ -1407,7 +1407,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // #ifdef omega1
 // using namespace Example1_Omega1;
 // #else
-using namespace Example1_new; // on Omega 2
+    using namespace Example1_new; // on Omega 2
 // #endif
 #endif
 #if defined(lehrenfeld)
@@ -1551,7 +1551,7 @@ int main(int argc, char **argv) {
 
         int iter = 0;
         double q0_0, q0_0_surface, q0_1, q0_1_surface, qp_0, qp_0_surface, qp_1,
-            qp_1_surface;                                                    // integral values to be computed
+            qp_1_surface;                                             // integral values to be computed
         double intF = 0, int_outflow = 0, intF_surface = 0, intG = 0; // hold integrals of rhs and Neumann bcs
 
         // Iterate over time-slabs
@@ -1875,7 +1875,7 @@ int main(int argc, char **argv) {
                                path_output_data + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
 
             // Solve linear system
-            convdiff.solve("mumps");
+            convdiff.solve("umfpack");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -1884,12 +1884,13 @@ int main(int argc, char **argv) {
             if (iterations == 1) {
 
                 Fun_h funuh(Wh, data_u0);
-                
-                //auto outflow       = (vx * n.x + vy * n.y) * funuh.expr();
+
+                // auto outflow       = (vx * n.x + vy * n.y) * funuh.expr();
                 auto outflow = (vel * n) * funuh.expr();
 
-                intF         = integral(Thi, In, f, 0, qTime);
-                int_outflow  = integral(outflow, In, interface, 0); // integral(vel.exprList() * funuh * n, In, interface, 0);
+                intF = integral(Thi, In, f, 0, qTime);
+                int_outflow =
+                    integral(outflow, In, interface, 0); // integral(vel.exprList() * funuh * n, In, interface, 0);
                 intF_surface = integral(fS, In, interface, 0);
 
 #ifdef neumann
@@ -1897,11 +1898,8 @@ int main(int argc, char **argv) {
                 // intG = integral(g_Neumann, In, interface, 0);
 #endif
 
-                
-
                 //* bulk
 
-                // compute integrals for conservation error
                 Rn sol2(Wh.NbDoF(), 0.);
                 Fun_h funsol(Wh, sol2);
                 sol2 += data_u0(SubArray(Wh.NbDoF(), 0));
@@ -1909,14 +1907,8 @@ int main(int argc, char **argv) {
                 sol2 += data_u0(SubArray(Wh.NbDoF(), Wh.NbDoF()));
                 double q_1 = integral(Thi, funsol, 0, lastQuadTime);
 
-                // compute L2 error
-                //funuh(Wh, sol2);
-                double errBulk = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
-                std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
-
                 //* surface
 
-                // compute integrals for conservation error
                 Rn solsurf(WhGamma.get_nb_dof(), 0.);
                 Fun_h funsolsurf(WhGamma, solsurf);
                 solsurf += data_u0(SubArray(WhGamma.get_nb_dof(), idx_s0));
@@ -1924,26 +1916,7 @@ int main(int argc, char **argv) {
                 solsurf += data_u0(SubArray(WhGamma.get_nb_dof(), idx_s0 + WhGamma.get_nb_dof()));
                 double q_1_surf = integral(funsolsurf, interface(lastQuadTime), 0);
 
-                // compute L2 error
                 Fun_h funuh_surf(WhGamma, solsurf);
-                double errSurf = L2normSurf(funuh_surf, fun_uSurf, *interface(lastQuadTime), current_time + dT, 0, 1);
-                std::cout << " t_n -> || uS-uSex||_2 = " << errSurf << '\n';
-
-                // solsurf += data_u0(SubArray(WhGamma.get_nb_dof(), idx_s0));
-                // solsurf += data_u0(SubArray(WhGamma.get_nb_dof(), idx_s0 + WhGamma.get_nb_dof()));
-
-                // Fun_h funuh_0(WhGamma, data_S0);
-                // Fun_h funuh(WhGamma, solsurf);
-
-                // errL2 = L2normSurf(funuh_0, fun_sol_surfactant, *interface(0), tid, 0, 1);
-                // std::cout << " t_n -> || u-uex||_2 = " << errL2 << std::endl;
-                // errL2 = L2normSurf(funuh, fun_sol_surfactant, *interface(nbTime - 1), tid + dT, 0, 1);
-                // std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << std::endl;
-
-                // // Conservation error
-                // double q0 = integral(funuh_0, interface(0), 0);
-                // double q1 = integral(funuh, interface(lastQuadTime), 0);
-
                 if (iter == 0) {
                     q0_0 = q_0;
                     q0_1 = q_1;
@@ -1958,7 +1931,8 @@ int main(int argc, char **argv) {
 
                 outputData << std::setprecision(10);
                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG << ","
-                           << ((q_1 - qp_1) - intF - intG) << ((q_1_surf - qp_1_surface) - intF_surface) << '\n';
+                           << ((q_1 - qp_1) - intF - int_outflow - intG) << "," << ((q_1_surf - qp_1_surface) - intF_surface) << ","
+                           << ((q_1 - qp_1) - intF - int_outflow + (q_1_surf - qp_1_surface) - intF_surface) << '\n';
                 qp_1 = q_1;
             }
 
