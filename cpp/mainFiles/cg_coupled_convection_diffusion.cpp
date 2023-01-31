@@ -1603,7 +1603,7 @@ int main(int argc, char **argv) {
             ThGamma.createSurfaceMesh(interface);
 
             // Surface FE space
-            CutSpace WhGamma(ThGamma, Vh);
+            CutFESpace WhGamma(ThGamma, Vh);
 
             // Add time slab to cut space
             convdiff.initSpace(Wh, In);
@@ -1664,30 +1664,32 @@ int main(int argc, char **argv) {
             // #ifdef USE_MPI
             // if (iter == 0 && MPIcf::IamMaster()) {
             // #else
-            if (iter == 0) {
-                // #endif
-                Paraview<Mesh> writerInitial(Thi, path_output_figures + "BulkInitial.vtk");
-                writerInitial.add(b0h, "bulk", 0, 1);
+            
+            
+            // if (iter == 0) {
+            //     // #endif
+            //     Paraview<Mesh> writerInitial(Thi, path_output_figures + "BulkInitial.vtk");
+            //     writerInitial.add(b0h, "bulk", 0, 1);
 
-                // Add exact solutions
-                Fun_h uBex(Wh, fun_uBulkD, 0.);
-                Fun_h uRhs(Wh, fun_rhsBulk, 0.);
+            //     // Add exact solutions
+            //     Fun_h uBex(Wh, fun_uBulkD, 0.);
+            //     Fun_h uRhs(Wh, fun_rhsBulk, 0.);
 
-                writerInitial.add(uBex, "bulk_exact", 0, 1);
-                writerInitial.add(uRhs, "bulk_rhs", 0, 1);
-                writerInitial.add(ls[0], "levelSet", 0, 1);
+            //     writerInitial.add(uBex, "bulk_exact", 0, 1);
+            //     writerInitial.add(uRhs, "bulk_rhs", 0, 1);
+            //     writerInitial.add(ls[0], "levelSet", 0, 1);
 
-                Paraview<Mesh> writerInitialSurface(ThGamma, path_output_figures + "SurfaceInitial.vtk");
-                writerInitialSurface.add(s0h, "surface", 0, 1);
+            //     Paraview<Mesh> writerInitialSurface(ThGamma, path_output_figures + "SurfaceInitial.vtk");
+            //     writerInitialSurface.add(s0h, "surface", 0, 1);
 
-                // Add exact solutions
-                Fun_h uSex(WhGamma, fun_uSurf, 0.);
-                Fun_h uSRhs(WhGamma, fun_rhsSurf, 0.);
+            //     // Add exact solutions
+            //     Fun_h uSex(WhGamma, fun_uSurf, 0.);
+            //     Fun_h uSRhs(WhGamma, fun_rhsSurf, 0.);
 
-                writerInitialSurface.add(uSex, "surface_exact", 0, 1);
-                writerInitialSurface.add(uSRhs, "surface_rhs", 0, 1);
-                writerInitialSurface.add(ls[0], "levelSet", 0, 1);
-            }
+            //     writerInitialSurface.add(uSex, "surface_exact", 0, 1);
+            //     writerInitialSurface.add(uSRhs, "surface_rhs", 0, 1);
+            //     writerInitialSurface.add(ls[0], "levelSet", 0, 1);
+            // }
 
             //** Assembling linear and bilinear forms
 
