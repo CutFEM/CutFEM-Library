@@ -81,7 +81,7 @@ class ShapeOfArray {
       assert((sub.last()) * old.step <= old.last());
    }
 
-   long end() const { return n * step; }
+   // long end() const { return n * step; }
    long last() const { return (n - 1) * step; }
    long constant() const { return step == 0; }
    long index(long k) const {
@@ -146,6 +146,48 @@ template <class R> class KN_ : public ShapeOfArray {
       KN_<R> sub_u(u(SubArray(l, i0)));
       return sub_u;
    }
+
+   struct Iterator {
+      using iterator_category = std::forward_iterator_tag;
+      using difference_type   = std::ptrdiff_t;
+      using value_type        = R;
+      using pointer           = R *; // or also value_type*
+      using reference         = R &; // or also value_type&
+
+      Iterator(pointer ptr, int s) : m_ptr(ptr), step(s) {}
+
+      reference operator*() const { return *m_ptr; }
+      pointer operator->() { return m_ptr; }
+
+      // Prefix increment
+      Iterator &operator++() {
+         m_ptr += step;
+         return *this;
+      }
+
+      // Postfix increment
+      Iterator operator++(int) {
+         Iterator tmp = *this;
+         (*this) += step;
+         return tmp;
+      }
+
+      friend bool operator==(const Iterator &a, const Iterator &b) {
+         return a.m_ptr == b.m_ptr;
+      };
+      friend bool operator!=(const Iterator &a, const Iterator &b) {
+         return a.m_ptr != b.m_ptr;
+      };
+
+    private:
+      pointer m_ptr;
+      int step;
+   };
+
+   Iterator begin() { return Iterator(v, step); }
+   Iterator end() { return Iterator(v + size(), step); }
+   const Iterator begin() const { return Iterator(v, step); }
+   const Iterator end() const { return Iterator(v + size(), step); }
 
    R &operator[](long i) const { return v[index(i)]; }
    R &operator()(long i) const { return v[index(i)]; }

@@ -294,6 +294,10 @@ void TypeOfFE_P1dcLagrange3d::FB(const What_d whatd, const Element &K,
    }
 }
 
+static TypeOfFE_P1dcLagrange3d P1dc_3d;
+GTypeOfFE<Mesh3> &P1dcLagrange3d(P1dc_3d);
+template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::P1dc = P1dc_3d;
+
 // P1
 class TypeOfFE_P1dcTaylor2d : public GTypeOfFE<Mesh2> {
 
@@ -356,9 +360,9 @@ double TypeOfFE_P1dcTaylor2d::alpha_Pi_h[] = {
 void TypeOfFE_P1dcTaylor2d::FB(const What_d whatd, const Element &K,
                                const R2 &Phat, RNMK_ &val) const {
 
-   R2 X   = K(Phat);
-   R2 G   = K.centroid();
-   R meas = K.mesure();
+   R2 X = K(Phat);
+   R2 G = K.centroid();
+   // R meas = K.mesure();
 
    assert(val.N() >= Element::nv);
    assert(val.M() == 1);
@@ -368,8 +372,8 @@ void TypeOfFE_P1dcTaylor2d::FB(const What_d whatd, const Element &K,
 
    if (whatd & Fop_D0) {
       f0[0] = 1.;
-      f0[1] = (X.x - G.x);
-      f0[2] = (X.y - G.y);
+      f0[1] = (Phat.x - 1. / 3);
+      f0[2] = (Phat.y - 1. / 3);
    }
 
    if (whatd & Fop_D1) {
@@ -389,9 +393,6 @@ void TypeOfFE_P1dcTaylor2d::FB(const What_d whatd, const Element &K,
    }
 }
 
-static TypeOfFE_P1dcLagrange3d P1dc_3d;
 static TypeOfFE_P1dcTaylor2d P1dcTaylor_2d;
-GTypeOfFE<Mesh3> &P1dcLagrange3d(P1dc_3d);
 GTypeOfFE<Mesh2> &P1dcTaylor2d(P1dcTaylor_2d);
-template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::P1dc       = P1dc_3d;
 template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::P1dcTaylor = P1dcTaylor_2d;

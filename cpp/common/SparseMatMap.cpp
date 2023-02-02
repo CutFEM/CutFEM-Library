@@ -61,28 +61,28 @@ void buil_CSR_array(int n, const std::map<std::pair<int, int>, R> &M,
    assert(k == M.size());
 }
 
-void multiply(int N, int M, const std::map<std::pair<int, int>, double> &A,
-              const Rn &rhs, Rn &b) {
-   b = 0.;
-   assert(b.size() == N && rhs.size() == M);
-   auto itA = A.begin();
-   while (itA != A.end()) {
-      b(itA->first.first) += itA->second * rhs(itA->first.second);
-      itA++;
-   }
-}
+// void multiply(int N, int M, const std::map<std::pair<int, int>, double> &A,
+//               const Rn &rhs, Rn &b) {
+//    b = 0.;
+//    assert(b.size() == N && rhs.size() == M);
+//    auto itA = A.begin();
+//    while (itA != A.end()) {
+//       b(itA->first.first) += itA->second * rhs(itA->first.second);
+//       itA++;
+//    }
+// }
 
-void multiply(int N, int M, const std::vector<Matrix> &A, const Rn &rhs,
-              Rn &b) {
-   b = 0.;
-   assert(b.size() == N && rhs.size() == M);
+// void multiply(int N, int M, const std::vector<Matrix> &A, const Rn &rhs,
+//               Rn &b) {
+//    b = 0.;
+//    assert(b.size() == N && rhs.size() == M);
 
-   auto itA = A.begin()->begin();
-   while (itA != A.begin()->end()) {
-      b(itA->first.first) += itA->second * rhs(itA->first.second);
-      itA++;
-   }
-}
+//    auto itA = A.begin()->begin();
+//    while (itA != A.begin()->end()) {
+//       b(itA->first.first) += itA->second * rhs(itA->first.second);
+//       itA++;
+//    }
+// }
 
 void multiply(int N, const std::map<std::pair<int, int>, double> &AA,
               const std::map<std::pair<int, int>, double> &BB,

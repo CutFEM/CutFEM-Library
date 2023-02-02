@@ -62,10 +62,30 @@ void eraseRow(int N, std::map<std::pair<int, int>, double> &A, Rn &b,
 
 // void multiply( int N, const std::map<std::pair<int,int>,double>& A, const Rn&
 // rhs, Rn& b);
+template <typename Vec>
 void multiply(int N, int M, const std::map<std::pair<int, int>, double> &A,
-              const Rn &rhs, Rn &b);
+              const Vec &rhs, Rn &b) {
+   b = 0.;
+   assert(b.size() == N && rhs.size() == M);
+   auto itA = A.begin();
+   while (itA != A.end()) {
+      b(itA->first.first) += itA->second * rhs[itA->first.second];
+      itA++;
+   }
+}
 
-void multiply(int N, int M, const std::vector<Matrix> &A, const Rn &rhs, Rn &b);
+template <typename Vec>
+void multiply(int N, int M, const std::vector<Matrix> &A, const Vec &rhs,
+              Rn &b) {
+   b = 0.;
+   assert(b.size() == N && rhs.size() == M);
+
+   auto itA = A.begin()->begin();
+   while (itA != A.begin()->end()) {
+      b(itA->first.first) += itA->second * rhs[itA->first.second];
+      itA++;
+   }
+}
 
 template <class R> struct VirtualMatrice {
  public:

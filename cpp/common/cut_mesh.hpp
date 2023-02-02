@@ -43,6 +43,16 @@ template <typename E> struct Cut_Part {
             partition_ = &ip;
     }
 
+    Cut_Part &operator=(const Cut_Part<E> &p) {
+        pp = p.pp;
+        ip = p.ip;
+        if (p.partition_ == &p.pp)
+            partition_ = &pp;
+        else
+            partition_ = &ip;
+        return *this;
+    }
+
     // GETTERS
     int get_sign() const { return sign_cut_; }
     int get_sign_node(int i) const { return partition_->get_sign_node(i); }
@@ -212,6 +222,7 @@ template <typename Mesh> class ActiveMesh {
                 return i;
             }
         }
+        std::cout << " element " << k << std::endl;
         assert(0);
     }
 
