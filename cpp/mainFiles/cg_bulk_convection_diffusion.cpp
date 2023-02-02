@@ -16,20 +16,28 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 /**
  * @brief Time-dependent convection diffusion equation.
- * @note We consider a time-dependent bulk problem on Omega2.
+ * @note We consider a time-dependent bulk problem on Omega1 or Omega2.
 
- *  Problem:
+ *  Problems:
+
+    * Omega_1(t):
+    Find u in Omega_1(t) such that
+
+    dt(u) + beta*grad(u) - D*laplace(u) = f,    in Omega_1(t).
+                                        BC1,  on Gamma(t),
+                                        BC2,  on \partial\Omega (outer boundary).
+
+
+    * Omega_2(t):
     Find u in Omega_2(t) such that
 
     dt(u) + beta*grad(u) - D*laplace(u) = f,    in Omega_2(t).
-                                        + BCS,  on Gamma(t).
+                                        BC,  on Gamma(t).
 
  *  Numerical method:
-    A space-time Cutfem, using the level-set method,
-    which allows for both dg and cg.
+    A space-time Cutfem, using the level-set method.
 
- *  Classical scheme: Integration by parts on convection term if dg,
-    otherwise just integration by parts on diffusion term.
+ *  Classical scheme: Standard FEM scheme.
  *  Conservative scheme: Reynold's transport theorem is used to make
     the bilinear form fulfill a conservation law.
 */
@@ -372,9 +380,8 @@ typedef CutFESpace<Mesh> CutSpace;
 typedef TestFunction<d> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 
-// Note: standard for this program is to solve the equations on the inner domain
-// Omega 2. To solve on Omega 1, define the word "omega1" for the pre-processor
-// (only works for example 1)
+// The below parameters can be varied according to the options to use different methods,
+// different numerical examples, different subdomains and boundary conditions etc.
 
 //* Set numerical example (options: "example1", "lehrenfeld")
 #define example1
@@ -391,10 +398,10 @@ typedef FunFEM<Mesh2> Fun_h;
 
 // If "omega2":
 // Set type of BCs on interface (options: "dirichlet", "neumann")
-#define dirichlet
+#define neumann
 
-//* Set scheme for the method (options: "classical", "conservative".)
-#define classical
+//* Set scheme for the method (options: "classical", "conservative")
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
@@ -406,15 +413,9 @@ typedef FunFEM<Mesh2> Fun_h;
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
                  // proportional to h.
 
-// [0.0128738, 0.00319005, 0.00074366]
-
 // Do not touch
 #ifdef example1
-// #ifdef omega1
-// using namespace Example1_Omega1;
-// #else
-using namespace Example1; // on Omega 2
-// #endif
+    using namespace Example1; 
 #endif
 #if defined(lehrenfeld)
 using namespace Lehrenfeld_Convection_Dominated;
@@ -423,10 +424,10 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 2; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.0125;             // starting mesh size
+    double h  = 0.1;             // starting mesh size
     double dT = 0.125;
 
     int total_number_iteration;
@@ -435,21 +436,26 @@ int main(int argc, char **argv) {
 
 #ifdef example1
     // Paths to store data
-    const std::string pathOutputFolder  = "../output_files/bulk/example1/data/";
-    const std::string pathOutputFigures = "../output_files/bulk/example1/paraview/";
+    const std::string path_output_data  = "../output_files/bulk/example1/data/";
+    const std::string path_output_figures = "../output_files/bulk/example1/paraview/";
 #elif defined(example2)
     // Paths to store data
-    const std::string pathOutputFolder  = "../output_files/bulk/example2/data/";
-    const std::string pathOutputFigures = "../output_files/bulk/example2/paraview/";
+    const std::string path_output_data  = "../output_files/bulk/example2/data/";
+    const std::string path_output_figures = "../output_files/bulk/example2/paraview/";
 #elif defined(lehrenfeld)
     // Paths to store data
-    const std::string pathOutputFolder  = "../output_files/bulk/lehrenfeld/data/";
-    const std::string pathOutputFigures = "../output_files/bulk/lehrenfeld/paraview/";
+    const std::string path_output_data  = "../output_files/bulk/lehrenfeld/data/";
+    const std::string path_output_figures = "../output_files/bulk/lehrenfeld/paraview/";
 #endif
 
-    // Data file to hold problem data
+    // Create directory if not already existent
+    if (MPIcf::IamMaster()) {
+        std::filesystem::create_directories(path_output_data);
+        std::filesystem::create_directories(path_output_figures);
+    }
 
-    std::ofstream outputData(pathOutputFolder + "data.dat", std::ofstream::out);
+    // Data file to hold problem data
+    std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
@@ -484,7 +490,7 @@ int main(int argc, char **argv) {
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        const int divisionMeshSize = 2;
+        const int divisionMeshSize = 3;
 
         double dT              = h / divisionMeshSize;
         // double dT = 3*h;
@@ -566,7 +572,7 @@ int main(int argc, char **argv) {
 
         int iter = 0;
         double q0_0, q0_1, qp_0, qp_1; // integral values to be computed
-        double intF = 0, intG = 0;     // hold integrals of rhs and Neumann bcs
+        double intF = 0, int_outflow = 0, intG = 0;     // hold integrals of rhs and Neumann bcs
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -601,16 +607,16 @@ int main(int argc, char **argv) {
             }
 
             // Create active meshes
-            ActiveMesh<Mesh> Kh2(Th);
+            ActiveMesh<Mesh> Thi(Th);
 
 #ifdef omega1
-            Kh2.truncate(interface, -1); // remove part with negative sign of level
+            Thi.truncate(interface, -1); // remove part with negative sign of level
 #elif defined(omega2)
-            Kh2.truncate(interface, 1); // remove part with positive sign of level
+            Thi.truncate(interface, 1); // remove part with positive sign of level
                                         // set to get inner domain
 #endif
             // Cut FE space
-            CutSpace Wh(Kh2, Vh);
+            CutSpace Wh(Thi, Vh);
 
             convdiff.initSpace(Wh, In);
 
@@ -649,7 +655,7 @@ int main(int argc, char **argv) {
             // #else
             if (iter == 0) {
                 // #endif
-                Paraview<Mesh> writerInitial(Kh2, pathOutputFigures + "BulkInitial.vtk");
+                Paraview<Mesh> writerInitial(Thi, path_output_figures + "BulkInitial.vtk");
                 writerInitial.add(b0h, "bulk", 0, 1);
 
                 // Add exact solutions
@@ -667,72 +673,72 @@ int main(int argc, char **argv) {
 
 #ifdef conservative
 
-            convdiff.addBilinear(-innerProduct(u, dt(v)), Kh2, In);
+            convdiff.addBilinear(-innerProduct(u, dt(v)), Thi, In);
 
-            convdiff.addBilinear(+innerProduct(u, v), Kh2, (int)lastQuadTime, In);
+            convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
 
             // Time penalty term bulk RHS
-            convdiff.addLinear(+innerProduct(b0h.expr(), v), Kh2, 0, In);
+            convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
 
 #else // classical scheme
 
-            convdiff.addBilinear(+innerProduct(dt(u), v), Kh2, In);
+            convdiff.addBilinear(+innerProduct(dt(u), v), Thi, In);
 
             // Time penalty term bulk LHS
-            convdiff.addBilinear(+innerProduct(u, v), Kh2, 0, In);
+            convdiff.addBilinear(+innerProduct(u, v), Thi, 0, In);
 
             // Time penalty term bulk RHS
-            convdiff.addLinear(+innerProduct(b0h.expr(), v), Kh2, 0, In);
+            convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
 
 #endif
 
             //* Diffusion term
-            convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Kh2, In);
+            convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi, In);
 
             //* Convection term
 #if defined(classical)
-            convdiff.addBilinear(+innerProduct((vel.exprList() * grad(u)), v), Kh2, In);
+            convdiff.addBilinear(+innerProduct((vel.exprList() * grad(u)), v), Thi, In);
 
 #elif defined(conservative)
-            convdiff.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), Kh2, In);
+            convdiff.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), Thi, In);
 #endif
 
             //* Stabilization
 
 #if defined(fullstab)
 
-            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Kh2, In);
+            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi, In);
 
 #elif defined(macro)
 
-            TimeMacroElement<Mesh> TimeMacro(Kh2, qTime, 0.125);
+            TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.125);
 
             // Visualize macro elements
             if (iterations == 1 && h > 0.01) {
-                Paraview<Mesh> writerMacro(Th, pathOutputFigures + "Th" + std::to_string(iter + 1) + ".vtk");
+                Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
                 writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
                 writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
 
                 // domain = 0,
 
-                writerMacro.writeFaceStab(Kh2, 0,
-                                          pathOutputFigures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeActiveMesh(Kh2, pathOutputFigures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeFaceStab(Thi, 0,
+                                          path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroElement(TimeMacro, 0,
-                                              pathOutputFigures + "macro" + std::to_string(iter + 1) + ".vtk");
+                                              path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroInnerEdge(
-                    TimeMacro, 0, pathOutputFigures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
+                    TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroOutterEdge(
-                    TimeMacro, 0, pathOutputFigures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
+                    TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeSmallElements(TimeMacro, 0,
-                                               pathOutputFigures + "small_element" + std::to_string(iter + 1) + ".vtk");
+                                               path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
             }
 
             // Stabilization of the bulk
             // convdiff.mat_.clear();
          convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u)*n), jump(grad(v)*n)),
-             Kh2, In, TimeMacro);
+             Thi, In, TimeMacro);
 
          // matlab::Export(convdiff.mat_, "mat.dat");
          // getchar();
@@ -750,22 +756,22 @@ int main(int argc, char **argv) {
             convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
                                      - innerProduct(u, D * grad(v) * n) // added to make symmetric
                                      + innerProduct(u, lambda / h * v), // added penalty
-                                 Kh2, INTEGRAL_BOUNDARY, In);
+                                 Thi, INTEGRAL_BOUNDARY, In);
 
-            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Kh2,
+            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                                INTEGRAL_BOUNDARY, In);
 
 		#if defined(conservative)
 			// Set inflow and outflow conditions
 
-			//convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Kh2, INTEGRAL_BOUNDARY, In);
+			//convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
 			convdiff.addLinear(+ innerProduct(g.expr(), 0.5*fabs(vel*n)*v)
 							   - innerProduct(g.expr(), 0.5*(vel*n)*v)
-								, Kh2, INTEGRAL_BOUNDARY, In);
+								, Thi, INTEGRAL_BOUNDARY, In);
 
 			convdiff.addBilinear(+ innerProduct(u, 0.5*fabs(vel*n)*v)
 							   + innerProduct(u, 0.5*(vel*n)*v)
-								, Kh2, INTEGRAL_BOUNDARY, In);
+								, Thi, INTEGRAL_BOUNDARY, In);
 		#endif
 
             // Dirichlet inner
@@ -784,22 +790,22 @@ int main(int argc, char **argv) {
             convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
                                      - innerProduct(u, D * grad(v) * n) // added to make symmetric
                                      + innerProduct(u, lambda / h * v), // added penalty
-                                 Kh2, INTEGRAL_BOUNDARY, In);
+                                 Thi, INTEGRAL_BOUNDARY, In);
 
-            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Kh2,
+            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                                INTEGRAL_BOUNDARY, In);
 
 		#if defined(conservative)
 			// Set inflow and outflow conditions
 
-			//convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Kh2, INTEGRAL_BOUNDARY, In);
+			//convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
 			convdiff.addLinear(+ innerProduct(g.expr(), 0.5*fabs(vel*n)*v)
 							   - innerProduct(g.expr(), 0.5*(vel*n)*v)
-								, Kh2, INTEGRAL_BOUNDARY, In);
+								, Thi, INTEGRAL_BOUNDARY, In);
 
 			convdiff.addBilinear(+ innerProduct(u, 0.5*fabs(vel*n)*v)
 							   + innerProduct(u, 0.5*(vel*n)*v)
-								, Kh2, INTEGRAL_BOUNDARY, In);
+								, Thi, INTEGRAL_BOUNDARY, In);
 		#endif
 
             // Neumann inner
@@ -811,14 +817,14 @@ int main(int argc, char **argv) {
             // Neumann outer
 
             // In Example 1, the Neumann function is zero on the outer boundary
-            // convdiff.addLinear(innerProduct(g_Neumann.expr(), v), Kh2, INTEGRAL_BOUNDARY, In);
-            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){4});
-            // convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){1});
-            // convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
-            // convdiff.addLinear(innerProduct(g_Neumann_top.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){2});
+            // convdiff.addLinear(innerProduct(g_Neumann.expr(), v), Thi, INTEGRAL_BOUNDARY, In);
+            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){4});
+            // convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){1});
+            // convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
+            // convdiff.addLinear(innerProduct(g_Neumann_top.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){2});
 			
 			#if defined(conservative)	// extra term arises when using Reynold's transport theorem
-				convdiff.addBilinear(innerProduct(vel.exprList()*u*n, v), Kh2, INTEGRAL_BOUNDARY, In);
+				convdiff.addBilinear(innerProduct(vel.exprList()*u*n, v), Thi, INTEGRAL_BOUNDARY, In);
             #endif
 
             // Dirichlet inner
@@ -834,13 +840,13 @@ int main(int argc, char **argv) {
 //* Neumann on outer and Neumann on inner
 #elif defined(neumann1) && defined(neumann2)
             // Neumann outer
-            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){1});
-            // convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){4});
-            // convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){2});
-            // convdiff.addLinear(innerProduct(g_Neumann_top.expr(), v), Kh2, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
+            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){1});
+            // convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){4});
+            // convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){2});
+            // convdiff.addLinear(innerProduct(g_Neumann_top.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
 
             #if defined(conservative)
-				convdiff.addBilinear(innerProduct(vel.exprList()*u*n, v), Kh2, INTEGRAL_BOUNDARY, In);
+				convdiff.addBilinear(innerProduct(vel.exprList()*u*n, v), Thi, INTEGRAL_BOUNDARY, In);
             #endif
             // Neumann inner
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface, In);
@@ -850,7 +856,7 @@ int main(int argc, char **argv) {
 // If Omega2
 #elif defined(omega2)
 #ifdef neumann
-            Fun_h g_Neumann(Wh, In, fun_neumann_Gamma);
+
             convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
 
 #elif defined(dirichlet)
@@ -873,11 +879,11 @@ int main(int argc, char **argv) {
 #endif
 
             // Add RHS in bulk
-            convdiff.addLinear(+innerProduct(f.expr(), v), Kh2, In);
+            convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
 
             if (iter == total_number_iteration - 1)
                 matlab::Export(convdiff.mat_[0],
-                               pathOutputFolder + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
+                               path_output_data + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
 
             // Solve linear system
             convdiff.solve("umfpack");
@@ -887,31 +893,41 @@ int main(int argc, char **argv) {
 
             // Compute conservation error
             if (iterations == 1) {
+                Fun_h funuh(Wh, data_u0);
 
-                intF = integral(Kh2, In, f, 0, qTime);
-#ifdef neumann
-                intG = integral(g_Neumann, In, interface, 0);
+                intF = integral(Thi, In, f, 0, qTime);
+#if defined(conservative) && defined(omega1) && defined(neumann1) && defined(neumann2)
+                auto outflow = (vel * n) * funuh.expr();
+                int_outflow = integral(Thi, In, (vel*n)*b0h.expr(), INTEGRAL_BOUNDARY, qTime); //integral(outflow, In, interface, 0);
+                intG = - integral(g_Neumann, In, interface, 0);    
 #endif
 
-                Fun_h funuh(Wh, data_u0);
+#if defined(omega2) && defined(neumann)
+                intG = integral(g_Neumann, In, interface, 0);
+                
+#endif
 
                 Rn sol2(Wh.NbDoF(), 0.);
                 Fun_h funsol(Wh, sol2);
                 sol2 += data_u0(SubArray(Wh.NbDoF(), 0));
-                double q_0 = integral(Kh2, funsol, 0, 0);
+                double q_0 = integral(Thi, funsol, 0, 0);
                 sol2 += data_u0(SubArray(Wh.NbDoF(), Wh.NbDoF()));
-                double q_1 = integral(Kh2, funsol, 0, lastQuadTime);
+                double q_1 = integral(Thi, funsol, 0, lastQuadTime);
 
                 if (iter == 0) {
                     q0_0 = q_0;
                     q0_1 = q_1;
                     qp_1 = q_1;
-                    q0_1 = integral(Kh2, b0h, 0, 0);
+                    q0_1 = integral(Thi, b0h, 0, 0);
                 }
 
                 outputData << std::setprecision(10);
                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG << ","
+                #if defined(omega2) && defined(neumann)
                            << ((q_1 - qp_1) - intF - intG) << '\n';
+                #elif defined(omega1) && defined(neumann1)
+                            << ((q_1 - qp_1) - intF - intG + int_outflow) << '\n';
+                #endif
                 qp_1 = q_1;
             }
 
@@ -932,7 +948,7 @@ int main(int argc, char **argv) {
             // #else
             if ((iterations == 1)) {
                 Fun_h sol(Wh, data_u0);
-                Paraview<Mesh> writer(Kh2, pathOutputFigures + "Bulk" + std::to_string(iter + 1) + "DG.vtk");
+                Paraview<Mesh> writer(Thi, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
                 writer.add(b0h, "bulk", 0, 1);
 
                 Fun_h uBex(Wh, fun_uBulk, current_time);
@@ -944,7 +960,7 @@ int main(int argc, char **argv) {
                 // writer.add(fabs(uuh - uuex), "bulk_error");
                 writer.add(ls[0], "levelSet0", 0, 1);
                 writer.add(ls[1], "levelSet1", 0, 1);
-                // writer.add(ls[2], "levelSet2", 0, 1);
+                writer.add(ls[2], "levelSet2", 0, 1);
             }
 
             if (iterations > 1 && iter == total_number_iteration - 1)

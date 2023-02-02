@@ -815,6 +815,31 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
 }
 
 template <typename M>
+template <typename Fct>
+void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF,
+                           const Interface<M> &gamma, const TimeSlab &In,
+                           int itq, std::list<int> label) {
+   assert(VF.isRHS());
+   bool all_label = (label.size() == 0);
+   auto tq        = this->get_quadrature_time(itq);
+   double tid     = In.map(tq);
+
+   KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+   RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+   In.BF(tq.x, bf_time); // compute time basic funtions
+
+   for (int iface = gamma.first_element(); iface < gamma.last_element();
+        iface += gamma.next_element()) {
+      const typename Interface<M>::Face &face = gamma[iface]; // the face
+      if (util::contain(label, face.lab) || all_label) {
+
+         addInterfaceContribution(f, VF, gamma, iface, tid, &In, 1., itq);
+      }
+      this->addLocalContribution();
+   }
+}
+
+template <typename M>
 void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
                            const TimeInterface<M> &gamma, const TimeSlab &In,
                            std::list<int> label) {
@@ -847,6 +872,46 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
       if (util::contain(label, face.lab) || all_label) {
 
          addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time,
+                                  itq);
+      }
+   }
+}
+
+
+template <typename M>
+template <typename Fct>
+void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF,
+                           const TimeInterface<M> &gamma, const TimeSlab &In,
+                           std::list<int> label) {
+   assert(VF.isRHS());
+
+   for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
+      addLinear(f, VF, gamma, In, itq, label);
+   }
+}
+
+template <typename M>
+template <typename Fct>
+void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
+                           int itq, std::list<int> label) {
+   assert(VF.isRHS());
+   bool all_label = (label.size() == 0);
+   auto tq        = this->get_quadrature_time(itq);
+   double tid     = In.map(tq);
+
+   KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+   RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+   In.BF(tq.x, bf_time); // compute time basic funtions
+   double cst_time = tq.a * In.get_measure();
+
+   for (int iface = gamma[itq]->first_element();
+        iface < gamma[itq]->last_element();
+        iface += gamma[itq]->next_element()) {
+      const typename Interface<M>::Face &face =
+          (*gamma[itq])[iface]; // the face
+      if (util::contain(label, face.lab) || all_label) {
+
+         addInterfaceContribution(f, VF, *gamma[itq], iface, tid, &In, cst_time,
                                   itq);
       }
    }
@@ -938,6 +1003,117 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d> &VF,
          Cint *= VF[l].evaluateFunctionOnBackgroundMesh(
              std::make_pair(kb, kb), std::make_pair(domu, domv), mip, tid,
              normal);
+         Cint *= coef * VF[l].c;
+
+         if (In) {
+            if (VF.isRHS())
+               this->addToRHS(VF[l], *In, FKv, fv, Cint);
+            else
+               this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+         } else {
+            if (VF.isRHS()) {
+               // std::cout << Cint << std::endl;
+               // std::cout << fv << std::endl;
+               this->addToRHS(VF[l], FKv, fv, Cint);
+            } else
+               this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+         }
+      }
+   }
+}
+
+
+
+
+// ! Add addInterfaceContribution for function evaluation (rhs)
+template <typename M>
+template <typename Fct>
+void BaseFEM<M>::addInterfaceContribution(const Fct &f, const ListItemVF<Rd::d> &VF,
+                                          const Interface<M> &interface,
+                                          int ifac, double tid,
+                                          const TimeSlab *In, double cst_time,
+                                          int itq) {
+   typedef typename FElement::RdHatBord RdHatBord;
+
+   // GET IDX ELEMENT CONTAINING FACE ON backMes
+   const int kb = interface.idxElementOfFace(ifac);
+   const Element &K(interface.get_element(kb));
+   double measK = K.measure();
+   double h     = K.get_h();
+   double meas  = interface.measure(ifac);
+   std::array<double, 2> measCut;
+
+   { // compute each cut part
+      const FESpace &Vh(VF.get_spaceV(0));
+      const ActiveMesh<M> &Th(Vh.get_mesh());
+      std::vector<int> idxV = Vh.idxAllElementFromBackMesh(kb, -1);
+
+      const Cut_Part<Element> cutK(Th.get_cut_part(idxV[0], itq));
+      measCut[0] = cutK.measure();
+      measCut[1] = measCut[0];
+      if (idxV.size() == 2) {
+         const Cut_Part<Element> cutK(Th.get_cut_part(idxV[1], itq));
+         measCut[1] = cutK.measure();
+      }
+   }
+
+   const Rd normal(-interface.normal(ifac));
+
+   // GET THE QUADRATURE RULE
+   const QFB &qfb(this->get_quadrature_formular_cutFace());
+
+   for (int l = 0; l < VF.size(); ++l) {
+      // if(!VF[l].on(domain)) continue;
+
+      // FINITE ELEMENT SPACES && ELEMENTS
+      const FESpace &Vhv(VF.get_spaceV(l));
+      const FESpace &Vhu(VF.get_spaceU(l));
+      bool same = (VF.isRHS() || (&Vhu == &Vhv));
+
+      std::vector<int> idxV =
+          Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+      std::vector<int> idxU = (same)
+                                  ? idxV
+                                  : Vhu.idxAllElementFromBackMesh(
+                                        kb, VF[l].get_domain_trial_function());
+
+      int kv = VF[l].onWhatElementIsTestFunction(idxV);
+      int ku = VF[l].onWhatElementIsTrialFunction(idxU);
+
+      const FElement &FKu(Vhu[ku]);
+      const FElement &FKv(Vhv[kv]);
+      int domu = FKu.get_domain();
+      int domv = FKv.get_domain();
+      this->initIndex(FKu, FKv);
+
+      // BF MEMORY MANAGEMENT -
+      int lastop = getLastop(VF[l].du, VF[l].dv);
+      RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+      RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop),
+               FKu.NbDoF(), FKu.N, lastop);
+      What_d Fop = Fwhatd(lastop);
+
+      // COMPUTE COEFFICIENT && NORMAL
+      double coef =
+          VF[l].computeCoefInterface(h, meas, measK, measCut, {domu, domv});
+      coef *= VF[l].computeCoefFromNormal(normal);
+
+      // // LOOP OVER QUADRATURE IN SPACE
+      for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+
+         typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
+         Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
+         const Rd face_ip = K.mapToReferenceElement(mip);
+         double Cint      = meas * ip.getWeight() * cst_time;
+
+         // EVALUATE THE BASIS FUNCTIONS
+         FKv.BF(Fop, face_ip, fv);
+         if (!same)
+            FKu.BF(Fop, face_ip, fu);
+
+         Cint *= f(mip, VF[l].cv, tid);
+         Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip, tid,
+                                                        normal);
          Cint *= coef * VF[l].c;
 
          if (In) {

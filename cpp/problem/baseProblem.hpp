@@ -180,11 +180,25 @@ class BaseFEM : public ShapeOfProblem<Mesh>, public QuadratureOfProblem<Mesh> {
    void addBilinear(const ListItemVF<Rd::d> &VF,
                     const TimeInterface<Mesh> &gamma, const TimeSlab &In,
                     int itq, std::list<int> label = {});
+   template <typename Fct>
+   void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
+                  std::list<int> label);
+   template <typename Fct>
+   void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In, int itq,
+                  std::list<int> label);
+   template <typename Fct>
+   void addInterfaceContribution(const Fct &f, const ListItemVF<Rd::d> &VF,
+                  const Interface<Mesh> &gamma, int ifac,
+                  double tid, const TimeSlab *In,
+                  double cst_time, int itq);
 
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
                   std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
                   const TimeSlab &In, int itq, std::list<int> label = {});
+   template <typename Fct>
+   void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma,
+                  const TimeSlab &In, int itq, std::list<int> label = {});                  
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
                   const TimeSlab &In, std::list<int> label = {});
    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma,
