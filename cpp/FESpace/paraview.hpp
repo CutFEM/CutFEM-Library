@@ -192,9 +192,10 @@ template <class M> class Paraview {
          for (int k = 0; k < cutTh.NbElement(); ++k) {
             int domain = cutTh.get_domain_element(k);
             int kb     = cutTh.idxElementInBackMesh(k);
-            // if (cutTh.isInactive(k, 0)) {
-            //    continue;
-            // }
+            // Sometimes the following three lines should be outcommented, to view the solution in all quadrature points
+            if (cutTh.isInactive(k, 0)) {
+               continue;
+            }
             if (cutTh.isCut(k, 0)) {
 
                const Cut_Part<Element> cutK(cutTh.get_cut_part(k, 0));

@@ -84,10 +84,11 @@ double fun_levelSet(double *P, const int i) {
 R fun_neumann_Gamma(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
 
-    return (pi * cos(pi * y) * sin(pi * x) * (2 * cos(pi * t) * cos(pi * t) - 1) * ((7 * sin(pi * t)) / 25 - x + 0.5)) /
-               (250 * sqrt(pow(y + (7 * cos(t * pi)) / 25 - 0.5, 2) + pow((7 * sin(t * pi)) / 25 - x + 0.5, 2))) -
-           (pi * cos(pi * x) * sin(pi * y) * (2 * cos(pi * t) * cos(pi * t) - 1) * (y + (7 * cos(pi * t)) / 25 - 0.5)) /
-               (250 * sqrt(pow(y + (7 * cos(t * pi)) / 25 - 0.5, 2) + pow((7 * sin(t * pi)) / 25 - x + 0.5, 2)));
+    // Wrong sign of normal vector at interface
+    return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2 - 0.28 * sin(pi * t))) /
+               (250 * sqrt((pow(x - 1. / 2 - 0.28 * sin(pi * t), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2)))) -
+           (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 0.5 + 0.28 * cos(pi * t))) /
+               (250 * sqrt((pow((x - 1. / 2 - 0.28 * sin(pi * t)), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2))));
 }
 
 // Velocity field
@@ -160,17 +161,92 @@ R fun_neumann_top(double *P, const int i, const R t) {
 
 } // namespace Example1
 
+namespace Example1_pure_diffusion {
+
+// Level-set function
+double fun_levelSet(double *P, const int i, const R t) {
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
+}
+
+// Level-set function initial
+double fun_levelSet(double *P, const int i) {
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
+}
+
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2)) /
+               (250 * sqrt((pow((x - 1. / 2), 2) + pow(y - 11. / 50, 2)))) -
+           (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 11. / 50)) /
+               (250 * sqrt((pow((x - 1. / 2), 2) + pow(y - 11. / 50, 2))));
+}
+
+// Velocity field
+R fun_velocity(double *P, const int i) {
+    if (i == 0)
+        return 0.;
+    else
+        return 0.;
+}
+
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
+
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
+
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
+
+// RHS fB bulk
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return -(pi * cos(pi * x) * cos(pi * y) * (100 * sin(2 * pi * t) - pi * cos(2 * pi * t))) / 125;
+}
+
+R fun_neumann_left(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return (pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+}
+
+R fun_neumann_bottom(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+}
+
+R fun_neumann_right(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+}
+
+R fun_neumann_top(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return -(pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+}
+
+} // namespace Example1_pure_diffusion
+
 namespace Example1_Omega1 {
 
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17;
+    return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17);
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17;
+    return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17);
 }
 
 // The rhs Neumann boundary condition
@@ -389,33 +465,33 @@ typedef FunFEM<Mesh2> Fun_h;
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
-#define omega1
+#define omega2
 // If "omega1":
 // Set type of BCs on outer boundary (options: "dirichlet1" or "neumann1")
-#define neumann1
+#define dirichlet1
 // Set type of BCs on interface (options: "dirichlet2" or "neumann2")
-#define neumann2
+#define dirichlet2
 
 // If "omega2":
 // Set type of BCs on interface (options: "dirichlet", "neumann")
 #define neumann
 
 //* Set scheme for the method (options: "classical", "conservative")
-#define conservative
+#define classical
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
 
-#define use_h    // to set mesh size using the h parameter. Write use_n to decide
-                 // using nx, ny.
-#define use_tnot // write use_t to control dT manually. Otherwise it is set
-                 // proportional to h.
+#define use_h // to set mesh size using the h parameter. Write use_n to decide
+              // using nx, ny.
+#define use_t // write use_t to control dT manually. Otherwise it is set
+              // proportional to h.
 
 // Do not touch
 #ifdef example1
-    using namespace Example1; 
+using namespace Example1;
 #endif
 #if defined(lehrenfeld)
 using namespace Lehrenfeld_Convection_Dominated;
@@ -424,11 +500,11 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;             // starting mesh size
-    double dT = 0.125;
+    double h  = 0.025;           // starting mesh size
+    double dT = 0.25;
 
     int total_number_iteration;
     double time_step;
@@ -436,15 +512,15 @@ int main(int argc, char **argv) {
 
 #ifdef example1
     // Paths to store data
-    const std::string path_output_data  = "../output_files/bulk/example1/data/";
+    const std::string path_output_data    = "../output_files/bulk/example1/data/";
     const std::string path_output_figures = "../output_files/bulk/example1/paraview/";
 #elif defined(example2)
     // Paths to store data
-    const std::string path_output_data  = "../output_files/bulk/example2/data/";
+    const std::string path_output_data    = "../output_files/bulk/example2/data/";
     const std::string path_output_figures = "../output_files/bulk/example2/paraview/";
 #elif defined(lehrenfeld)
     // Paths to store data
-    const std::string path_output_data  = "../output_files/bulk/lehrenfeld/data/";
+    const std::string path_output_data    = "../output_files/bulk/lehrenfeld/data/";
     const std::string path_output_figures = "../output_files/bulk/lehrenfeld/paraview/";
 #endif
 
@@ -520,20 +596,24 @@ int main(int argc, char **argv) {
         double lambda = 1.; // Nitsche's method penalty parameter
 
         // CG stabilization parameter
-        const double tau1 = 0.1;
+        const double tau1 = 1e-3;
 
         FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
         FESpace2 Vh2(Th,
-                     DataFE<Mesh>::P2); // higher order space for interpolation
+                     DataFE<Mesh>::P2);     // higher order space for interpolation
+        FESpace2 Vh3(Th, DataFE<Mesh>::P3); // continuous basis functions
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+        FESpace1 Ih2(Qh, DataFE<Mesh1>::P2Poly);
+        // FESpace1 Ih3(Qh, DataFE<Mesh1>::P3Poly);
+
         // Quadrature data
         const QuadratureFormular1d &qTime(*Lobatto(3)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
@@ -571,8 +651,8 @@ int main(int argc, char **argv) {
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
         int iter = 0;
-        double q0_0, q0_1, qp_0, qp_1; // integral values to be computed
-        double intF = 0, int_outflow = 0, intG = 0;     // hold integrals of rhs and Neumann bcs
+        double q0_0, q0_1, qp_0, qp_1;              // integral values to be computed
+        double intF = 0, int_outflow = 0, intG = 0; // hold integrals of rhs and Neumann bcs
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -580,6 +660,8 @@ int main(int argc, char **argv) {
             int current_iteration = iter;
             double current_time   = iter * time_step;
             const TimeSlab &In(Ih[iter]);
+            const TimeSlab &In2(Ih2[iter]);
+            // const TimeSlab &In3(Ih3[iter]);
 
             std::cout << " -------------------------------------------------------\n";
             std::cout << " -------------------------------------------------------\n";
@@ -623,17 +705,17 @@ int main(int argc, char **argv) {
             // Objects needed for the weak form
             Normal n;
             Tangent t;
+            
 
             // Right hand side functions
             Fun_h f(Vh, In, fun_rhsBulk);
             Fun_h g(Vh, In, fun_uBulk);                 // create an FE-function of the exact bulk
                                                         // solution Omega2
-            Fun_h g_Neumann(Wh, In, fun_neumann_Gamma); // computer Neumann BC
-            Fun_h g_Neumann_left(Wh, In, fun_neumann_left);     // label 1
-            Fun_h g_Neumann_bottom(Wh, In, fun_neumann_bottom); // label 4
-            Fun_h g_Neumann_right(Wh, In, fun_neumann_right);   // label 2
-            Fun_h g_Neumann_top(Wh, In, fun_neumann_top);       // label 3
-
+            Fun_h g_Neumann(Vh, In, fun_neumann_Gamma); // computer Neumann BC
+            // Fun_h g_Neumann_left(Wh, In, fun_neumann_left);     // label 1
+            // Fun_h g_Neumann_bottom(Wh, In, fun_neumann_bottom); // label 4
+            // Fun_h g_Neumann_right(Wh, In, fun_neumann_right);   // label 2
+            // Fun_h g_Neumann_top(Wh, In, fun_neumann_top);       // label 3
 
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1);
@@ -711,7 +793,7 @@ int main(int argc, char **argv) {
 
 #elif defined(macro)
 
-            TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.125);
+            TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.15);
 
             // Visualize macro elements
             if (iterations == 1 && h > 0.01) {
@@ -722,26 +804,27 @@ int main(int argc, char **argv) {
 
                 // domain = 0,
 
-                writerMacro.writeFaceStab(Thi, 0,
-                                          path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeFaceStab(
+                    Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeActiveMesh(Thi,
+                                            path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroElement(TimeMacro, 0,
                                               path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroInnerEdge(
                     TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.writeMacroOutterEdge(
                     TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeSmallElements(TimeMacro, 0,
-                                               path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeSmallElements(
+                    TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
             }
 
             // Stabilization of the bulk
             // convdiff.mat_.clear();
-         convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u)*n), jump(grad(v)*n)),
-             Thi, In, TimeMacro);
+            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi, In,
+                                          TimeMacro);
 
-         // matlab::Export(convdiff.mat_, "mat.dat");
-         // getchar();
+            // matlab::Export(convdiff.mat_, "mat.dat");
+            // getchar();
 
 #endif
 
@@ -761,18 +844,17 @@ int main(int argc, char **argv) {
             convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                                INTEGRAL_BOUNDARY, In);
 
-		#if defined(conservative)
-			// Set inflow and outflow conditions
+#if defined(conservative)
+            // Set inflow and outflow conditions
 
-			//convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
-			convdiff.addLinear(+ innerProduct(g.expr(), 0.5*fabs(vel*n)*v)
-							   - innerProduct(g.expr(), 0.5*(vel*n)*v)
-								, Thi, INTEGRAL_BOUNDARY, In);
+            // convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
+            convdiff.addLinear(+innerProduct(g.expr(), 0.5 * fabs(vel * n) * v) -
+                                   innerProduct(g.expr(), 0.5 * (vel * n) * v),
+                               Thi, INTEGRAL_BOUNDARY, In);
 
-			convdiff.addBilinear(+ innerProduct(u, 0.5*fabs(vel*n)*v)
-							   + innerProduct(u, 0.5*(vel*n)*v)
-								, Thi, INTEGRAL_BOUNDARY, In);
-		#endif
+            convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v) + innerProduct(u, 0.5 * (vel * n) * v), Thi,
+                                 INTEGRAL_BOUNDARY, In);
+#endif
 
             // Dirichlet inner
             convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
@@ -795,18 +877,17 @@ int main(int argc, char **argv) {
             convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                                INTEGRAL_BOUNDARY, In);
 
-		#if defined(conservative)
-			// Set inflow and outflow conditions
+#if defined(conservative)
+            // Set inflow and outflow conditions
 
-			//convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
-			convdiff.addLinear(+ innerProduct(g.expr(), 0.5*fabs(vel*n)*v)
-							   - innerProduct(g.expr(), 0.5*(vel*n)*v)
-								, Thi, INTEGRAL_BOUNDARY, In);
+            // convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
+            convdiff.addLinear(+innerProduct(g.expr(), 0.5 * fabs(vel * n) * v) -
+                                   innerProduct(g.expr(), 0.5 * (vel * n) * v),
+                               Thi, INTEGRAL_BOUNDARY, In);
 
-			convdiff.addBilinear(+ innerProduct(u, 0.5*fabs(vel*n)*v)
-							   + innerProduct(u, 0.5*(vel*n)*v)
-								, Thi, INTEGRAL_BOUNDARY, In);
-		#endif
+            convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v) + innerProduct(u, 0.5 * (vel * n) * v), Thi,
+                                 INTEGRAL_BOUNDARY, In);
+#endif
 
             // Neumann inner
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface,
@@ -818,14 +899,15 @@ int main(int argc, char **argv) {
 
             // In Example 1, the Neumann function is zero on the outer boundary
             // convdiff.addLinear(innerProduct(g_Neumann.expr(), v), Thi, INTEGRAL_BOUNDARY, In);
-            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){4});
-            // convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){1});
-            // convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
-            // convdiff.addLinear(innerProduct(g_Neumann_top.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){2});
-			
-			#if defined(conservative)	// extra term arises when using Reynold's transport theorem
-				convdiff.addBilinear(innerProduct(vel.exprList()*u*n, v), Thi, INTEGRAL_BOUNDARY, In);
-            #endif
+            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Thi, INTEGRAL_BOUNDARY, In,
+            // (std::list<int>){4}); convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Thi,
+            // INTEGRAL_BOUNDARY, In, (std::list<int>){1}); convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v),
+            // Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){3}); convdiff.addLinear(innerProduct(g_Neumann_top.expr(),
+            // v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){2});
+
+#if defined(conservative) // extra term arises when using Reynold's transport theorem
+            convdiff.addBilinear(innerProduct(vel.exprList() * u * n, v), Thi, INTEGRAL_BOUNDARY, In);
+#endif
 
             // Dirichlet inner
             convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
@@ -840,14 +922,15 @@ int main(int argc, char **argv) {
 //* Neumann on outer and Neumann on inner
 #elif defined(neumann1) && defined(neumann2)
             // Neumann outer
-            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){1});
-            // convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){4});
-            // convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){2});
-            // convdiff.addLinear(innerProduct(g_Neumann_top.expr(), v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
+            // convdiff.addLinear(innerProduct(g_Neumann_left.expr(), v), Thi, INTEGRAL_BOUNDARY, In,
+            // (std::list<int>){1}); convdiff.addLinear(innerProduct(g_Neumann_bottom.expr(), v), Thi,
+            // INTEGRAL_BOUNDARY, In, (std::list<int>){4}); convdiff.addLinear(innerProduct(g_Neumann_right.expr(), v),
+            // Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){2}); convdiff.addLinear(innerProduct(g_Neumann_top.expr(),
+            // v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
 
-            #if defined(conservative)
-				convdiff.addBilinear(innerProduct(vel.exprList()*u*n, v), Thi, INTEGRAL_BOUNDARY, In);
-            #endif
+#if defined(conservative)
+            convdiff.addBilinear(innerProduct(vel.exprList() * u * n, v), Thi, INTEGRAL_BOUNDARY, In);
+#endif
             // Neumann inner
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface, In);
 
@@ -863,16 +946,15 @@ int main(int argc, char **argv) {
 
             //* Nitsche's method:
 
-			// LHS terms
+            // LHS terms
             convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
                                      - innerProduct(u, D * grad(v) * n) // added to make symmetric
-                                     + innerProduct(u, lambda/h * v)       // added penalty
+                                     + innerProduct(u, lambda / h * v)  // added penalty
                                  ,
                                  interface, In);
 
             // RHS terms
-            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) +
-                                   innerProduct(g.expr(), lambda/h * v),
+            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v),
                                interface, In);
 
 #endif
@@ -886,7 +968,7 @@ int main(int argc, char **argv) {
                                path_output_data + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
 
             // Solve linear system
-            convdiff.solve("umfpack");
+            convdiff.solve("mumps");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -898,13 +980,14 @@ int main(int argc, char **argv) {
                 intF = integral(Thi, In, f, 0, qTime);
 #if defined(conservative) && defined(omega1) && defined(neumann1) && defined(neumann2)
                 auto outflow = (vel * n) * funuh.expr();
-                int_outflow = integral(Thi, In, (vel*n)*b0h.expr(), INTEGRAL_BOUNDARY, qTime); //integral(outflow, In, interface, 0);
-                intG = - integral(g_Neumann, In, interface, 0);    
+                int_outflow  = integral(Thi, In, (vel * n) * b0h.expr(), INTEGRAL_BOUNDARY,
+                                        qTime); // integral(outflow, In, interface, 0);
+                intG         = -integral(g_Neumann, In, interface, 0);
 #endif
 
 #if defined(omega2) && defined(neumann)
                 intG = integral(g_Neumann, In, interface, 0);
-                
+
 #endif
 
                 Rn sol2(Wh.NbDoF(), 0.);
@@ -923,11 +1006,13 @@ int main(int argc, char **argv) {
 
                 outputData << std::setprecision(10);
                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG << ","
-                #if defined(omega2) && defined(neumann)
+#if defined(omega1) && defined(dirichlet2)
+                    ;
+#elif defined(omega2) && defined(neumann)
                            << ((q_1 - qp_1) - intF - intG) << '\n';
-                #elif defined(omega1) && defined(neumann1)
-                            << ((q_1 - qp_1) - intF - intG + int_outflow) << '\n';
-                #endif
+#elif defined(omega1) && defined(neumann1)
+                           << ((q_1 - qp_1) - intF - intG + int_outflow) << '\n';
+#endif
                 qp_1 = q_1;
             }
 
@@ -957,6 +1042,7 @@ int main(int argc, char **argv) {
                 Expression2 uuex(uBex, 0, op_id);
                 writer.add(uBex, "bulk_exact", 0, 1);
                 writer.add(fB, "bulk_rhs", 0, 1);
+                writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
                 // writer.add(fabs(uuh - uuex), "bulk_error");
                 writer.add(ls[0], "levelSet0", 0, 1);
                 writer.add(ls[1], "levelSet1", 0, 1);

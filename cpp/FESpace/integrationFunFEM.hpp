@@ -198,6 +198,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 // Integration on Cut Mesh
 // ===============================================================
+
 template <typename M>
 double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0) {
    int nb_dom = Th.get_nb_domain();
@@ -209,6 +210,8 @@ double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0) {
    }
    return val;
 }
+
+
 template <typename M>
 double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0, int itq) {
    int nb_dom = Th.get_nb_domain();
@@ -220,6 +223,8 @@ double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0, int itq) {
    }
    return val;
 }
+
+
 template <typename M>
 double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0,
                 int domain, int itq) {
@@ -229,6 +234,8 @@ double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0,
    val += integral(Th, ui, domain, itq);
    return val;
 }
+
+
 template <typename M>
 double integral(const ActiveMesh<M> &Th,
                 const std::shared_ptr<const ExpressionVirtual> &fh) {
@@ -239,6 +246,8 @@ double integral(const ActiveMesh<M> &Th,
    }
    return val;
 }
+
+
 template <typename M>
 double integral(const ActiveMesh<M> &Th,
                 const std::shared_ptr<const ExpressionVirtual> &fh, int itq) {
@@ -671,7 +680,7 @@ double integral(FunFEM<M> &fh, const TimeSlab &In,
 
 
 template <typename M, typename E>
-double integral(std::shared_ptr<E> &fh, const TimeSlab &In,
+double integral(const std::shared_ptr<E> &fh, const TimeSlab &In,
                 const TimeInterface<M> &gamma, int cu) {
 
    typedef M Mesh;
