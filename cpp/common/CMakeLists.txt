@@ -21,9 +21,11 @@ ${CMAKE_CURRENT_SOURCE_DIR}/geometry.cpp
 
 add_library(common SHARED ${COMMON_SOURCES})
 target_include_directories(common
-PUBLIC
+PRIVATE
 "${CMAKE_CURRENT_SOURCE_DIR}"
+"${CMAKE_CURRENT_BINARY_DIR}"
 "${PROJECT_BINARY_DIR}")
+
 if(USE_MPI)                   
 target_link_libraries(common PRIVATE parallel)
 else()

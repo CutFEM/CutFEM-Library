@@ -18,7 +18,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "base_interface.hpp"
 
-template <typename M> class InterfaceLevelSet : public Interface<M> {
+template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
 
     typedef M Mesh;
     typedef typename Mesh::Element Element;
@@ -31,7 +31,7 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
     KN<double> ls_;
 
   public:
-    template <typename Fct>
+    template <typeFunFEM Fct>
     InterfaceLevelSet(const Mesh &MM, const Fct &lss, int label = 0)
 
         : Interface<M>(MM), ls_(lss.getArray()) {
@@ -55,7 +55,9 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
 
         return Partition<Element>((*this->backMesh)[k], loc_ls);
     }
-    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const {
+    Partition<typename Element::Face>
+    get_partition_face(const typename Element::Face &face, int k,
+                       int ifac) const {
         double loc_ls[Element::Face::nv];
         for (int i = 0; i < Element::Face::nv; ++i) {
             int j     = Element::nvhyperFace[ifac][i];
@@ -66,7 +68,8 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
     }
     bool isCutFace(int k, int ifac) const;
 
-    void cut_partition(Physical_Partition<Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
+    void cut_partition(Physical_Partition<Element> &local_partition,
+                       std::vector<ElementIdx> &new_element_idx,
                        std::list<int> &erased_element, int sign_part) const {
         std::cout << " An element might be cut multiplue time, and it is not "
                      "suppose to happen"
@@ -84,10 +87,12 @@ template <typename M> class InterfaceLevelSet : public Interface<M> {
   private:
     void make_patch(int label);
 
-    const Face make_face(const typename RefPatch<Element>::FaceIdx &ref_tri, const typename Mesh::Element &K,
+    const Face make_face(const typename RefPatch<Element>::FaceIdx &ref_tri,
+                         const typename Mesh::Element &K,
                          const double lset[Element::nv], int label);
 
-    Rd make_normal(const typename Mesh::Element &K, const double lset[Element::nv]);
+    Rd make_normal(const typename Mesh::Element &K,
+                   const double lset[Element::nv]);
 
     // Rd get_intersection_node(int k, const Rd A, const Rd B) const {
     //   double fA = fun.eval(k, A);
@@ -132,8 +137,10 @@ template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
         if (cut.empty())
             continue;
 
-        for (typename RefPatch<Element>::const_face_iterator it = cut.face_begin(), end = cut.face_end(); it != end;
-             ++it) {
+        for (typename RefPatch<Element>::const_face_iterator
+                 it  = cut.face_begin(),
+                 end = cut.face_end();
+             it != end; ++it) {
             this->face_of_element_[k] = this->element_of_face_.size();
             this->faces_.push_back(make_face(*it, K, loc_ls, label));
             this->element_of_face_.push_back(k);
@@ -145,8 +152,10 @@ template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
 template <typename M>
 const typename InterfaceLevelSet<M>::Face
 
-InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_tri, const typename Mesh::Element &K,
-                                const double lset[Element::nv], int label) {
+InterfaceLevelSet<M>::make_face(
+    const typename RefPatch<Element>::FaceIdx &ref_tri,
+    const typename Mesh::Element &K, const double lset[Element::nv],
+    int label) {
 
     Uint loc_vert_num;
     Uint triIdx[nve];
@@ -168,7 +177,8 @@ InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_t
                         i1 = Mesh::Element::nvedge[loc_vert_num - K.nv][1];
 
             const double t = lset[i0] / (lset[i0] - lset[i1]);
-            Rd Q           = (1.0 - t) * ((Rd)K[i0]) + t * ((Rd)K[i1]); // linear interpolation
+            Rd Q           = (1.0 - t) * ((Rd)K[i0]) +
+                   t * ((Rd)K[i1]); // linear interpolation
             this->vertices_.push_back(Q);
             triIdx[j] = this->vertices_.size() - 1;
 
@@ -179,8 +189,9 @@ InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_t
 }
 
 template <typename M>
-typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::make_normal(const typename Mesh::Element &K,
-                                                                    const double lset[Element::nv]) {
+typename InterfaceLevelSet<M>::Rd
+InterfaceLevelSet<M>::make_normal(const typename Mesh::Element &K,
+                                  const double lset[Element::nv]) {
 
     Rd grad[Element::nv];
     K.Gradlambda(grad);

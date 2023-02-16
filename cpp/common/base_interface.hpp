@@ -21,6 +21,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <cassert>
 #include <bitset>
 #include <memory>
+#include "../concept/function.hpp"
 #include "RNM.hpp"
 #include "Label.hpp"
 #include "../num/util.hpp"
@@ -38,21 +39,23 @@ template <int N> struct FaceInterface {};
 template <> struct FaceInterface<2> : public SortArray<Uint, 2>, public Label {
     typedef SortArray<Uint, 2> FaceIdx;
 
-    FaceInterface(const Uint &a0, const Uint &a1, int l = 0) : FaceIdx(a0, a1), Label(l) {}
+    FaceInterface(const Uint &a0, const Uint &a1, int l = 0)
+        : FaceIdx(a0, a1), Label(l) {}
     FaceInterface(Uint *a, int l = 0) : FaceIdx(a), Label(l) {}
     FaceInterface() : FaceIdx(), Label(0) {}
 };
 template <> struct FaceInterface<3> : public SortArray<Uint, 3>, public Label {
     typedef SortArray<Uint, 3> FaceIdx;
 
-    FaceInterface(const Uint &a0, const Uint &a1, const Uint &a2, int l = 0) : FaceIdx(a0, a1, a2), Label(l) {}
+    FaceInterface(const Uint &a0, const Uint &a1, const Uint &a2, int l = 0)
+        : FaceIdx(a0, a1, a2), Label(l) {}
     FaceInterface(Uint *a, int l = 0) : FaceIdx(a), Label(l) {}
     FaceInterface() : FaceIdx(), Label(0) {}
 };
 
-template <typename M> class InterfaceLevelSet;
+template <typeMesh M> class InterfaceLevelSet;
 
-template <typename M> class Interface {
+template <typeMesh M> class Interface {
 
   public:
     typedef M Mesh;
@@ -79,7 +82,9 @@ template <typename M> class Interface {
 
   public:
     Interface(const Mesh &MM) : backMesh(&MM) {}
-    Rd operator()(const int k, const int i) const { return vertices_[faces_[k][i]]; }
+    Rd operator()(const int k, const int i) const {
+        return vertices_[faces_[k][i]];
+    }
     const Rd &operator()(const int i) const { return vertices_[CheckV(i)]; }
     const Face &operator[](const int k) const { return faces_[CheckT(k)]; }
     const Face &getFace(const int k) const { return faces_[CheckT(k)]; }
@@ -102,7 +107,9 @@ template <typename M> class Interface {
 
     Uint nbElement() const { return faces_.size(); }
     Rd normal(const int k) const { return outward_normal_[k]; }
-    bool isCut(const int k) const { return (face_of_element_.find(k) != face_of_element_.end()); }
+    bool isCut(const int k) const {
+        return (face_of_element_.find(k) != face_of_element_.end());
+    }
     const Element &get_element(int k) const { return (*backMesh)[k]; }
     const Mesh &get_mesh() const {
         assert(backMesh);
@@ -111,13 +118,23 @@ template <typename M> class Interface {
     const_face_iterator face_begin() const { return (faces_.begin()).base(); }
     const_face_iterator face_end() const { return (faces_.end()).base(); }
 
-    const_vertex_iterator vertex_begin() const { return (vertices_.begin()).base(); }
-    const_vertex_iterator vertex_end() const { return (vertices_.end()).base(); }
+    const_vertex_iterator vertex_begin() const {
+        return (vertices_.begin()).base();
+    }
+    const_vertex_iterator vertex_end() const {
+        return (vertices_.end()).base();
+    }
 
 #ifdef USE_MPI
-    virtual int first_element() const { return MPIcf::first_element(faces_.size()); }
-    virtual int next_element() const { return MPIcf::next_element(faces_.size()); }
-    virtual int last_element() const { return MPIcf::last_element(faces_.size()); }
+    virtual int first_element() const {
+        return MPIcf::first_element(faces_.size());
+    }
+    virtual int next_element() const {
+        return MPIcf::next_element(faces_.size());
+    }
+    virtual int last_element() const {
+        return MPIcf::last_element(faces_.size());
+    }
 
 #else
     int first_element() const { return 0; }
@@ -125,19 +142,23 @@ template <typename M> class Interface {
     int last_element() const { return faces_.size(); }
 #endif
 
-    virtual SignElement<Element> get_SignElement(int k) const                    = 0;
-    virtual Partition<Element> get_partition(int k) const                        = 0;
-    virtual Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k,
-                                                                 int ifac) const = 0;
+    virtual SignElement<Element> get_SignElement(int k) const = 0;
+    virtual Partition<Element> get_partition(int k) const     = 0;
+    virtual Partition<typename Element::Face>
+    get_partition_face(const typename Element::Face &face, int k,
+                       int ifac) const = 0;
 
-    virtual void cut_partition(Physical_Partition<Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
-                               std::list<int> &erased_element, int sign_part) const = 0;
-    virtual R measure(const Face &f) const                                          = 0;
+    virtual void cut_partition(Physical_Partition<Element> &local_partition,
+                               std::vector<ElementIdx> &new_element_idx,
+                               std::list<int> &erased_element,
+                               int sign_part) const = 0;
+    virtual R measure(const Face &f) const          = 0;
     virtual R measure(int i) const { return measure(faces_[i]); };
 
     virtual bool isCutFace(int k, int ifac) const = 0;
 
-    virtual Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const = 0;
+    virtual Rd mapToPhysicalFace(int ifac,
+                                 const typename Element::RdHatBord x) const = 0;
     // virtual Rd computeDx(const Face& f) const = 0;
     // virtual CutData getCutData(const int k) const = 0;
 
@@ -158,11 +179,15 @@ template <typename Mesh> class TimeInterface {
     const QuadratureFormular1d *time_quadrature_;
 
   public:
-    TimeInterface(const QuadratureFormular1d &qTime) : interface_(qTime.n), n_(qTime.n), time_quadrature_(&qTime) {}
+    TimeInterface(const QuadratureFormular1d &qTime)
+        : interface_(qTime.n), n_(qTime.n), time_quadrature_(&qTime) {}
 
-    TimeInterface(const QuadratureFormular1d *qTime) : interface_(qTime->n), n_(qTime->n), time_quadrature_(qTime) {}
+    TimeInterface(const QuadratureFormular1d *qTime)
+        : interface_(qTime->n), n_(qTime->n), time_quadrature_(qTime) {}
 
-    TimeInterface(int nt) : interface_(nt), n_(nt), time_quadrature_(Lobatto(exactLobatto_nPt(nt))) {}
+    TimeInterface(int nt)
+        : interface_(nt), n_(nt),
+          time_quadrature_(Lobatto(exactLobatto_nPt(nt))) {}
 
     /// @brief Copy constructor is removed
     TimeInterface(const TimeInterface &) = delete;
@@ -200,9 +225,13 @@ template <typename Mesh> class TimeInterface {
     }
 
     int size() const { return n_; }
-    const QuadratureFormular1d *get_quadrature_time() const { return time_quadrature_; }
+    const QuadratureFormular1d *get_quadrature_time() const {
+        return time_quadrature_;
+    }
 
-    const std::vector<std::unique_ptr<interface_t>> &interface() const { return interface_; }
+    const std::vector<std::unique_ptr<interface_t>> &interface() const {
+        return interface_;
+    }
 };
 
 #endif
