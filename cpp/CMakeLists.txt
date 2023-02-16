@@ -33,25 +33,35 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 set(EX_NAME bulkCD)
 add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+set(EX_NAME dgbulkCD)
+add_executable(${EX_NAME}  mainFiles/dg_bulk_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
+set(EX_NAME cgbulkCD)
+add_executable(${EX_NAME}  mainFiles/cg_bulk_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME cgcoupledCD)
+add_executable(${EX_NAME}  mainFiles/cg_coupled_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 #                        
 set(EX_NAME limiter)
 add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 
-set(EX_NAME surfactant)
-add_executable(${EX_NAME}  mainFiles/surfactant.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+# set(EX_NAME surfactant)
+# add_executable(${EX_NAME}  mainFiles/surfactant.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
-set(EX_NAME surfactantCG2)
-add_executable(${EX_NAME}  mainFiles/surfactantCG2.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+# set(EX_NAME surfactantCG2)
+# add_executable(${EX_NAME}  mainFiles/surfactantCG2.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 
-set(EX_NAME stokes)
-add_executable(${EX_NAME}  mainFiles/stokes_interface_problem.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+# set(EX_NAME stokes)
+# add_executable(${EX_NAME}  mainFiles/stokes_interface_problem.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 
 set(EX_NAME test_BDM2)

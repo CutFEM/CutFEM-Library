@@ -32,24 +32,22 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
 
   public:
     template <typeFunFEM Fct>
-    InterfaceLevelSet(const Mesh &MM, const Fct &lss, int label = 0)
+    InterfaceLevelSet(const Mesh &MM, const Fct &lss, int label = 0);
 
     SignElement<Element> get_SignElement(int k) const;
     Partition<Element> get_partition(int k) const;
     Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
-   
-
-        return Partition<Element>((*this->backMesh)[k], loc_ls);
-    }
-    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const {
-        double loc_ls[Element::Face::nv];
-        for (int i = 0; i < Element::Face::nv; ++i) {
-            int j     = Element::nvhyperFace[ifac][i];
-            int iglb  = this->backMesh->at(k, j);
-            loc_ls[i] = ls_[iglb];
-        }
-        return Partition<typename Element::Face>(face, loc_ls);
-    }
+        // return Partition<Element>((*this->backMesh)[k], loc_ls);
+    // Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
+// {
+//         double loc_ls[Element::Face::nv];
+//         for (int i = 0; i < Element::Face::nv; ++i) {
+//             int j     = Element::nvhyperFace[ifac][i];
+//             int iglb  = this->backMesh->at(k, j);
+//             loc_ls[i] = ls_[iglb];
+//         }
+//         return Partition<typename Element::Face>(face, loc_ls);
+// }
     bool isCutFace(int k, int ifac) const;
 
     void cut_partition(Physical_Partition<Element> &local_partition,
@@ -74,92 +72,93 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
     
 };
 
-template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
+#include "interface_levelSet.tpp"
 
-    assert(this->backMesh);
-    this->faces_.resize(0); // reinitialize arrays
-    this->vertices_.resize(0);
-    this->element_of_face_.resize(0);
-    this->outward_normal_.resize(0);
-    this->face_of_element_.clear();
+// template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
 
-    const Mesh &Th = *(this->backMesh);
-    util::copy_levelset_sign(ls_, ls_sign);
+//     assert(this->backMesh);
+//     this->faces_.resize(0); // reinitialize arrays
+//     this->vertices_.resize(0);
+//     this->element_of_face_.resize(0);
+//     this->outward_normal_.resize(0);
+//     this->face_of_element_.clear();
 
-    const Uint nb_vertex_K = Element::nv;
-    double loc_ls[nb_vertex_K];
-    byte loc_ls_sign[nb_vertex_K];
+//     const Mesh &Th = *(this->backMesh);
+//     util::copy_levelset_sign(ls_, ls_sign);
 
-    for (int k = 0; k < this->backMesh->nbElmts(); k++) { // loop over elements
+//     const Uint nb_vertex_K = Element::nv;
+//     double loc_ls[nb_vertex_K];
+//     byte loc_ls_sign[nb_vertex_K];
 
-        const typename Mesh::Element &K(Th[k]);
+//     for (int k = 0; k < this->backMesh->nbElmts(); k++) { // loop over elements
 
-        for (Uint i = 0; i < K.nv; ++i) {
-            loc_ls_sign[i] = ls_sign[Th(K[i])];
-            loc_ls[i]      = ls_[Th(K[i])];
-        }
-        const RefPatch<Element> &cut = RefPatch<Element>::instance(loc_ls_sign);
-        if (cut.empty())
-            continue;
+//         const typename Mesh::Element &K(Th[k]);
 
-        for (typename RefPatch<Element>::const_face_iterator it = cut.face_begin(), end = cut.face_end(); it != end;
-             ++it) {
-            this->face_of_element_[k] = this->element_of_face_.size();
-            this->faces_.push_back(make_face(*it, K, loc_ls, label));
-            this->element_of_face_.push_back(k);
-            this->outward_normal_.push_back(make_normal(K, loc_ls));
-        }
-    }
-}
+//         for (Uint i = 0; i < K.nv; ++i) {
+//             loc_ls_sign[i] = ls_sign[Th(K[i])];
+//             loc_ls[i]      = ls_[Th(K[i])];
+//         }
+//         const RefPatch<Element> &cut = RefPatch<Element>::instance(loc_ls_sign);
+//         if (cut.empty())
+//             continue;
 
-template <typename M>
-const typename InterfaceLevelSet<M>::Face
+//         for (typename RefPatch<Element>::const_face_iterator it = cut.face_begin(), end = cut.face_end(); it != end;
+//              ++it) {
+//             this->face_of_element_[k] = this->element_of_face_.size();
+//             this->faces_.push_back(make_face(*it, K, loc_ls, label));
+//             this->element_of_face_.push_back(k);
+//             this->outward_normal_.push_back(make_normal(K, loc_ls));
+//         }
+//     }
+// }
 
-InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_tri, const typename Mesh::Element &K,
-                                const double lset[Element::nv], int label) {
+// template <typename M>
+// const typename InterfaceLevelSet<M>::Face
+// InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_tri, const typename Mesh::Element &K,
+//                                 const double lset[Element::nv], int label) {
 
-    Uint loc_vert_num;
-    Uint triIdx[nve];
+//     Uint loc_vert_num;
+//     Uint triIdx[nve];
 
-    for (Uint j = 0; j < nve; ++j) {
-        loc_vert_num = ref_tri[j];
+//     for (Uint j = 0; j < nve; ++j) {
+//         loc_vert_num = ref_tri[j];
 
-        if (loc_vert_num < K.nv) { // zero vertex
-            // const Uint idx = (*this->backMesh)(K[loc_vert_num]);
-            // Rd Q           = (*this->backMesh)(idx);
-            // this->vertices_.push_back(Q);
-            // triIdx[j] = this->vertices_.size() - 1;
-            std::cout << " Interface cutting through a node " << std::endl;
-            exit(EXIT_FAILURE);
-            // assert(0);
-        } else { // genuine edge vertex
+//         if (loc_vert_num < K.nv) { // zero vertex
+//             // const Uint idx = (*this->backMesh)(K[loc_vert_num]);
+//             // Rd Q           = (*this->backMesh)(idx);
+//             // this->vertices_.push_back(Q);
+//             // triIdx[j] = this->vertices_.size() - 1;
+//             std::cout << " Interface cutting through a node " << std::endl;
+//             exit(EXIT_FAILURE);
+//             // assert(0);
+//         } else { // genuine edge vertex
 
-            const Ubyte i0 = Mesh::Element::nvedge[loc_vert_num - K.nv][0],
-                        i1 = Mesh::Element::nvedge[loc_vert_num - K.nv][1];
+//             const Ubyte i0 = Mesh::Element::nvedge[loc_vert_num - K.nv][0],
+//                         i1 = Mesh::Element::nvedge[loc_vert_num - K.nv][1];
 
-            const double t = lset[i0] / (lset[i0] - lset[i1]);
-            Rd Q           = (1.0 - t) * ((Rd)K[i0]) + t * ((Rd)K[i1]); // linear interpolation
-            this->vertices_.push_back(Q);
-            triIdx[j] = this->vertices_.size() - 1;
+//             const double t = lset[i0] / (lset[i0] - lset[i1]);
+//             Rd Q           = (1.0 - t) * ((Rd)K[i0]) + t * ((Rd)K[i1]); // linear interpolation
+//             this->vertices_.push_back(Q);
+//             triIdx[j] = this->vertices_.size() - 1;
 
-            this->edge_of_node_.push_back(loc_vert_num - K.nv);
-        }
-    }
-    return Face(triIdx, label);
-}
+//             this->edge_of_node_.push_back(loc_vert_num - K.nv);
+//         }
+//     }
+//     return Face(triIdx, label);
+// }
 
-template <typename M>
-typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::make_normal(const typename Mesh::Element &K,
-                                                                    const double lset[Element::nv]) {
+// template <typename M>
+// typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::make_normal(const typename Mesh::Element &K,
+//                                                                     const double lset[Element::nv]) {
 
-    Rd grad[Element::nv];
-    K.Gradlambda(grad);
-    Rd normal_ls;
-    for (int i = 0; i < Mesh::Element::nv; ++i) {
-        normal_ls += grad[i] * lset[i];
-    }
-    normal_ls /= normal_ls.norm();
-    return normal_ls;
-}
+//     Rd grad[Element::nv];
+//     K.Gradlambda(grad);
+//     Rd normal_ls;
+//     for (int i = 0; i < Mesh::Element::nv; ++i) {
+//         normal_ls += grad[i] * lset[i];
+//     }
+//     normal_ls /= normal_ls.norm();
+//     return normal_ls;
+// }
 
 #endif

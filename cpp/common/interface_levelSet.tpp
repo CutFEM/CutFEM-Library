@@ -17,14 +17,14 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #define COMMON_LEVELSET_INTERFACE_TPP
 
 
-template <typename M>
-template <typename Fct>
+template <typeMesh M>
+template <typeFunFEM Fct>
 InterfaceLevelSet<M>::InterfaceLevelSet(const M &MM, const Fct &lss, int label)
     : Interface<M>(MM), ls_(lss.getArray()) {
     make_patch(label);
 }
 
-template <typename M>
+template <typeMesh M>
 SignElement<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_SignElement(int k) const {
     typedef typename InterfaceLevelSet<M>::Element Element;
     byte loc_ls[Element::nv];
@@ -35,7 +35,7 @@ SignElement<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_Si
     return SignElement<Element>(loc_ls);
 }
 
-template <typename M>
+template <typeMesh M>
 Partition<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_partition(int k) const {
     typedef typename InterfaceLevelSet<M>::Element Element;
 
@@ -48,7 +48,7 @@ Partition<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_part
     return Partition<Element>((*this->backMesh)[k], loc_ls);
 }
 
-template <typename M>
+template <typeMesh M>
 Partition<typename InterfaceLevelSet<M>::Element::Face> InterfaceLevelSet<M>::get_partition_face(const typename Element::Face &face, int k, int ifac) const {
     typedef typename InterfaceLevelSet<M>::Element Element;
     
@@ -61,7 +61,7 @@ Partition<typename InterfaceLevelSet<M>::Element::Face> InterfaceLevelSet<M>::ge
     return Partition<typename Element::Face>(face, loc_ls);
 }
 
-template <typename M>
+template <typeMesh M>
 void InterfaceLevelSet<M>::cut_partition(Physical_Partition<typename InterfaceLevelSet<M>::Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
                     std::list<int> &erased_element, int sign_part) const {
     std::cout << " An element might be cut multiplue time, and it is not "
@@ -70,7 +70,7 @@ void InterfaceLevelSet<M>::cut_partition(Physical_Partition<typename InterfaceLe
     exit(EXIT_FAILURE);
 };
 
-template <typename M>
+template <typeMesh M>
 R InterfaceLevelSet<M>::measure(const Face &f) const {
     Rd l[nve];
     for (int i = 0; i < nve; ++i)
@@ -86,7 +86,7 @@ R InterfaceLevelSet<M>::measure(const Face &f) const {
 //   return (1-t) * A + t * B;
 // }
 
-template <typename M>
+template <typeMesh M>
 typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::mapToPhysicalFace(int ifac, const typename InterfaceLevelSet<M>::Element::RdHatBord x) const {
     typename InterfaceLevelSet<M>::Rd N[nve];
     for (int i = 0; i < nve; ++i)
@@ -96,7 +96,7 @@ typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::mapToPhysicalFace(int if
 
 
 
-template <typename M> 
+template <typeMesh M> 
 void InterfaceLevelSet<M>::make_patch(int label) {
 
     typedef typename InterfaceLevelSet<M>::Element Element;
@@ -136,9 +136,8 @@ void InterfaceLevelSet<M>::make_patch(int label) {
     }
 }
 
-template <typename M>
+template <typeMesh M>
 const typename InterfaceLevelSet<M>::Face
-
 InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_tri, const typename Mesh::Element &K,
                                 const double lset[Element::nv], int label) {
 
@@ -172,7 +171,7 @@ InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_t
     return Face(triIdx, label);
 }
 
-template <typename M>
+template <typeMesh M>
 typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::make_normal(const typename Mesh::Element &K,
                                                                     const double lset[Element::nv]) {
 
