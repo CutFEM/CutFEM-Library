@@ -1358,6 +1358,655 @@ R fun_neumann_top(double *P, const int i, const R t) {
 }
 } // namespace Example1_new
 
+
+namespace Example1_omega2 {
+
+    // Level-set function
+    double fun_levelSet(double *P, const int i, const R t) {
+        R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+        return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 - Epsilon;
+    }
+
+    // Level-set function initial
+    double fun_levelSet(double *P, const int i) {
+        return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
+    }
+
+    // The rhs Neumann boundary condition
+    R fun_neumann_Gamma(double *P, const int i, const R t) {
+        R x = P[0], y = P[1];
+        
+        // In Omega_2(t), there is no Neumann boundary condition, since the only boundary is Gamma(t)
+        // to which only the coupling conditions apply
+        return 0;
+    }
+
+    // Velocity field
+    R fun_velocity(double *P, const int i) {
+        if (i == 0)
+            return M_PI * (0.5 - P[1]);
+        else
+            return M_PI * (P[0] - 0.5);
+    }
+
+    // Initial solution bulk
+    R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
+
+    // Exact solution bulk
+    R fun_uBulk(double *P, const int i, const R t) {
+        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+    }
+
+    // Initial solution surface
+    R fun_uSurfInit(double *P, const int i) {
+        double x = P[0], y = P[1];
+
+        return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) -
+            pi / 250 * sin(pi * x) * cos(pi * y) * (x - 0.5) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5)) -
+            pi / 250 * cos(pi * x) * sin(pi * y) * (y - 0.22) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5));
+    }
+
+    R fun_uSurfInitT(double *P, const int i, const R t) {
+        double x = P[0], y = P[1];
+
+        return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) -
+            pi / 250 * sin(pi * x) * cos(pi * y) * (x - 0.5) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5)) -
+            pi / 250 * cos(pi * x) * sin(pi * y) * (y - 0.22) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5));
+    }
+
+    // Exact solution surface
+    R fun_uSurf(double *P, const int i, const R t) {
+        double x = P[0], y = P[1];
+
+        R xc = 0.5 + 0.28 * sin(pi * t), yc = 0.5 - 0.28 * cos(pi * t);
+
+        return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) * cos(2 * pi * t) -
+            pi / 250 * sin(pi * x) * cos(pi * y) * cos(2 * pi * t) * (x - xc) /
+                sqrt((y - yc) * (y - yc) + (x - xc) * (x - xc)) -
+            pi / 250 * cos(pi * x) * sin(pi * y) * cos(2 * pi * t) * (y - yc) /
+                sqrt((y - yc) * (y - yc) + (x - xc) * (x - xc));
+    }
+
+    R fun_uBulkD(double *P, const int i, const int d, const R t) {
+        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+    }
+
+    // RHS fB bulk
+    R fun_rhsBulk(double *P, const int i, const R t) {
+        R x = P[0], y = P[1];
+
+        return (pi * pi * cos(2 * pi * t) * cos(pi * x) * cos(pi * y)) / 125 -
+            (4 * pi * cos(pi * x) * cos(pi * y) * sin(2 * pi * t)) / 5 -
+            (2 * pi * pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (x - 1. / 2)) / 5 +
+            (2 * pi * pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (y - 1. / 2)) / 5;
+    }
+
+// RHS fS surface
+    R fun_rhsSurf(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+    return (pi *
+            (46875 * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) + 46875 * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             2450 * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) +
+             7350 * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) +
+             1372 * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) +
+             31250 * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             15625 * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             15625 * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             93750 * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             31250 * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             31250 * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             3125000 * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             3125000 * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             31250 * x * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             125000 * x * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             125000 * y * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             31250 * y * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             35000 * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             8750 * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             8750 * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             35000 * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             31250 * x * x * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             93750 * x * x * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             62500 * x * x * x * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             93750 * y * y * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             31250 * y * y * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             62500 * y * y * y * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             7350 * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             2450 * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             1372 * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             52500 * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             17500 * pi * cos(x * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) -
+             35000 * pi * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) +
+             17500 * x * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             17500 * x * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             52500 * y * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             17500 * y * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             1750000 * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3500000 * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             17500 * x * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             52500 * x * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             17500 * y * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             17500 * y * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             62500 * x * x * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             62500 * y * y * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             4900 * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             4900 * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             4900 * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             4375 * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             31250 * x * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             31250 * x * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             93750 * x * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             31250 * x * x * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             62500 * x * x * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             31250 * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             31250 * y * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             31250 * y * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             93750 * y * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             62500 * y * y * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             4900 * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) +
+             2450 * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             7350 * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             8750 * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             8750 * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             4375 * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) +
+             1372 * pi * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             31250 * x * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             62500 * x * x * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             187500 * x * x * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             125000 * x * x * x * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             31250 * y * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             187500 * y * y * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             62500 * y * y * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             125000 * y * y * y * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             12500000 * x * x * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             12500000 * y * y * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             7350 * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) -
+             2450 * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) -
+             14700 * pi * cos(t * pi) * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             4900 * pi * cos(t * pi) * cos(t * pi) * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             4375 * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             8750 * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             8750 * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             1372 * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) +
+             2744 * pi * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             62500 * x * y * y * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             62500 * x * x * y * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             980000 * cos(t * pi) * cos(t * pi) * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             4900 * pi * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) -
+             14700 * pi * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) +
+             4375 * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             2744 * pi * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) -
+             4900 * x * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             17500 * x * x * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             14700 * y * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             52500 * y * y * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             980000 * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             14700 * x * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) +
+             52500 * x * x * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             4900 * y * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) +
+             17500 * y * y * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             1372 * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) +
+             1372 * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             2450 * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             686 * pi * pi * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             31250 * x * x * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             93750 * x * x * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             62500 * x * x * x * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             93750 * y * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             31250 * y * y * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             62500 * y * y * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             2450 * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) +
+             7350 * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             2450 * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             686 * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(t * pi) -
+             1372 * pi * pi * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             93750 * x * x * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             125000 * x * x * x * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             62500 * x * x * x * x * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             93750 * y * y * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             125000 * y * y * y * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             62500 * y * y * y * y * pi * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             2450 * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) +
+             7350 * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) -
+             2450 * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             1372 * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) +
+             686 * pi * pi * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             3125000 * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             2450 * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             686 * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             62500 * x * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             62500 * y * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             1562500 * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             1562500 * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             17500 * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             62500 * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             31250 * x * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             31250 * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             62500 * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             3125000 * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             8750 * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             17500 * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             17500 * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             187500 * x * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             62500 * x * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) +
+             125000 * x * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) -
+             187500 * y * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             125000 * y * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) +
+             62500 * y * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) -
+             6250000 * x * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             12500000 * x * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * y * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             12500000 * y * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             52500 * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             35000 * pi * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) +
+             17500 * pi * cos(t * pi) * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             17500 * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             8750 * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             62500 * x * y * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             62500 * x * y * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             1750000 * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             3500000 * cos(t * pi) * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             4900 * x * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             26250 * x * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             1372 * x * pi * pi * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) *
+                 cos(y * pi) -
+             17500 * x * x * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             4900 * y * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             8750 * y * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             62500 * x * y * y * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             62500 * x * x * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             4900 * x * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) +
+             4900 * x * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             17500 * x * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             8750 * x * x * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             4900 * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) -
+             14700 * y * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             52500 * y * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             26250 * y * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             1372 * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) *
+                 sin(t * pi) -
+             17500 * y * y * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) +
+             686 * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) +
+             686 * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             14700 * x * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) -
+             4900 * x * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             8750 * x * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             52500 * x * x * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             4900 * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) +
+             14700 * y * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             78750 * y * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             17500 * y * y * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             1372 * y * pi * pi * cos(t * pi) * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) *
+                 sin(y * pi) -
+             52500 * y * y * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             6250000 * x * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * y * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             1372 * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) -
+             1372 * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             14700 * x * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             78750 * x * x * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             1372 * x * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) *
+                 sin(y * pi) -
+             52500 * x * x * x * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             4900 * y * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             8750 * y * y * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             1750000 * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             3125000 * x * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3125000 * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             6250000 * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             686 * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             686 * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             35000 * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             62500 * x * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             62500 * x * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             875000 * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             875000 * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             1750000 * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * x * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * y * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             17500 * x * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             17500 * x * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             35000 * x * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) +
+             17500 * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             52500 * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             375000 * x * y * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             125000 * x * y * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             125000 * x * y * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) -
+             1750000 * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             875000 * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             875000 * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             105000 * x * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             35000 * x * pi * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             35000 * x * pi * cos(t * pi) * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) -
+             52500 * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             17500 * x * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             105000 * y * pi * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             35000 * y * pi * cos(t * pi) * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) -
+             17500 * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             17500 * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             1750000 * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             7000000 * y * cos(t * pi) * cos(x * pi) * cos(y * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             4900 * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             4900 * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             35000 * x * pi * cos(x * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) +
+             105000 * x * pi * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) -
+             105000 * y * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             35000 * y * pi * cos(x * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) +
+             35000 * y * pi * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) -
+             35000 * x * y * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             7000000 * x * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             4900 * x * x * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             29400 * pi * cos(t * pi) * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             9800 * pi * cos(t * pi) * cos(x * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) +
+             9800 * pi * cos(t * pi) * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) -
+             14700 * y * y * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             6250000 * x * x * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             6250000 * y * y * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             35000 * x * y * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             14700 * x * x * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             4900 * y * y * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             490000 * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             9375000 * x * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3125000 * x * x * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * x * x * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             3125000 * y * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             9375000 * y * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             6250000 * y * y * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             9800 * x * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             9800 * y * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             17500 * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             8750 * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             62500 * x * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             62500 * x * y * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             62500 * x * y * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             62500 * x * x * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             490000 * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             245000 * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             245000 * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             4900 * x * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             17500 * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             17500 * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             8750 * x * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) +
+             17500 * x * x * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             14700 * y * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             52500 * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) -
+             17500 * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) -
+             17500 * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) +
+             52500 * y * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             125000 * x * y * y * pi * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             125000 * x * x * y * pi * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) +
+             245000 * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             245000 * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             14700 * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) +
+             9800 * x * pi * cos(t * pi) * cos(t * pi) * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) +
+             8750 * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             17500 * x * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             52500 * x * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             35000 * x * x * pi * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) +
+             52500 * x * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             4900 * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) +
+             29400 * y * pi * cos(t * pi) * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) -
+             35000 * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             17500 * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             17500 * y * pi * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             105000 * y * y * pi * cos(t * pi) * cos(x * pi) * sin(2 * t * pi) * sin(y * pi) +
+             17500 * y * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             1372 * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) +
+             1372 * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             4900 * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) +
+             4900 * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             29400 * x * pi * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) -
+             35000 * x * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             105000 * x * x * pi * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) +
+             9800 * y * pi * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) +
+             8750 * y * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             35000 * y * y * pi * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) +
+             2744 * pi * cos(t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) -
+             2744 * pi * cos(t * pi) * cos(t * pi) * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) -
+             19600 * x * pi * cos(t * pi) * cos(x * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) -
+             19600 * y * pi * cos(t * pi) * cos(y * pi) * sin(t * pi) * sin(2 * t * pi) * sin(x * pi) -
+             6250000 * x * y * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             6250000 * x * x * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             17500 * x * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             490000 * x * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             490000 * y * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             3500000 * y * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             35000 * x * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
+             17500 * x * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             490000 * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(t * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             3500000 * x * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             490000 * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             9800 * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) +
+             9800 * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             17500 * x * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) -
+             35000 * x * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             9800 * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             9800 * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             17500 * x * y * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) -
+             9800 * x * y * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) -
+             17500 * x * y * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
+             9800 * x * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) * sin(t * pi) -
+             17500 * x * x * y * pi * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             1372 * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) *
+                 sin(t * pi) +
+             9800 * x * x * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) -
+             1372 * y * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sin(t * pi) -
+             9800 * y * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) +
+             17500 * x * x * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) +
+             17500 * x * y * y * pi * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) +
+             3500000 * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             6250000 * x * y * pi * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             6250000 * x * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             1372 * x * pi * pi * cos(t * pi) * cos(t * pi) * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) *
+                 sin(y * pi) -
+             1372 * y * pi * pi * cos(t * pi) * cos(2 * t * pi) * sin(t * pi) * sin(t * pi) * sin(x * pi) *
+                 sin(y * pi) +
+             1750000 * x * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3500000 * x * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) * sin(t * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             1750000 * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3500000 * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             12500000 * x * y * pi * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             35000 * x * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) +
+             3500000 * x * pi * cos(t * pi) * cos(2 * t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3500000 * x * pi * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             1750000 * x * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             1750000 * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) +
+             70000 * x * y * pi * cos(t * pi) * cos(y * pi) * sin(2 * t * pi) * sin(x * pi) -
+             35000 * x * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) -
+             3500000 * y * pi * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             9800 * x * pi * cos(t * pi) * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) +
+             9800 * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(t * pi) * sin(y * pi) -
+             70000 * x * y * pi * cos(x * pi) * sin(t * pi) * sin(2 * t * pi) * sin(y * pi) -
+             980000 * pi * cos(t * pi) * cos(2 * t * pi) * sin(t * pi) * sin(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3500000 * x * y * pi * cos(t * pi) * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) *
+                 sqrt(
+                     (pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) + pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))) -
+             3500000 * x * y * pi * cos(2 * t * pi) * cos(y * pi) * sin(t * pi) * sin(x * pi) *
+                 sqrt((pow((y + (7 * cos(t * pi)) / 25 - 1. / 2), 2) +
+                       pow((-x + (7 * sin(t * pi)) / 25 + 1. / 2), 2))))) /
+           (12500 *
+            sqrt((pow((y + (7 * cos(pi * t)) / 25 - 1. / 2), 2) + pow(((7 * sin(pi * t)) / 25 - x + 1. / 2), 2))) *
+            (-1250 * x - 1250 * y - 350 * cos(t * pi) + 350 * sin(t * pi) + 700 * y * cos(t * pi) -
+             700 * x * sin(t * pi) + 1250 * x * x + 1250 * y * y + 98 * cos(t * pi) * cos(t * pi) +
+             98 * sin(t * pi) * sin(t * pi) + 625));
+}
+
+    R fun_neumann_left(double *P, const int i, const R t) {
+        R x = P[0], y = P[1];
+
+        return (pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+    }
+
+    R fun_neumann_bottom(double *P, const int i, const R t) {
+        R x = P[0], y = P[1];
+
+        return (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+    }
+
+    R fun_neumann_right(double *P, const int i, const R t) {
+        R x = P[0], y = P[1];
+
+        return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+    }
+
+    R fun_neumann_top(double *P, const int i, const R t) {
+        R x = P[0], y = P[1];
+
+        return -(pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+    }
+} // namespace Example1_omega2
+
+
+
 // Setup two-dimensional class types
 const int d = 2;
 typedef Mesh2 Mesh;
@@ -1372,27 +2021,20 @@ typedef FunFEM<Mesh2> Fun_h;
 
 //* Set numerical example (options: "example1", "lehrenfeld")
 #define example1
+
 //* Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
-#define omega1
+#define omega2
 #define neumann // boundary condition on outer domain (options: "dirichlet", "neumann")
-
-// // If "omega1":
-// // Set type of BCs on outer boundary (options: "dirichlet1" or "neumann1")
-// #define neumann1
-// // Set type of BCs on interface (options: "dirichlet2" or "neumann2")
-// #define neumann2
-
-// // If "omega2":
-// // Set type of BCs on interface (options: "dirichlet", "neumann")
-// #define dirichlet
 
 //* Set scheme for the method (options: "classical", "conservative".)
 #define conservative
+
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
+
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
@@ -1404,11 +2046,11 @@ typedef FunFEM<Mesh2> Fun_h;
 
 // Do not touch
 #ifdef example1
-// #ifdef omega1
-// using namespace Example1_Omega1;
-// #else
-    using namespace Example1_new; // on Omega 2
-// #endif
+#ifdef omega1
+using namespace Example1_new;
+#else
+    using namespace Example1_omega2; // on Omega 2
+#endif
 #endif
 #if defined(lehrenfeld)
 using namespace Lehrenfeld_Convection_Dominated;
@@ -1425,7 +2067,7 @@ int main(int argc, char **argv) {
 
     int total_number_iteration;
     double time_step;
-    double t0 = 0.;
+    const double t0 = 0.;
 
 #ifdef example1
     // Paths to store data
@@ -1458,7 +2100,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h                          = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, 0., 0., lx, ly);
+        const Mesh Th(nx, ny, 0., 0., lx, ly);
 
         // Parameters
         const double tfinal = .5; // Final time
@@ -1491,31 +2133,28 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
         std::cout << "dT = " << dT << '\n';
 
-        const double D      = 0.01;
-        const double DGamma = 1.;
+        const double D      = 0.01;         // Diffusion parameter bulk
+        const double DGamma = 1.;           // Diffusion parameter surface
 
-        double lambda = 1.; // Nitsche's method penalty parameter
+        const double lambda = 1.; // Nitsche's method penalty parameter for Dirichlet BCs
 
         // CG stabilization parameter
-        const double tau1 = 1.;
-        const double tau2 = 1.;
-        const double tau3 = 1e-2;
+        const double tau1 = 1e-0;
+        const double tau2 = 1e-0;
+        const double tau3 = .01;
 
-        FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+        const FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
-        FESpace2 Vh2(Th,
+        const FESpace2 Vh2(Th,
                      DataFE<Mesh>::P2); // higher order space for interpolation
 
-        FESpace2 Vh3(Th,
-                     DataFE<Mesh>::P3); // higher order space for interpolation
-
         // 1D Time mesh
-        double final_time = total_number_iteration * time_step;
-        Mesh1 Qh(total_number_iteration + 1, t0, final_time);
+        const double final_time = total_number_iteration * time_step;
+        const Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+        const FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
         // Quadrature data
         const QuadratureFormular1d &qTime(*Lobatto(3)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
@@ -1523,14 +2162,14 @@ int main(int argc, char **argv) {
         const Uint lastQuadTime = nbTime - 1;
 
         // Velocity field
-        Lagrange2 FEvelocity(1);
+        const Lagrange2 FEvelocity(1);
 
-        FESpace2 VelVh(Th, FEvelocity);
+        const FESpace2 VelVh(Th, FEvelocity);
         Fun_h vel(VelVh, fun_velocity);
 
         // Set up level-set function
-        FESpace2 Lh(Th, DataFE<Mesh2>::P1);
-        double dt_levelSet = dT / (nbTime - 1);
+        const FESpace2 Lh(Th, DataFE<Mesh2>::P1);
+        const double dt_levelSet = dT / (nbTime - 1);
         std::vector<Fun_h> ls(nbTime);
 
 #if defined(levelsetexact)
@@ -1553,7 +2192,7 @@ int main(int argc, char **argv) {
         double q0_0, q0_0_surface, q0_1, q0_1_surface, qp_0, qp_0_surface, qp_1,
             qp_1_surface;                                             // integral values to be computed
         double intF = 0, int_outflow = 0, intF_surface = 0, intG = 0; // hold integrals of rhs and Neumann bcs
-
+        double int_uB = 0, int_uB_gamma = 0, int_uS = 0, int_uB_init = 0, int_uS_init = 0;
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
 
@@ -1612,8 +2251,8 @@ int main(int argc, char **argv) {
             convdiff.add(WhGamma, In);
 
             // Objects needed for the weak form
-            Normal n;
-            Tangent t;
+            const Normal n;
+            const Tangent t;
 
             // Right hand side functions
             Fun_h f(Vh, In, fun_rhsBulk);
@@ -1650,6 +2289,11 @@ int main(int argc, char **argv) {
                 //! Can we make this interpolation higher order?
                 interpolate(Wh, data_B0, fun_uBulkInit);
                 interpolate(WhGamma, data_S0, fun_uSurfInit);
+
+                Fun_h uB_init(Vh, fun_uBulkInit);
+                Fun_h uS_init(Vh, fun_uSurfInit);
+                int_uB_init = integral(Thi, uB_init, 0);
+                int_uS_init       = integral(uS_init, *interface(0), 0);
             }
 
             // std::cout << data_B0 << "\n";
@@ -1763,11 +2407,15 @@ int main(int argc, char **argv) {
 
             //* Stabilization
 
+            double stab_bulk_face = h * tau1;
+            double stab_surf_face = tau2;
+            double stab_surf_interface = 0; //h *tau3;
+
 #if defined(fullstab)
 
-            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi, In);
-            convdiff.addFaceStabilization(+innerProduct(tau2 * jump(grad(uS) * n), jump(grad(vS) * n)), ThGamma, In);
-
+            convdiff.addFaceStabilization(+innerProduct(stab_bulk_face * jump(grad(u) * n), jump(grad(v) * n)), Thi, In);
+            convdiff.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(uS) * n), jump(grad(vS) * n)), ThGamma, In);
+            
 #elif defined(macro)
 
             TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.25);
@@ -1818,16 +2466,18 @@ int main(int argc, char **argv) {
 
             // Stabilization of the bulk
             // convdiff.mat_.clear();
-            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi, In,
+            convdiff.addFaceStabilization(+innerProduct(stab_bulk_face * jump(grad(u) * n), jump(grad(v) * n)), Thi, In,
                                           TimeMacro);
-            convdiff.addFaceStabilization(+innerProduct(h * tau2 * jump(grad(uS) * n), jump(grad(vS) * n)), ThGamma, In,
+            convdiff.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(uS) * n), jump(grad(vS) * n)), ThGamma, In,
                                           TimeMacroGamma);
 
-            convdiff.addBilinear(+innerProduct(h * tau3 * grad(uS) * n, grad(vS) * n), interface, In);
             // matlab::Export(convdiff.mat_, "mat.dat");
             // getchar();
 
 #endif
+            
+            // Stabilization along the interface
+            convdiff.addBilinear(+innerProduct(stab_surf_interface * grad(uS) * n, grad(vS) * n), interface, In);
 
             //* Boundary conditions
 
@@ -1846,7 +2496,7 @@ int main(int argc, char **argv) {
             convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                                INTEGRAL_BOUNDARY, In);
 
-#if defined(conservative)
+    #if defined(conservative)
             // Set inflow and outflow conditions
 
             // convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
@@ -1856,28 +2506,28 @@ int main(int argc, char **argv) {
 
             convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v) + innerProduct(u, 0.5 * (vel * n) * v), Thi,
                                  INTEGRAL_BOUNDARY, In);
-#endif
+    #endif
 
 #elif defined(neumann)
-            // add nothing from Neumann BC, since it's zero
+            // add nothing from Neumann BC, since it's zero for this example
 
-#if defined(conservative)
+    #if defined(conservative)
             convdiff.addBilinear(innerProduct(vel.exprList() * u * n, v), Thi, INTEGRAL_BOUNDARY, In);
-#endif
+    #endif
 
 #endif
 #endif
 
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);         // rhs in bulk
             convdiff.addLinear(+innerProduct(fS.expr(), vS), interface, In); // rhs on surface
-            // convdiff.addLinear(fun_rhsSurf, +innerProduct(1., vS), interface, In);
+            //convdiff.addLinear(fun_rhsSurf, +innerProduct(1., vS), interface, In);
 
             if (iter == total_number_iteration - 1)
                 matlab::Export(convdiff.mat_[0],
                                path_output_data + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
 
             // Solve linear system
-            convdiff.solve("umfpack");
+            convdiff.solve("mumps");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -1887,13 +2537,17 @@ int main(int argc, char **argv) {
 
                 Fun_h funuh(Wh, data_u0);
 
-                // auto outflow       = (vx * n.x + vy * n.y) * funuh.expr();
                 auto outflow = (vel * n) * funuh.expr();
 
                 intF = integral(Thi, In, f, 0, qTime);
                 int_outflow =
                     integral(outflow, In, interface, 0); // integral(vel.exprList() * funuh * n, In, interface, 0);
                 intF_surface = integral(fS, In, interface, 0);
+
+                int_uB = integral(Thi, In, b0h, 0, qTime);
+                int_uB_gamma       = integral(b0h.expr(), In, interface, 0);
+                int_uS       = integral(s0h.expr(), In, interface, 0);
+                
 
 #ifdef neumann
                 // zero in this example
@@ -1932,9 +2586,12 @@ int main(int argc, char **argv) {
                 }
 
                 outputData << std::setprecision(10);
-                outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG << ","
-                           << ((q_1 - qp_1) - intF - int_outflow - intG) << "," << ((q_1_surf - qp_1_surface) - intF_surface) << ","
-                           << ((q_1 - qp_1) - intF - int_outflow + (q_1_surf - qp_1_surface) - intF_surface) << '\n';
+                outputData << current_time << "\t\t,"
+                           //<< ((q_1 - qp_1) - intF - int_outflow - intG) << "\t\t," << ((q_1_surf - qp_1_surface) - intF_surface) << "\t,"
+                           //<< ((q_1 - qp_1) - intF - int_outflow + (q_1_surf - qp_1_surface) - intF_surface) << '\n';
+                           << ((q_1 + q_1_surf) - (qp_1 + qp_1_surface) - intF - intF_surface) << "\t\t,"
+                           << ((q_1 - qp_1) - intF + int_uB_gamma - int_uS) << "\t\t,"
+                           << ((q_1 + q_1_surf) - (int_uB_init + int_uS_init) - intF - intF_surface) << '\n';
                 qp_1 = q_1;
             }
 

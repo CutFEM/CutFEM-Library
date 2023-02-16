@@ -625,6 +625,7 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
       // Iterate over the quadrature points in the time-slab In
 
       bool is_large     = false; // is element large in any quadrature point?
+      bool is_small     = true;
       bool is_inactive  = false; // is element inactive in any quadrature point?
       bool is_never_cut = true;
 
@@ -635,13 +636,18 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
 
          if (Th.isCut(k, itq))
             is_never_cut = false;
+
          if ((areaCut > tol) && (!Th.isInactive(k, itq)))
             is_large = true;
+         else
+            is_small = true;
+
          if (Th.isInactive(k, itq))
             is_inactive = true;
       }
 
       if (!is_large || is_inactive) {
+      //if (is_small || is_inactive) {   
          // if ((is_inactive && is_never_cut) || !is_large) {
          small_element[k] = SmallElement(k);
          // small_element[k].area = areaCut;
