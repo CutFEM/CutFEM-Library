@@ -13,69 +13,93 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
-#ifndef COMMON_LEVELSET_INTERFACE_HPP
-#define COMMON_LEVELSET_INTERFACE_HPP
+#ifndef COMMON_LEVELSET_INTERFACE_TPP
+#define COMMON_LEVELSET_INTERFACE_TPP
 
-#include "base_interface.hpp"
 
-template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
+template <typename M>
+template <typename Fct>
+InterfaceLevelSet<M>::InterfaceLevelSet(const M &MM, const Fct &lss, int label)
+    : Interface<M>(MM), ls_(lss.getArray()) {
+    make_patch(label);
+}
 
-    typedef M Mesh;
-    typedef typename Mesh::Element Element;
-    typedef typename Mesh::Rd Rd;
-    static const int nve = Rd::d;
-    typedef FaceInterface<nve> Face;
-    typedef SortArray<Ubyte, Element::Rd::d + 1> ElementIdx;
-
-    KN<byte> ls_sign;
-    KN<double> ls_;
-
-  public:
-    template <typeFunFEM Fct>
-    InterfaceLevelSet(const Mesh &MM, const Fct &lss, int label = 0)
-
-    SignElement<Element> get_SignElement(int k) const;
-    Partition<Element> get_partition(int k) const;
-    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
-   
-
-        return Partition<Element>((*this->backMesh)[k], loc_ls);
+template <typename M>
+SignElement<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_SignElement(int k) const {
+    typedef typename InterfaceLevelSet<M>::Element Element;
+    byte loc_ls[Element::nv];
+    for (int i = 0; i < Element::nv; ++i) {
+        int iglb  = this->backMesh->at(k, i);
+        loc_ls[i] = ls_sign[iglb];
     }
-    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const {
-        double loc_ls[Element::Face::nv];
-        for (int i = 0; i < Element::Face::nv; ++i) {
-            int j     = Element::nvhyperFace[ifac][i];
-            int iglb  = this->backMesh->at(k, j);
-            loc_ls[i] = ls_[iglb];
-        }
-        return Partition<typename Element::Face>(face, loc_ls);
+    return SignElement<Element>(loc_ls);
+}
+
+template <typename M>
+Partition<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_partition(int k) const {
+    typedef typename InterfaceLevelSet<M>::Element Element;
+
+    double loc_ls[Element::nv];
+    for (int i = 0; i < Element::nv; ++i) {
+        int iglb  = this->backMesh->at(k, i);
+        loc_ls[i] = ls_[iglb];
     }
-    bool isCutFace(int k, int ifac) const;
 
-    void cut_partition(Physical_Partition<Element> &local_partition,
-                       std::vector<ElementIdx> &new_element_idx,
-                       std::list<int> &erased_element, int sign_part) const;
+    return Partition<Element>((*this->backMesh)[k], loc_ls);
+}
 
-    R measure(const Face &f) const;
-
-  private:
-    void make_patch(int label);
-
-    const Face make_face(const typename RefPatch<Element>::FaceIdx &ref_tri,
-                         const typename Mesh::Element &K,
-                         const double lset[Element::nv], int label);
-
-    Rd make_normal(const typename Mesh::Element &K,
-                   const double lset[Element::nv]);
-
-    // Rd get_intersection_node(int k, const Rd A, const Rd B) const;
-
-    Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const;
+template <typename M>
+Partition<typename InterfaceLevelSet<M>::Element::Face> InterfaceLevelSet<M>::get_partition_face(const typename Element::Face &face, int k, int ifac) const {
+    typedef typename InterfaceLevelSet<M>::Element Element;
     
+    double loc_ls[Element::Face::nv];
+    for (int i = 0; i < Element::Face::nv; ++i) {
+        int j     = Element::nvhyperFace[ifac][i];
+        int iglb  = this->backMesh->at(k, j);
+        loc_ls[i] = ls_[iglb];
+    }
+    return Partition<typename Element::Face>(face, loc_ls);
+}
+
+template <typename M>
+void InterfaceLevelSet<M>::cut_partition(Physical_Partition<typename InterfaceLevelSet<M>::Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
+                    std::list<int> &erased_element, int sign_part) const {
+    std::cout << " An element might be cut multiplue time, and it is not "
+                    "suppose to happen"
+                << std::endl;
+    exit(EXIT_FAILURE);
 };
 
-template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
+template <typename M>
+R InterfaceLevelSet<M>::measure(const Face &f) const {
+    Rd l[nve];
+    for (int i = 0; i < nve; ++i)
+        l[i] = this->vertices_[f[i]];
+    return geometry::measure_hyper_simplex(l);
+};
 
+
+// Rd get_intersection_node(int k, const Rd A, const Rd B) const {
+//   double fA = fun.eval(k, A);
+//   double fB = fun.eval(k, B);
+//   double t = -fA/(fB-fA);
+//   return (1-t) * A + t * B;
+// }
+
+template <typename M>
+typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::mapToPhysicalFace(int ifac, const typename InterfaceLevelSet<M>::Element::RdHatBord x) const {
+    typename InterfaceLevelSet<M>::Rd N[nve];
+    for (int i = 0; i < nve; ++i)
+        N[i] = this->vertices_[this->faces_[ifac][i]];
+    return geometry::map_point_to_simplex(N, x);
+}
+
+
+
+template <typename M> 
+void InterfaceLevelSet<M>::make_patch(int label) {
+
+    typedef typename InterfaceLevelSet<M>::Element Element;
     assert(this->backMesh);
     this->faces_.resize(0); // reinitialize arrays
     this->vertices_.resize(0);
@@ -83,7 +107,7 @@ template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
     this->outward_normal_.resize(0);
     this->face_of_element_.clear();
 
-    const Mesh &Th = *(this->backMesh);
+    const M &Th = *(this->backMesh);
     util::copy_levelset_sign(ls_, ls_sign);
 
     const Uint nb_vertex_K = Element::nv;
@@ -92,7 +116,7 @@ template <typename M> void InterfaceLevelSet<M>::make_patch(int label) {
 
     for (int k = 0; k < this->backMesh->nbElmts(); k++) { // loop over elements
 
-        const typename Mesh::Element &K(Th[k]);
+        const Element &K(Th[k]);
 
         for (Uint i = 0; i < K.nv; ++i) {
             loc_ls_sign[i] = ls_sign[Th(K[i])];

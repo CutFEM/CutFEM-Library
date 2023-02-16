@@ -56,25 +56,48 @@ class BaseFEM : public ShapeOfProblem<Mesh>, public QuadratureOfProblem<Mesh> {
       long size_data_bf = this->thread_count_max_ * offset_bf_;
       databf_           = new double[size_data_bf];
    }
-   void initSpace(const FESpace &Vh, const TimeSlab &In) {
-      this->mapIdx0_.clear();
-      this->mapIdx0_[&Vh] = 0;
-      this->init(Vh.NbDoF() * In.NbDoF(), In.NbDoF());
+   
+void initSpace(const FESpace &Vh, const TimeSlab &In) {
 
+       // Clear the mapIdx0_ map
+      this->mapIdx0_.clear();
+
+      // 2. Initialize the mapIdx0_ map
+      this->mapIdx0_[&Vh] = 0; // set the index of the first component of the FESpace Vh to 0
+
+      // 3. Set the size of the operator to the product of the number of degrees of freedom in Vh and In
+      this->init(Vh.NbDoF() * In.NbDoF(), In.NbDoF()); 
+
+      // 4. Set the maximum number of components to the number of components in Vh
       N_component_max_ = Vh.N;
+
+      // 5. Set the maximum number of degrees of freedom to the number of degrees of freedom in the first component of Vh
       df_loc_max_      = Vh[0].NbDoF();
 
+      // 6. If the databf_ pointer is not NULL, delete the object
       if (this->databf_)
          delete this->databf_;
+
+      // 7. Set the offset to the size of the databf_ array
       offset_bf_        = 5 * df_loc_max_ * N_component_max_ * op_DDall;
+      // 8. Set the size of the databf_ array to the number of threads times the offset
       long size_data_bf = this->thread_count_max_ * offset_bf_;
+      // 9. Allocate the databf_ array
       this->databf_     = new double[size_data_bf];
+
+      // 10. If the databf_time_ pointer is not NULL, delete the object
       if (this->databf_time_)
          delete this->databf_time_;
+
+      // 11. Set the offset to the size of the databf_time_ array
       offset_bf_time     = In.NbDoF() * op_DDall;
+      // 12. Set the size of the databf_time_ array to the number of threads times the offset
       size_data_bf       = this->thread_count_max_ * offset_bf_time;
+      // 13. Allocate the databf_time_ array
       this->databf_time_ = new double[size_data_bf];
    }
+
+   
    void initSpace(const FESpace &Vh) {
       this->mapIdx0_.clear();
       this->mapIdx0_[&Vh] = 0;

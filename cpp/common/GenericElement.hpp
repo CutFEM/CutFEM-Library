@@ -42,9 +42,11 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 inline R1 ExtNormal(GenericVertex<R1> *const v[2], const std::vector<int> &f) {
    return (f[0] == 0) ? R1(-1) : R1(1);
 }
+
 inline R2 ExtNormal(GenericVertex<R2> *const v[3], const std::vector<int> &f) {
    return R2(*v[f.at(1)], *v[f.at(0)]).perp();
 }
+
 inline R3 ExtNormal(GenericVertex<R3> *const v[4], const std::vector<int> &f) {
    return R3(*v[f.at(0)], *v[f.at(2)]) ^ R3(*v[f.at(0)], *v[f.at(1)]);
 }
@@ -118,7 +120,7 @@ template <typename Data> class GenericElement : public Label {
       }
       assert(mss == globalVariable::UnSetMesure && mes > 0);
       return *this;
-   }
+   }   
 
    void set_face(int ifac, Face &face) const {
       for (int i = 0; i < nva; ++i) {

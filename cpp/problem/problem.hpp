@@ -75,7 +75,7 @@ template <typename Mesh> class ShapeOfProblem {
    // Matrix local_contribution_matrix_;
    Rnm loc_mat;
    // number of degree of freedom of the problem
-   // This is never modify after initialization
+   // This is never modified after initialization
    // => not when adding lagrange multiplier
    Ulint nb_dof_;
 
@@ -175,26 +175,61 @@ template <typename Mesh> class ShapeOfProblem {
    //   return Rn_(rhs_(SubArray(nb_dof_,0)));
    // }
 
+   /* This function returns the reference to the element at the specified location in the matrix.
+   * Parameters: i, j
+   * Return value: reference to the element at the specified location
+   */
    R &operator()(int i, int j) {
       return (*pmat_[0])[std::make_pair(i + index_i0_[0], j + index_j0_[0])];
    }
+
    // R & operator()(int i, int j, int thread_id) { return
    // (*pmat_[thread_id])[std::make_pair(i+index_i0_[thread_id],j+index_j0_[thread_id])];
    // }
+
+   // This function returns the i-th element of the right-hand side vector.
    R &operator()(int i) { return rhs_[i + index_i0_[0]]; }
 
  protected:
+   // This function returns a reference to the element (i,j) of the
+   // local_contribution_matrix_ member variable. The element (i,j) of
+   // the contribution matrix is the element of the matrix that
+   // corresponds to the local contribution of the i-th cell on the
+   // processor to the j-th cell in the global matrix. The element
+   // index_i0_[0] is the index of the first cell on the processor. The
+   // element index_j0_[0] is the index of the first cell in the global
+   // matrix. This function is used to add a contribution to the
+   // element (i,j) of the local_contribution_matrix_.
    double &addToLocalContribution(int i, int j) {
       return local_contribution_matrix_[0][std::make_pair(i + index_i0_[0],
-                                                          j + index_j0_[0])];
+                                                            j + index_j0_[0])];
    }
+   
+
    double &addToLocalContribution_Opt(int i, int j) { return loc_mat(i, j); }
+   
+   // This function returns a reference to a double value in the local
+   // contribution matrix. The purpose of this function is to allow
+   // the caller to modify the value. The key to the local
+   // contribution matrix is the pair (i+index_i0_[thread_id],
+   // j+index_j0_[thread_id]). The value of the key is the double
+   // that is returned by the function. The local contribution matrix
+   // is a map of pairs to doubles. The pairs are keys, and the
+   // doubles are values. The local contribution matrix is stored
+   // in a vector of maps of pairs to doubles. The local contribution
+   // matrix is chosen based on the value of thread_id. The index_i0_
+   // and index_j0_ are vectors of integers that are used to
+   // translate i and j to the correct row and column in the
+   // local contribution matrix. This function is used to
+   // modify the value of a double in the local contribution
+   // matrix.
    double &addToLocalContribution(int i, int j, int thread_id) {
       return local_contribution_matrix_[thread_id][std::make_pair(
-          i + index_i0_[thread_id], j + index_j0_[thread_id])];
+         i + index_i0_[thread_id], j + index_j0_[thread_id])];
       // return
       // (*pmat_[thread_id])[std::make_pair(i+index_i0_[thread_id],j+index_j0_[thread_id])];
    }
+
    void addLocalContribution() {
 #ifdef USE_OMP
       int thread_id = omp_get_thread_num();

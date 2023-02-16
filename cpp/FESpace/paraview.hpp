@@ -736,6 +736,40 @@ template <class M> class Paraview {
          }
          shrinkToFit(kk + 1);
       }
+      void build_macro_element(const MacroElementPartition<M> &macro, int dom) {
+
+            const ActiveMesh<Mesh> &cutTh(macro.Th);
+            ntCut_    = 0;
+            ntNotcut_ = 0;
+            nv_       = 0;
+            int size0 = cutTh.NbElement();
+            clearAndResize(size0);
+            std::vector<Rd> list_node;
+            int kk = 0;
+
+            for (auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
+                check_and_resize_array(kk);
+
+                const MElement &MK(it->second);
+                if (cutTh.get_domain_element(MK.get_index_root()) != dom)
+                    continue;
+
+                for (int k = 0; k < MK.size(); ++k) {
+                    int kb        = MK.get_index_element(k);
+                    int kbb       = cutTh.idxElementInBackMesh(kb);
+                    idx_in_Vh[kk] = std::make_pair(kbb, dom);
+                    num_cell[kk]  = std::make_pair(nvCell_, numCell_);
+                    for (int i = 0; i < nvCell_; ++i) {
+                        mesh_node[kk].push_back(cutTh[kb][i]);
+                    }
+                    nv_ += nvCell_;
+                    ntNotcut_++;
+                    kk++;
+                }
+            }
+            shrinkToFit(kk + 1);
+      }
+      
       void buildMacroInnerEdge(const TimeMacroElement<M> &macro, int dom) {
 
          const ActiveMesh<Mesh> &cutTh(macro.Th);
@@ -809,6 +843,42 @@ template <class M> class Paraview {
             }
          }
          shrinkToFit(kk + 1);
+      }
+      void buildMacroInnerEdge(const MacroElementPartition<M> &macro, int dom) {
+
+            const ActiveMesh<Mesh> &cutTh(macro.Th);
+            ntCut_    = 0;
+            ntNotcut_ = 0;
+            nv_       = 0;
+            int size0 = cutTh.NbElement();
+            clearAndResize(size0);
+            std::vector<Rd> list_node;
+            int kk     = 0;
+            int nv_loc = M::Element::nva;
+            for (auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
+
+                const MElement &MK(it->second);
+                if (cutTh.get_domain_element(MK.get_index_root()) != dom)
+                    continue;
+
+                for (int k = 0; k < MK.get_nb_inner_edge(); ++k) {
+                    check_and_resize_array(kk);
+
+                    std::pair<int, int> edge = MK.get_inner_edge(k);
+                    int kb                   = edge.first;
+                    int kbb                  = cutTh.idxElementInBackMesh(kb);
+                    int ie                   = edge.second;
+                    idx_in_Vh[kk]            = std::make_pair(kbb, dom);
+                    num_cell[kk]             = std::make_pair(nv_loc, 3);
+                    for (int i = 0; i < nv_loc; ++i) {
+                        mesh_node[kk].push_back(cutTh[kb][Element::nvedge[ie][i]]);
+                    }
+                    nv_ += nv_loc;
+                    ntNotcut_++;
+                    kk++;
+                }
+            }
+            shrinkToFit(kk + 1);
       }
       void buildMacroOutterEdge(const TimeMacroElement<M> &macro, int dom) {
 
@@ -892,6 +962,46 @@ template <class M> class Paraview {
          }
          shrinkToFit(kk + 1);
       }
+      void buildMacroOutterEdge(const MacroElementPartition<M> &macro, int dom) {
+
+            const ActiveMesh<Mesh> &cutTh(macro.Th);
+            ntCut_    = 0;
+            ntNotcut_ = 0;
+            nv_       = 0;
+            int size0 = cutTh.NbElement();
+            clearAndResize(size0);
+            std::vector<Rd> list_node;
+            int kk     = 0;
+            int nv_loc = M::Element::nva;
+            for (auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
+
+                const MElement &MK(it->second);
+                if (cutTh.get_domain_element(MK.get_index_root()) != dom)
+                    continue;
+
+                for (int k = 0; k < MK.size(); ++k) {
+                    int kb  = MK.get_index_element(k);
+                    int kbb = cutTh.idxElementInBackMesh(kb);
+                    for (int ie = 0; ie < M::Element::nea; ++ie) {
+                        int je = ie;
+                        int kn = cutTh.ElementAdj(kb, je);
+                        if (MK.containElement(kn))
+                            continue;
+                        check_and_resize_array(kk);
+
+                        idx_in_Vh[kk] = std::make_pair(kbb, dom);
+                        num_cell[kk]  = std::make_pair(nv_loc, 3);
+                        for (int i = 0; i < nv_loc; ++i) {
+                            mesh_node[kk].push_back(cutTh[kb][Element::nvedge[ie][i]]);
+                        }
+                        nv_ += nv_loc;
+                        ntNotcut_++;
+                        kk++;
+                    }
+                }
+            }
+            shrinkToFit(kk + 1);
+      }
 
       void buildMeshNoStab(const TimeMacroElement<M> &macro, int dom) {
          const ActiveMesh<Mesh> &cutTh(macro.Th);
@@ -922,6 +1032,36 @@ template <class M> class Paraview {
             ntNotcut_++;
             kk++;
          }
+      }
+      void buildMeshNoStab(const MacroElementPartition<M> &macro, int dom) {
+            const ActiveMesh<Mesh> &cutTh(macro.Th);
+            ntCut_    = 0;
+            ntNotcut_ = 0;
+            nv_       = 0;
+            int size0 = cutTh.NbElement();
+            clearAndResize(size0);
+
+            std::vector<Rd> list_node;
+            int kk = 0;
+            for (int k = 0; k < cutTh.NbElement(); ++k) {
+                int domain = cutTh.get_domain_element(k);
+                int kb     = cutTh.idxElementInBackMesh(k);
+
+                if (domain != dom)
+                    continue;
+                if (macro.isSmall(k) || macro.isRootFat(k))
+                    continue;
+                check_and_resize_array(kk);
+
+                idx_in_Vh[kk] = std::make_pair(kb, domain);
+                num_cell[kk]  = make_pair(nvCell_, numCell_);
+                for (int i = 0; i < nvCell_; ++i) {
+                    mesh_node[kk].push_back(cutTh[k][i]);
+                }
+                nv_ += nvCell_;
+                ntNotcut_++;
+                kk++;
+            }
       }
       void buildSmallElements(const TimeMacroElement<M> &macro, int dom) {
          const ActiveMesh<Mesh> &cutTh(macro.Th);
@@ -983,7 +1123,37 @@ template <class M> class Paraview {
             kk++;
          }
       }
+      void buildSmallElements(const MacroElementPartition<M> &macro, int dom) {
+            const ActiveMesh<Mesh> &cutTh(macro.Th);
+            ntCut_    = 0;
+            ntNotcut_ = 0;
+            nv_       = 0;
+            int size0 = cutTh.NbElement();
+            clearAndResize(size0);
 
+            std::vector<Rd> list_node;
+            int kk = 0;
+            for (int k = 0; k < cutTh.NbElement(); ++k) {
+                int domain = cutTh.get_domain_element(k);
+                int kb     = cutTh.idxElementInBackMesh(k);
+
+                if (domain != dom)
+                    continue;
+                if (!macro.isSmall(k))
+                    continue;
+                check_and_resize_array(kk);
+
+                idx_in_Vh[kk] = std::make_pair(kb, domain);
+                num_cell[kk]  = std::make_pair(nvCell_, numCell_);
+                for (int i = 0; i < nvCell_; ++i) {
+                    mesh_node[kk].push_back(cutTh[k][i]);
+                }
+                nv_ += nvCell_;
+                ntNotcut_++;
+                kk++;
+            }
+      }
+      
       void build_macro_element(const TimeMacroElementSurface<M> &macro,
                                int dom) {
 
@@ -1252,6 +1422,13 @@ template <class M> class Paraview {
       this->writeFileMesh();
       this->writeFileCell();
    }
+   void writeMacroElement(const MacroElementPartition<M> &macro, int dom,
+                          std::string name) {
+      outFile_ = name;
+      mesh_data.build_macro_element(macro, dom);
+      this->writeFileMesh();
+      this->writeFileCell();
+   }
    void writeMacroElement(const TimeMacroElementSurface<M> &macro, int dom,
                           std::string name) {
       outFile_ = name;
@@ -1287,6 +1464,13 @@ template <class M> class Paraview {
       this->writeFileMesh();
       this->writeFileCell();
    }
+   void writeMacroInnerEdge(const MacroElementPartition<M> &macro, int dom,
+                            std::string name) {
+      outFile_ = name;
+      mesh_data.buildMacroInnerEdge(macro, dom);
+      this->writeFileMesh();
+      this->writeFileCell();
+   }
    void writeMacroInnerEdge(const TimeMacroElementSurface<M> &macro, int dom,
                             std::string name) {
       outFile_ = name;
@@ -1316,6 +1500,13 @@ template <class M> class Paraview {
       this->writeFileCell();
    }
    void writeMacroOutterEdge(const TimeMacroElement2<M> &macro, int dom,
+                             std::string name) {
+      outFile_ = name;
+      mesh_data.buildMacroOutterEdge(macro, dom);
+      this->writeFileMesh();
+      this->writeFileCell();
+   }
+   void writeMacroOutterEdge(const MacroElementPartition<M> &macro, int dom,
                              std::string name) {
       outFile_ = name;
       mesh_data.buildMacroOutterEdge(macro, dom);
@@ -1370,6 +1561,14 @@ template <class M> class Paraview {
       this->writeFileCell();
    }
    void writeSmallElements(const TimeMacroElement2<M> &macro, int dom,
+                           std::string name) {
+      outFile_ = name;
+      mesh_data.buildSmallElements(macro, dom);
+      this->writeFileMesh();
+      this->writeFileCell();
+   }
+
+   void writeSmallElements(const MacroElementPartition<M> &macro, int dom,
                            std::string name) {
       outFile_ = name;
       mesh_data.buildSmallElements(macro, dom);

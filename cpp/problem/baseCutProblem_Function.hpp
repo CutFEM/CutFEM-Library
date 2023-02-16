@@ -17,12 +17,19 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 // INTEGRATION ON FULL ELEMENT
 
 /**
- * @brief Assembles bilinear form integrated over a cut mesh
- *
- * @tparam M Mesh
- * @param VF Inner products in bilinear form
- * @param Th Active mesh
- */
+* @brief This function adds a bilinear form to the local matrix integrated over the cut mesh.
+* @tparam M The type of the matrix
+* 
+* @tparam M Mesh
+* @param VF: Inner products as a list of vector of basis functions
+* @param Th: Active mesh
+* @note
+* The function allows for OpenMP parallelization, and loops over all elements in the active mesh.
+* For each element, if the element is a cut element, the function addElementContribution is called
+* from the BaseCutFEM class, otherwise the function addElementContribution from the BaseFEM class is called.
+* Finally, the function addLocalContribution is called to add the local contribution to the matrix.
+*/
+
 template <typename M> void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
 
@@ -53,36 +60,10 @@ template <typename M> void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &V
     // std::cout << " real time " << MPIcf::Wtime() - t0 << std::endl;
 }
 
-template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
-    assert(!VF.isRHS());
-    auto tq    = this->get_quadrature_time(itq);
-    double tid = In.map(tq);
-    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
-    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
-    In.BF(tq.x, bf_time);
-    std::string title = " Add Bilinear Kh, In(" + std::to_string(itq) + ")";
-    progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
-
-    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
-        bar += Th.next_element();
-        if (Th.isInactive(k, itq))
-            continue;
-
-        if (Th.isCut(k, itq))
-            BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
-        else
-            BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
-
-        this->addLocalContribution();
-    }
-    bar.end();
-}
-
 /**
  * @brief Bilinear form integrated over cut mesh and over time slab
  *
- * @tparam M
+ * @tparam M Mesh
  * @param VF Bilinear form
  * @param Th Active mesh
  * @param In Time slab
@@ -98,47 +79,136 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
     }
 }
 
+/**
+ * @brief Bilinear form integrated over cut mesh in specific time quadrature point in the time slab.
+ *
+ * @tparam M Mesh
+ * @param VF Bilinear form
+ * @param Th Active mesh
+ * @param In Time slab
+ * @note The function is scaled with the time quadrature weight, and should therefore not be called directly.
+ */
 template <typename M>
 void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In, int itq) {
+    // Check if the input VF is not a RHS (right-hand side)
     assert(!VF.isRHS());
-    auto tq    = this->get_quadrature_time(itq);
-    double tid = In.map(tq);
-    //  double t0  = MPIcf::Wtime();
 
+    // Get the time quadrature
+    auto tq = this->get_quadrature_time(itq);
+
+    // Map the time quadrature to the time slab
+    double tid = In.map(tq);
+
+    // Start parallel region
 #pragma omp parallel default(shared)
     {
+        // Get the thread ID
 #ifdef USE_OMP
+        // Check if the number of threads matches the number of threads set in this object
         assert(this->get_nb_thread() == omp_get_num_threads());
         int thread_id = omp_get_thread_num();
 #else
         int thread_id = 0;
 #endif
+
+        // Calculate the offset for the current thread
         long offset = thread_id * this->offset_bf_time;
+
+        // Create a matrix to store the time basis functions for this thread
         RNMK_ bf_time(this->databf_time_ + offset, In.NbDoF(), 1, op_dz);
-        In.BF(tq.x, bf_time); // compute time basic funtions
-        double cst_time   = tq.a * In.get_measure();
+
+        // Compute the time basis functions for this time quadrature point
+        In.BF(tq.x, bf_time);
+
+        // Calculate the time integration constant
+        double cst_time = tq.a * In.get_measure();
+
+        // Create a progress bar for this thread
         std::string title = " Add Bilinear CutMesh, In(" + std::to_string(itq) + ")";
-        int verbose       = (thread_id == 0) * globalVariable::verbose;
+        int verbose = (thread_id == 0) * globalVariable::verbose;
         progress bar(title.c_str(), Th.last_element(), verbose, this->get_nb_thread());
 
+        // Loop over all elements in the active mesh
 #pragma omp for
         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
             bar += Th.next_element();
+
+            // Skip inactive elements for this time quadrature (if the element is inactive, it will be active for another time quadrature)
             if (Th.isInactive(k, itq))
                 continue;
 
+            // Check if the element is cut
             if (Th.isCut(k, itq))
+                // If the element is cut, add contribution to local matrix using addElementContribution function from BaseCutFEM class
                 BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
             else
+                // If the element is not cut, add contribution to local matrix using addElementContribution function from BaseFEM class
                 BaseFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
 
+            // Add the contribution to the local matrix
             this->addLocalContribution();
         }
         bar.end();
     }
-    //  MPIcf::Barrier();
-    // std::cout << " real time " << MPIcf::Wtime() - t0 << std::endl;
+    // End parallel region
 }
+
+/**
+ * @brief Bilinear form integrated over cut mesh in specific time quadrature point in the time slab.
+ *
+ * @tparam M Mesh
+ * @param VF Bilinear form
+ * @param Th Active mesh
+ * @param In Time slab
+ * @note The function is *NOT* scaled with the time quadrature weight, and may therefore be called directly.
+ */
+template <typename M>
+void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+    // Assert that the input is not a RHS
+    assert(!VF.isRHS());
+    // Get the quadrature time for iteration "itq"
+    auto tq = this->get_quadrature_time(itq);
+
+    // Calculate the time using the map function of the TimeSlab "In"
+    double tid = In.map(tq);
+
+    // Allocate memory for the time-dependent basis functions
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+
+    // Compute the time basic functions
+    In.BF(tq.x, bf_time);
+
+    // Set the title for the progress bar
+    std::string title = " Add Bilinear Kh, In(" + std::to_string(itq) + ")";
+
+    // Initialize the progress bar
+    progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+
+    // Loop over each element of the active mesh
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        // Increment the progress bar
+        bar += Th.next_element();
+
+        // Skip the element if it is inactive at iteration "itq"
+        if (Th.isInactive(k, itq))
+            continue;
+
+        // If the element is cut, add its contribution using BaseCutFEM
+        if (Th.isCut(k, itq))
+            BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+        // Else, add its contribution using BaseFEM
+        else
+            BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+
+        // Add the local contribution
+        this->addLocalContribution();
+    }
+
+    // End the progress bar
+    bar.end();
+}
+
+
 
 template <typename M> void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
     assert(VF.isRHS());
@@ -265,9 +335,9 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d> &VF, const in
             // value for basic fonction
             long offset = iam * this->offset_bf_;
             RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
-                     lastop); //  the value for basic fonction
+                     lastop); //  the value for basic function
             RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N,
-                     lastop); //  the value for basic fonction
+                     lastop); //  the value for basic function
             What_d Fop = Fwhatd(lastop);
 
             // COMPUTE COEFFICIENT
@@ -1277,6 +1347,43 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutM
 
 template <typename M>
 void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In,
+                                         const MacroElementPartition<M> &macro) {
+
+    number_of_stabilized_edges      = 0;
+    int number_of_quadrature_points = this->get_nb_quad_point_time();
+    for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
+
+        assert(!VF.isRHS());
+        auto tq    = this->get_quadrature_time(itq);
+        double tid = In.map(tq);
+
+        KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+        In.BF(tq.x, bf_time); // compute time basic funtions
+        double cst_time = tq.a * In.get_measure();
+
+        for (auto me = macro.macro_element.begin(); me != macro.macro_element.end(); ++me) {
+
+            for (auto it = me->second.inner_edge.begin(); it != me->second.inner_edge.end(); ++it) {
+                int k    = it->first;
+                int ifac = it->second;
+                int jfac = ifac;
+                int kn   = Th.ElementAdj(k, jfac);
+
+                std::pair<int, int> e1 = std::make_pair(k, ifac);
+                std::pair<int, int> e2 = std::make_pair(kn, jfac);
+
+                number_of_stabilized_edges += 1;
+                BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+            }
+            this->addLocalContribution();
+        }
+    }
+    number_of_stabilized_edges /= number_of_quadrature_points;
+}
+
+template <typename M>
+void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In,
                                          const TimeMacroElementSurface<M> &macro) {
     number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();
@@ -1709,52 +1816,94 @@ void BaseCutFEM<M>::addLagrangeContributionOtherSide(const ListItemVF<Rd::d> &VF
     }
 }
 
-// INITIALIZE SOLUTION
+/**
+ * @brief Initializes the solution vector `u0` based on the `mapU0_` data.
+ * 
+ * This function initializes the solution vector `u0` based on the `mapU0_` data,
+ * which is a map of initial values for each degree of freedom. The map is cleared
+ * at the end of the function.
+ * 
+ * @tparam M The mesh type.
+ * @param u0 The solution vector to be initialized.
+ */
 template <typename M> void BaseCutFEM<M>::initialSolution(Rn &u0) {
-
-    // this->cleanMatrix();
-    // typedef typename Mesh::Partition Partition;
+    
+    // Get the number of degrees of freedom in time
     int nbTime = this->get_nb_dof_time();
+
+    // Initialize u0 with the number of degrees of freedom
     u0.init(this->get_nb_dof());
+
+    // If the mapU0_ is empty, return without performing any further operations
     if (this->mapU0_.size() == 0) {
+        // If verbosity is greater than 0, print the default initial solution
         // if(globalVariable::verbose > 0 ){
         //   std::cout << " Default Initial solution " << std::endl;
         // }
         return;
     }
 
+    // Initialize the id of the domain to 0
     int id_domain_0 = 0;
 
+    // Loop through the mapIdx0_
     for (auto q = this->mapIdx0_.begin(); q != this->mapIdx0_.end(); ++q) {
 
+        // Get the FESpace object from the map
         const FESpace &Wh = *q->first;
-        const int n0      = q->second;
+
+        // Get the second value from the map, which is n0
+        const int n0 = q->second;
+
+        // Get the active mesh object from the FESpace object
         const ActiveMesh<M> &Th(Wh.get_mesh());
+
+        // Get the back space from the FESpace object
         const FESpace &backVh = Wh.get_back_space();
 
+        // Create a temporary variable u0S as a subarray of u0
         KN_<double> u0S(u0(SubArray(Wh.NbDoF() * nbTime, n0)));
 
+        // Loop through all the elements of the mesh
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 
+            // If the element is inactive, skip it 
             if (Th.isInactive(k, 0))
                 continue;
+
+            // Get the FElement object for the current element
             const FElement &FK(Wh[k]);
-            int domain    = Th.get_domain_element(k);
+
+            // Get the domain of the current element
+            int domain = Th.get_domain_element(k);
+
+            // If the domain is -1, set the id of the domain to id_domain_0
+            // otherwise, set it to id_domain_0 + domain
             int id_domain = (domain == -1) ? id_domain_0 : id_domain_0 + domain;
 
+            // Get the index of the current element in the back mesh
             int kb = Th.idxElementInBackMesh(k);
+
+            // Get the FElement object for the corresponding element in the back mesh
             const FElement &FKback(backVh[kb]);
 
+            // Loop through all the degrees of freedom of the element
             for (int ic = 0; ic < Wh.N; ++ic) { // ESSAYER VH->N
                 for (int i = FK.dfcbegin(ic); i < FK.dfcend(ic); ++i) {
+                    // Get the value from the map of initial conditions, with the key of the current domain and node in the back mesh.
                     u0S(FK(i)) = this->mapU0_[std::make_pair(id_domain, FKback(i))];
                 }
             }
         }
+        // Increment the id_domain_0 by the number of domains in the mesh
         id_domain_0 += Th.get_nb_domain();
     }
+    // Clear the map of initial conditions.
     this->mapU0_.clear();
 }
+
+
+
 
 template <typename M> void BaseCutFEM<M>::saveSolution(const Rn &sol) {
 
