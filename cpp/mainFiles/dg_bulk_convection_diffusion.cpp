@@ -61,6 +61,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/matlab.hpp"
 #include "../num/redirectOutput.hpp"
 #include "paraview.hpp"
+#include "../algoim/quadrature_general.hpp"
 
 using namespace globalVariable; // to access some globally defined constants
 
@@ -479,7 +480,7 @@ typedef FunFEM<Mesh2> Fun_h;
 //* Set scheme for the method (options: "classical", "conservative")
 #define classical
 //* Set stabilization method (options: "fullstab", "macro")
-#define fullstab
+#define macro
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
@@ -504,7 +505,7 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 10; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;             // starting mesh size
@@ -604,7 +605,7 @@ int main(int argc, char **argv) {
         const double lambda_A = 500, lambda_B = 0.5;
 
         // DG stabilization parameter
-        const double tau0 = 1., tau1 = 1.;
+        const double tau0 = 5., tau1 = 5.;
 
         FESpace2 Vh(Th, DataFE<Mesh>::P1dc); // discontinuous basis functions
 
@@ -806,7 +807,7 @@ int main(int argc, char **argv) {
 #elif defined(macro)
 
             //TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.16);
-            MacroElementPartition<Mesh> TimeMacro(Thi, 0.2);
+            MacroElementPartition<Mesh> TimeMacro(Thi, 0.15);
 
             // Visualize macro elements
             if (iterations == 1 && h > 0.01) {
@@ -1087,7 +1088,8 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        h *= sqrt(0.5);
+        h *= 0.5;
+        //h *= sqrt(0.5);
 #endif
     }
 
