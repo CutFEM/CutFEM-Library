@@ -11,10 +11,6 @@
 #  MUMPS_LIBRARIES    MUMPS_librarie
 #  MUMPS_INCLUDE_DIR  where to find mumps_compat.h
 
-#set (MUMPS_DIR "/afs/kth.se/home/f/r/frachon/lib/MUMPS/5.0.1")
-#set(MUMPS_DIR "/afs/kth.se/home/f/r/frachon/Documents/code/myLib/MUMPS_5.1.2")
-
-set (MUMPS_DIR "/opt/homebrew/Cellar/brewsci-mumps/5.3.5")
 set(MUMPS_FOUND "NO")
 
 #if MUMPS_DIR is specified
@@ -25,6 +21,7 @@ else()
 find_path (MUMPS_INCLUDE_DIR
   NAMES dmumps_struc.h
   PATHS
+  /usr/local/Cellar/brewsci-mumps/5.2.1/include
   /opt/homebrew/Cellar/brewsci-mumps/5.3.5/include
   /usr/local/MUMPS/include
   /usr/local/include
@@ -38,6 +35,7 @@ find_path(MUMPS_LIBRARY_DIR
 #  NAMES libmumps_common.a libdmumps.a libpord.a
 
   PATHS
+  /usr/local/Cellar/brewsci-mumps/5.2.1/lib
   /opt/homebrew/Cellar/brewsci-mumps/5.3.5/lib
   /opt/MUMPS/lib
   /usr/local/MUMPS/lib
@@ -67,7 +65,9 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
 
   find_library(MUMPS_PARMETIS_LIBRARY
     NAMES parmetis
-    PATHS /usr/lib
+    PATHS 
+    /usr/lib
+    /usr/local/Cellar/brewsci-parmetis/4.0.3_1/lib
 		/opt/homebrew/Cellar/brewsci-parmetis/4.0.3_1/lib
     NO_DEFAULT_PATH)
 

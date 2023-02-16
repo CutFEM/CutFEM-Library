@@ -1,10 +1,4 @@
 #=======================================================================================================================
-# Preamble
-#=======================================================================================================================
-cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
-project(CutFEM.Documentation)
-
-#=======================================================================================================================
 # Set up Doxygen API documentation
 #=======================================================================================================================
 # check if Doxygen is installed
@@ -29,3 +23,4 @@ if (DOXYGEN_FOUND)
 else (DOXYGEN_FOUND)
     message("Doxygen need to be installed to generate the doxygen documentation")
 endif (DOXYGEN_FOUND)
+

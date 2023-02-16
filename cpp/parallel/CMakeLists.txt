@@ -13,4 +13,7 @@ add_library(parallel SHARED ${PARALLEL_SOURCES})
 
 
 target_include_directories(parallel
-                           INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+                           PRIVATE 
+                           ${CMAKE_CURRENT_SOURCE_DIR}
+                           ${MPI_CXX_INCLUDE_PATH})
+
