@@ -1,42 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
 
-project(CutFEM VERSION 1.0)
-
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-## ##############################
-## Options
-## ##############################
-
-option(USE_MPI "Perform a parallel computation" ON)
-option(USE_OMP "Perform a parallel omp computation" OFF)
-option(USE_UMFPACK "Found the UMFpack library" ON)
-option(USE_LAPACK "Found the lapacke library" OFF)
-option(USE_MUMPS "Found the MUMPS library" ON)
-
-option(CUTFEM_BUILD_TESTS "Build and run library tests" ON)
-option(CUTFEM_BUILD_PYTHON_WRAPPER "Build a library for Python" ON)
-option(CUTFEM_BUILD_MAIN "Build the cpp example" ON)
-
-if(USE_MPI)
-  set(CMAKE_CXX_COMPILER "/opt/homebrew/Cellar/open-mpi/4.1.4_2/bin/mpicxx")
-endif()
-
-## ##############################
-## Configuration
-## ##############################
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
-
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -fPIC  -std=c++17 -O3 ")
-
-
-# To allow debugging
-set(CMAKE_BUILD_TYPE Debug)
 
 if(USE_MPI)
   find_package(MPI)
@@ -53,10 +15,6 @@ list(APPEND EXTRA_LIBS solver)
 add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 
-
-# if(${CUTFEM_BUILD_TESTS})
-# add_subdirectory(test/)
-# endif()
 
 
 if(${CUTFEM_BUILD_PYTHON_WRAPPER})
@@ -89,6 +47,17 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 set(EX_NAME surfactantCG2)
 add_executable(${EX_NAME}  mainFiles/surfactantCG2.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+
+
+set(EX_NAME stokes)
+add_executable(${EX_NAME}  mainFiles/stokes_interface_problem.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+
+
+set(EX_NAME test_BDM2)
+add_executable(${EX_NAME}  mainFiles/test_BDM2.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
+
 
 # set(EX_NAME showMesh)
 # add_executable(${EX_NAME}  mainFiles/showMesh.cpp )
