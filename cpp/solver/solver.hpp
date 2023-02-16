@@ -23,12 +23,12 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #endif
 
 struct ProblemOption {
-   int order_space_element_quadrature_ = 5;
-   int order_space_bord_quadrature_    = 5;
-   int order_time_quadrature_          = 1;
-   std::string solver_name_            = "mumps";
-   bool clear_matrix_                  = true;
-   int verbose_                        = 0;
+    int order_space_element_quadrature_ = 5;
+    int order_space_bord_quadrature_    = 5;
+    int order_time_quadrature_          = 1;
+    std::string solver_name_            = "mumps";
+    bool clear_matrix_                  = true;
+    int verbose_                        = 0;
 };
 
 namespace solver {
@@ -39,24 +39,24 @@ void LAPACK(Rnm &a, Rn &b);
 class Solver {
 
 #ifdef USE_MPI
-   double get_Time() const { return MPIcf::Wtime(); }
+    double get_Time() const { return MPIcf::Wtime(); }
 #else
-   double get_Time() const { return CPUtime(); }
+    double get_Time() const { return CPUtime(); }
 #endif
 
- public:
-   int verbose_             = 0;
-   bool clearMatrix_        = true;
-   //   std::string reordering = "none";
-   std::string solver_name_ = "default";
+  public:
+    int verbose_             = 0;
+    bool clearMatrix_        = true;
+    //   std::string reordering = "none";
+    std::string solver_name_ = "default";
 
-   Solver(const ProblemOption &option) {
-      clearMatrix_ = option.clear_matrix_;
-      solver_name_ = option.solver_name_;
-      verbose_     = option.verbose_;
-   }
+    Solver(const ProblemOption &option) {
+        clearMatrix_ = option.clear_matrix_;
+        solver_name_ = option.solver_name_;
+        verbose_     = option.verbose_;
+    }
 
-   void solve(std::map<std::pair<int, int>, R> &A, Rn &b);
+    void solve(std::map<std::pair<int, int>, R> &A, Rn &b);
 };
 
 #endif

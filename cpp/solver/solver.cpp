@@ -32,86 +32,86 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 
-   double tsolver = this->get_Time();
+    double tsolver = this->get_Time();
 
 #ifndef USE_MUMPS
-   if (solver_name_ == "mumps") {
-      std::cout << " MUMPS not linked" << std::endl;
-      exit(EXIT_FAILURE);
-   }
+    if (solver_name_ == "mumps") {
+        std::cout << " MUMPS not linked" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 #endif
 #ifndef USE_UMFPACK
-   if (solver_name_ == "umfpack") {
-      std::cout << " umfpack not linked" << std::endl;
-      exit(EXIT_FAILURE);
-   }
+    if (solver_name_ == "umfpack") {
+        std::cout << " umfpack not linked" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 #endif
 #ifdef USE_MUMPS
-   if (solver_name_ == "mumps") {
+    if (solver_name_ == "mumps") {
 #ifndef USE_MPI
-      std::cout << " You need to compile using MPI to be able to use MUMPS"
-                << std::endl;
-      exit(EXIT_FAILURE);
+        std::cout << " You need to compile using MPI to be able to use MUMPS"
+                  << std::endl;
+        exit(EXIT_FAILURE);
 #endif
-   }
+    }
 #endif
 
-   if (solver_name_ == "default") {
+    if (solver_name_ == "default") {
 #ifdef USE_MUMPS
-      solver_name_ = "mumps";
+        solver_name_ = "mumps";
 #else
 #ifdef USE_UMFPACK
-      solver_name_ = "umfpack";
+        solver_name_ = "umfpack";
 #else
-      std::cout << " Solver unknown " << std::endl;
-      exit(EXIT_FAILURE);
+        std::cout << " Solver unknown " << std::endl;
+        exit(EXIT_FAILURE);
 #endif
 #endif
-   }
+    }
 
-   if (solver_name_ == "mumps") {
+    if (solver_name_ == "mumps") {
 #ifdef USE_MUMPS
-      MUMPS(*this, A, b);
+        MUMPS(*this, A, b);
 #endif
-   } else if (solver_name_ == "umfpack") {
+    } else if (solver_name_ == "umfpack") {
 #ifdef USE_UMFPACK
-      solver::umfpack(A, b, clearMatrix_);
+        solver::umfpack(A, b, clearMatrix_);
 #endif
-   }
+    }
 
-   tsolver = this->get_Time() - tsolver;
+    tsolver = this->get_Time() - tsolver;
 
-   if (this->verbose_ > 0)
-      std::cout << " Real Time Solver \t \t " << tsolver << std::endl;
+    if (this->verbose_ > 0)
+        std::cout << " Real Time Solver \t \t " << tsolver << std::endl;
 }
 
 namespace solver {
 #ifdef USE_UMFPACK
 void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
-   const int n = b.size();
-   KN<double> x(n);
-   SparseMatrixRC<double> A(n, n, Amap);
-   if (clearMatrix)
-      Amap.clear();
-   void *Symbolic, *Numeric;
-   (void)umfpack_di_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
-   (void)umfpack_di_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
-   umfpack_di_free_symbolic(&Symbolic);
-   (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x, b, Numeric, 0, 0);
-   umfpack_di_free_numeric(&Numeric);
-   b = x;
+    const int n = b.size();
+    KN<double> x(n);
+    SparseMatrixRC<double> A(n, n, Amap);
+    if (clearMatrix)
+        Amap.clear();
+    void *Symbolic, *Numeric;
+    (void)umfpack_di_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
+    (void)umfpack_di_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
+    umfpack_di_free_symbolic(&Symbolic);
+    (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x, b, Numeric, 0, 0);
+    umfpack_di_free_numeric(&Numeric);
+    b = x;
 }
 #endif
 
 #ifdef USE_LAPACK
 void LAPACK(Rnm &a, Rn &b) {
-   lapack_int n    = a.N();
-   lapack_int m    = a.M();
-   lapack_int lda  = n;
-   lapack_int ldb  = 1;
-   lapack_int nrhs = 1;
-   lapack_int info =
-       LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', m, n, 1, a, lda, b, ldb);
+    lapack_int n    = a.N();
+    lapack_int m    = a.M();
+    lapack_int lda  = n;
+    lapack_int ldb  = 1;
+    lapack_int nrhs = 1;
+    lapack_int info =
+        LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', m, n, 1, a, lda, b, ldb);
 }
 #endif
 
