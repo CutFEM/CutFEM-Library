@@ -15,8 +15,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 
 /**
- * @brief Time-dependent convection diffusion equation.
- * @note We consider a time-dependent bulk problem on Omega1 or Omega2.
+ * @brief Time-dependent convection diffusion equation in Omega1 or Omega2.
+ * @note Numerical method is the discontinuous Galerkin (dG) space-time CutFEM.
 
  *  Problems:
 
@@ -34,12 +34,12 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
     dt(u) + beta*grad(u) - D*laplace(u) = f,    in Omega_2(t).
                                         BC,  on Gamma(t).
 
- *  Numerical method:
-    A space-time Cutfem, using the level-set method.
+ * Numerical method:
+ * A space-time discontinuous Cutfem, using the level-set method.
 
- *  Classical scheme: Standard FEM scheme.
- *  Conservative scheme: Reynold's transport theorem is used to make
-    the bilinear form fulfill a conservation law.
+ * Classical scheme: Integration by parts on both diffusion and convection term.
+ * Conservative scheme: Use Reynold's transport theorem instead. Slightly unclear 
+ * how to add a consistent numerical flux for the advection term.
 */
 
 // Dependencies
@@ -84,7 +84,7 @@ double fun_levelSet(double *P, const int i) {
 R fun_neumann_Gamma(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
 
-    // Correct sign of normal vector at interface
+    // Wrong sign of normal vector at interface
     return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2 - 0.28 * sin(pi * t))) /
                (250 * sqrt((pow(x - 1. / 2 - 0.28 * sin(pi * t), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2)))) -
            (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 0.5 + 0.28 * cos(pi * t))) /
@@ -237,99 +237,69 @@ R fun_neumann_top(double *P, const int i, const R t) {
 } // namespace Example1_pure_diffusion
 
 namespace Example1_Omega1 {
-/* This works for running Test – i.e. a pure bulk problem on Omega_2. */
 
-    // Level-set function
-    double fun_levelSet(double *P, const int i, const R t) {
-        R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-        return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 - Epsilon;
-        // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
-    }
+// Level-set function
+double fun_levelSet(double *P, const int i, const R t) {
+    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+    return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 - Epsilon;
+}
 
-    // Level-set function initial
-    double fun_levelSet(double *P, const int i) {
-        return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
-    }
+// Level-set function initial
+double fun_levelSet(double *P, const int i) {
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17);
+}
 
-    // The rhs Neumann boundary condition
-    R fun_neumann_Gamma(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        // Wrong sign of normal vector at interface
-        return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2 - 0.28 * sin(pi * t))) /
-                (250 * sqrt((pow(x - 1. / 2 - 0.28 * sin(pi * t), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2)))) -
-            (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 0.5 + 0.28 * cos(pi * t))) /
-                (250 * sqrt((pow((x - 1. / 2 - 0.28 * sin(pi * t)), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2))));
-    }
+    return (pi * cos(pi * y) * sin(pi * x) * (2 * cos(pi * t) * cos(pi * t) - 1) * ((7 * sin(pi * t)) / 25 - x + 0.5)) /
+               (250 * sqrt(pow(y + (7 * cos(t * pi)) / 25 - 0.5, 2) + pow((7 * sin(t * pi)) / 25 - x + 0.5, 2))) -
+           (pi * cos(pi * x) * sin(pi * y) * (2 * cos(pi * t) * cos(pi * t) - 1) * (y + (7 * cos(pi * t)) / 25 - 0.5)) /
+               (250 * sqrt(pow(y + (7 * cos(t * pi)) / 25 - 0.5, 2) + pow((7 * sin(t * pi)) / 25 - x + 0.5, 2)));
+}
 
-    // Velocity field
-    R fun_velocity(double *P, const int i) {
-        if (i == 0)
-            return M_PI * (0.5 - P[1]);
-        else
-            return M_PI * (P[0] - 0.5);
-    }
+// Velocity field
+R fun_velocity(double *P, const int i) {
+    if (i == 0)
+        return M_PI * (0.5 - P[1]);
+    else
+        return M_PI * (P[0] - 0.5);
+}
 
-    // // Normal x-direction
-    // R n1(double *P, const R t) {
-    //    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    //    return (P[0] - xc) /
-    //           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-    // }
+// Normal x-direction
+R n1(double *P, const R t) {
+    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+    return (P[0] - xc) / (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+}
 
-    // // Normal y-direction
-    // R n2(double *P, const R t) {
-    //    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    //    return (P[1] - yc) /
-    //           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-    // }
+// Normal y-direction
+R n2(double *P, const R t) {
+    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+    return (P[1] - yc) / (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+}
 
-    // Initial solution bulk
-    R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
 
-    // Exact solution bulk
-    R fun_uBulk(double *P, const int i, const R t) {
-        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
-    }
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
 
-    R fun_uBulkD(double *P, const int i, const int d, const R t) {
-        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
-    }
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
 
-    // RHS fB bulk
-    R fun_rhsBulk(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+// RHS fB bulk
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        return (M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * cos(M_PI * y)) / 125 -
-            (4 * M_PI * cos(M_PI * x) * cos(M_PI * y) * sin(2 * M_PI * t)) / 5 -
-            (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * sin(M_PI * y) * (x - 0.5)) / 5 +
-            (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * y) * sin(M_PI * x) * (y - 0.5)) / 5;
-    }
-
-    R fun_neumann_left(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
-
-        return (pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
-    }
-
-    R fun_neumann_bottom(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
-
-        return (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
-    }
-
-    R fun_neumann_right(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
-
-        return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
-    }
-
-    R fun_neumann_top(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
-
-        return -(pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
-    }
-
+    return (M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * cos(M_PI * y)) / 125 -
+           (4 * M_PI * cos(M_PI * x) * cos(M_PI * y) * sin(2 * M_PI * t)) / 5 -
+           (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * sin(M_PI * y) * (x - 0.5)) / 5 +
+           (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * y) * sin(M_PI * x) * (y - 0.5)) / 5;
+}
 } // namespace Example1_Omega1
 
 namespace Lehrenfeld {
@@ -509,23 +479,23 @@ typedef FunFEM<Mesh2> Fun_h;
 //* Set scheme for the method (options: "classical", "conservative")
 #define classical
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
 
-#define use_h // to set mesh size using the h parameter. Write use_n to decide
-              // using nx, ny.
+#define use_h    // to set mesh size using the h parameter. Write use_n to decide
+                 // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
-              // proportional to h.
+                 // proportional to h.
 
 // Do not touch
 #ifdef example1
-    #ifdef omega1
-        using namespace Example1_Omega1;
-    #elif defined(omega2)
-        using namespace Example1;
-    #endif
+#if defined(omega1)
+using namespace Example1_Omega1;
+#elif defined(omega2)
+using namespace Example1;
+#endif
 #endif
 #if defined(lehrenfeld)
 using namespace Lehrenfeld_Convection_Dominated;
@@ -534,10 +504,10 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 10; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;           // starting mesh size
+    double h  = 0.1;             // starting mesh size
     double dT = 0.25;
 
     int total_number_iteration;
@@ -569,6 +539,7 @@ int main(int argc, char **argv) {
 
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
+    std::array<int, iterations> number_of_stabilized_edges; // array to count stabilized edges
     std::array<double, iterations> hs;     // array to hold mesh sizes
     std::array<double, iterations> dts;
 
@@ -629,10 +600,13 @@ int main(int argc, char **argv) {
 
         double lambda = 1.; // Nitsche's method penalty parameter
 
-        // CG stabilization parameter
-        const double tau1 = 1e-1;
+        // DG interior penalty parameters
+        const double lambda_A = 500, lambda_B = 0.5;
 
-        FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+        // DG stabilization parameter
+        const double tau0 = 1., tau1 = 1.;
+
+        FESpace2 Vh(Th, DataFE<Mesh>::P1dc); // discontinuous basis functions
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
@@ -725,26 +699,17 @@ int main(int argc, char **argv) {
             // Create active meshes
             ActiveMesh<Mesh> Thi(Th);
 
-//#ifdef omega1
             Thi.truncate(interface, -1); // remove part with negative sign of level
-//#elif defined(omega2)
-//            Thi.truncate(interface, 1); // remove part with positive sign of level
-                                        // set to get inner domain
-//#endif
+
             // Cut FE space
             CutSpace Wh(Thi, Vh);
 
             // Initialize the convection-diffusion problem
             convdiff.initSpace(Wh, In);
 
-        
             // Objects needed for the weak form
             Normal n;
             Tangent t;
-            
-            // Left hand side functions
-            
-        
 
             // Right hand side functions
             Fun_h f(Vh, In, fun_rhsBulk);
@@ -776,7 +741,7 @@ int main(int argc, char **argv) {
             // #else
             if (iter == 0) {
                 // #endif
-                Paraview<Mesh> writerInitial(Thi, path_output_figures + "BulkInitial.vtk");
+                Paraview<Mesh> writerInitial(Thi, path_output_figures + "BulkInitialDG.vtk");
                 writerInitial.add(b0h, "bulk", 0, 1);
 
                 // Add exact solutions
@@ -816,23 +781,32 @@ int main(int argc, char **argv) {
             //* Diffusion term
             convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi, In);
 
-            //* Convection term
-#if defined(classical)
-            convdiff.addBilinear(+innerProduct((vel.exprList() * grad(u)), v), Thi, In);
+            // Diffusion on inner edges (E_h)
+            convdiff.addBilinear(-innerProduct(D * average(grad(u) * n), jump(v)) -
+                                     innerProduct(D * jump(u), average(grad(v) * n)) +
+                                     innerProduct(lambda_A / h * jump(u), jump(v)),
+                                 Thi, INTEGRAL_INNER_EDGE_2D, In);
 
-#elif defined(conservative)
+            //* Convection term
             convdiff.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), Thi, In);
-#endif
+
+            // Convection on inner edges (E_h)
+            convdiff.addBilinear(+innerProduct(average(vel * n * u), jump(v)) +
+                                     innerProduct(0.5 * fabs(vel * n) * jump(u), jump(v)),
+                                 Thi, INTEGRAL_INNER_EDGE_2D, In);
 
             //* Stabilization
 
 #if defined(fullstab)
 
-            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi, In);
+            convdiff.addFaceStabilization(+innerProduct(1. / h * tau0 * jump(u), jump(v)) +
+                                              innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)),
+                                          Thi, In);
 
 #elif defined(macro)
 
-            TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.15);
+            //TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.16);
+            MacroElementPartition<Mesh> TimeMacro(Thi, 0.2);
 
             // Visualize macro elements
             if (iterations == 1 && h > 0.01) {
@@ -859,13 +833,16 @@ int main(int argc, char **argv) {
 
             // Stabilization of the bulk
             // convdiff.mat_.clear();
-            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi, In,
-                                          TimeMacro);
+            convdiff.addFaceStabilization(+innerProduct(1. / h * tau0 * jump(u), jump(v)) +
+                                              innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)),
+                                          Thi, In, TimeMacro);
 
             // matlab::Export(convdiff.mat_, "mat.dat");
             // getchar();
 
 #endif
+
+            number_of_stabilized_edges.at(j) = convdiff.get_number_of_stabilized_edges();
 
             //* Boundary conditions
 
@@ -875,34 +852,33 @@ int main(int argc, char **argv) {
 //* Dirichlet on both outer and inner boundary
 #if defined(dirichlet1) && defined(dirichlet2)
             // Dirichlet outer
-            convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
-                                     - innerProduct(u, D * grad(v) * n) // added to make symmetric
-                                     + innerProduct(u, lambda / h * v), // added penalty
-                                 Thi, INTEGRAL_BOUNDARY, In);
 
-            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
-                               INTEGRAL_BOUNDARY, In);
+            convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v)
+                                + innerProduct(u, 0.5 * (vel * n) * v)
+                                - innerProduct(D * grad(u) * n, v)      // from IBP
+                                - innerProduct(u, D * grad(v) * n) // added to make symmetric
+                                + innerProduct(u, lambda / h * v), // added penalty
+                                Thi, INTEGRAL_BOUNDARY, In);
 
-#if defined(conservative)
-            // Set inflow and outflow conditions
-
-            // convdiff.addLinear(-innerProduct(g.expr(), vel*n*v), Thi, INTEGRAL_BOUNDARY, In);
-            convdiff.addLinear(+innerProduct(g.expr(), 0.5 * fabs(vel * n) * v) -
-                                   innerProduct(g.expr(), 0.5 * (vel * n) * v),
+            convdiff.addLinear(+ innerProduct(g.expr(), 0.5 * fabs(vel * n) * v)
+                               - innerProduct(g.expr(), 0.5 * (vel * n) * v)
+                               - innerProduct(g.expr(), D * grad(v) * n) 
+                               + innerProduct(g.expr(), lambda / h * v),
                                Thi, INTEGRAL_BOUNDARY, In);
 
-            convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v) + innerProduct(u, 0.5 * (vel * n) * v), Thi,
-                                 INTEGRAL_BOUNDARY, In);
-#endif
+            
 
-            // Dirichlet inner
-            convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
-                                     - innerProduct(u, D * grad(v) * n) // added to make symmetric
-                                     + innerProduct(u, lambda / h * v)  // added penalty
-                                 ,
-                                 interface, In);
+            convdiff.addBilinear(+ innerProduct(u, 0.5 * fabs(vel * n) * v) 
+                                 + innerProduct(u, 0.5 * (vel * n) * v)
+                                 - innerProduct(D * grad(u) * n, v)      // from IBP
+                                 - innerProduct(u, D * grad(v) * n) // added to make symmetric
+                                 + innerProduct(u, lambda / h * v)  // added penalty                                 
+                                , interface, In);
 
-            convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v),
+            convdiff.addLinear(+ innerProduct(g.expr(), 0.5 * fabs(vel * n) * v)
+                               - innerProduct(g.expr(), 0.5 * (vel * n) * v)
+                               - innerProduct(g.expr(), D * grad(v) * n)
+                               + innerProduct(g.expr(), lambda / h * v),
                                interface, In);
 
 //* Dirichlet on outer and Neumann on inner
@@ -967,9 +943,8 @@ int main(int argc, char **argv) {
             // Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){2}); convdiff.addLinear(innerProduct(g_Neumann_top.expr(),
             // v), Thi, INTEGRAL_BOUNDARY, In, (std::list<int>){3});
 
-#if defined(conservative)
             convdiff.addBilinear(innerProduct(vel.exprList() * u * n, v), Thi, INTEGRAL_BOUNDARY, In);
-#endif
+
             // Neumann inner
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface, In);
 
@@ -999,12 +974,23 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
+#if defined(classical) && defined(omega2) && defined(dirichlet)
+            convdiff.addBilinear(+innerProduct((vel * n) * u, 0.5 * v) + innerProduct(0.5 * fabs(vel * n) * u, v),
+                                 interface, In);
+
+            convdiff.addLinear(-innerProduct(g.expr(), (vel * n) * (0.5 * v)) +
+                                   innerProduct(g.expr(), fabs(vel * n) * 0.5 * v),
+                               interface, In);
+#elif defined(classical) && defined(omega2) && defined(neumann)
+            convdiff.addBilinear(+innerProduct((vel * n) * u, v), interface, In);
+#endif
+
             // Add RHS in bulk
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
 
             if (iter == total_number_iteration - 1)
-                matlab::Export(convdiff.mat_[0],
-                               path_output_data + "mat_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
+                matlab::Export(convdiff.mat_[0], path_output_data + "mat_h_dg" + std::to_string(h) + "_" +
+                                                     std::to_string(j + 1) + ".dat");
 
             // Solve linear system
             convdiff.solve("mumps");
@@ -1045,8 +1031,8 @@ int main(int argc, char **argv) {
 
                 outputData << std::setprecision(10);
                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG << ","
-#if defined(omega1) && defined(dirichlet2)
-                    ;
+#if (defined(omega2) && dirichlet) || (defined(omega1) && defined(dirichlet1))
+                ;
 #elif defined(omega2) && defined(neumann)
                            << ((q_1 - qp_1) - intF - intG) << '\n';
 #elif defined(omega1) && defined(neumann1)
@@ -1058,11 +1044,11 @@ int main(int argc, char **argv) {
             Rn sol(Wh.get_nb_dof(), 0.);
             sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
             Fun_h funuh(Wh, sol);
-            double errBulk = L2normCut(funuh, fun_uBulkD, current_time, 0, 1);
-            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
+            //double errBulk = L2normCut(funuh, fun_uBulkD, current_time, 0, 1);
+            //std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
 
             sol += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
-            errBulk = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
+            double errBulk = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
             std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
 
             errors.at(j) = errBulk;
@@ -1072,7 +1058,7 @@ int main(int argc, char **argv) {
             // #else
             if ((iterations == 1)) {
                 Fun_h sol(Wh, data_u0);
-                Paraview<Mesh> writer(Thi, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
+                Paraview<Mesh> writer(Thi, path_output_figures + "bulk_dg" + std::to_string(iter + 1) + ".vtk");
                 writer.add(b0h, "bulk", 0, 1);
 
                 Fun_h uBex(Wh, fun_uBulk, current_time);
@@ -1101,7 +1087,7 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        h *= 0.5;
+        h *= sqrt(0.5);
 #endif
     }
 
@@ -1127,6 +1113,20 @@ int main(int argc, char **argv) {
     }
     std::cout << "]" << '\n';
 
+    std::cout << '\n';
+
+    std::cout << "number of stabilized edges = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << number_of_stabilized_edges.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    
+    std::cout << '\n';
+    
     std::cout << "dT = [";
     for (int i = 0; i < iterations; i++) {
 

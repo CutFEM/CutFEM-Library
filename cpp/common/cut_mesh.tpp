@@ -17,25 +17,24 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef COMMON_CUT_MESH_TPP
 #define COMMON_CUT_MESH_TPP
 
-
 //* Cut_Part *//
 
-template <typename E>
-Cut_Part<E>::Cut_Part(const Partition<E> p, int s) : ip(p), sign_cut_(s), pp(p.T) { partition_ = &ip; }
+template <typename E> Cut_Part<E>::Cut_Part(const Partition<E> p, int s) : ip(p), sign_cut_(s), pp(p.T) {
+    partition_ = &ip;
+}
 
-template <typename E>
-Cut_Part<E>::Cut_Part(const Physical_Partition<E> p, int s) : pp(p), sign_cut_(s), ip(p.T) { partition_ = &pp; }
+template <typename E> Cut_Part<E>::Cut_Part(const Physical_Partition<E> p, int s) : pp(p), sign_cut_(s), ip(p.T) {
+    partition_ = &pp;
+}
 
-template <typename E>
-Cut_Part<E>::Cut_Part(const Cut_Part<E> &p) : pp(p.pp), ip(p.ip) {
+template <typename E> Cut_Part<E>::Cut_Part(const Cut_Part<E> &p) : pp(p.pp), ip(p.ip) {
     if (p.partition_ == &p.pp)
         partition_ = &pp;
     else
         partition_ = &ip;
 }
 
-template <typename E>
-Cut_Part<E> &Cut_Part<E>::operator=(const Cut_Part<E> &p) {
+template <typename E> Cut_Part<E> &Cut_Part<E>::operator=(const Cut_Part<E> &p) {
     // Copy the partition and the index from the given Cut_Part.
     pp = p.pp;
     ip = p.ip;
@@ -50,49 +49,41 @@ Cut_Part<E> &Cut_Part<E>::operator=(const Cut_Part<E> &p) {
 }
 
 // GETTERS
-template <typename E>
-int Cut_Part<E>::get_sign() const { return sign_cut_; }
+template <typename E> int Cut_Part<E>::get_sign() const { return sign_cut_; }
 
-template <typename E>
-int Cut_Part<E>::get_sign_node(int i) const { return partition_->get_sign_node(i); }
+template <typename E> int Cut_Part<E>::get_sign_node(int i) const { return partition_->get_sign_node(i); }
 
-template <typename E>
-void Cut_Part<E>::get_list_node(std::vector<typename E::Rd> &node) const { partition_->get_list_node(node, sign_cut_); }
+template <typename E> void Cut_Part<E>::get_list_node(std::vector<typename E::Rd> &node) const {
+    partition_->get_list_node(node, sign_cut_);
+}
 
-template <typename E>
-CutElement<E> Cut_Part<E>::get_element(int k) const { return partition_->get_element(k); }
-    
-template <typename E>    
-typename Cut_Part<E>::Rd Cut_Part<E>::get_vertex(const_element_iterator it, const int i) const { return partition_->get_vertex(it, i); }
+template <typename E> CutElement<E> Cut_Part<E>::get_element(int k) const { return partition_->get_element(k); }
 
-template <typename E>
-int Cut_Part<E>::get_nb_element() const { return partition_->nb_element(sign_cut_); }
+template <typename E> typename Cut_Part<E>::Rd Cut_Part<E>::get_vertex(const_element_iterator it, const int i) const {
+    return partition_->get_vertex(it, i);
+}
 
-template <typename E>
-int Cut_Part<E>::get_local_domain_id() const {
+template <typename E> int Cut_Part<E>::get_nb_element() const { return partition_->nb_element(sign_cut_); }
+
+template <typename E> int Cut_Part<E>::get_local_domain_id() const {
     if (sign_cut_ == 0)
         return -1; // not cout
     else
         return (sign_cut_ == -1);
 }
 
-
 // OTHER METHODS
 // GIVE THE MEASURE OF THE CUT PART IN Rd
 
-template <typename E>
-double Cut_Part<E>::measure() const { return partition_->measure(sign_cut_); }
+template <typename E> double Cut_Part<E>::measure() const { return partition_->measure(sign_cut_); }
 
-template <typename E>
-double Cut_Part<E>::measure(const_element_iterator it) const { return partition_->measure(it); }
+template <typename E> double Cut_Part<E>::measure(const_element_iterator it) const { return partition_->measure(it); }
 
 // //GIVE THE MEASURE OF CUT PART OF A FACE IN RdBord
 // double measureBord(int ifac) const {return
 // partition_->measureBord(sign_cut_, ifac);}
 
-
-template <typename E>
-bool Cut_Part<E>::multi_interface() const { return partition_ == &pp; }
+template <typename E> bool Cut_Part<E>::multi_interface() const { return partition_ == &pp; }
 
 template <typename E>
 typename Cut_Part<E>::Rd Cut_Part<E>::mapToPhysicalElement(const_element_iterator it, const RdHat Phat) const {
@@ -101,40 +92,38 @@ typename Cut_Part<E>::Rd Cut_Part<E>::mapToPhysicalElement(const_element_iterato
 
 // ITERATORS
 
-template <typename E>
-typename Cut_Part<E>::const_element_iterator Cut_Part<E>::element_begin() const { return partition_->element_begin(sign_cut_); }
+template <typename E> typename Cut_Part<E>::const_element_iterator Cut_Part<E>::element_begin() const {
+    return partition_->element_begin(sign_cut_);
+}
 
-template <typename E>
-typename Cut_Part<E>::const_element_iterator Cut_Part<E>::element_end() const { return partition_->element_end(sign_cut_); }
+template <typename E> typename Cut_Part<E>::const_element_iterator Cut_Part<E>::element_end() const {
+    return partition_->element_end(sign_cut_);
+}
 
-template <typename E>
-typename Cut_Part<E>::const_element_iterator Cut_Part<E>::other_side_element_begin() const {
+template <typename E> typename Cut_Part<E>::const_element_iterator Cut_Part<E>::other_side_element_begin() const {
     assert(sign_cut_ != 0);
     int other_side_cut = (sign_cut_ == 1);
     return partition_->element_begin(other_side_cut);
 }
 
-template <typename E>
-typename Cut_Part<E>::const_element_iterator Cut_Part<E>::other_side_element_end() const {
+template <typename E> typename Cut_Part<E>::const_element_iterator Cut_Part<E>::other_side_element_end() const {
     assert(sign_cut_ != 0);
     int other_side_cut = (sign_cut_ == 1);
     return partition_->element_end(other_side_cut);
 }
-
 
 //* ActiveMesh *//
 
 // Create a CutMesh without cut on the backMesh
 // Usefull if wanna add sub domains
 
-template <typename Mesh> 
-ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
+template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(1);
     idx_from_background_mesh_.resize(1);
     idx_in_background_mesh_[0].resize(Th.nt);
-    
+
     interface_id_.resize(10);
     // initialize the number of quadrature time steps
     nb_quadrature_time_ = 1;
@@ -154,8 +143,7 @@ ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
 
 // Give the background mesh and a sign Function defined on the mesh nodes
 // Will create 2 subdomains
-template <typename Mesh> 
-ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const Interface<Mesh> &interface) : Th(th) {
+template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const Interface<Mesh> &interface) : Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(2);
@@ -165,8 +153,7 @@ ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const Interface<Mesh> &interface) :
     this->init(interface);
 }
 
-template <typename Mesh> 
-ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const TimeInterface<Mesh> &interface) : Th(th) {
+template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const TimeInterface<Mesh> &interface) : Th(th) {
     idx_in_background_mesh_.reserve(10);
     idx_from_background_mesh_.reserve(10);
     idx_in_background_mesh_.resize(2);
@@ -180,8 +167,7 @@ ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const TimeInterface<Mesh> &interfac
 }
 
 // Check if a given cell index exists in the active mesh
-template <typename Mesh> 
-bool ActiveMesh<Mesh>::check_exist(int k, int dom) const {
+template <typename Mesh> bool ActiveMesh<Mesh>::check_exist(int k, int dom) const {
     // Get the iterator corresponding to the given key
     const auto it = idx_from_background_mesh_[dom].find(k);
 
@@ -194,13 +180,12 @@ bool ActiveMesh<Mesh>::check_exist(int k, int dom) const {
 
 /**
  * @brief Get the Element of a given index in the active mesh
- * 
- * @tparam Mesh 
+ *
+ * @tparam Mesh
  * @param i index in the active mesh
- * @return const ActiveMesh<Mesh>::Element& 
+ * @return const ActiveMesh<Mesh>::Element&
  */
-template <typename Mesh> 
-const typename ActiveMesh<Mesh>::Element &ActiveMesh<Mesh>::operator[](int i) const {
+template <typename Mesh> const typename ActiveMesh<Mesh>::Element &ActiveMesh<Mesh>::operator[](int i) const {
 
     // Get the index of the Mesh::Element in the back mesh
     int k = idxElementInBackMesh(i);
@@ -223,7 +208,9 @@ template <typename Mesh> int ActiveMesh<Mesh>::nbBrdElmts() const { return Th.nb
 
 template <typename Mesh> int ActiveMesh<Mesh>::nbVertices() const { return Th.nv; }
 
-template <typename Mesh> const typename ActiveMesh<Mesh>::BorderElement &ActiveMesh<Mesh>::be(int i) const { return Th.be(i); }
+template <typename Mesh> const typename ActiveMesh<Mesh>::BorderElement &ActiveMesh<Mesh>::be(int i) const {
+    return Th.be(i);
+}
 
 template <typename Mesh> int ActiveMesh<Mesh>::get_nb_domain() const { return idx_in_background_mesh_.size(); }
 
@@ -242,10 +229,10 @@ template <typename Mesh> int ActiveMesh<Mesh>::get_nb_element() const {
 
 /**
  * @brief Get the domain of a given element in the active mesh //! What if element belongs to several domains????
- * 
+ *
  * @tparam Mesh Mesh
  * @param k element index in active mesh
- * @return int 
+ * @return int
  */
 template <typename Mesh> int ActiveMesh<Mesh>::get_domain_element(const int k) const {
     for (int i = 0; i < this->get_nb_domain(); ++i) {
@@ -322,13 +309,14 @@ template <typename Mesh> const Interface<Mesh> &ActiveMesh<Mesh>::get_interface(
 
 /**
  * @brief Get the sub-partition of a given element in the active mesh?
- * 
+ *
  * @tparam Mesh Mesh
  * @param k Element index in active mesh.
  * @param t The time step.
- * @return Partition<typename ActiveMesh<Mesh>::Element> 
+ * @return Partition<typename ActiveMesh<Mesh>::Element>
  */
-template <typename Mesh> Partition<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::get_partition(int k, int t) const {
+template <typename Mesh>
+Partition<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::get_partition(int k, int t) const {
     // get the domain of the given element
     int domain = get_domain_element(k);
     // get the local index of the given element in the domain
@@ -344,21 +332,21 @@ template <typename Mesh> Partition<typename ActiveMesh<Mesh>::Element> ActiveMes
 }
 
 /**
-* @brief Returns the sign of the cut at the given element in the given time step.
-* The sign is +1 if the cut is in the positive side of the element,
-* and -1 if the cut is in the negative side of the element.
-* @tparam Mesh The mesh type.
-* @param k The element index.
-* @param t The time step.
-* @return The sign of the cut (-1 or +1).
-*/
+ * @brief Returns the sign of the cut at the given element in the given time step.
+ * The sign is +1 if the cut is in the positive side of the element,
+ * and -1 if the cut is in the negative side of the element.
+ * @tparam Mesh The mesh type.
+ * @param k The element index.
+ * @param t The time step.
+ * @return The sign of the cut (-1 or +1).
+ */
 template <typename Mesh> int ActiveMesh<Mesh>::get_sign_cut(int k, int t) const {
     // get the domain of the given element
     int domain = get_domain_element(k);
     // get the local index of the given element in the domain
     int kloc   = idxK_in_domain(k, domain);
     // find the element in the given time step
-    auto it = interface_id_[t].find(std::make_pair(domain, kloc));
+    auto it    = interface_id_[t].find(std::make_pair(domain, kloc));
     // check that the element was found
     assert(it != interface_id_[t].end());
     // return the sign of the cut
@@ -367,13 +355,14 @@ template <typename Mesh> int ActiveMesh<Mesh>::get_sign_cut(int k, int t) const 
 
 /**
  * @brief Get the cut part of the element k in the time t
- * 
+ *
  * @tparam Mesh The mesh type
  * @param k The element index in the active mesh
  * @param t The time step
- * @return Cut_Part<typename ActiveMesh<Mesh>::Element> 
+ * @return Cut_Part<typename ActiveMesh<Mesh>::Element>
  */
-template <typename Mesh> Cut_Part<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::get_cut_part(int k, int t) const {
+template <typename Mesh>
+Cut_Part<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::get_cut_part(int k, int t) const {
     // find the domain of the element k
     int domain = get_domain_element(k);
     // find the local index of the element k in the domain
@@ -382,7 +371,8 @@ template <typename Mesh> Cut_Part<typename ActiveMesh<Mesh>::Element> ActiveMesh
     auto it    = interface_id_[t].find(std::make_pair(domain, kloc));
     // if not cut build a partition that consider full Mesh::Element
     if (it == interface_id_[t].end()) {
-        return Cut_Part<typename ActiveMesh<Mesh>::Element>(Partition<typename ActiveMesh<Mesh>::Element>((*this)[k]), -1);
+        return Cut_Part<typename ActiveMesh<Mesh>::Element>(Partition<typename ActiveMesh<Mesh>::Element>((*this)[k]),
+                                                            -1);
     }
     // find the index of the element k in the back mesh
     int kb = this->idxElementInBackMesh(k);
@@ -390,7 +380,8 @@ template <typename Mesh> Cut_Part<typename ActiveMesh<Mesh>::Element> ActiveMesh
     if (it->second.size() == 1)
         // return the partition of the element k in the time t
         // and the local index of the interface
-        return Cut_Part<typename ActiveMesh<Mesh>::Element>(it->second.at(0).first->get_partition(kb), it->second.at(0).second);
+        return Cut_Part<typename ActiveMesh<Mesh>::Element>(it->second.at(0).first->get_partition(kb),
+                                                            it->second.at(0).second);
     else
         // return the partition of the element k in the time t
         // and the local index of the interface
@@ -399,16 +390,17 @@ template <typename Mesh> Cut_Part<typename ActiveMesh<Mesh>::Element> ActiveMesh
 
 /**
  * @brief Get the face of the element k that is cut in time t
- * 
+ *
  * @tparam Mesh Mesh
  * @param face Face
  * @param k Element index in active mesh
  * @param ifac Face index
  * @param t Time instance
- * @return Cut_Part<typename ActiveMesh<Mesh>::Element::Face> 
+ * @return Cut_Part<typename ActiveMesh<Mesh>::Element::Face>
  */
 template <typename Mesh>
-Cut_Part<typename ActiveMesh<Mesh>::Element::Face> ActiveMesh<Mesh>::get_cut_face(Face &face, int k, int ifac, int t) const {
+Cut_Part<typename ActiveMesh<Mesh>::Element::Face> ActiveMesh<Mesh>::get_cut_face(Face &face, int k, int ifac,
+                                                                                  int t) const {
 
     // BUILD THE FACE
     // In the class mesh the inner faces are not built
@@ -432,16 +424,17 @@ Cut_Part<typename ActiveMesh<Mesh>::Element::Face> ActiveMesh<Mesh>::get_cut_fac
 
 /**
  *
- * @brief Returns the index of all elements in the back mesh corresponding to the given element in the given domain.//! ????
+ * @brief Returns the index of all elements in the back mesh corresponding to the given element in the given domain.//!
+ * ????
  * @tparam Mesh Type of the mesh.
  * @param k Index of the element in the mesh.
  * @param d Domain of the element. If -1, all domains are considered.
  * @return Vector of indices of the corresponding elements in the back mesh.
- * If the domain is specified, the method returns the index of the element in the back mesh corresponding to the specified domain.
- * If the domain is not specified, the method returns the indices of the elements in the back mesh corresponding to each domain. 
+ * If the domain is specified, the method returns the index of the element in the back mesh corresponding to the
+ * specified domain. If the domain is not specified, the method returns the indices of the elements in the back mesh
+ * corresponding to each domain.
  */
-template <typename Mesh>
-std::vector<int> ActiveMesh<Mesh>::idxAllElementFromBackMesh(int k, int d) const {
+template <typename Mesh> std::vector<int> ActiveMesh<Mesh>::idxAllElementFromBackMesh(int k, int d) const {
     std::vector<int> idx(0);
     if (d != -1) {
         // If the domain is specified, get the index of the element
@@ -458,6 +451,7 @@ std::vector<int> ActiveMesh<Mesh>::idxAllElementFromBackMesh(int k, int d) const
         if (ret != -1)
             idx.push_back(ret);
     }
+
     // Assert that the number of domains is less than 3.
     assert(idx.size() > 0 && idx.size() < 3);
     return idx;
@@ -465,13 +459,12 @@ std::vector<int> ActiveMesh<Mesh>::idxAllElementFromBackMesh(int k, int d) const
 
 /**
  * @brief //! ????
- * 
- * @tparam Mesh 
- * @param k 
- * @return std::vector<int> 
+ *
+ * @tparam Mesh
+ * @param k
+ * @return std::vector<int>
  */
-template <typename Mesh>
-std::vector<int> ActiveMesh<Mesh>::getAllDomainId(int k) const {
+template <typename Mesh> std::vector<int> ActiveMesh<Mesh>::getAllDomainId(int k) const {
     // create a vector of size 0
     std::vector<int> idx(0);
     // loop over all domains
@@ -489,27 +482,25 @@ std::vector<int> ActiveMesh<Mesh>::getAllDomainId(int k) const {
 
 /**
  * @brief //! ????
- * 
- * @tparam Mesh 
- * @param k 
- * @return int 
+ *
+ * @tparam Mesh
+ * @param k
+ * @return int
  */
-template <typename Mesh>
-int ActiveMesh<Mesh>::idxElementFromBackMesh(int k) const {
+template <typename Mesh> int ActiveMesh<Mesh>::idxElementFromBackMesh(int k) const {
     assert(0);
     return -1;
 }
 
 /**
  * @brief Get the index of the element k in the active mesh from element index in the background mesh //! ????
- * 
- * @tparam Mesh 
+ *
+ * @tparam Mesh
  * @param k index of element in the background mesh
  * @param i domain //! ????
  * @return int index of element in the active mesh
  */
-template <typename Mesh>
-int ActiveMesh<Mesh>::idxElementFromBackMesh(int k, int i) const {
+template <typename Mesh> int ActiveMesh<Mesh>::idxElementFromBackMesh(int k, int i) const {
     if (i == -1)
         assert(0);
     if (get_nb_domain() == 1) {
@@ -523,8 +514,8 @@ int ActiveMesh<Mesh>::idxElementFromBackMesh(int k, int i) const {
 
 /**
  * @brief Get index of element in the background mesh
- * 
- * @tparam Mesh 
+ *
+ * @tparam Mesh
  * @param k index of element in the active mesh
  * @return int index of element in the background mesh
  */
@@ -536,8 +527,8 @@ template <typename Mesh> int ActiveMesh<Mesh>::idxElementInBackMesh(const int k)
 
 /**
  * @brief Get index of element in the background mesh
- * 
- * @tparam Mesh 
+ *
+ * @tparam Mesh
  * @param k index of element in the active mesh
  * @param i domain index
  * @return int index of element in the background mesh
@@ -549,8 +540,8 @@ template <typename Mesh> int ActiveMesh<Mesh>::idxElementInBackMesh(const int k,
 
 /**
  * @brief Get the element adjacent to a given element in the active mesh across a given face
- * 
- * @tparam Mesh 
+ *
+ * @tparam Mesh
  * @param k element in the active mesh
  * @param j face index across which the adjacent element is searched
  * @return int index of adjacent element in the active mesh
@@ -567,8 +558,8 @@ template <typename Mesh> int ActiveMesh<Mesh>::ElementAdj(const int k, int &j) c
 
 /**
  * @brief Print information about the active mesh
- * 
- * @tparam Mesh 
+ *
+ * @tparam Mesh
  * @return prints number of subdomains, number of elements in each subdomain, and total number of elements
  */
 template <typename Mesh> void ActiveMesh<Mesh>::info() const {
@@ -580,11 +571,10 @@ template <typename Mesh> void ActiveMesh<Mesh>::info() const {
     std::cout << " Total number of elements      :\t" << this->get_nb_element() << std::endl;
 }
 
-
 /**
  * @brief Constructs active mesh for problem with two subdomains {1, -1}
- * 
- * @tparam Mesh 
+ *
+ * @tparam Mesh
  * @param interface interface between the two subdomains
  */
 template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &interface) {
@@ -600,7 +590,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &inte
 
     // Loop through all the elements in the background mesh
     for (int k = 0; k < Th.nt; ++k) {
-        
+
         // Get the sign of the current element
         const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(k);
 
@@ -620,7 +610,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &inte
             nt0++;
             nt1++;
 
-        } 
+        }
         // If the element is not cut, add it to the appropriate domain
         else {
             // Get the sign of the element
@@ -641,10 +631,11 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &inte
     idx_in_background_mesh_[0].shrink_to_fit();
     idx_in_background_mesh_[1].shrink_to_fit();
 
-    // Push the total number of elements in the positive and negative domains as the last index of the element domain array
+    // Push the total number of elements in the positive and negative domains as the last index of the element domain
+    // array
     idx_element_domain.push_back(nt0);
     idx_element_domain.push_back(nt0 + nt1);
-    
+
     in_active_mesh_.resize(10);
     for (int i = 0; i < 10; ++i)
         in_active_mesh_[i].resize(nb_quadrature_time_);
@@ -677,7 +668,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::add(const Interface<Mesh> &inter
             int kb = it_k->first;
             int k  = it_k->second;
 
-            auto it_gamma                                      = interface_id_[0].find(std::make_pair(d, k));
+            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
             const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
 
             int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
@@ -765,11 +756,10 @@ template <typename Mesh> void ActiveMesh<Mesh>::add(const Interface<Mesh> &inter
     }
 }
 
-
 /**
- * @brief 
- * 
- * @tparam Mesh 
+ * @brief
+ *
+ * @tparam Mesh
  * @param interface stationary interface
  * @param sign_domain_remove sign of the domain to be removed
  */
@@ -800,7 +790,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &
 
             // std::cout << "domain \t" << d << " Mesh::Element back " << kb << "\t =>
             // loc id " << k << std::endl;
-            auto it_gamma                                      = interface_id_[0].find(std::make_pair(d, k));
+            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
             const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
 
             // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
@@ -869,7 +859,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const Interfac
 
             // std::cout << "domain \t" << d << " Mesh::Element back " << kb << "\t =>
             // loc id " << k << std::endl;
-            auto it_gamma                          = interface_id_[0].find(std::make_pair(d, k));
+            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
             const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
 
             // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
@@ -1017,7 +1007,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &
         for (int t = 0; t < interface.size() - 1; ++t) {
             const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(k);
             const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(k);
-            s                                        = signKi.sign();
+            s                                                             = signKi.sign();
             if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
                 active_element = true;
                 break;
@@ -1027,7 +1017,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &
         if (active_element) {
             for (int it = 0; it < n_tid; ++it) {
                 const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(k);
-                int st                                 = signK.sign();
+                int st                                                      = signK.sign();
                 if (!signK.cut() && st == -1) {
                     in_active_mesh_[0][it][nt0] = false;
                 }
@@ -1073,7 +1063,6 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mes
     for (int i = 0; i < 10; ++i)
         in_active_mesh_[i].resize(nb_quadrature_time_);
 
-
     int dom_size = this->get_nb_domain();
     idx_element_domain.resize(0);
 
@@ -1085,13 +1074,13 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mes
         }
     }
 
-    std::vector<int> nt(dom_size, 0.);  //! nt is never changed after this line? why are its components just 0.?
+    std::vector<int> nt(dom_size, 0.); //! nt is never changed after this line? why are its components just 0.?
 
     // Loop over all subdomains
     for (int d = 0; d < dom_size; ++d) {
         // Loop over all elements in the active mesh of subdomain d
         for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
-            
+
             // Index of the element in the background mesh
             int kb = it_k->first;
             // Index of the element in the active mesh
@@ -1109,7 +1098,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mes
                 // Get SignElement at time t+1
                 const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(kb);
                 // Save the sign of element at time t
-                s                                        = signKi.sign();
+                s                                                             = signKi.sign();
                 // Check if the element is cut in either t or t+1 or if the sign of the element changes
                 // -> that means it's active
                 if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
@@ -1192,7 +1181,8 @@ template <typename Mesh> void ActiveMesh<Mesh>::addArtificialInterface(const Int
 }
 
 template <typename Mesh>
-Physical_Partition<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::build_local_partition(const int k, int t) const {
+Physical_Partition<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::build_local_partition(const int k,
+                                                                                               int t) const {
 
     typedef typename ActiveMesh<Mesh>::Element Element;
 
@@ -1273,8 +1263,8 @@ Physical_Partition<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::build_l
 }
 
 template <typename Mesh>
-Physical_Partition<typename ActiveMesh<Mesh>::Element::Face> ActiveMesh<Mesh>::build_local_partition(Face &face, const int k,
-                                                                                               int ifac, int t) const {
+Physical_Partition<typename ActiveMesh<Mesh>::Element::Face>
+ActiveMesh<Mesh>::build_local_partition(Face &face, const int k, int ifac, int t) const {
 
     Physical_Partition<typename ActiveMesh<Mesh>::Element::Face> partition(face);
 

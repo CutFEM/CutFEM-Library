@@ -2272,6 +2272,7 @@ int main(int argc, char **argv) {
 
             // Data for initial solution
 
+
             // solution array looks like [uB^0 uB^1 uS^0 uS^1]
             // so to access the DOFs corresponding to the first point
             // in the time slab, we want uB^0 for the bulk and uS^0

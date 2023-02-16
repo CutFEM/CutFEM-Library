@@ -559,6 +559,182 @@ int TimeMacroElementSurface<Mesh>::number_of_inner_edges() {
    return num_of_inner_edges;
 }
 
+/**
+ * @brief General class for macro element partition of bulk domain.
+ * 
+ * @tparam Mesh
+ * @param Th Active mesh
+ * @param tol Tolerance determining if an element is small or not
+ * @note This class is used to generate a macro element partition of the active mesh
+ * in both time dependent and stationary problems. Since the quadrature rule in time
+ * is given by the active mesh object, the input arguments need only be the active mesh
+ * and the tolerance parameter in both cases
+ */
+template <typename Mesh> class MacroElementPartition : public GMacro {
+
+  public:
+    const ActiveMesh<Mesh> &Th;
+    R tol;
+    int nb_element_0, nb_element_1; // number of small elements in outer and inner domain respectively w.r.t level-set function sign
+
+    MacroElementPartition(const ActiveMesh<Mesh> &, const double);
+
+    double get_area(int k) const;
+
+  private:
+    void findSmallElement();
+    void createMacroElement();
+};
+
+template <typename Mesh>
+double MacroElementPartition<Mesh>::get_area(int k) const {
+   if (isSmall(k)) {
+            return getSmallElement(k).area;
+        } else if (isRootFat(k)) {
+            const auto it(macro_element.find(k));
+            return it->second.area_root_;
+        } else
+            assert(0);
+}
+
+template <typename Mesh>
+MacroElementPartition<Mesh>::MacroElementPartition(const ActiveMesh<Mesh> &Th_, const double C_)
+    : Th(Th_) {
+
+    double h       = Th[0].lenEdge(1); // catheter of triangle
+    double measure = Th[0].mesure();   // measure = h^2/2
+
+    nb_element_0 = 0;
+    nb_element_1 = 0;
+    tol          = 2 * C_ * measure;
+
+    std::cout << "tolerance \t" << tol << std::endl;
+    findSmallElement();
+    std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
+    std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
+    createMacroElement();
+    std::cout << " Macro element created" << std::endl;
+}
+
+template <typename Mesh> void MacroElementPartition<Mesh>::findSmallElement() {
+
+    // Iterate over all elements in the active mesh (over the whole time-slab)
+
+    for (int k = 0; k < Th.get_nb_element(); k += 1) {
+
+        if (!Th.isStabilizeElement(k))
+            continue; // if the element is not cut or if it doesn't change domain it doesn't need stabilization
+
+        const typename Mesh::Element &K(Th[k]);
+
+        const int domain = Th.get_domain_element(k);
+
+        // Iterate over the quadrature points in the time-slab In
+
+        bool is_large           = false; // is element large in any quadrature point?
+        bool is_inactive        = false; // is element inactive in any quadrature point?
+        int numb_times_inactive = 0;
+
+        for (int itq = 0; itq < Th.nb_quadrature_time_; ++itq) {
+
+            Cut_Part<typename Mesh::Element> cutK(Th.get_cut_part(k, itq));
+            double areaCut = cutK.measure();
+
+            if ((areaCut > tol) && (!Th.isInactive(k, itq)))
+                is_large = true;
+            if (Th.isInactive(k, itq))
+                is_inactive = true;
+            // if (Th.isInactive(k, itq))
+            //     ++numb_times_inactive;
+        }
+
+        if (!is_large || is_inactive) {
+            // if (!is_large || numb_times_inactive >= 2) {
+            small_element[k] = SmallElement(k);
+            // small_element[k].area = areaCut;
+            if (domain == 0)
+                nb_element_0++;
+            else
+                nb_element_1++;
+        }
+    }
+}
+
+template <typename Mesh> void MacroElementPartition<Mesh>::createMacroElement() {
+
+    std::vector<std::pair<int, int>> idx_small_K_temp(small_element.size());
+    std::vector<int> small_or_fat_K(Th.get_nb_element());
+    std::vector<std::pair<int, int>> big_element_found;
+
+    for (int i = 0; i < small_or_fat_K.size(); ++i)
+        small_or_fat_K[i] = i;
+    int ii = 0;
+    for (auto it = small_element.begin(); it != small_element.end(); ++it) {
+        idx_small_K_temp[ii++] = std::make_pair(it->second.index, it->first);
+        ;
+        small_or_fat_K[it->second.index] = small;
+    }
+    int pos = 0;
+    while (idx_small_K_temp.size() > 0) {
+        int nb_of_small_K_left = idx_small_K_temp.size();
+        pos += 1;
+        big_element_found.clear();
+        for (int i = nb_of_small_K_left - 1; i >= 0; --i) {
+            // LOOP OVER SMALL ELEMENTS LEFT
+
+            int k      = idx_small_K_temp[i].first;
+            int idx_Ks = idx_small_K_temp[i].second;
+            SmallElement &Ks(small_element[idx_Ks]);
+
+            // LOOP OVER FACES
+            for (int ifac = 0; ifac < 3; ++ifac) {
+
+                int ifacn = ifac;
+                int kn    = Th.ElementAdj(k, ifacn);
+                if (kn == -1)
+                    continue;
+
+                if (small_or_fat_K[kn] == small)
+                    continue;
+
+                // set position of the small element
+                Ks.setChainPosition(pos);
+                Ks.setRoot(small_or_fat_K[kn]);
+                big_element_found.push_back(std::make_pair(k, kn));
+
+                // find the correonding macro element
+                int root_id = small_or_fat_K[kn];
+                auto it     = macro_element.find(root_id);
+                // for unique edge
+                int ie      = (k < kn) ? ifac : ifacn;
+                int kk      = (k < kn) ? k : kn;
+
+                if (it != macro_element.end()) { // already exist
+                    it->second.add(k, std::make_pair(kk, ie), Ks.area);
+                } else {
+
+                    const Cut_Part<typename Mesh::Element> cutK(Th.get_cut_part(root_id, 0));
+                    double areaCut = cutK.measure();
+
+                    macro_element[root_id] = MElement(root_id, areaCut);
+                    macro_element[root_id].add(k, std::make_pair(kk, ie), Ks.area);
+                }
+
+                // remove small element from the list
+                idx_small_K_temp.erase(idx_small_K_temp.begin() + i);
+                break;
+            }
+        }
+
+        for (int j = 0; j < big_element_found.size(); ++j) {
+            int k             = big_element_found[j].first;
+            int kn            = big_element_found[j].second;
+            small_or_fat_K[k] = small_or_fat_K[kn];
+        }
+    }
+}
+
+
 template <typename Mesh> class TimeMacroElement : public GMacro {
 
  public:
@@ -625,9 +801,10 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
       // Iterate over the quadrature points in the time-slab In
 
       bool is_large     = false; // is element large in any quadrature point?
-      bool is_small     = true;
+      bool is_small     = true;  // is element small in any quadrature point?
       bool is_inactive  = false; // is element inactive in any quadrature point?
       bool is_never_cut = true;
+      int times_small   = 0;     // how many times the element is small
 
       for (int itq = 0; itq < qTime.n; ++itq) {
 
@@ -637,10 +814,16 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
          if (Th.isCut(k, itq))
             is_never_cut = false;
 
-         if ((areaCut > tol) && (!Th.isInactive(k, itq)))
+         // if element is large and active in itq
+         if ((areaCut > tol) && (!Th.isInactive(k, itq))) {
             is_large = true;
-         else
+            is_small = false;
+         }
+         // if element is small and active in itq
+         else if ((areaCut < tol) && (!Th.isInactive(k, itq))){
             is_small = true;
+            times_small += 1;
+         } 
 
          if (Th.isInactive(k, itq))
             is_inactive = true;
@@ -648,6 +831,7 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
 
       if (!is_large || is_inactive) {
       //if (is_small || is_inactive) {   
+      //if (times_small >= qTime.n-1 || is_inactive) {
          // if ((is_inactive && is_never_cut) || !is_large) {
          small_element[k] = SmallElement(k);
          // small_element[k].area = areaCut;
