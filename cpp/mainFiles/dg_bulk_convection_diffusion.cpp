@@ -38,7 +38,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
  * A space-time discontinuous Cutfem, using the level-set method.
 
  * Classical scheme: Integration by parts on both diffusion and convection term.
- * Conservative scheme: Use Reynold's transport theorem instead. Slightly unclear 
+ * Conservative scheme: Use Reynold's transport theorem instead. Slightly unclear
  * how to add a consistent numerical flux for the advection term.
 */
 
@@ -466,7 +466,7 @@ typedef FunFEM<Mesh2> Fun_h;
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
-#define omega1
+#define omega2
 // If "omega1":
 // Set type of BCs on outer boundary (options: "dirichlet1" or "neumann1")
 #define dirichlet1
@@ -480,7 +480,7 @@ typedef FunFEM<Mesh2> Fun_h;
 //* Set scheme for the method (options: "classical", "conservative")
 #define classical
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
@@ -505,7 +505,7 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 9; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;             // starting mesh size
@@ -539,9 +539,11 @@ int main(int argc, char **argv) {
     std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
-    std::array<double, iterations> errors; // array to hold bulk errors
+    std::array<double, iterations> errors;                  // array to hold bulk errors
     std::array<int, iterations> number_of_stabilized_edges; // array to count stabilized edges
-    std::array<double, iterations> hs;     // array to hold mesh sizes
+    std::array<double, iterations> hs;                      // array to hold mesh sizes
+    std::array<double, iterations> nxs;                      // array to hold mesh sizes
+    std::array<double, iterations> nys;                      // array to hold mesh sizes
     std::array<double, iterations> dts;
 
     // Iterate over mesh sizes
@@ -582,6 +584,8 @@ int main(int argc, char **argv) {
         time_step = dT;
 
         hs.at(j)  = h;
+        nxs.at(j)  = nx;
+        nys.at(j)  = ny;
         dts.at(j) = dT;
 
         if (iterations > 1) {
@@ -605,7 +609,7 @@ int main(int argc, char **argv) {
         const double lambda_A = 500, lambda_B = 0.5;
 
         // DG stabilization parameter
-        const double tau0 = 5., tau1 = 5.;
+        const double tau0 = 2.5e-3, tau1 = 2.5e-3;
 
         FESpace2 Vh(Th, DataFE<Mesh>::P1dc); // discontinuous basis functions
 
@@ -669,8 +673,6 @@ int main(int argc, char **argv) {
             int current_iteration = iter;
             double current_time   = iter * time_step;
             const TimeSlab &In(Ih[iter]);
-            const TimeSlab &In2(Ih2[iter]);
-            // const TimeSlab &In3(Ih3[iter]);
 
             std::cout << " -------------------------------------------------------\n";
             std::cout << " -------------------------------------------------------\n";
@@ -806,8 +808,8 @@ int main(int argc, char **argv) {
 
 #elif defined(macro)
 
-            //TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.16);
-            MacroElementPartition<Mesh> TimeMacro(Thi, 0.15);
+            // TimeMacroElement<Mesh> TimeMacro(Thi, qTime, 0.16);
+            MacroElementPartition<Mesh> TimeMacro(Thi, 0.45);
 
             // Visualize macro elements
             if (iterations == 1 && h > 0.01) {
@@ -854,32 +856,27 @@ int main(int argc, char **argv) {
 #if defined(dirichlet1) && defined(dirichlet2)
             // Dirichlet outer
 
-            convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v)
-                                + innerProduct(u, 0.5 * (vel * n) * v)
-                                - innerProduct(D * grad(u) * n, v)      // from IBP
-                                - innerProduct(u, D * grad(v) * n) // added to make symmetric
-                                + innerProduct(u, lambda / h * v), // added penalty
-                                Thi, INTEGRAL_BOUNDARY, In);
+            convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v) + innerProduct(u, 0.5 * (vel * n) * v) -
+                                     innerProduct(D * grad(u) * n, v)   // from IBP
+                                     - innerProduct(u, D * grad(v) * n) // added to make symmetric
+                                     + innerProduct(u, lambda / h * v), // added penalty
+                                 Thi, INTEGRAL_BOUNDARY, In);
 
-            convdiff.addLinear(+ innerProduct(g.expr(), 0.5 * fabs(vel * n) * v)
-                               - innerProduct(g.expr(), 0.5 * (vel * n) * v)
-                               - innerProduct(g.expr(), D * grad(v) * n) 
-                               + innerProduct(g.expr(), lambda / h * v),
+            convdiff.addLinear(+innerProduct(g.expr(), 0.5 * fabs(vel * n) * v) -
+                                   innerProduct(g.expr(), 0.5 * (vel * n) * v) -
+                                   innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v),
                                Thi, INTEGRAL_BOUNDARY, In);
 
-            
+            convdiff.addBilinear(+innerProduct(u, 0.5 * fabs(vel * n) * v) + innerProduct(u, 0.5 * (vel * n) * v) -
+                                     innerProduct(D * grad(u) * n, v)   // from IBP
+                                     - innerProduct(u, D * grad(v) * n) // added to make symmetric
+                                     + innerProduct(u, lambda / h * v)  // added penalty
+                                 ,
+                                 interface, In);
 
-            convdiff.addBilinear(+ innerProduct(u, 0.5 * fabs(vel * n) * v) 
-                                 + innerProduct(u, 0.5 * (vel * n) * v)
-                                 - innerProduct(D * grad(u) * n, v)      // from IBP
-                                 - innerProduct(u, D * grad(v) * n) // added to make symmetric
-                                 + innerProduct(u, lambda / h * v)  // added penalty                                 
-                                , interface, In);
-
-            convdiff.addLinear(+ innerProduct(g.expr(), 0.5 * fabs(vel * n) * v)
-                               - innerProduct(g.expr(), 0.5 * (vel * n) * v)
-                               - innerProduct(g.expr(), D * grad(v) * n)
-                               + innerProduct(g.expr(), lambda / h * v),
+            convdiff.addLinear(+innerProduct(g.expr(), 0.5 * fabs(vel * n) * v) -
+                                   innerProduct(g.expr(), 0.5 * (vel * n) * v) -
+                                   innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v),
                                interface, In);
 
 //* Dirichlet on outer and Neumann on inner
@@ -988,10 +985,18 @@ int main(int argc, char **argv) {
 
             // Add RHS in bulk
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
-
+#ifndef USE_MPI
             if (iter == total_number_iteration - 1)
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_h_dg" + std::to_string(h) + "_" +
                                                      std::to_string(j + 1) + ".dat");
+#elif defined(USE_MPI)
+
+            if ((iter == total_number_iteration - 1) && MPIcf::IamMaster()) {
+                matlab::Export(convdiff.mat_[0], path_output_data + "mat_dg_rank_" + std::to_string(MPIcf::my_rank()) +
+                                                     "_h" + std::to_string(h) + "_" + std::to_string(j + 1) + ".dat");
+            }
+
+#endif
 
             // Solve linear system
             convdiff.solve("mumps");
@@ -1033,7 +1038,7 @@ int main(int argc, char **argv) {
                 outputData << std::setprecision(10);
                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG << ","
 #if (defined(omega2) && dirichlet) || (defined(omega1) && defined(dirichlet1))
-                ;
+                    ;
 #elif defined(omega2) && defined(neumann)
                            << ((q_1 - qp_1) - intF - intG) << '\n';
 #elif defined(omega1) && defined(neumann1)
@@ -1045,8 +1050,8 @@ int main(int argc, char **argv) {
             Rn sol(Wh.get_nb_dof(), 0.);
             sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
             Fun_h funuh(Wh, sol);
-            //double errBulk = L2normCut(funuh, fun_uBulkD, current_time, 0, 1);
-            //std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
+            // double errBulk = L2normCut(funuh, fun_uBulkD, current_time, 0, 1);
+            // std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
 
             sol += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
             double errBulk = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
@@ -1088,8 +1093,8 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        h *= 0.5;
-        //h *= sqrt(0.5);
+        // h *= 0.5;
+        h *= sqrt(0.5);
 #endif
     }
 
@@ -1126,13 +1131,38 @@ int main(int argc, char **argv) {
         }
     }
     std::cout << "]" << '\n';
-    
+
     std::cout << '\n';
-    
+
     std::cout << "dT = [";
     for (int i = 0; i < iterations; i++) {
 
         std::cout << dts.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+
+
+    std::cout << '\n';
+
+    std::cout << "nx = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << nxs.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+
+    std::cout << '\n';
+
+    std::cout << "ny = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << nys.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }
