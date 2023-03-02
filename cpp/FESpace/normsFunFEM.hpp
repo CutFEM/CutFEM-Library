@@ -328,6 +328,7 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double 
 
     return val_receive;
 }
+
 template <typename Mesh>
 double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t), const Interface<Mesh> &interface,
                   double tt, int c0, int num_comp) {
@@ -502,6 +503,54 @@ template <typename M> double L2norm(const ExpressionVirtual &fh, const M &Th) {
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
+template <typename Mesh>
+double max_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t), const Interface<Mesh> &interface,
+                        double tt, int c0, int num_comp) {
+
+    double val = 0;
+    for (int i = c0; i < num_comp + c0; ++i) {
+        auto ui = fh.expr(i);
+        val += std::max(val, max_norm_surface(ui, fex, interface, tt));
+    }
+    return sqrt(val);
+}
+
+template <typename Mesh>
+double max_norm_surface(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, double t),
+                        const Interface<Mesh> &interface, double tt) {
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QFB QFB;
+    typedef typename FElement::Rd Rd;
+    typedef typename QFB::QuadraturePoint QuadraturePoint;
+
+    const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(5)); //? should it be 2 instead of 3 here?
+    What_d Fop = Fwhatd(op_id);
+
+    double val = 0.;
+
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
+
+        const int kb = interface.idxElementOfFace(iface); // idx on backMesh
+
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+
+            QuadraturePoint ip(qfb[ipq]);                                                  // integration point
+            Rd mip = interface.mapToPhysicalFace(iface, (typename FElement::RdHatBord)ip); // mip - map quadrature point
+
+            val = std::max(val, fabs(fh->evalOnBackMesh(kb, 0, mip, tt) - fex(mip, fh->cu, tt)));
+        }
+    }
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_MAX);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
 //
 // //
 // template<typename M>
@@ -545,6 +594,7 @@ template <typename M> double L2norm(const ExpressionVirtual &fh, const M &Th) {
 
 //   return val_receive;
 // }
+
 template <typename M> double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<M> &Th) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;

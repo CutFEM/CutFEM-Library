@@ -23,7 +23,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef COMMON_CUT_MESH_TPP
 #define COMMON_CUT_MESH_TPP
 
-//* Cut_Part *//
+//* --- Cut_Part class --- *//
 
 template <typename E> Cut_Part<E>::Cut_Part(const Partition<E> p, int s) : ip(p), sign_cut_(s), pp(p.T) {
     partition_ = &ip;
@@ -118,10 +118,9 @@ template <typename E> typename Cut_Part<E>::const_element_iterator Cut_Part<E>::
     return partition_->element_end(other_side_cut);
 }
 
-//* ActiveMesh *//
+//* --- ActiveMesh class --- *//
 
-// Create a CutMesh without cut on the backMesh
-// Usefull if wanna add sub domains
+//* Public Members *//
 
 template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
     idx_in_background_mesh_.reserve(10);
@@ -131,15 +130,15 @@ template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
     idx_in_background_mesh_[0].resize(Th.nt);
 
     interface_id_.resize(10);
-    // initialize the number of quadrature time steps
-    nb_quadrature_time_ = 1;
-    // initialize the element indices for the first domain
+
+    nb_quadrature_time_ = 1;        // by default, the active mesh of the background mesh is stationary
+    
+    // set the active mesh indexing to the same as the background element indexing
     for (int k = 0; k < Th.nt; ++k) {
         idx_in_background_mesh_[0][k]   = k;
         idx_from_background_mesh_[0][k] = k;
     }
-    // initialize the indices of the first and last element of the first
-    // domain
+
     idx_element_domain.push_back(0);
     idx_element_domain.push_back(Th.nt);
     in_active_mesh_.resize(10);
@@ -171,6 +170,526 @@ template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const Time
         in_active_mesh_[i].resize(nb_quadrature_time_);
     this->init(interface);
 }
+
+
+
+template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &interface, int sign_domain_remove) {
+
+    // Get number of subdomains of resulting mesh //?
+    int dom_size = this->get_nb_domain();
+    idx_element_domain.resize(0);
+
+    {
+        // Iterate through number of remaining subdomains
+        for (int d = 0; d < dom_size; ++d) {
+            idx_in_background_mesh_[d].resize(0);
+            // Compute number of elements in subdomain d
+            int nt_max = idx_from_background_mesh_[d].size();
+            // Reserve memory for these elements
+            idx_in_background_mesh_[d].reserve(nt_max);
+        }
+    }
+
+    // Vector to hold number of elements in each subdomain
+    std::vector<int> nt(dom_size, 0.);
+    for (int d = 0; d < dom_size; ++d) {
+        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
+
+            int kb = it_k->first;   // background mesh element index
+            int k  = it_k->second;  // active mesh element index
+
+            // Get interface segment
+            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
+            // Get the sign of the level set function in the element kb
+            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
+
+            // Remove the Mesh::Element in the domain corresopnding to sign_domain_remove
+            if (signK.sign() == sign_domain_remove) {
+
+                it_k = idx_from_background_mesh_[d].erase(it_k);
+
+                continue;
+            }
+
+            // Save and erase old interfaces 
+            int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
+            std::vector<const Interface<Mesh> *> old_interface(nb_interface);
+            std::vector<int> ss(nb_interface);
+            for (int i = 0; i < nb_interface; ++i)
+                old_interface[i] = it_gamma->second[i].first;
+            for (int i = 0; i < nb_interface; ++i)
+                ss[i] = it_gamma->second[i].second;
+            if (it_gamma != interface_id_[0].end()) {
+                auto ittt = interface_id_[0].erase(it_gamma);
+            }
+
+            // SET NEW INDICES AND PUT BACK INTERFACES
+            idx_in_background_mesh_[d].push_back(kb);
+            it_k->second = nt[d];
+            for (int i = 0; i < nb_interface; ++i) {
+                interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
+            }
+            // IS CUT SO NEED TO ADD INTERFACE AND SIGN
+            if (signK.cut()) {
+                interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(&interface, -sign_domain_remove));
+            }
+            nt[d]++;
+            it_k++;
+        }
+    }
+
+    idx_element_domain.push_back(0);
+    for (int d = 0; d < dom_size; ++d) {
+        idx_in_background_mesh_[d].resize(nt[d]);
+        idx_in_background_mesh_[d].shrink_to_fit();
+        int sum_nt = idx_element_domain[d] + nt[d];
+        idx_element_domain.push_back(sum_nt);
+    }
+}
+
+template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh> &interface, int sign_domain_remove) {
+
+    int n_tid = interface.size();
+    assert(n_tid < interface_id_.size());
+    nb_quadrature_time_ = n_tid;
+    in_active_mesh_.resize(10);
+    for (int i = 0; i < 10; ++i)
+        in_active_mesh_[i].resize(nb_quadrature_time_);
+
+    int dom_size = this->get_nb_domain();
+    idx_element_domain.resize(0);
+
+    {
+        for (int d = 0; d < dom_size; ++d) {
+            idx_in_background_mesh_[d].resize(0);
+            int nt_max = idx_from_background_mesh_[d].size();
+            idx_in_background_mesh_[d].reserve(nt_max);
+        }
+    }
+
+    std::vector<int> nt(dom_size, 0.); //! nt is never changed after this line? why are its components just 0.?
+
+    // Loop over all subdomains
+    for (int d = 0; d < dom_size; ++d) {
+        // Loop over all elements in the active mesh of subdomain d
+        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
+
+            // Index of the element in the background mesh
+            int kb = it_k->first;
+            // Index of the element in the active mesh
+            int k  = it_k->second;
+
+            // Variable to check status if the element is active or inactive
+            bool active_element = false;
+            // Temporary variable to hold the sign of the element
+            int s;
+
+            // Loop over all time quadrature points
+            for (int t = 0; t < interface.size() - 1; ++t) {
+                // Get SignElement at time t
+                const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(kb);
+                // Get SignElement at time t+1
+                const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(kb);
+                // Save the sign of element at time t
+                s                                                             = signKi.sign();
+                // Check if the element is cut in either t or t+1 or if the sign of the element changes
+                // -> that means it's active
+                if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
+                    active_element = true;
+                    break;
+                }
+            }
+
+            //! CONTINUE HERE
+            // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
+            if (s == sign_domain_remove && !active_element) {
+                it_k = idx_from_background_mesh_[d].erase(it_k);
+                continue;
+            }
+
+            // SAVE AND ERASE OLD INTERFACES
+            for (int it = 0; it < n_tid; ++it) {
+                auto it_gamma = interface_id_[it].find(std::make_pair(d, k));
+
+                int nb_interface = (it_gamma == interface_id_[it].end()) ? 0 : it_gamma->second.size();
+                std::vector<const Interface<Mesh> *> old_interface(nb_interface);
+                std::vector<int> ss(nb_interface);
+                for (int i = 0; i < nb_interface; ++i)
+                    old_interface[i] = it_gamma->second[i].first;
+                for (int i = 0; i < nb_interface; ++i)
+                    ss[i] = it_gamma->second[i].second;
+                if (it_gamma != interface_id_[it].end()) {
+                    auto ittt = interface_id_[it].erase(it_gamma);
+                }
+                // PUT BACK INTERFACES
+                for (int i = 0; i < nb_interface; ++i) {
+                    interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
+                }
+                // IS CUT SO NEED TO ADD INTERFACE AND SIGN
+                const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
+                if (signK.cut()) {
+                    interface_id_[it][std::make_pair(d, nt[d])].push_back(
+                        std::make_pair(interface[it], -sign_domain_remove));
+                } else if (signK.sign() == sign_domain_remove) {
+                    in_active_mesh_[d][it][nt[d]] = false;
+                }
+            }
+            // // SET NEW INDICES AND PUT BACK INTERFACES
+            idx_in_background_mesh_[d].push_back(kb);
+            it_k->second = nt[d];
+            nt[d]++;
+            it_k++;
+        }
+    }
+    return;
+    idx_element_domain.push_back(0);
+    for (int d = 0; d < dom_size; ++d) {
+        idx_in_background_mesh_[d].resize(nt[d]);
+        idx_in_background_mesh_[d].shrink_to_fit();
+        int sum_nt = idx_element_domain[d] + nt[d];
+        idx_element_domain.push_back(sum_nt);
+    }
+}
+
+//  TODO Comment: construct a subdomain corresponding to the positive sign
+template <typename Mesh> void ActiveMesh<Mesh>::add(const Interface<Mesh> &interface, int sign_domain) {
+
+    int dom_size = this->get_nb_domain();
+    idx_element_domain.resize(0);
+    // int sign_domain = -1;
+    // Initialize the first new subdomain domain
+
+    // and clear old array with Mesh::Element indices.
+    {
+        idx_in_background_mesh_.resize(dom_size + 1);
+        idx_from_background_mesh_.resize(dom_size + 1);
+        for (int d = 0; d < dom_size + 1; ++d) {
+            idx_in_background_mesh_[d].resize(0);
+        }
+        int nt_max = idx_from_background_mesh_[0].size();
+        idx_in_background_mesh_[dom_size].reserve(nt_max);
+    }
+    std::vector<int> nt(2 * dom_size, 0.);
+    int new_dom_id = dom_size;
+    for (int d = 0; d < dom_size; ++d) {
+        bool sub_is_cut = false;
+        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
+
+            int kb = it_k->first;
+            int k  = it_k->second;
+
+            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
+            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
+
+            int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
+            std::vector<const Interface<Mesh> *> old_interface(nb_interface);
+            std::vector<int> ss(nb_interface);
+            for (int i = 0; i < nb_interface; ++i)
+                old_interface[i] = it_gamma->second[i].first;
+            for (int i = 0; i < nb_interface; ++i)
+                ss[i] = it_gamma->second[i].second;
+
+            if (it_gamma != interface_id_[0].end()) {
+                auto ittt = interface_id_[0].erase(it_gamma);
+            }
+
+            if (signK.sign() == sign_domain || signK.cut()) {
+
+                // Initialize first time we find a cut Mesh::Element
+                if (!sub_is_cut && new_dom_id != dom_size) {
+                    new_dom_id++;
+                    idx_in_background_mesh_.resize(new_dom_id + 1);
+                    idx_from_background_mesh_.resize(new_dom_id + 1);
+                    idx_in_background_mesh_[new_dom_id].resize(0);
+                    int nt_max = idx_from_background_mesh_[d + 1].size();
+                    idx_in_background_mesh_[new_dom_id].reserve(nt_max);
+                }
+
+                sub_is_cut = true;
+                idx_in_background_mesh_[new_dom_id].push_back(kb);
+                idx_from_background_mesh_[new_dom_id][kb] = nt[new_dom_id];
+
+                for (int i = 0; i < nb_interface; ++i) {
+                    interface_id_[0][std::make_pair(new_dom_id, nt[new_dom_id])].push_back(
+                        std::make_pair(old_interface[i], ss[i]));
+                }
+
+                if (!signK.cut()) {
+                    it_k = idx_from_background_mesh_[d].erase(it_k);
+                } else {
+                    idx_in_background_mesh_[d].push_back(kb);
+                    it_k->second = nt[d];
+
+                    // need to change k and add new interface
+                    // attach all interface to new Mesh::Element
+                    for (int i = 0; i < nb_interface; ++i) {
+                        interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
+                    }
+                    interface_id_[0][std::make_pair(new_dom_id, nt[new_dom_id])].push_back(
+                        std::make_pair(&interface, sign_domain));
+                    interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(&interface, -sign_domain));
+                    nt[d]++;
+                    it_k++;
+                }
+
+                nt[new_dom_id]++;
+            } else {
+                // std::cout << " in old domain " << std::endl;
+                idx_in_background_mesh_[d].push_back(kb);
+                it_k->second = nt[d];
+
+                // change the key of the interface_id map
+                for (int i = 0; i < nb_interface; ++i) {
+                    interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
+                }
+                it_k++;
+                nt[d]++;
+            }
+        }
+
+        // if(sub_is_cut && d+1 !=dom_size){
+        //    new_dom_id++;
+        //    idx_in_background_mesh_.resize(new_dom_id+1);
+        //    idx_from_background_mesh_.resize(new_dom_id+1);
+        //    idx_in_background_mesh_[new_dom_id].resize(0);
+        //    int nt_max = idx_from_background_mesh_[d+1].size();
+        //    idx_in_background_mesh_[new_dom_id].reserve(nt_max);
+        //  }
+    }
+
+    idx_element_domain.push_back(0);
+    for (int d = 0; d < new_dom_id + 1; ++d) {
+        idx_in_background_mesh_[d].resize(nt[d]);
+        idx_in_background_mesh_[d].shrink_to_fit();
+        int sum_nt = idx_element_domain[d] + nt[d];
+        idx_element_domain.push_back(sum_nt);
+    }
+}
+
+template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const Interface<Mesh> &interface) {
+
+    int dom_size = this->get_nb_domain();
+    idx_element_domain.resize(0);
+
+    {
+        for (int d = 0; d < dom_size; ++d) {
+            idx_in_background_mesh_[d].resize(0);
+            int nt_max = idx_from_background_mesh_[d].size();
+            idx_in_background_mesh_[d].reserve(nt_max);
+        }
+    }
+
+    std::vector<int> nt(dom_size, 0.);
+    for (int d = 0; d < dom_size; ++d) {
+        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
+
+            int kb = it_k->first;
+            int k  = it_k->second;
+
+            // std::cout << "domain \t" << d << " Mesh::Element back " << kb << "\t =>
+            // loc id " << k << std::endl;
+            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
+            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
+
+            // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
+            if (!signK.cut()) {
+
+                it_k = idx_from_background_mesh_[d].erase(it_k);
+                continue;
+            }
+
+            // SAVE AND ERASE OLD INTERFACES
+            int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
+            std::vector<const Interface<Mesh> *> old_interface(nb_interface);
+            std::vector<int> ss(nb_interface);
+            for (int i = 0; i < nb_interface; ++i)
+                old_interface[i] = it_gamma->second[i].first;
+            for (int i = 0; i < nb_interface; ++i)
+                ss[i] = it_gamma->second[i].second;
+            if (it_gamma != interface_id_[0].end()) {
+                auto ittt = interface_id_[0].erase(it_gamma);
+            }
+
+            // SET NEW INDICES AND PUT BACK INTERFACES
+            idx_in_background_mesh_[d].push_back(kb);
+            it_k->second = nt[d];
+            for (int i = 0; i < nb_interface; ++i) {
+                interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
+            }
+            // IS CUT SO NEED TO ADD INTERFACE AND SIGN
+            interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(&interface, 0));
+            nt[d]++;
+            it_k++;
+        }
+    }
+
+    idx_element_domain.push_back(0);
+    for (int d = 0; d < dom_size; ++d) {
+        idx_in_background_mesh_[d].resize(nt[d]);
+        idx_in_background_mesh_[d].shrink_to_fit();
+        int sum_nt = idx_element_domain[d] + nt[d];
+        idx_element_domain.push_back(sum_nt);
+    }
+}
+
+template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInterface<Mesh> &interface) {
+
+    int n_tid           = interface.size();
+    nb_quadrature_time_ = n_tid;
+    in_active_mesh_.resize(10);
+    for (int i = 0; i < 10; ++i)
+        in_active_mesh_[i].resize(nb_quadrature_time_);
+
+    int dom_size = this->get_nb_domain();
+    idx_element_domain.resize(0);
+
+    {
+        for (int d = 0; d < dom_size; ++d) {
+            idx_in_background_mesh_[d].resize(0);
+            int nt_max = idx_from_background_mesh_[d].size();
+            idx_in_background_mesh_[d].reserve(nt_max);
+        }
+    }
+
+    std::vector<int> nt(dom_size, 0.);
+    for (int d = 0; d < dom_size; ++d) {
+        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
+
+            int kb = it_k->first;
+            int k  = it_k->second;
+
+            bool active_element = false;
+            for (int t = 0; t < interface.size() - 1; ++t) {
+                const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(kb);
+                const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(kb);
+
+                if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
+                    active_element = true;
+                    break;
+                }
+            }
+
+            if (!active_element) {
+                it_k = idx_from_background_mesh_[d].erase(it_k);
+                continue;
+            }
+
+            // SAVE AND ERASE OLD INTERFACES EACH TIME STEP
+            for (int it = 0; it < n_tid; ++it) {
+                auto it_gamma    = interface_id_[it].find(std::make_pair(d, k));
+                int nb_interface = (it_gamma == interface_id_[it].end()) ? 0 : it_gamma->second.size();
+                std::vector<const Interface<Mesh> *> old_interface(nb_interface);
+                std::vector<int> ss(nb_interface);
+                for (int i = 0; i < nb_interface; ++i)
+                    old_interface[i] = it_gamma->second[i].first;
+                for (int i = 0; i < nb_interface; ++i)
+                    ss[i] = it_gamma->second[i].second;
+                if (it_gamma != interface_id_[it].end()) {
+                    auto ittt = interface_id_[it].erase(it_gamma);
+                }
+                // PUT BACK INTERFACES
+                for (int i = 0; i < nb_interface; ++i) {
+                    interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
+                }
+                // IS CUT SO NEED TO ADD INTERFACE AND SIGN
+                const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
+
+                if (signK.cut()) {
+                    interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(interface[it], 0));
+                } else {
+                    in_active_mesh_[d][it][nt[d]] = false;
+                }
+            }
+            it_k->second = nt[d];
+            idx_in_background_mesh_[d].push_back(kb);
+            nt[d]++;
+            it_k++;
+        }
+    }
+
+    idx_element_domain.push_back(0);
+    for (int d = 0; d < dom_size; ++d) {
+        idx_in_background_mesh_[d].resize(nt[d]);
+        idx_in_background_mesh_[d].shrink_to_fit();
+        int sum_nt = idx_element_domain[d] + nt[d];
+        idx_element_domain.push_back(sum_nt);
+    }
+}
+
+
+
+//* Private Members *//
+
+
+//  constructor for basic 2 subdomains problem {1, -1}
+template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &interface) {
+
+    int n_tid           = interface.size();
+    nb_quadrature_time_ = n_tid;
+    in_active_mesh_.resize(10);
+    for (int i = 0; i < 10; ++i)
+        in_active_mesh_[i].resize(nb_quadrature_time_);
+
+    idx_in_background_mesh_[0].reserve(Th.nt);
+    idx_in_background_mesh_[1].reserve(Th.nt);
+    idx_element_domain.push_back(0);
+    int nt0 = 0, nt1 = 0;
+    for (int k = 0; k < Th.nt; ++k) {
+
+        bool active_element = false;
+        int s;
+        for (int t = 0; t < interface.size() - 1; ++t) {
+            const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(k);
+            const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(k);
+            s                                                             = signKi.sign();
+            if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
+                active_element = true;
+                break;
+            }
+        }
+
+        if (active_element) {
+            for (int it = 0; it < n_tid; ++it) {
+                const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(k);
+                int st                                                      = signK.sign();
+                if (!signK.cut() && st == -1) {
+                    in_active_mesh_[0][it][nt0] = false;
+                }
+                if (!signK.cut() && st == 1) {
+                    in_active_mesh_[1][it][nt1] = false;
+                }
+
+                if (signK.cut()) {
+                    interface_id_[it][std::make_pair(0, nt0)].push_back(std::make_pair(interface[it], 1));
+                    interface_id_[it][std::make_pair(1, nt1)].push_back(std::make_pair(interface[it], -1));
+                }
+            }
+            idx_in_background_mesh_[0].push_back(k);
+            idx_from_background_mesh_[0][k] = nt0;
+            idx_in_background_mesh_[1].push_back(k);
+            idx_from_background_mesh_[1][k] = nt1;
+            nt0++;
+            nt1++;
+        } else {
+            int dom_add = (s < 0);
+            int dom_rm  = (s > 0);
+            int &nnt    = (s > 0) ? nt0 : nt1;
+            idx_in_background_mesh_[dom_add].push_back(k);
+            idx_from_background_mesh_[dom_add][k] = nnt;
+            nnt++;
+        }
+    }
+    idx_in_background_mesh_[0].resize(nt0);
+    idx_in_background_mesh_[1].resize(nt1);
+    idx_in_background_mesh_[0].shrink_to_fit();
+    idx_in_background_mesh_[1].shrink_to_fit();
+
+    idx_element_domain.push_back(nt0);
+    idx_element_domain.push_back(nt0 + nt1);
+}
+
+
+
 
 // Check if a given cell index exists in the active mesh
 template <typename Mesh> bool ActiveMesh<Mesh>::check_exist(int k, int dom) const {
@@ -250,30 +769,30 @@ template <typename Mesh> int ActiveMesh<Mesh>::get_domain_element(const int k) c
     assert(0);
 }
 
-template <typename Mesh> bool ActiveMesh<Mesh>::isCut(int k, int t) const {
+template <typename Mesh> bool ActiveMesh<Mesh>::isCut(int k, int itq) const {
     int domain = get_domain_element(k);
     int kloc   = idxK_in_domain(k, domain);
-    auto it    = interface_id_[t].find(std::make_pair(domain, kloc));
-    return (it != interface_id_[t].end());
+    auto it    = interface_id_[itq].find(std::make_pair(domain, kloc));
+    return (it != interface_id_[itq].end());
 }
 
-template <typename Mesh> bool ActiveMesh<Mesh>::isCutFace(int k, int ifac, int t) const {
-    // step 1: check if the element is cut
-    if (!isCut(k, t))
+template <typename Mesh> bool ActiveMesh<Mesh>::isCutFace(int k, int ifac, int itq) const {
+    // check if the element is cut
+    if (!isCut(k, itq))
         return false;
-    // step 2: get the domain id and the local id of the element in the domain
+    // get the domain id and the local id of the element in the domain
     int domain = get_domain_element(k);
     int kloc   = idxK_in_domain(k, domain);
-    // step 3: find the element in the interfaces
-    auto it    = interface_id_[t].find(std::make_pair(domain, kloc));
-    assert(it != interface_id_[t].end());
-    // step 4: get the interface id and the local element id in the interface
+    // find the element in the interfaces
+    auto it    = interface_id_[itq].find(std::make_pair(domain, kloc));
+    assert(it != interface_id_[itq].end());
+    // get the interface id and the local element id in the interface
     int s = it->second.at(0).second; // 0 because no multi cut
     if (s == 0)
         return false; // means surface mesh
-    // step 5: get the element id in the back mesh
+    // get the element id in the back mesh
     int kb = this->idxElementInBackMesh(k);
-    // step 6: check if the face is cut
+    // check if the face is cut
     return it->second.at(0).first->isCutFace(kb, ifac);
 }
 
@@ -645,523 +1164,6 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &inte
     in_active_mesh_.resize(10);
     for (int i = 0; i < 10; ++i)
         in_active_mesh_[i].resize(nb_quadrature_time_);
-}
-
-//  TODO Comment: constructor a subdomain corresponding to the positive sign
-template <typename Mesh> void ActiveMesh<Mesh>::add(const Interface<Mesh> &interface, int sign_domain) {
-
-    int dom_size = this->get_nb_domain();
-    idx_element_domain.resize(0);
-    // int sign_domain = -1;
-    // Initialize the first new subdomain domain
-
-    // and clear old array with Mesh::Element indices.
-    {
-        idx_in_background_mesh_.resize(dom_size + 1);
-        idx_from_background_mesh_.resize(dom_size + 1);
-        for (int d = 0; d < dom_size + 1; ++d) {
-            idx_in_background_mesh_[d].resize(0);
-        }
-        int nt_max = idx_from_background_mesh_[0].size();
-        idx_in_background_mesh_[dom_size].reserve(nt_max);
-    }
-    std::vector<int> nt(2 * dom_size, 0.);
-    int new_dom_id = dom_size;
-    for (int d = 0; d < dom_size; ++d) {
-        bool sub_is_cut = false;
-        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
-
-            int kb = it_k->first;
-            int k  = it_k->second;
-
-            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
-            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
-
-            int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
-            std::vector<const Interface<Mesh> *> old_interface(nb_interface);
-            std::vector<int> ss(nb_interface);
-            for (int i = 0; i < nb_interface; ++i)
-                old_interface[i] = it_gamma->second[i].first;
-            for (int i = 0; i < nb_interface; ++i)
-                ss[i] = it_gamma->second[i].second;
-
-            if (it_gamma != interface_id_[0].end()) {
-                auto ittt = interface_id_[0].erase(it_gamma);
-            }
-
-            if (signK.sign() == sign_domain || signK.cut()) {
-
-                // Initialize first time we find a cut Mesh::Element
-                if (!sub_is_cut && new_dom_id != dom_size) {
-                    new_dom_id++;
-                    idx_in_background_mesh_.resize(new_dom_id + 1);
-                    idx_from_background_mesh_.resize(new_dom_id + 1);
-                    idx_in_background_mesh_[new_dom_id].resize(0);
-                    int nt_max = idx_from_background_mesh_[d + 1].size();
-                    idx_in_background_mesh_[new_dom_id].reserve(nt_max);
-                }
-
-                sub_is_cut = true;
-                idx_in_background_mesh_[new_dom_id].push_back(kb);
-                idx_from_background_mesh_[new_dom_id][kb] = nt[new_dom_id];
-
-                for (int i = 0; i < nb_interface; ++i) {
-                    interface_id_[0][std::make_pair(new_dom_id, nt[new_dom_id])].push_back(
-                        std::make_pair(old_interface[i], ss[i]));
-                }
-
-                if (!signK.cut()) {
-                    it_k = idx_from_background_mesh_[d].erase(it_k);
-                } else {
-                    idx_in_background_mesh_[d].push_back(kb);
-                    it_k->second = nt[d];
-
-                    // need to change k and add new interface
-                    // attach all interface to new Mesh::Element
-                    for (int i = 0; i < nb_interface; ++i) {
-                        interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
-                    }
-                    interface_id_[0][std::make_pair(new_dom_id, nt[new_dom_id])].push_back(
-                        std::make_pair(&interface, sign_domain));
-                    interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(&interface, -sign_domain));
-                    nt[d]++;
-                    it_k++;
-                }
-
-                nt[new_dom_id]++;
-            } else {
-                // std::cout << " in old domain " << std::endl;
-                idx_in_background_mesh_[d].push_back(kb);
-                it_k->second = nt[d];
-
-                // change the key of the interface_id map
-                for (int i = 0; i < nb_interface; ++i) {
-                    interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
-                }
-                it_k++;
-                nt[d]++;
-            }
-        }
-
-        // if(sub_is_cut && d+1 !=dom_size){
-        //    new_dom_id++;
-        //    idx_in_background_mesh_.resize(new_dom_id+1);
-        //    idx_from_background_mesh_.resize(new_dom_id+1);
-        //    idx_in_background_mesh_[new_dom_id].resize(0);
-        //    int nt_max = idx_from_background_mesh_[d+1].size();
-        //    idx_in_background_mesh_[new_dom_id].reserve(nt_max);
-        //  }
-    }
-
-    idx_element_domain.push_back(0);
-    for (int d = 0; d < new_dom_id + 1; ++d) {
-        idx_in_background_mesh_[d].resize(nt[d]);
-        idx_in_background_mesh_[d].shrink_to_fit();
-        int sum_nt = idx_element_domain[d] + nt[d];
-        idx_element_domain.push_back(sum_nt);
-    }
-}
-
-/**
- * @brief
- *
- * @tparam Mesh
- * @param interface stationary interface
- * @param sign_domain_remove sign of the domain to be removed
- */
-template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &interface, int sign_domain_remove) {
-
-    // Get number of subdomains of resulting mesh //! ??
-    int dom_size = this->get_nb_domain();
-    idx_element_domain.resize(0);
-
-    {
-        // Iterate through number of subdomains
-        for (int d = 0; d < dom_size; ++d) {
-            idx_in_background_mesh_[d].resize(0);
-            // Compute number of elements in subdomain d
-            int nt_max = idx_from_background_mesh_[d].size();
-            // Reserve memory for these elements
-            idx_in_background_mesh_[d].reserve(nt_max);
-        }
-    }
-
-    // Vector to hold number of elements in each subdomain
-    std::vector<int> nt(dom_size, 0.);
-    for (int d = 0; d < dom_size; ++d) {
-        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
-
-            int kb = it_k->first;
-            int k  = it_k->second;
-
-            // std::cout << "domain \t" << d << " Mesh::Element back " << kb << "\t =>
-            // loc id " << k << std::endl;
-            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
-            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
-
-            // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
-            if (signK.sign() == sign_domain_remove) {
-
-                it_k = idx_from_background_mesh_[d].erase(it_k);
-
-                continue;
-            }
-
-            // SAVE AND ERASE OLD INTERFACES
-            int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
-            std::vector<const Interface<Mesh> *> old_interface(nb_interface);
-            std::vector<int> ss(nb_interface);
-            for (int i = 0; i < nb_interface; ++i)
-                old_interface[i] = it_gamma->second[i].first;
-            for (int i = 0; i < nb_interface; ++i)
-                ss[i] = it_gamma->second[i].second;
-            if (it_gamma != interface_id_[0].end()) {
-                auto ittt = interface_id_[0].erase(it_gamma);
-            }
-
-            // SET NEW INDICES AND PUT BACK INTERFACES
-            idx_in_background_mesh_[d].push_back(kb);
-            it_k->second = nt[d];
-            for (int i = 0; i < nb_interface; ++i) {
-                interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
-            }
-            // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-            if (signK.cut()) {
-                interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(&interface, -sign_domain_remove));
-            }
-            nt[d]++;
-            it_k++;
-        }
-    }
-
-    idx_element_domain.push_back(0);
-    for (int d = 0; d < dom_size; ++d) {
-        idx_in_background_mesh_[d].resize(nt[d]);
-        idx_in_background_mesh_[d].shrink_to_fit();
-        int sum_nt = idx_element_domain[d] + nt[d];
-        idx_element_domain.push_back(sum_nt);
-    }
-}
-
-template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const Interface<Mesh> &interface) {
-
-    int dom_size = this->get_nb_domain();
-    idx_element_domain.resize(0);
-
-    {
-        for (int d = 0; d < dom_size; ++d) {
-            idx_in_background_mesh_[d].resize(0);
-            int nt_max = idx_from_background_mesh_[d].size();
-            idx_in_background_mesh_[d].reserve(nt_max);
-        }
-    }
-
-    std::vector<int> nt(dom_size, 0.);
-    for (int d = 0; d < dom_size; ++d) {
-        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
-
-            int kb = it_k->first;
-            int k  = it_k->second;
-
-            // std::cout << "domain \t" << d << " Mesh::Element back " << kb << "\t =>
-            // loc id " << k << std::endl;
-            auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
-            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
-
-            // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
-            if (!signK.cut()) {
-
-                it_k = idx_from_background_mesh_[d].erase(it_k);
-                continue;
-            }
-
-            // SAVE AND ERASE OLD INTERFACES
-            int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
-            std::vector<const Interface<Mesh> *> old_interface(nb_interface);
-            std::vector<int> ss(nb_interface);
-            for (int i = 0; i < nb_interface; ++i)
-                old_interface[i] = it_gamma->second[i].first;
-            for (int i = 0; i < nb_interface; ++i)
-                ss[i] = it_gamma->second[i].second;
-            if (it_gamma != interface_id_[0].end()) {
-                auto ittt = interface_id_[0].erase(it_gamma);
-            }
-
-            // SET NEW INDICES AND PUT BACK INTERFACES
-            idx_in_background_mesh_[d].push_back(kb);
-            it_k->second = nt[d];
-            for (int i = 0; i < nb_interface; ++i) {
-                interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
-            }
-            // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-            interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(&interface, 0));
-            nt[d]++;
-            it_k++;
-        }
-    }
-
-    idx_element_domain.push_back(0);
-    for (int d = 0; d < dom_size; ++d) {
-        idx_in_background_mesh_[d].resize(nt[d]);
-        idx_in_background_mesh_[d].shrink_to_fit();
-        int sum_nt = idx_element_domain[d] + nt[d];
-        idx_element_domain.push_back(sum_nt);
-    }
-}
-
-template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInterface<Mesh> &interface) {
-
-    int n_tid           = interface.size();
-    nb_quadrature_time_ = n_tid;
-    in_active_mesh_.resize(10);
-    for (int i = 0; i < 10; ++i)
-        in_active_mesh_[i].resize(nb_quadrature_time_);
-
-    int dom_size = this->get_nb_domain();
-    idx_element_domain.resize(0);
-
-    {
-        for (int d = 0; d < dom_size; ++d) {
-            idx_in_background_mesh_[d].resize(0);
-            int nt_max = idx_from_background_mesh_[d].size();
-            idx_in_background_mesh_[d].reserve(nt_max);
-        }
-    }
-
-    std::vector<int> nt(dom_size, 0.);
-    for (int d = 0; d < dom_size; ++d) {
-        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
-
-            int kb = it_k->first;
-            int k  = it_k->second;
-
-            bool active_element = false;
-            for (int t = 0; t < interface.size() - 1; ++t) {
-                const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(kb);
-                const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(kb);
-
-                if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
-                    active_element = true;
-                    break;
-                }
-            }
-
-            if (!active_element) {
-                it_k = idx_from_background_mesh_[d].erase(it_k);
-                continue;
-            }
-
-            // SAVE AND ERASE OLD INTERFACES EACH TIME STEP
-            for (int it = 0; it < n_tid; ++it) {
-                auto it_gamma    = interface_id_[it].find(std::make_pair(d, k));
-                int nb_interface = (it_gamma == interface_id_[it].end()) ? 0 : it_gamma->second.size();
-                std::vector<const Interface<Mesh> *> old_interface(nb_interface);
-                std::vector<int> ss(nb_interface);
-                for (int i = 0; i < nb_interface; ++i)
-                    old_interface[i] = it_gamma->second[i].first;
-                for (int i = 0; i < nb_interface; ++i)
-                    ss[i] = it_gamma->second[i].second;
-                if (it_gamma != interface_id_[it].end()) {
-                    auto ittt = interface_id_[it].erase(it_gamma);
-                }
-                // PUT BACK INTERFACES
-                for (int i = 0; i < nb_interface; ++i) {
-                    interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
-                }
-                // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-                const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
-
-                if (signK.cut()) {
-                    interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(interface[it], 0));
-                } else {
-                    in_active_mesh_[d][it][nt[d]] = false;
-                }
-            }
-            it_k->second = nt[d];
-            idx_in_background_mesh_[d].push_back(kb);
-            nt[d]++;
-            it_k++;
-        }
-    }
-
-    idx_element_domain.push_back(0);
-    for (int d = 0; d < dom_size; ++d) {
-        idx_in_background_mesh_[d].resize(nt[d]);
-        idx_in_background_mesh_[d].shrink_to_fit();
-        int sum_nt = idx_element_domain[d] + nt[d];
-        idx_element_domain.push_back(sum_nt);
-    }
-}
-
-//  constructor for basic 2 subdomains problem {1, -1}
-template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &interface) {
-
-    int n_tid           = interface.size();
-    nb_quadrature_time_ = n_tid;
-    in_active_mesh_.resize(10);
-    for (int i = 0; i < 10; ++i)
-        in_active_mesh_[i].resize(nb_quadrature_time_);
-
-    idx_in_background_mesh_[0].reserve(Th.nt);
-    idx_in_background_mesh_[1].reserve(Th.nt);
-    idx_element_domain.push_back(0);
-    int nt0 = 0, nt1 = 0;
-    for (int k = 0; k < Th.nt; ++k) {
-
-        bool active_element = false;
-        int s;
-        for (int t = 0; t < interface.size() - 1; ++t) {
-            const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(k);
-            const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(k);
-            s                                                             = signKi.sign();
-            if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
-                active_element = true;
-                break;
-            }
-        }
-
-        if (active_element) {
-            for (int it = 0; it < n_tid; ++it) {
-                const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(k);
-                int st                                                      = signK.sign();
-                if (!signK.cut() && st == -1) {
-                    in_active_mesh_[0][it][nt0] = false;
-                }
-                if (!signK.cut() && st == 1) {
-                    in_active_mesh_[1][it][nt1] = false;
-                }
-
-                if (signK.cut()) {
-                    interface_id_[it][std::make_pair(0, nt0)].push_back(std::make_pair(interface[it], 1));
-                    interface_id_[it][std::make_pair(1, nt1)].push_back(std::make_pair(interface[it], -1));
-                }
-            }
-            idx_in_background_mesh_[0].push_back(k);
-            idx_from_background_mesh_[0][k] = nt0;
-            idx_in_background_mesh_[1].push_back(k);
-            idx_from_background_mesh_[1][k] = nt1;
-            nt0++;
-            nt1++;
-        } else {
-            int dom_add = (s < 0);
-            int dom_rm  = (s > 0);
-            int &nnt    = (s > 0) ? nt0 : nt1;
-            idx_in_background_mesh_[dom_add].push_back(k);
-            idx_from_background_mesh_[dom_add][k] = nnt;
-            nnt++;
-        }
-    }
-    idx_in_background_mesh_[0].resize(nt0);
-    idx_in_background_mesh_[1].resize(nt1);
-    idx_in_background_mesh_[0].shrink_to_fit();
-    idx_in_background_mesh_[1].shrink_to_fit();
-
-    idx_element_domain.push_back(nt0);
-    idx_element_domain.push_back(nt0 + nt1);
-}
-
-template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mesh> &interface, int sign_domain_remove) {
-
-    int n_tid = interface.size();
-    assert(n_tid < interface_id_.size());
-    nb_quadrature_time_ = n_tid;
-    in_active_mesh_.resize(10);
-    for (int i = 0; i < 10; ++i)
-        in_active_mesh_[i].resize(nb_quadrature_time_);
-
-    int dom_size = this->get_nb_domain();
-    idx_element_domain.resize(0);
-
-    {
-        for (int d = 0; d < dom_size; ++d) {
-            idx_in_background_mesh_[d].resize(0);
-            int nt_max = idx_from_background_mesh_[d].size();
-            idx_in_background_mesh_[d].reserve(nt_max);
-        }
-    }
-
-    std::vector<int> nt(dom_size, 0.); //! nt is never changed after this line? why are its components just 0.?
-
-    // Loop over all subdomains
-    for (int d = 0; d < dom_size; ++d) {
-        // Loop over all elements in the active mesh of subdomain d
-        for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
-
-            // Index of the element in the background mesh
-            int kb = it_k->first;
-            // Index of the element in the active mesh
-            int k  = it_k->second;
-
-            // Variable to check status if the element is active or inactive
-            bool active_element = false;
-            // Temporary variable to hold the sign of the element
-            int s;
-
-            // Loop over all time quadrature points
-            for (int t = 0; t < interface.size() - 1; ++t) {
-                // Get SignElement at time t
-                const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(kb);
-                // Get SignElement at time t+1
-                const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(kb);
-                // Save the sign of element at time t
-                s                                                             = signKi.sign();
-                // Check if the element is cut in either t or t+1 or if the sign of the element changes
-                // -> that means it's active
-                if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
-                    active_element = true;
-                    break;
-                }
-            }
-
-            //! CONTINUE HERE
-            // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
-            if (s == sign_domain_remove && !active_element) {
-                it_k = idx_from_background_mesh_[d].erase(it_k);
-                continue;
-            }
-
-            // SAVE AND ERASE OLD INTERFACES
-            for (int it = 0; it < n_tid; ++it) {
-                auto it_gamma = interface_id_[it].find(std::make_pair(d, k));
-
-                int nb_interface = (it_gamma == interface_id_[it].end()) ? 0 : it_gamma->second.size();
-                std::vector<const Interface<Mesh> *> old_interface(nb_interface);
-                std::vector<int> ss(nb_interface);
-                for (int i = 0; i < nb_interface; ++i)
-                    old_interface[i] = it_gamma->second[i].first;
-                for (int i = 0; i < nb_interface; ++i)
-                    ss[i] = it_gamma->second[i].second;
-                if (it_gamma != interface_id_[it].end()) {
-                    auto ittt = interface_id_[it].erase(it_gamma);
-                }
-                // PUT BACK INTERFACES
-                for (int i = 0; i < nb_interface; ++i) {
-                    interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
-                }
-                // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-                const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
-                if (signK.cut()) {
-                    interface_id_[it][std::make_pair(d, nt[d])].push_back(
-                        std::make_pair(interface[it], -sign_domain_remove));
-                } else if (signK.sign() == sign_domain_remove) {
-                    in_active_mesh_[d][it][nt[d]] = false;
-                }
-            }
-            // // SET NEW INDICES AND PUT BACK INTERFACES
-            idx_in_background_mesh_[d].push_back(kb);
-            it_k->second = nt[d];
-            nt[d]++;
-            it_k++;
-        }
-    }
-    return;
-    idx_element_domain.push_back(0);
-    for (int d = 0; d < dom_size; ++d) {
-        idx_in_background_mesh_[d].resize(nt[d]);
-        idx_in_background_mesh_[d].shrink_to_fit();
-        int sum_nt = idx_element_domain[d] + nt[d];
-        idx_element_domain.push_back(sum_nt);
-    }
 }
 
 template <typename Mesh> void ActiveMesh<Mesh>::addArtificialInterface(const Interface<Mesh> &interface) {

@@ -1,10 +1,3 @@
-/**
- * @file cpp/common/cut_mesh.hpp
- *
- * @brief Contains class for cut mesh
- *
- */
-
 /*
 This file is part of CutFEM-Library.
 
@@ -45,7 +38,7 @@ template <typename E> struct Cut_Part {
     Cut_Part(const Physical_Partition<E> p, int s); ///< constructor with a physical partition
     Cut_Part(const Cut_Part<E> &p);                 ///< copy constructor
 
-    Cut_Part &operator=(const Cut_Part<E> &p); ///< copy operator
+    Cut_Part &operator=(const Cut_Part<E> &p); // copy operator
 
     // GETTERS
     int get_sign() const;                                        ///< return the sign of the cut
@@ -79,60 +72,129 @@ template <typename E> struct Cut_Part {
     other_side_element_end() const; ///< return an iterator to the end of the elements on the other side of the cut
 };
 
-/// @brief Class for cut mesh
-/// @tparam Mesh Type of mesh
+//! Why doesn't this class appear in the documentation?
+/**
+ * @brief
+ *
+ * @note The active mesh of a given subdomain corresponds to those elements of the
+ * background mesh that have a non-empty intersection with the subdomain. In the
+ * space-time method, the active mesh is taken as all elements that intersect the
+ * subdomain during any time instance in the time-slab In=[t_{n-1}, t_{n}]. This
+ * class allows for several types of active meshes, such as multiple active meshes
+ * of different subdomains, single active mesh of a single subdomain, or active meshes
+ * of surfaces.
+ * @tparam Mesh Mesh
+ */
 template <typename Mesh> class ActiveMesh {
 
+    // Public Types
   public:
-    typedef typename Mesh::Element Element;
-    typedef typename Element::Face Face;
-    typedef typename Mesh::Rd Rd;
-    typedef typename Mesh::BorderElement BorderElement;
-    typedef typename Element::RdHat RdHat; // for parametrization
-    typedef SortArray<int, 2> pairIndex;
-    static const int nea = Element::nea; //  numbering of adj (4 in Tet,  3 in Tria, 2 in seg)
-    static const int nva = Element::nva; //  numbering of vertex in Adj hyperface
+    typedef typename Mesh::Element Element;             ///< Mesh element
+    typedef typename Element::Face Face;                ///< Mesh face
+    typedef typename Mesh::Rd Rd;                       ///< Physical coordinate tuple
+    typedef typename Mesh::BorderElement BorderElement; ///< Mesh border element
+    typedef typename Element::RdHat RdHat;              ///< For parametrization
+    typedef SortArray<int, 2> pairIndex;                //?
+    static const int nea = Element::nea; ///<  Number of adjacent elements (4 in Tet,  3 in Tria, 2 in seg)
+    static const int nva = Element::nva; ///<  Number of vertex in adjacent face (3 in Tet, 2 in Tria, 1 in seg)
 
-    const Mesh &Th;
+    const Mesh &Th; ///< background mesh
 
-    std::vector<std::vector<int>> idx_in_background_mesh_;     // [domain][idxK_cutMesh] -> idxK_backMesh
-    std::vector<std::map<int, int>> idx_from_background_mesh_; // [domain](idxK_backMesh) -> idxK_cutMesh
+    // Public Attributes
+  public:
+    /**
+     * @brief Given index of subdomain and index of element in active mesh, get corresponding index in background mesh.
+     * @param subdomain subdomain index
+     * @param idxK_ActiveMesh index of element in active mesh
+     * @param idxK_backMesh index of element in background mesh
+     * @return Calling \code{.cpp} idx_in_background_mesh_[subdomain](idxK_ActiveMesh)\endcode returns
+     * \code{.cpp}idxK_backMesh\endcode
+     */
+    std::vector<std::vector<int>> idx_in_background_mesh_;
+
+    /**
+     * @brief Given index of subdomain and index of element in background mesh, get index in
+     * element in the active mesh corresponding to the subdomain
+     * @param subdomain subdomain index
+     * @param idxK_ActiveMesh index of element in active mesh
+     * @param idxK_backMesh index of element in background mesh
+     * @return Calling \code{.cpp} idx_from_background_mesh_[subdomain](idxK_backMesh)\endcode returns
+     * \code{.cpp}idxK_ActiveMesh\endcode
+     */
+    std::vector<std::map<int, int>> idx_from_background_mesh_;
+
+    /**
+     * @brief Vector of the interfaces in the time quadrature points itq //?
+     * @note interface_id_[itq] returns what exactly ?
+     */
     std::vector<std::map<std::pair<int, int>, std::vector<std::pair<const Interface<Mesh> *, int>>>>
         interface_id_;                   // [time_quad](domain_id, idx_k) ->
                                          // [n_interface](interface, sign)
     std::vector<int> idx_element_domain; //! What does this do?
 
-    // For time problem
+    // number of quadrature points to approximate integral over the time slab In
     int nb_quadrature_time_;
-    // map the elements that are not always in the active mesh
+
+    // a list of the elements that are in the active mesh for some time quadrature point, but not for all
     std::vector<std::vector<std::map<int, bool>>> in_active_mesh_; // [dom][itq][idx_element] -> true/false
 
+    // Constructors
   public:
-    // Create a CutMesh without cut on the backMesh
-    // Usefull if wanna add sub domains
+    /**
+     * @brief Construct an ActiveMesh object of the whole background mesh.
+     * @note Useful constructor for adding subdomains.
+     * @param th Background mesh.
+     */
     ActiveMesh(const Mesh &th);
 
-    // Give the background mesh and a sign Function defined on the mesh nodes
-    // Will create 2 subdomains
+    /**
+     * @brief Construct two active meshes, one for each subdomain on the positive and negative side of the level set.
+     * @param th Background mesh.
+     * @param interface Interface object.
+     */
     ActiveMesh(const Mesh &th, const Interface<Mesh> &interface);
 
     ActiveMesh(const Mesh &th, const TimeInterface<Mesh> &interface);
 
     void truncate(const Interface<Mesh> &interface, int sign_domain);
-    void truncate(const TimeInterface<Mesh> &interface, int sign_domain);
-    void add(const Interface<Mesh> &interface, int sign_domain);
-    void createSurfaceMesh(const Interface<Mesh> &interface);
-    void createSurfaceMesh(const TimeInterface<Mesh> &interface);
-    void addArtificialInterface(const Interface<Mesh> &interface);
 
-  private:
-    void init(const Interface<Mesh> &interface);
-    void init(const TimeInterface<Mesh> &interface);
-    bool check_exist(int k, int dom) const;
-    int idxK_begin(int i) const;
-    int idxK_in_domain(int k, int i) const;
-    Physical_Partition<Element> build_local_partition(const int k, int t = 0) const;
-    Physical_Partition<Face> build_local_partition(Face &face, const int k, int ifac, int t = 0) const;
+    /**
+     * @brief Create active mesh for one time-dependent subdomain.
+     * @note When creating one bulk domain, one removes (truncates) the other domain
+     * corresponding to the other sign of the signed distance function.
+     * @param interface Time-dependent interface.
+     * @param sign_domain Sign of the signed distance function in the domain you want to remove.
+     */
+    void truncate(const TimeInterface<Mesh> &interface, int sign_domain);
+
+    /**
+     * @brief I don't know what this does. //?
+     *
+     * @param interface
+     * @param sign_domain
+     */
+    void add(const Interface<Mesh> &interface, int sign_domain);
+
+    /**
+     * @brief Create an active mesh of a stationary surface.
+     *
+     * @param interface Interface<Mesh> object.
+     */
+    void createSurfaceMesh(const Interface<Mesh> &interface);
+
+    /**
+     * @brief Create an active mesh of a time-dependent surface.
+     *
+     * @param interface TimeInterface<Mesh> object.
+     */
+    void createSurfaceMesh(const TimeInterface<Mesh> &interface);
+
+    /**
+     * @brief Dont know what this does. //?
+     *
+     * @param interface
+     */
+    void addArtificialInterface(const Interface<Mesh> &interface);
 
   public:
     int nbElmts() const;
@@ -199,6 +261,16 @@ template <typename Mesh> class ActiveMesh {
     virtual int next_boundary_element() const { return 1; }
     virtual int last_boundary_element() const { return this->Th.nbBrdElmts(); }
 #endif
+
+    // Private Member Functions
+  private:
+    void init(const Interface<Mesh> &interface);
+    void init(const TimeInterface<Mesh> &interface);
+    bool check_exist(int k, int dom) const;
+    int idxK_begin(int i) const;
+    int idxK_in_domain(int k, int i) const;
+    Physical_Partition<Element> build_local_partition(const int k, int t = 0) const;
+    Physical_Partition<Face> build_local_partition(Face &face, const int k, int ifac, int t = 0) const;
 };
 
 typedef ActiveMesh<Mesh2> ActiveMeshT2;

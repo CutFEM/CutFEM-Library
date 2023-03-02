@@ -36,7 +36,7 @@ MPIcf::MPIcf(int &argc, char **&argv) {
    mute_ = new MuteStdOstream(); // mute ostream for non master
    muteStdOstreams();
 
-   std::cout << "init parallele rank " << my_rank_ << " on " << size_
+   std::cout << "init parallel rank " << my_rank_ << " of " << size_
              << std::endl;
    // PetscInitialize(&argc, &argv, NULL, NULL);
 }
@@ -50,7 +50,7 @@ MPIcf::MPIcf() {
 
    mute_ = new MuteStdOstream(); // mute ostream for non master
    muteStdOstreams();
-   std::cout << "init parallele rank " << my_rank_ << " on " << size_
+   std::cout << "init parallel rank " << my_rank_ << " of " << size_
              << std::endl;
 
    usePetsc_ = false;
@@ -61,7 +61,7 @@ MPIcf::~MPIcf() {
    // if(usePetsc_)PetscFinalize();
 
    MPI_Finalize();
-   std::cout << " \n MPI finalize correctly \n" << std::flush;
+   std::cout << " \n MPI finalized correctly \n" << std::flush;
 
    size_ = 0;
    RecoverStdOstreams();
