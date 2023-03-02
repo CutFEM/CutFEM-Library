@@ -15,9 +15,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 
 template <typename M>
-double L2normCut(const FunFEM<M> &fh,
-                 R(fex)(double *, int i, int dom, double tt), double t, int c0,
-                 int num_comp, const MacroElement<M> *macro = nullptr) {
+double L2normCut(const FunFEM<M> &fh, R(fex)(double *, int i, int dom, double tt), double t, int c0, int num_comp,
+                 const MacroElement<M> *macro = nullptr) {
 
     const GFESpace<M> &Vh(*fh.Vh);
     const ActiveMesh<M> &Th(Vh.get_mesh());
@@ -28,12 +27,12 @@ double L2normCut(const FunFEM<M> &fh,
     }
     return sqrt(val);
 }
-template <typename M>
-double L2normCut(const FunFEM<M> &fh, R(fex)(double *, int i, int dom), int c0,
-                 int num_comp, const MacroElement<M> *macro = nullptr) {
 
-    const GFESpace<M> &Vh(*fh.Vh);
-    const ActiveMesh<M> &Th(Vh.get_mesh());
+template <typeMesh mesh_t, FunctionDomain fct>
+double L2normCut(const FunFEM<mesh_t> &fh, fct fex, int c0, int num_comp, const MacroElement<mesh_t> *macro = nullptr) {
+
+    const GFESpace<mesh_t> &Vh(*fh.Vh);
+    const ActiveMesh<mesh_t> &Th(Vh.get_mesh());
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
@@ -42,16 +41,15 @@ double L2normCut(const FunFEM<M> &fh, R(fex)(double *, int i, int dom), int c0,
     return sqrt(val);
 }
 
-template <typename M>
-double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                 R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th,
-                 const MacroElement<M> *macro = nullptr) {
+template <typeMesh mesh_t, FunctionDomain fct>
+double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh, fct fex, const ActiveMesh<mesh_t> &Th,
+                 const MacroElement<mesh_t> *macro = nullptr) {
     double val = L2normCut_2(fh, fex, Th, macro);
     return sqrt(val);
 }
+
 template <typename M>
-double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                 const ActiveMesh<M> &Th,
+double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<M> &Th,
                  const MacroElement<M> *macro = nullptr) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
@@ -62,17 +60,15 @@ double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh,
 }
 
 template <typename M>
-double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                 const ActiveMesh<M> &Th, int dom,
+double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<M> &Th, int dom,
                  const MacroElement<M> *macro = nullptr) {
     double val = L2normCut_2(fh, dom, Th, macro);
     return sqrt(val);
 }
 
-template <typename M>
-double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
-                   R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th,
-                   const MacroElement<M> *macro) {
+template <typeMesh mesh_t, FunctionDomain fct_t>
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, const ActiveMesh<mesh_t> &Th,
+                   const MacroElement<mesh_t> *macro) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
@@ -82,10 +78,8 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
 }
 
 template <typename M>
-double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
-                   R(fex)(double *, int i, int dom, double tt),
-                   const ActiveMesh<M> &Th, double t,
-                   const MacroElement<M> *macro) {
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
+                   const ActiveMesh<M> &Th, double t, const MacroElement<M> *macro) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
@@ -95,8 +89,7 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
 }
 
 template <typename Mesh>
-double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, int domain,
-                   const ActiveMesh<Mesh> &Th,
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, int domain, const ActiveMesh<Mesh> &Th,
                    const MacroElement<Mesh> *macro) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
@@ -109,8 +102,7 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, int domain,
 
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
             continue;
@@ -151,44 +143,40 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, int domain,
 #endif
     return val_receive;
 }
-template <typename Mesh>
-double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
-                   R(fex)(double *, int i, int dom), int domain,
-                   const ActiveMesh<Mesh> &Th,
-                   const MacroElement<Mesh> *macro) {
-    typedef GFESpace<Mesh> FESpace;
-    typedef typename FESpace::FElement FElement;
-    typedef typename ActiveMesh<Mesh>::Element Element;
-    typedef typename FElement::QF QF;
-    typedef typename FElement::Rd Rd;
-    typedef typename QF::QuadraturePoint QuadraturePoint;
 
-    const QF &qf(*QF_Simplex<typename FElement::RdHat>(5));
+template <typeMesh mesh_t, FunctionDomain fct_t>
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, int domain, const ActiveMesh<mesh_t> &Th,
+                   const MacroElement<mesh_t> *macro) {
+    using fespace_t = GFESpace<mesh_t>;
+    using fe_t      = typename fespace_t::FElement;
+    using e_t       = typename mesh_t::Element;
+    using QF        = typename fe_t::QF;
+    using v_t       = typename fe_t::Rd;
+    using qp_t      = typename QF::QuadraturePoint;
+
+    const QF &qf(*QF_Simplex<typename fe_t::RdHat>(5));
 
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
             continue;
 
-        const Cut_Part<Element> cutK(Th.get_cut_part(k, 0));
+        const Cut_Part<e_t> cutK(Th.get_cut_part(k, 0));
         int kb = Th.idxElementInBackMesh(k);
 
         int kk = k;
 
         for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
 
-            const R meas = cutK.measure(it);
-
+            double meas = cutK.measure(it);
             for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
 
-                QuadraturePoint ip(qf[ipq]); // integration point
-                Rd mip       = cutK.mapToPhysicalElement(it, ip);
-                const R Cint = meas * ip.getWeight();
-
-                double a = fh->eval(kk, mip) - fex(mip, fh->cu, domain);
+                qp_t ip(qf[ipq]);
+                v_t mip           = cutK.mapToPhysicalElement(it, ip);
+                const double Cint = meas * ip.getWeight();
+                double a          = fh->eval(kk, mip) - fex(mip, fh->cu, domain);
 
                 val += Cint * a * a;
             }
@@ -202,11 +190,10 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
 #endif
     return val_receive;
 }
+
 template <typename Mesh>
-double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
-                   R(fex)(double *, int i, int dom, double tt), int domain,
-                   const ActiveMesh<Mesh> &Th, double t,
-                   const MacroElement<Mesh> *macro) {
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
+                   int domain, const ActiveMesh<Mesh> &Th, double t, const MacroElement<Mesh> *macro) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename FElement::QF QF;
@@ -218,8 +205,7 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
 
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
             continue;
@@ -263,8 +249,8 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh,
 // -----------------------------------------------------------------------------
 
 template <typename Mesh>
-double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
-                    R(fex)(double *, int i), const Interface<Mesh> &interface) {
+double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i),
+                    const Interface<Mesh> &interface) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename FElement::QFB QFB;
@@ -276,8 +262,7 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
 
     double val = 0.;
 
-    for (int iface = interface.first_element();
-         iface < interface.last_element(); iface += interface.next_element()) {
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
 
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
         const R meas = interface.measure(iface);
@@ -285,8 +270,7 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
         for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
 
             QuadraturePoint ip(qfb[ipq]); // integration point
-            const Rd mip = interface.mapToPhysicalFace(
-                iface, (typename FElement::RdHatBord)ip);
+            const Rd mip = interface.mapToPhysicalFace(iface, (typename FElement::RdHatBord)ip);
             const R Cint = meas * ip.getWeight();
 
             double a = fh->evalOnBackMesh(kb, 0, mip) - fex(mip, fh->cu);
@@ -303,8 +287,7 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
     return val_receive;
 }
 template <typename Mesh>
-double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
-                    R(fex)(double *, int i, double t),
+double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, double t),
                     const Interface<Mesh> &interface, double tt) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
@@ -318,8 +301,7 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
 
     double val = 0.;
 
-    for (int iface = interface.first_element();
-         iface < interface.last_element(); iface += interface.next_element()) {
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
 
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
         const R meas = interface.measure(iface);
@@ -327,14 +309,12 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
         for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
 
             QuadraturePoint ip(qfb[ipq]); // integration point
-            Rd mip = interface.mapToPhysicalFace(
-                iface,
-                (typename FElement::RdHatBord)ip); // mip - map quadrature point
+            Rd mip       = interface.mapToPhysicalFace(iface,
+                                                       (typename FElement::RdHatBord)ip); // mip - map quadrature point
             const R Cint = meas * ip.getWeight();
 
             // double a = fh->eval(k, mip, tt) - fex(mip, fh->cu, tt);
-            double a =
-                fh->evalOnBackMesh(kb, 0, mip, tt) - fex(mip, fh->cu, tt);
+            double a = fh->evalOnBackMesh(kb, 0, mip, tt) - fex(mip, fh->cu, tt);
 
             val += Cint * a * a;
         }
@@ -349,9 +329,8 @@ double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh,
     return val_receive;
 }
 template <typename Mesh>
-double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
-                  const Interface<Mesh> &interface, double tt, int c0,
-                  int num_comp) {
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t), const Interface<Mesh> &interface,
+                  double tt, int c0, int num_comp) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -361,8 +340,8 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
     return sqrt(val);
 }
 template <typename Mesh>
-double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
-                  const Interface<Mesh> &interface, int c0, int num_comp) {
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i), const Interface<Mesh> &interface, int c0,
+                  int num_comp) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -372,9 +351,8 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
     return sqrt(val);
 }
 template <typename Mesh>
-double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
-                  const Interface<Mesh> *interface, double tt, int c0,
-                  int num_comp) {
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t), const Interface<Mesh> *interface,
+                  double tt, int c0, int num_comp) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -384,8 +362,8 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t),
     return sqrt(val);
 }
 template <typename Mesh>
-double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
-                  const Interface<Mesh> *interface, int c0, int num_comp) {
+double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i), const Interface<Mesh> *interface, int c0,
+                  int num_comp) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -400,8 +378,7 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i),
 // -----------------------------------------------------------------------------
 
 template <typename M>
-double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh,
-                R(fex)(double *, int i), const M &Th) {
+double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i), const M &Th) {
     typedef M Mesh;
     typedef GFESpace<Mesh> FESpace;
     typedef typename Mesh::Element Element;
@@ -414,8 +391,7 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh,
     What_d Fop = Fwhatd(op_id);
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         const Element &K(Th[k]);
 
@@ -429,8 +405,7 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh,
 
             std::cout << " ----------- " << std::endl;
             std::cout << mip << std::endl;
-            std::cout << fh->eval(k, mip) << "\t" << fex(mip, fh->cu)
-                      << std::endl;
+            std::cout << fh->eval(k, mip) << "\t" << fex(mip, fh->cu) << std::endl;
             val += Cint * a * a;
         }
         getchar();
@@ -445,8 +420,7 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh,
     return val_receive;
 }
 
-template <typename M>
-double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, const M &Th) {
+template <typename M> double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, const M &Th) {
     typedef Mesh2 Mesh;
     typedef GFESpace<Mesh> FESpace;
     typedef typename Mesh::Element Element;
@@ -459,8 +433,7 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, const M &Th) {
     What_d Fop = Fwhatd(op_id);
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         const Element &K(Th[k]);
 
@@ -484,9 +457,7 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, const M &Th) {
     return val_receive;
 }
 
-template <typename M>
-double L2norm(const FunFEM<M> &fh, R(fex)(double *, int i), int c0,
-              int num_comp) {
+template <typename M> double L2norm(const FunFEM<M> &fh, R(fex)(double *, int i), int c0, int num_comp) {
 
     const GFESpace<M> &Vh(*fh.Vh);
     const M &Th(Vh.Th);
@@ -500,8 +471,7 @@ double L2norm(const FunFEM<M> &fh, R(fex)(double *, int i), int c0,
 }
 
 template <typename M>
-double L2norm(const std::shared_ptr<ExpressionVirtual> &fh,
-              R(fex)(double *, int i), const M &Th) {
+double L2norm(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i), const M &Th) {
 
     double val = L2norm_2(fh, fex, Th);
 
@@ -575,9 +545,7 @@ template <typename M> double L2norm(const ExpressionVirtual &fh, const M &Th) {
 
 //   return val_receive;
 // }
-template <typename M>
-double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                  const ActiveMesh<M> &Th) {
+template <typename M> double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<M> &Th) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
@@ -586,8 +554,7 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
     return val;
 }
 template <typename Mesh>
-double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                  const ActiveMesh<Mesh> &Th, int domain) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<Mesh> &Th, int domain) {
 
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
@@ -601,8 +568,7 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
 
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
             continue;
@@ -631,9 +597,8 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
     return val_receive;
 }
 
-template <typename M>
-double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                  R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th) {
+template <typeMesh mesh_t, FunctionDomain fct_t>
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, const ActiveMesh<mesh_t> &Th) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
@@ -641,54 +606,45 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
     }
     return val;
 }
-template <typename Mesh>
-double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                  R(fex)(double *, int i, int dom), const ActiveMesh<Mesh> &Th,
-                  int domain) {
 
-    typedef GFESpace<Mesh> FESpace;
-    typedef typename FESpace::FElement FElement;
-    typedef typename ActiveMesh<Mesh>::Element Element;
-    typedef typename FElement::QF QF;
-    typedef typename FElement::QFB QFB;
-    typedef typename FElement::Rd Rd;
+template <typeMesh mesh_t, FunctionDomain fct_t>
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, const ActiveMesh<mesh_t> &Th, int domain) {
 
-    const QF &qf(*QF_Simplex<typename FElement::RdHat>(5));
-    const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
+    using fespace_t = GFESpace<mesh_t>;
+    using fe_t      = typename fespace_t::FElement;
+    using e_t       = typename mesh_t::Element;
+    using QF        = typename fe_t::QF;
+    using QFB       = typename fe_t::QFB;
+    using v_t       = typename fe_t::Rd;
+    using qp_t      = typename QF::QuadraturePoint;
+
+    const QF &qf(*QF_Simplex<typename fe_t::RdHat>(5));
+    const QFB &qfb(*QF_Simplex<typename fe_t::RdHatBord>(5));
 
     What_d Fop = Fwhatd(op_id);
-
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
             continue;
-
-        const Element &K(Th[k]);
-
-        const Cut_Part<Element> cutK(Th.get_cut_part(k, 0));
+        const e_t &K(Th[k]);
+        const Cut_Part<e_t> cutK(Th.get_cut_part(k, 0));
         int kb = Th.idxElementInBackMesh(k);
 
         for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
-
             for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
-
                 auto ip(qf[ipq]); // integration point
-                Rd mip = cutK.mapToPhysicalElement(it, ip);
-
-                val = std::max(
-                    val, fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
+                v_t mip = cutK.mapToPhysicalElement(it, ip);
+                val     = std::max(val, fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
             }
 
-            for (int ifac = 0; ifac < Element::nea; ++ifac) {
+            for (int ifac = 0; ifac < e_t::nea; ++ifac) {
                 for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
                     auto ip(qfb[ipq]); // integration point
                     auto ipf = K.mapToReferenceElement(ip, ifac);
-                    Rd mip   = cutK.mapToPhysicalElement(it, ipf);
-                    val      = std::max(
-                        val, fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
+                    v_t mip  = cutK.mapToPhysicalElement(it, ipf);
+                    val      = std::max(val, fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
                 }
             }
         }
@@ -704,9 +660,8 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
 }
 
 template <typename M>
-double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                  R(fex)(double *, int i, int dom), const ActiveMesh<M> &Th,
-                  const std::vector<R2> &sample_node) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom),
+                  const ActiveMesh<M> &Th, const std::vector<R2> &sample_node) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
@@ -714,11 +669,10 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
     }
     return val;
 }
+
 template <typename Mesh>
-double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
-                  R(fex)(double *, int i, int dom),
-                  const ActiveMesh<Mesh> &cutTh, int domain,
-                  const std::vector<R2> &sample_node) {
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom),
+                  const ActiveMesh<Mesh> &cutTh, int domain, const std::vector<R2> &sample_node) {
 
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
@@ -731,8 +685,7 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
 
     const auto &Th(cutTh.Th);
 
-    progress bar(" Max noorm in Omega_i", sample_node.size(),
-                 globalVariable::verbose);
+    progress bar(" Max noorm in Omega_i", sample_node.size(), globalVariable::verbose);
     int ii = 0;
     ;
     for (auto mip : sample_node) {
@@ -745,12 +698,9 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
         const auto cutK(cutTh.get_cut_part(k, 0));
         for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
 
-            if (!geometry::p_dans_triangle(mip, cutK.get_vertex(it, 0),
-                                           cutK.get_vertex(it, 1),
-                                           cutK.get_vertex(it, 2)))
+            if (!geometry::p_dans_triangle(mip, cutK.get_vertex(it, 0), cutK.get_vertex(it, 1), cutK.get_vertex(it, 2)))
                 continue;
-            val = std::max(val,
-                           fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
+            val = std::max(val, fabs(fh->eval(k, mip) - fex(mip, fh->cu, domain)));
         }
     }
     bar.end();
@@ -763,8 +713,7 @@ double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh,
     return val_receive;
 }
 
-template <typename Mesh>
-double maxNorm(const std::shared_ptr<ExpressionVirtual> &fh, const Mesh &Th) {
+template <typename Mesh> double maxNorm(const std::shared_ptr<ExpressionVirtual> &fh, const Mesh &Th) {
 
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
@@ -778,8 +727,7 @@ double maxNorm(const std::shared_ptr<ExpressionVirtual> &fh, const Mesh &Th) {
 
     double val = 0.;
 
-    for (int k = Th.first_element(); k < Th.last_element();
-         k += Th.next_element()) {
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         const Element &K(Th[k]);
 
         for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {

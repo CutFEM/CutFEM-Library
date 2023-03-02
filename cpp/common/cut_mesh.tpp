@@ -1,3 +1,9 @@
+/**
+ * @file cpp/common/cut_mesh.tpp
+ *
+ * @brief Contains implementation of methods
+ *
+ */
 /*
 This file is part of CutFEM-Library.
 
