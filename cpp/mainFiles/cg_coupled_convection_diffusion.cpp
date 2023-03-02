@@ -2345,10 +2345,10 @@ namespace Example1_omega2 {
 
 namespace Example2 {
     R fun_levelSet(double *P, const int i, const R t) {
-        return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3);
+        return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
     }
     R fun_levelSet(double *P, const int i) {
-        return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3);
+        return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
     }
     R fun_rhsBulk(double *P, const int i, const R t) {return 0.;}
     R fun_rhsSurf(double *P,const int i, const R t) {return 0.;}
@@ -2397,17 +2397,17 @@ typedef FunFEM<Mesh2> Fun_h;
 // (only works for example 1)
 
 //* Set numerical example (options: "example1", "example2")
-#define example1
+#define example2
 
 //* Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
-#define omega1
+#define omega2
 #define neumann // boundary condition on outer domain (options: "dirichlet", "neumann")
 
 //* Set scheme for the method (options: "classical", "conservative".)
-#define conservative
+#define classical
 
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
@@ -2416,10 +2416,10 @@ typedef FunFEM<Mesh2> Fun_h;
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
 
-#define use_h    // to set mesh size using the h parameter. Write use_n to decide
-                 // using nx, ny.
-#define use_tnot // write use_t to control dT manually. Otherwise it is set
-                 // proportional to h.
+#define use_h       // to set mesh size using the h parameter. Write use_n to decide
+                    // using nx, ny.
+#define use_tnot    // write use_t to control dT manually. Otherwise it is set
+                    // proportional to h.
 
 // Do not touch
 #ifdef example1
@@ -2438,10 +2438,10 @@ using namespace Example2;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
-                                 // only once and plot to paraview)
-    int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.05;             // starting mesh size
+    const size_t iterations = 1;    // number of mesh refinements   (set to 1 to run
+                                    // only once and plot to paraview)
+    int nx = 15, ny = 15;           // starting mesh size
+    double h  = 0.05;              // starting mesh size
     double dT = 0.125;
 
     int total_number_iteration;
@@ -2493,7 +2493,7 @@ int main(int argc, char **argv) {
         const Mesh Th(nx, ny, x0, y0, lx, ly);
 
         // Parameters
-        const double tfinal = .5; // Final time
+        const double tfinal = 1.5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -2935,9 +2935,13 @@ int main(int argc, char **argv) {
                     q0_1_surface = q_1_surf;
                     qp_1_surface = q_1_surf;
                     q0_1_surface = integral(s0h, interface(0), 0);
+
+                    // std::cout << "total mass: " << (q0_1 + q0_1_surface) << "\n";
+                    // return 0;
+                    
                 }
 
-                output_data << std::setprecision(10);
+                                output_data << std::setprecision(10);
                 output_data << current_time
                             << "\t\t,"
                             //<< ((q_1 - qp_1) - intF - int_outflow - intG) << "\t\t," << ((q_1_surf - qp_1_surface) -

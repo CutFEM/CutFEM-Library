@@ -558,7 +558,7 @@ double max_norm_surface(const std::shared_ptr<ExpressionVirtual> &fh,
     typedef typename FElement::Rd Rd;
     typedef typename QFB::QuadraturePoint QuadraturePoint;
 
-    const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(3));   //? should it be 2 instead of 3 here?
+    const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(5));   //? should it be 2 instead of 3 here?
     What_d Fop = Fwhatd(op_id);
 
     double val = 0.;
@@ -579,7 +579,7 @@ double max_norm_surface(const std::shared_ptr<ExpressionVirtual> &fh,
     }
     double val_receive = 0;
 #ifdef USE_MPI
-    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+    MPIcf::AllReduce(val, val_receive, MPI_MAX);
 #else
     val_receive = val;
 #endif

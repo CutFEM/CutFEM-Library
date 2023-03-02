@@ -43,8 +43,8 @@ using namespace globalVariable;
 
 namespace NumericSurfactantEllipse2D {
 
-R fun_init_surfactant(double *P, const int i) { return P[0] * P[1]; } // 2*... = 4*pi
-R fun_sol_surfactant(double *P, const int i, const R t) { return P[0] * P[1] * exp(-4 * t); }
+R fun_init_surfactant(double *P, const int i) { return P[0] * P[1] + 0.; } // 2*... = 4*pi
+R fun_sol_surfactant(double *P, const int i, const R t) { return P[0] * P[1] * exp(-4 * t) + 0.; }
 
 R fun_velocity(double *P, const int i, const R t) {
     R a = (1 + 0.25 * sin(2 * M_PI * t));
@@ -166,23 +166,24 @@ R fun_rhs(double *P, const int cc, const R t) {
 } // namespace Zahedi1
 
 namespace Shi1 {
+    /* An Eulerian Formulation for Solving Partial Differential Equations 
+    Along a Moving Interface – Jian-Jun Xu, Hong-Kai Zhao. */
+    R fun_init_surfactant(double *P, const int i) { return P[1] / sqrt(P[0] * P[0] + P[1] * P[1]) + 2; }
+    R fun_sol_surfactant(double *P, const int i, const R t) {
+        R x = P[0], y = P[1];
+        return exp(-t / 4) * (y / sqrt((x - t) * (x - t) + y * y)) + 2;
+    }
+    R fun_velocity(double *P, const int i, const R t) { return (i == 0) ? 1. : 0.; }
+    R fun_velocity(double *P, const int i) { return (i == 0) ? 1. : 0.; }
+    R fun_levelSet(double *P, const int i, const R t) { return sqrt((P[0] - t) * (P[0] - t) + P[1] * P[1]) - 2 - Epsilon; }
+    R fun_levelSet(double *P, const int i) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 2 - Epsilon; }
 
-R fun_init_surfactant(double *P, const int i) { return P[1] / sqrt(P[0] * P[0] + P[1] * P[1]) + 2; }
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-t / 4) * (y / sqrt((x - t) * (x - t) + y * y)) + 2;
-}
-R fun_velocity(double *P, const int i, const R t) { return (i == 0) ? 1. : 0.; }
-R fun_velocity(double *P, const int i) { return (i == 0) ? 1. : 0.; }
-R fun_levelSet(double *P, const int i, const R t) { return sqrt((P[0] - t) * (P[0] - t) + P[1] * P[1]) - 2 - Epsilon; }
-R fun_levelSet(double *P, const int i) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 2 - Epsilon; }
+    R fun_rhs(double *P, const int cc, const R t) {
+        R x = P[0], y = P[1];
 
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-
-    return -(y * exp(-t / 4) * (t * t - 2 * t * x + x * x + y * y - 4)) /
-           (4 * (t * t - 2 * t * x + x * x + y * y) * sqrt(t * t - 2 * t * x + x * x + y * y));
-}
+        return -(y * exp(-t / 4) * (t * t - 2 * t * x + x * x + y * y - 4)) /
+            (4 * (t * t - 2 * t * x + x * x + y * y) * sqrt(t * t - 2 * t * x + x * x + y * y));
+    }
 } // namespace Shi1
 
 namespace Zahedi2 {
@@ -1252,7 +1253,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define cg
 // Set numerical example (options: "frachon1", "shi1", "shi2")
-#define shi1
+#define frachon1
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
 #define classical
@@ -1260,9 +1261,9 @@ typedef FunFEM<Mesh2> Fun_h;
 #define fullstab
 // Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
-#define levelsetsolve
+#define levelsetexact
 
-#define use_n
+#define use_h
 #define use_tnot
 
 #if defined(frachon1)
@@ -1286,7 +1287,7 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 3; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
     double h  = 0.1;             // starting mesh size
@@ -1370,7 +1371,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        double tfinal = 2.; // Final time
+        double tfinal = .5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -1411,7 +1412,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = 0.01, tau2 = 0.01;
+        double tau0 = 0, tau1 = 1., tau2 = 0.01;
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
@@ -1644,8 +1645,24 @@ int main(int argc, char **argv) {
 #endif
 
             // Stabilization
+            double stab_surf_face      = tau1;
+            double stab_surf_interface = 0.;
+            double stab_mass           = 0.;
 
-#ifdef macro
+#if defined(fullstab)
+
+            surfactant.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(u) * n), jump(grad(v) * n)), ThGamma, In);
+
+            // stabilize in last quadrature point
+            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
+            double ccmid = 1. / In.T.mesure() * 1. / qTime[lastQuadTime-1].a;
+            surfactant.addFaceStabilization(+innerProduct(stab_mass * h * jump(grad(u) * n), ccend * jump(grad(v) * n)),
+                                                ThGamma, In, lastQuadTime);    //! note: which quadrature point?
+
+            // stabilize time derivative term
+            //surfactant.addFaceStabilization(+innerProduct(tau1 * h * jump(grad(u) * n), ccend*jump(grad(dt(v)) * n)), ThGamma, In, lastQuadTime);
+
+#elif defined(macro)
             // double gamma = 0.1 + 2.95 * dT;
             TimeMacroElementSurface<Mesh> TimeMacro(ThGamma, interface, qTime, 0.25);
             // gammas.at(j) = gamma;
@@ -1675,23 +1692,11 @@ int main(int argc, char **argv) {
                                                 innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n)),
                                             ThGamma, In, TimeMacro);
 
-#elif defined(fullstab)
-
-            surfactant.addFaceStabilization(+innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n)), ThGamma, In);
-
-            // stabilize in last quadrature point
-            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
-            double ccmid = 1. / In.T.mesure() * 1. / qTime[lastQuadTime-1].a;
-            // surfactant.addFaceStabilization(+innerProduct(tau1 * h * jump(grad(u) * n), ccend * jump(grad(v) * n)),
-            //                                     ThGamma, In, lastQuadTime);    //! note: which quadrature point?
-
-            // stabilize time derivative term
-            //surfactant.addFaceStabilization(+innerProduct(tau1 * h * jump(grad(u) * n), ccend*jump(grad(dt(v)) * n)), ThGamma, In, lastQuadTime);
 #endif
 
             // numb_stabilized_edges.at(j) = surfactant.number_of_stabilized_edges;
 
-            // surfactant.addBilinear(+innerProduct(tau2 * h * grad(u) * n, grad(v) * n), interface, In);
+            surfactant.addBilinear(+innerProduct(stab_surf_interface * h * grad(u) * n, grad(v) * n), interface, In);
 
             //     surfactant.addLinear(
             //         + innerProduct(funrhs.expr(), tau1*h*(dx(v)*vx +
@@ -1830,9 +1835,9 @@ int main(int argc, char **argv) {
                 errL2 = L2normSurf(funuh_0, fun_sol_surfactant, *interface(0), tid, 0, 1);
                 std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
                 errL2 = L2normSurf(funuh, fun_sol_surfactant, *interface(nbTime - 1), tid + dT, 0, 1);
-                double err_max = max_norm_surface(funuh, fun_sol_surfactant, *interface(nbTime - 1), tid + dT, 0, 1);
+                //double err_max = max_norm_surface(funuh, fun_sol_surfactant, *interface(nbTime - 1), tid + dT, 0, 1);
                 std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
-                std::cout << " t_{n+1} -> || u-uex||_max = " << err_max << "\n";
+                //std::cout << " t_{n+1} -> || u-uex||_max = " << err_max << "\n";
 
                 // Conservation error
                 double q0 = integral(funuh_0, interface(0), 0);

@@ -665,11 +665,12 @@ using namespace Lehrenfeld2;
 
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
+    
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.09;           // starting mesh size
+    double h  = 0.1;           // starting mesh size
     double dT = 0.25;
 
     int total_number_iteration;
@@ -1154,9 +1155,14 @@ int main(int argc, char **argv) {
             // Add RHS in bulk
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
 
-            if (iter == total_number_iteration - 1)
-                matlab::Export(convdiff.mat_[0],
-                               path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
+#ifndef USE_MPI
+            if ((iter == total_number_iteration - 1) && MPIcf::IamMaster()) {
+                matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
+#elif defined(USE_MPI)
+            if (iter == total_number_iteration - 1) {
+                matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" + std::to_string(j + 1) + ".dat");
+            }
+#endif
 
             // Solve linear system
             convdiff.solve("mumps");
