@@ -3,7 +3,7 @@ import ctypes as ct
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 
-lib = ct.cdll.LoadLibrary('../../cpp/build/lib/lib_darcy.dylib')
+lib = ct.cdll.LoadLibrary('build/lib/lib_darcy.dylib')
 
 USER_FUNC = ct.CFUNCTYPE(ct.c_double, ct.POINTER(
     ct.c_double), ct.c_int, ct.c_int)

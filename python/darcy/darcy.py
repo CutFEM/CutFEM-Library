@@ -20,7 +20,7 @@ err_p = np.empty(0)
 err_div = np.empty(0)
 
 for x in range(5):
-    darcy = Darcy2()
+    darcy = DarcyCutFEM()
 
     darcy.build_mesh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH)
     darcy.init_space(fun_level_set, 'RT0')
