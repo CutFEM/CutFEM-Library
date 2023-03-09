@@ -6,7 +6,7 @@ import numpy as np
 
 fun_level_set = USER_FUN_LS(func_level_set)
 fun_div = USER_FUNC(func_div)
-fun_neumann = USER_FUNC(func_neumann) 
+fun_neumann = USER_FUNC(func_neumann)
 fun_phat = USER_FUNC(func_phat)
 fun_velocity = USER_FUNC(func_velocity)
 fun_pressure = USER_FUNC(func_pressure)
@@ -32,7 +32,7 @@ for x in range(5):
     darcy.set_stabilization_penalty(0.1, 0.1)
     darcy.add_macro_stabilization(0.25)
 
-    darcy.solve_umfpack()
+    darcy.solve()
 
     # darcy.write_vtk_file('../output/example.vtk')
 

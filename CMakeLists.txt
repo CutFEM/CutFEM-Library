@@ -16,8 +16,11 @@ option(CUTFEM_BUILD_DEBUG "Build to allow debugging" OFF)
 option(CUTFEM_BUILD_TESTS "Build and run library tests" OFF)
 option(CUTFEM_BUILD_PYTHON_WRAPPER "Build a library for Python" OFF)
 option(CUTFEM_BUILD_LIBRARY "Build the libraries" ON)
-option(CUTFEM_BUILD_MAIN "Build the cpp example" ON)
+option(CUTFEM_BUILD_MAIN "Build main file" ON)
+option(CUTFEM_BUILD_EXAMPLE "Build the cpp example" ON)
 option(CUTFEM_CREATE_DOCS "Build library documentation (requires Doxygen and Graphviz/Dot to be installed)" ON)
+
+configure_file(cutFEMConfig.in cutFEMConfig.h)
 
 
 ## ##############################

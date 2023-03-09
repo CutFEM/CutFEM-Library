@@ -34,28 +34,41 @@ target_link_libraries(_darcy PUBLIC ${EXTRA_LIBS})
 endif()
 
 
+
+if(${CUTFEM_BUILD_EXAMPLE})
+add_subdirectory(example/)
+
+
+endif()
+
+
+
 if(${CUTFEM_BUILD_MAIN})
 
 set(EX_NAME darcy)
 add_executable(${EX_NAME}  mainFiles/darcy.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
+# set(EX_NAME stokes)
+# add_executable(${EX_NAME}  mainFiles/stokes_fictitious_example1.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-set(EX_NAME bulkCD)
-add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
-set(EX_NAME dgbulkCD)
-add_executable(${EX_NAME}  mainFiles/dg_bulk_convection_diffusion.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-set(EX_NAME cgbulkCD)
-add_executable(${EX_NAME}  mainFiles/cg_bulk_convection_diffusion.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+# set(EX_NAME bulkCD)
+# add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+# set(EX_NAME dgbulkCD)
+# add_executable(${EX_NAME}  mainFiles/dg_bulk_convection_diffusion.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-set(EX_NAME cgcoupledCD)
-add_executable(${EX_NAME}  mainFiles/cg_coupled_convection_diffusion.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
-#                        
+# set(EX_NAME cgbulkCD)
+# add_executable(${EX_NAME}  mainFiles/cg_bulk_convection_diffusion.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+# set(EX_NAME cgcoupledCD)
+# add_executable(${EX_NAME}  mainFiles/cg_coupled_convection_diffusion.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+# #                        
 set(EX_NAME limiter)
 add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})

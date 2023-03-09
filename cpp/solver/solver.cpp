@@ -48,9 +48,12 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 #endif
 #ifdef USE_MUMPS
     if (solver_name_ == "mumps") {
+        if (!MPIcf::isInitialized()) {
+            std::cout << " cannot use mumps, mpi is not initialized" << std::endl;
+            exit(EXIT_FAILURE);
+        }
 #ifndef USE_MPI
-        std::cout << " You need to compile using MPI to be able to use MUMPS"
-                  << std::endl;
+        std::cout << " You need to compile using MPI to be able to use MUMPS" << std::endl;
         exit(EXIT_FAILURE);
 #endif
     }
@@ -110,8 +113,7 @@ void LAPACK(Rnm &a, Rn &b) {
     lapack_int lda  = n;
     lapack_int ldb  = 1;
     lapack_int nrhs = 1;
-    lapack_int info =
-        LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', m, n, 1, a, lda, b, ldb);
+    lapack_int info = LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', m, n, 1, a, lda, b, ldb);
 }
 #endif
 

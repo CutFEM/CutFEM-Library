@@ -12,7 +12,7 @@ USER_FUN_LS = ct.CFUNCTYPE(ct.c_double, ct.POINTER(
     ct.c_double))
 
 
-class Darcy2(object):
+class DarcyCutFEM(object):
 
     def __init__(self):
         lib.Darcy2_new.restype = ct.c_void_p
@@ -88,7 +88,7 @@ class Darcy2(object):
         lib.Darcy2_L2error_p.argtypes = [ct.c_void_p, USER_FUNC]
         return lib.Darcy2_L2error_p(self.obj, f)
 
-    def solve_umfpack(self):
+    def solve(self):
         lib.Darcy2_get_nz.restype = ct.c_int
         lib.Darcy2_get_nz.argtypes = [ct.c_void_p]
         n_val = lib.Darcy2_get_nz(self.obj)
