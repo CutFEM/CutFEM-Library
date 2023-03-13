@@ -856,7 +856,7 @@ int main(int argc, char **argv) {
             std::cout << " Time      \t : \t" << current_iteration * time_step << '\n';
             std::cout << "dT = " << dT << '\n';
 
-            ls.begin()->swap(ls[nbTime - 1]);
+            swap(ls[0], ls[lastQuadTime]);
 
             // computation of the interface in each of the three quadrature points
             for (int i = 0; i < nbTime; ++i) {
