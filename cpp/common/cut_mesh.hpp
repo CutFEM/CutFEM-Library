@@ -72,7 +72,6 @@ template <typename E> struct Cut_Part {
     other_side_element_end() const; ///< return an iterator to the end of the elements on the other side of the cut
 };
 
-//! Why doesn't this class appear in the documentation?
 /**
  * @brief
  *
