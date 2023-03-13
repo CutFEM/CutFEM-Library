@@ -13,11 +13,12 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
-#include "lib_darcy.hpp"
+#include "lib_stokes.hpp"
 
 extern "C" {
 
-Darcy2 *Darcy2_new(Darcy2 *darcy) { return new Darcy2(); }
-
-void Darcy2_add_natural_BC(Darcy2 *darcy, double (*f)(double *, int, int)) { darcy->add_natural_BC(f); }
+FictitiousStokesRT_2 *FictitiousStokes_new(FictitiousStokesRT_2 *stokes) { return new FictitiousStokesRT_2(); }
+FictitiousStokesVorticity_2 *FictitiousStokesVorticity_new(FictitiousStokesVorticity_2 *stokes) {
+    return new FictitiousStokesVorticity_2();
+}
 }

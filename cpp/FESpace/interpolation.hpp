@@ -26,7 +26,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
-template <Space F> void interpolate(const F &Mh, KN_<double> fh, R (*f)(double *)) {
+template <Space F, FunctionScalar fct_t> void interpolate(const F &Mh, KN_<double> fh, fct_t f) {
     // std::cout << " need to double check this interpolate function and add "
     //           << std::endl;
     // getchar();

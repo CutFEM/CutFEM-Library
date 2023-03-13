@@ -13,18 +13,20 @@ parent = os.path.dirname(current)
 # the sys.path.
 sys.path.append(parent)
 
-from darcy_wrapper import *
-from darcy_data_example1_2D import *
+
+from stokes_wrapper import *
+from stokes_data_example1_2D import *
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 fun_level_set = USER_FUN_LS(func_level_set)
+fun_rhs = USER_FUNC(func_rhs)
 fun_div = USER_FUNC(func_div)
-fun_neumann = USER_FUNC(func_neumann)
-fun_phat = USER_FUNC(func_phat)
 fun_velocity = USER_FUNC(func_velocity)
 fun_pressure = USER_FUNC(func_pressure)
+
+
 
 set_verbose(2)
 
@@ -34,30 +36,32 @@ err_u = np.empty(0)
 err_p = np.empty(0)
 err_div = np.empty(0)
 
-element = 'RT0'
 stab_classic = 0
 stab_mixed = 1
+element = 'BDM1'
 
-for x in range(5):
-    darcy = DarcyCutFEM()
+for x in range(4):
+    stokes = FictitiousStokesCutFEM()
 
-    darcy.build_mesh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH)
-    darcy.init_space(fun_level_set, element)
+    stokes.build_mesh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH)
+    stokes.init_space(fun_level_set, element)
 
-    darcy.add_bulk_integral(fun_div)
-    darcy.add_interface_integral(fun_phat)
-    darcy.add_natural_BC(fun_neumann)
+    stokes.add_bulk_integral(fun_rhs)
+    stokes.add_interface_integral(fun_velocity)
+    stokes.add_lagrange_multiplier()
 
-    darcy.set_stabilization_penalty(0.1, 0.1)
-    darcy.add_macro_stabilization(0.25, stab_mixed)
+    stokes.set_stabilization_penalty(1, 1)
+    stokes.add_macro_stabilization(1., stab_mixed)
 
-    darcy.solve()
+    stokes.solve()
+    
+    stokes.post_process_pressure(fun_pressure)
 
-    # darcy.write_vtk_file('../output/example.vtk')
-
-    error_divu_L2 = darcy.L2error_div(fun_div)
-    error_u_L2 = darcy.L2error_vel(fun_velocity)
-    error_p_L2 = darcy.L2error_pressure(fun_pressure)
+    # stokes.write_vtk_file('python/output/example_stokes_'+str(x)+'.vtk')
+    
+    error_divu_L2 = stokes.L2error_div(fun_div)
+    error_u_L2 = stokes.L2error_vel(fun_velocity)
+    error_p_L2 = stokes.L2error_pressure(fun_pressure)
 
     h = np.append(h, [1./nx])
     err_u = np.append(err_u, error_u_L2)
@@ -65,6 +69,8 @@ for x in range(5):
     err_div = np.append(err_div, error_divu_L2)
 
     nx = 2*nx - 1
+    
+    
 
 print(h)
 print(err_p)
@@ -83,5 +89,5 @@ for ax in fig.get_axes():
     ax.set_yscale('log')
     ax.grid(True)
 
-fig.suptitle('Stokes Vorticity - Example 1 - '+element)
+fig.suptitle('Stokes Vorticity - Example 1 -'+element)
 plt.show()

@@ -147,8 +147,9 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     //     : FunFEMVirtual(u.data(), u.size()), alloc(false), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4])
     //     {}
 
-    template <typename fun_t>
-    FunFEM(const FESpace &vh, fun_t f)
+    template <typename fct_t>
+        requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
+    FunFEM(const FESpace &vh, fct_t f)
         : FunFEMVirtual(vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
         interpolate(*Vh, this->v, f);
     }
@@ -187,7 +188,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     }
 
     template <typename fct_t>
-        requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t>
+        requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
     void init(const FESpace &vh, fct_t f) {
         assert(!data_);
         Vh    = &vh;

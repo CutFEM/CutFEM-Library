@@ -85,8 +85,12 @@ template <typename T> struct is_vector<std::vector<T>> : std::true_type {};
 template <typename T> struct is_vector<std::span<T>> : std::true_type {};
 template <typename T> struct is_vector<KN<T>> : std::true_type {};
 template <typename T> struct is_vector<KN_<T>> : std::true_type {};
-template <typename T>
-concept Vector = is_vector<T>::value;
+template <typename C>
+concept Vector = is_vector<C>::value;
+
+template <typename C>
+concept NonAllocVector =
+    std::is_same_v<C, KN_<typename C::element_type>> || std::is_same_v<C, std::span<typename C::element_type>>;
 
 // // Concept for shared_ptr
 // template <typename T> struct is_shared_ptr : std::false_type {};

@@ -6,6 +6,7 @@
 #include <mutex>
 #include <thread>
 #include <sstream>
+#include <iomanip>
 #include "logger.hpp"
 
 Logger &operator<<(Logger &logger, const std::string &message) {

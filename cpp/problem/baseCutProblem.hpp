@@ -202,7 +202,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
     // For time problem
     void saveSolution(const std::span<double>);
-    void initialSolution(std::span<double>);
+
+    template <NonAllocVector vector_t> void initialSolution(vector_t);
 
     int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 };
