@@ -42,7 +42,7 @@ endif()
 endif()
 
 
-configure_file(../../cutFEMConfig.in ../../cutFEMConfig.h)
+# configure_file(../../cutFEMConfig.in ../../cutFEMConfig.h)
 
 set(SOLVER_SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/solver.cpp

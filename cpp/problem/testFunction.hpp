@@ -28,8 +28,7 @@ static int D1(int i) {
     return op[i];
 }
 static int D2(int i, int j) {
-    int op[9] = {op_dxx, op_dxy, op_dxz, op_dyx, op_dyy,
-                 op_dyz, op_dzx, op_dzy, op_dzz};
+    int op[9] = {op_dxx, op_dxy, op_dxz, op_dyx, op_dyy, op_dyz, op_dzx, op_dzy, op_dzz};
     return op[i + 3 * j];
 }
 static int nextDerivative(int c, int du) {
@@ -73,25 +72,18 @@ template <int N = 2> struct ItemTestFunction {
 
     void (*pfun)(RNMK_ &, int, int) = f_id;	
 
-    ItemTestFunction()
-        : c(0.), cu(-1), du(-1), dtu(-1), domain_id_(-1), face_side_(-1) {}	
-    ItemTestFunction(const GFESpace<Mesh> *fes, double cc, int i, int j, int tu,
-                     int dd, testFun_t *ff)
-        : c(cc), cu(i), du(j), dtu(tu), coefu(0), domain_id_(dd),
-          face_side_(-1), fespace(fes), root_fun_p(ff){};	
+    ItemTestFunction() : c(0.), cu(-1), du(-1), dtu(-1), domain_id_(-1), face_side_(-1) {}
+    ItemTestFunction(const GFESpace<Mesh> *fes, double cc, int i, int j, int tu, int dd, testFun_t *ff)
+        : c(cc), cu(i), du(j), dtu(tu), coefu(0), domain_id_(dd), face_side_(-1), fespace(fes), root_fun_p(ff){};
     ItemTestFunction(const ItemTestFunction &F)
-        : c(F.c), cu(F.cu), du(F.du), dtu(F.dtu), ar_nu(F.ar_nu),
-          conormal(F.conormal), domain_id_(F.domain_id_),
-          face_side_(F.face_side_), expru(F.expru), fespace(F.fespace),
-          root_fun_p(F.root_fun_p) {
+        : c(F.c), cu(F.cu), du(F.du), dtu(F.dtu), ar_nu(F.ar_nu), conormal(F.conormal), domain_id_(F.domain_id_),
+          face_side_(F.face_side_), expru(F.expru), fespace(F.fespace), root_fun_p(F.root_fun_p) {
         for (int i = 0; i < F.coefu.size(); ++i)
             coefu.push_back(F.coefu[i]);
     }
     ItemTestFunction(const ItemTestFunction &F, void (*f)(RNMK_ &, int, int))
-        : c(F.c), cu(F.cu), du(F.du), dtu(F.dtu), ar_nu(F.ar_nu),
-          conormal(F.conormal), domain_id_(F.domain_id_),
-          face_side_(F.face_side_), expru(F.expru), fespace(F.fespace),
-          root_fun_p(F.root_fun_p), pfun(f) {
+        : c(F.c), cu(F.cu), du(F.du), dtu(F.dtu), ar_nu(F.ar_nu), conormal(F.conormal), domain_id_(F.domain_id_),
+          face_side_(F.face_side_), expru(F.expru), fespace(F.fespace), root_fun_p(F.root_fun_p), pfun(f) {
         for (int i = 0; i < F.coefu.size(); ++i)
             coefu.push_back(F.coefu[i]);
     }
@@ -118,18 +110,15 @@ template <int N = 2> struct ItemTestFunction {
     void addParameter(const VirtualParameter *x) { coefu.push_back(x); }
 
     bool operator==(const ItemTestFunction &F) const {
-        if (root_fun_p == F.root_fun_p && coefu.size() == 0 &&
-            F.coefu.size() == 0 && cu == F.cu && du == F.du && dtu == F.dtu &&
-            face_side_ == F.face_side_ && domain_id_ == F.domain_id_ &&
-            ar_nu == F.ar_nu && conormal == F.conormal &&
-            expru.get() == F.expru.get() && fespace == F.fespace)
+        if (root_fun_p == F.root_fun_p && coefu.size() == 0 && F.coefu.size() == 0 && cu == F.cu && du == F.du &&
+            dtu == F.dtu && face_side_ == F.face_side_ && domain_id_ == F.domain_id_ && ar_nu == F.ar_nu &&
+            conormal == F.conormal && expru.get() == F.expru.get() && fespace == F.fespace)
             return true;
         else
             return false;
     }
 
-    friend std::ostream &operator<<(std::ostream &f,
-                                    const ItemTestFunction &u) {
+    friend std::ostream &operator<<(std::ostream &f, const ItemTestFunction &u) {
         std::string n[3] = {"nx", "ny", "nz"};
         f << " FESpace => " << u.fespace << "\t";
         f << std::to_string(u.c) << " * " << whichOperator(u.du, u.cu);
@@ -164,8 +153,7 @@ template <int N = 2> struct ItemList {
     //       U.push_back(item_t(*L.U(i), f));
     // }
 
-    ItemList(const FESpace &Vh, double cc, int i, int j, int dd,
-             testFun_t *ff) {
+    ItemList(const FESpace &Vh, double cc, int i, int j, int dd, testFun_t *ff) {
         U.push_back(item_t(&Vh, cc, i, j, 0, dd, ff));
     }
 
@@ -243,9 +231,7 @@ template <int dim = 2> struct TestFunction {
     itemList_t &operator()(int i, int j) { return A[i][j]; }
     const itemList_t &operator()(int i, int j) const { return A[i][j]; }
     const itemList_t &getList(int i, int j) const { return A[i][j]; }
-    const item_t &getItem(std::pair<int, int> ij, int k) const {
-        return getList(ij.first, ij.second).getItem(k);
-    }
+    const item_t &getItem(std::pair<int, int> ij, int k) const { return getList(ij.first, ij.second).getItem(k); }
     int sizeItemList(int i, int j) const { return A[i][j].size(); }
 
     void push(const itemList_t &u) {
@@ -303,8 +289,7 @@ template <int D> void simplify(TestFunction<D> &T) {
     // remove all zero
     for (auto &row_i : T.A) {
         for (auto &list_item : row_i) {
-            auto iterator =
-                std::remove_if(list_item.U.begin(), list_item.U.end(), is_nul);
+            auto iterator = std::remove_if(list_item.U.begin(), list_item.U.end(), is_nul);
             list_item.U.erase(iterator, list_item.U.end());
         }
     }
@@ -321,9 +306,7 @@ template <int D> TestFunction<D> transpose(TestFunction<D> &T) {
     return Ut;
 }
 
-template <int D>
-TestFunction<D> operator+(const TestFunction<D> &f1,
-                          const TestFunction<D> &f2) {
+template <int D> TestFunction<D> operator+(const TestFunction<D> &f1, const TestFunction<D> &f2) {
     assert(f1.size() == f2.size());
     TestFunction<D> sum_fi;
     for (int i = 0; i < f1.nbRow(); ++i) {
@@ -338,9 +321,7 @@ TestFunction<D> operator+(const TestFunction<D> &f1,
     return sum_fi;
 }
 
-template <int D>
-TestFunction<D> operator-(const TestFunction<D> &f1,
-                          const TestFunction<D> &f2) {
+template <int D> TestFunction<D> operator-(const TestFunction<D> &f1, const TestFunction<D> &f2) {
     assert(f1.size() == f2.size());
     TestFunction<D> sub_fi;
     for (int i = 0; i < f1.nbRow(); ++i) {
@@ -357,8 +338,7 @@ TestFunction<D> operator-(const TestFunction<D> &f1,
     return sub_fi;
 }
 
-template <int D>
-TestFunction<D> operator*(const TestFunction<D> &T, double cc) {
+template <int D> TestFunction<D> operator*(const TestFunction<D> &T, double cc) {
     TestFunction<D> mulT;
     for (auto row_i : T.A) {
         for (auto &list_item : row_i) {
@@ -371,13 +351,9 @@ TestFunction<D> operator*(const TestFunction<D> &T, double cc) {
     return mulT;
 }
 
-template <int D>
-TestFunction<D> operator*(double cc, const TestFunction<D> &T) {
-    return T * cc;
-}
+template <int D> TestFunction<D> operator*(double cc, const TestFunction<D> &T) { return T * cc; }
 
-template <int D>
-TestFunction<D> operator*(const TestFunction<D> &T, const BaseVector &vec) {
+template <int D> TestFunction<D> operator*(const TestFunction<D> &T, const BaseVector &vec) {
     auto [N, M] = T.size();
 
     TestFunction<D> Un;
@@ -412,16 +388,13 @@ TestFunction<D> operator*(const TestFunction<D> &T, const BaseVector &vec) {
             }
         }
     } else {
-        std::cout
-            << " Cannot operate the multiplication witht the normal vector"
-            << std::endl;
+        std::cout << " Cannot operate the multiplication witht the normal vector" << std::endl;
         assert(0);
     }
     return Un;
 }
 
-template <int D>
-TestFunction<D> operator*(const TestFunction<D> &T, const Conormal &vec) {
+template <int D> TestFunction<D> operator*(const TestFunction<D> &T, const Conormal &vec) {
     auto [N, M] = T.size();
 
     TestFunction<D> Un;
@@ -456,17 +429,13 @@ TestFunction<D> operator*(const TestFunction<D> &T, const Conormal &vec) {
             }
         }
     } else {
-        std::cout
-            << " Cannot operate the multiplication witht the normal vector"
-            << std::endl;
+        std::cout << " Cannot operate the multiplication witht the normal vector" << std::endl;
         assert(0);
     }
     return Un;
 }
 
-template <int D>
-TestFunction<D> operator*(const TestFunction<D> &T,
-                          const Normal_Component &cc) {
+template <int D> TestFunction<D> operator*(const TestFunction<D> &T, const Normal_Component &cc) {
     TestFunction<D> multU;
     auto [N, M] = T.size();
     for (int i = 0; i < N; ++i) {
@@ -482,8 +451,7 @@ TestFunction<D> operator*(const TestFunction<D> &T,
 }
 
 template <int D, typename Expr>
-TestFunction<D> operator*(const std::list<std::shared_ptr<Expr>> &fh,
-                          const TestFunction<D> &T) {
+TestFunction<D> operator*(const std::list<std::shared_ptr<Expr>> &fh, const TestFunction<D> &T) {
     auto [N, M] = T.size();
     assert(M == 1);
 
@@ -536,45 +504,31 @@ TestFunction<D> operator*(const std::list<std::shared_ptr<Expr>> &fh,
 }
 
 template <int D>
-TestFunction<D>
-operator*(const TestFunction<D> &T,
-          const std::list<std::shared_ptr<ExpressionVirtual>> &fh) {
+TestFunction<D> operator*(const TestFunction<D> &T, const std::list<std::shared_ptr<ExpressionVirtual>> &fh) {
     return fh * T;
 }
 
-template <int D>
-TestFunction<D> operator*(ExpressionFunFEM<typename MeshType<D>::Mesh> &fh,
-                          const TestFunction<D> &T) {
-    auto fh_p =
-        std::make_shared<ExpressionFunFEM<typename MeshType<D>::Mesh>>(fh);
-    std::list<std::shared_ptr<ExpressionFunFEM<typename MeshType<D>::Mesh>>>
-        ff = {fh_p};
+template <int D> TestFunction<D> operator*(ExpressionFunFEM<typename MeshType<D>::Mesh> &fh, const TestFunction<D> &T) {
+    auto fh_p = std::make_shared<ExpressionFunFEM<typename MeshType<D>::Mesh>>(fh);
+    std::list<std::shared_ptr<ExpressionFunFEM<typename MeshType<D>::Mesh>>> ff = {fh_p};
     return ff * T;
 }
 
-template <int D>
-TestFunction<D> operator*(const TestFunction<D> &T,
-                          ExpressionFunFEM<typename MeshType<D>::Mesh> &fh) {
+template <int D> TestFunction<D> operator*(const TestFunction<D> &T, ExpressionFunFEM<typename MeshType<D>::Mesh> &fh) {
     return fh * T;
 }
 
-template <int D>
-TestFunction<D> operator*(const std::shared_ptr<ExpressionVirtual> &fh,
-                          const TestFunction<D> &T) {
+template <int D> TestFunction<D> operator*(const std::shared_ptr<ExpressionVirtual> &fh, const TestFunction<D> &T) {
     std::list<std::shared_ptr<ExpressionVirtual>> ff = {fh};
     return ff * T;
 }
 
-template <int D>
-TestFunction<D> operator*(const TestFunction<D> &T,
-                          const std::shared_ptr<ExpressionVirtual> &fh) {
+template <int D> TestFunction<D> operator*(const TestFunction<D> &T, const std::shared_ptr<ExpressionVirtual> &fh) {
     std::list<std::shared_ptr<ExpressionVirtual>> ff = {fh};
     return ff * T;
 }
 
-template <int D>
-TestFunction<D> operator*(const VirtualParameter &cc,
-                          const TestFunction<D> &T) {
+template <int D> TestFunction<D> operator*(const VirtualParameter &cc, const TestFunction<D> &T) {
     TestFunction<D> multU;
     for (auto row_i : T.A) {
         for (auto &list : row_i) {
@@ -587,11 +541,7 @@ TestFunction<D> operator*(const VirtualParameter &cc,
     return multU;
 }
 
-template <int D>
-TestFunction<D> operator*(const TestFunction<D> &T,
-                          const VirtualParameter &cc) {
-    return cc * T;
-}
+template <int D> TestFunction<D> operator*(const TestFunction<D> &T, const VirtualParameter &cc) { return cc * T; }
 
 template <int D> TestFunction<D> dt(const TestFunction<D> &T) {
     assert(T.nbCol() == 1);
@@ -771,9 +721,7 @@ template <int D> TestFunction<D> Eps(const TestFunction<D> &T) {
 //    return DDU;
 // }
 
-template <int D>
-TestFunction<D> average(const TestFunction<D> &T, double v1 = 0.5,
-                        double v2 = 0.5) {
+template <int D> TestFunction<D> average(const TestFunction<D> &T, double v1 = 0.5, double v2 = 0.5) {
     double vv[2] = {v1, v2};
     int N        = T.nbRow();
     TestFunction<D> jumpU;
@@ -794,12 +742,9 @@ TestFunction<D> average(const TestFunction<D> &T, double v1 = 0.5,
     return jumpU;
 }
 
-template <int D> TestFunction<D> jump(const TestFunction<D> &T) {
-    return average(T, 1, -1);
-}
+template <int D> TestFunction<D> jump(const TestFunction<D> &T) { return average(T, 1, -1); }
 
-template <int d>
-TestFunction<d> operator*(const CutFEM_Rd<d> &cc, const TestFunction<d> &T) {
+template <int d> TestFunction<d> operator*(const CutFEM_Rd<d> &cc, const TestFunction<d> &T) {
     assert(T.nbCol() == 1);
     int N = T.nbRow();
 
@@ -831,9 +776,7 @@ TestFunction<d> operator*(const CutFEM_Rd<d> &cc, const TestFunction<d> &T) {
 //    return TestFunction<N>(F, f_ln);
 // }
 
-template <int d>
-TestFunction<d> operator*(const typename typeRd<d>::Rd &cc,
-                          const TestFunction<d> &T) {
+template <int d> TestFunction<d> operator*(const typename typeRd<d>::Rd &cc, const TestFunction<d> &T) {
     assert(T.nbCol() == 1);
     int N       = T.nbRow();
     bool scalar = (N == 1);
@@ -862,7 +805,6 @@ TestFunction<d> operator*(const typename typeRd<d>::Rd &cc,
 
 template <int D> TestFunction<D> gradS(const TestFunction<D> &T) {
     assert(T.nbCol() == 1);
-    assert(T.nbRow() == 1);
 
     auto [N, M] = T.size();
     TestFunction<D> gradSU;
@@ -884,7 +826,22 @@ template <int D> TestFunction<D> gradS(const TestFunction<D> &T) {
             }
         }
     } else {
-        assert(0);
+        for (int i_line = 0; i_line < N; ++i_line) {
+            for (int i = 0; i < D; ++i) {
+                for (int j = 0; j < D; ++j) {
+                    auto new_list = gradU.getList(i_line, j);
+                    if (i == j) {
+                        gradSU.push({i_line, i}, new_list);
+                    }
+                    for (auto &item : new_list.U) {
+                        item.c *= -1.;
+                        item.addNormal(i);
+                        item.addNormal(j);
+                    }
+                    gradSU.push({i_line, i}, new_list);
+                }
+            }
+        }
     }
 
     return gradSU;
@@ -938,7 +895,6 @@ template <int D> TestFunction<D> dyS(const TestFunction<D> &T) {
             }
             gradSU.push({0, 0}, new_list);
         }
-
     } else {
         assert(0);
     }
@@ -946,9 +902,7 @@ template <int D> TestFunction<D> dyS(const TestFunction<D> &T) {
     return gradSU;
 }
 
-template <int D>
-TestFunction<D> average(const TestFunction<D> &U, const TestFunction<D> &V,
-                        int c1, int c2) {
+template <int D> TestFunction<D> average(const TestFunction<D> &U, const TestFunction<D> &V, int c1, int c2) {
     assert(U.nbCol() == V.nbCol());
     assert(U.nbRow() == V.nbRow());
     auto [N, M] = U.size();
@@ -973,14 +927,12 @@ TestFunction<D> average(const TestFunction<D> &U, const TestFunction<D> &V,
     return jumpU;
 }
 
-template <int D>
-TestFunction<D> jump(const TestFunction<D> &U, const TestFunction<D> &V) {
+template <int D> TestFunction<D> jump(const TestFunction<D> &U, const TestFunction<D> &V) {
     return average(U, V, 1, -1);
 }
 
 template <int D>
-TestFunction<D> average(const TestFunction<D> &T, const VirtualParameter &para1,
-                        const VirtualParameter &para2) {
+TestFunction<D> average(const TestFunction<D> &T, const VirtualParameter &para1, const VirtualParameter &para2) {
 
     int N = T.nbRow();
     TestFunction<D> jumpU;
@@ -1002,9 +954,7 @@ TestFunction<D> average(const TestFunction<D> &T, const VirtualParameter &para1,
     return jumpU;
 }
 
-template <int D>
-TestFunction<D> average(const TestFunction<D> &T,
-                        const VirtualParameter &para1) {
+template <int D> TestFunction<D> average(const TestFunction<D> &T, const VirtualParameter &para1) {
     return average(T, para1, para1);
 }
 

@@ -129,15 +129,23 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     FunFEM(const FESpace &vh, const TimeSlab &in)
         : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), Vh(&vh), In(&in), alloc(true),
           databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
-    FunFEM(const FESpace &vh, const TimeSlab &in, Rn_ &u)
-        : FunFEMVirtual(u), alloc(false), Vh(&vh), In(&in), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
 
-    FunFEM(const FESpace &vh, Rn_ &u)
-        : FunFEMVirtual(u), alloc(false), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
-    FunFEM(const FESpace &vh, Rn &u)
-        : FunFEMVirtual(u), alloc(false), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
-    FunFEM(const FESpace &vh, std::vector<double> &u)
+    template <Vector vector_t>
+    FunFEM(const FESpace &vh, const TimeSlab &in, vector_t &u)
+        : FunFEMVirtual(u.data(), u.size()), alloc(false), Vh(&vh), In(&in),
+          databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
+
+    template <Vector vector_t>
+    FunFEM(const FESpace &vh, vector_t &u)
         : FunFEMVirtual(u.data(), u.size()), alloc(false), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
+
+    // FunFEM(const FESpace &vh, Rn_ &u)
+    //     : FunFEMVirtual(u), alloc(false), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
+    // FunFEM(const FESpace &vh, Rn &u)
+    //     : FunFEMVirtual(u), alloc(false), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {}
+    // FunFEM(const FESpace &vh, std::vector<double> &u)
+    //     : FunFEMVirtual(u.data(), u.size()), alloc(false), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4])
+    //     {}
 
     template <typename fun_t>
     FunFEM(const FESpace &vh, fun_t f)
@@ -178,7 +186,9 @@ template <typename M> class FunFEM : public FunFEMVirtual {
             data_[i] = a(i);
     }
 
-    void init(const FESpace &vh, R (*f)(double *, int i)) {
+    template <typename fct_t>
+        requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t>
+    void init(const FESpace &vh, fct_t f) {
         assert(!data_);
         Vh    = &vh;
         data_ = new double[Vh->NbDoF()];
@@ -190,16 +200,16 @@ template <typename M> class FunFEM : public FunFEMVirtual {
             databf = new double[10 * vh[0].NbDoF() * vh.N * 4];
     }
 
-    void init(const FESpace &vh, R (*f)(double *, int i, int doma)) {
-        assert(!data_);
-        Vh    = &vh;
-        data_ = new double[Vh->NbDoF()];
-        v.set(data_, Vh->NbDoF());
-        alloc = true;
-        interpolate(*Vh, v, f);
-        if (!databf)
-            databf = new double[10 * vh[0].NbDoF() * vh.N * 4];
-    }
+    // void init(const FESpace &vh, R (*f)(double *, int i, int doma)) {
+    //     assert(!data_);
+    //     Vh    = &vh;
+    //     data_ = new double[Vh->NbDoF()];
+    //     v.set(data_, Vh->NbDoF());
+    //     alloc = true;
+    //     interpolate(*Vh, v, f);
+    //     if (!databf)
+    //         databf = new double[10 * vh[0].NbDoF() * vh.N * 4];
+    // }
 
     void init(const FESpace &vh, R (*f)(double *, int, R), R tid) {
         // assert(!data_);
@@ -228,12 +238,12 @@ template <typename M> class FunFEM : public FunFEMVirtual {
             databf = new double[10 * vh[0].NbDoF() * vh.N * 4];
     }
 
-    void swap(FunFEM &f) {
-        assert(v.size() == f.v.size());
-        double *temp = data_;
-        data_        = f.data_;
+    friend void swap(FunFEM &f, FunFEM &g) {
+        assert(g.v.size() == f.v.size());
+        double *temp = g.data_;
+        g.data_      = f.data_;
         f.data_      = temp;
-        v.set(data_, Vh->NbDoF());
+        g.v.set(g.data_, g.Vh->NbDoF());
         f.v.set(f.data_, f.Vh->NbDoF());
     }
 

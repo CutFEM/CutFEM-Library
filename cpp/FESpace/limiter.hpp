@@ -1,5 +1,8 @@
-/*
-This file is part of CutFEM-Library.
+/**
+ * @file cpp/FESpace/limiter.hpp
+ * @brief
+ *
+ * @copyright
 
 CutFEM-Library is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -13,6 +16,7 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
+
 #ifndef CUTFEM_LIMITER_HPP
 #define CUTFEM_LIMITER_HPP
 
@@ -59,12 +63,15 @@ inline KNM<double> inv(const KNM<double> &M) {
 }
 
 // check mean value to satisfy maximuim principle
-template <typename Mesh> void check_maximum_principle(std::map<int, double> &u_mean, double min_u, double max_u) {
+template <typename Mesh>
+void check_maximum_principle(std::map<int, double> &u_mean, double min_u,
+                             double max_u) {
 
     for (auto &p : u_mean) {
         double val = p.second;
         if (min_u > val || max_u < val) {
-            std::cout << "element \t" << p.first << "\t" << min_u << "\t" << val << "\t" << max_u << std::endl;
+            std::cout << "element \t" << p.first << "\t" << min_u << "\t" << val
+                      << "\t" << max_u << std::endl;
         }
     }
 }
@@ -76,7 +83,8 @@ namespace CutFEM {
 // DEPENDING OF THE POLYNOMIAL ORDER.
 // BY DEFAULT IT USES LINEAR ELEMENTS
 
-template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P0(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> findMinAndMaxValue_P0(const FunFEM<Mesh> &uh) {
     typedef typename Mesh::Rd Rd;
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -88,7 +96,8 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P0(const 
     double max_val_loc = -1e300;
     int k_min, k_max;
 
-    for (int k = Wh.first_element(); k < Wh.last_element(); k += Wh.next_element()) {
+    for (int k = Wh.first_element(); k < Wh.last_element();
+         k += Wh.next_element()) {
         const FElement &FK(Wh[k]);
 
         Rd mip     = FK.T.barycenter();
@@ -112,7 +121,8 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P0(const 
     return {min_val, max_val};
 }
 
-template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P1(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> findMinAndMaxValue_P1(const FunFEM<Mesh> &uh) {
     typedef typename Mesh::Rd Rd;
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -126,7 +136,8 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P1(const 
     // Apply limiter in all element
     int k_min, k_max;
     // for(int k=Wh.first_element(); k<Wh.last_element();++k) {
-    for (int k = Wh.first_element(); k < Wh.last_element(); k += Wh.next_element()) {
+    for (int k = Wh.first_element(); k < Wh.last_element();
+         k += Wh.next_element()) {
         const FElement &FK(Wh[k]);
         const Cut_Part<Element> cutK(Kh.get_cut_part(k, 0));
 
@@ -160,23 +171,26 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P1(const 
     return {min_val, max_val};
 }
 
-template <typename Mesh> std::tuple<double, double> findMinAndMaxValue(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> findMinAndMaxValue(const FunFEM<Mesh> &uh) {
     const int fctOrder = uh.getPolynomialOrder();
     if (fctOrder == 0) {
         return findMinAndMaxValue_P0(uh);
     } else if (fctOrder == 1) {
         return findMinAndMaxValue_P1(uh);
     } else {
-        std::cout << " Min and max compute using linear elements. Not exact for "
-                     "this polynomial order"
-                  << std::endl;
+        std::cout
+            << " Min and max compute using linear elements. Not exact for "
+               "this polynomial order"
+            << std::endl;
         return findMinAndMaxValue_P1(uh);
     }
 }
 
 // -----------------------------------------------------------------------------
 template <typename Mesh>
-std::map<int, double> computeMeanValue(const FunFEM<Mesh> &uh, const MacroElement<Mesh> &macro) {
+std::map<int, double> computeMeanValue(const FunFEM<Mesh> &uh,
+                                       const MacroElement<Mesh> &macro) {
 
     using QF      = typename GFElement<Mesh>::QF;
     using CutMesh = ActiveMesh<Mesh>;
@@ -187,12 +201,14 @@ std::map<int, double> computeMeanValue(const FunFEM<Mesh> &uh, const MacroElemen
     const CutMesh &Th(Vh.get_mesh());
 
     // 1) Compute on all elements
-    // for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
+    // for (int k = Vh.first_element(); k < Vh.last_element(); k +=
+    // Vh.next_element()) {
 
     //     const auto cutK = Th.get_cut_part(k, 0);
     //     double meas_K   = 0.;
     //     double mean_val = 0.;
-    //     for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+    //     for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it)
+    //     {
     //         double meas_cut = cutK.measure(it);
     //         meas_K += meas_cut;
 
@@ -215,7 +231,8 @@ std::map<int, double> computeMeanValue(const FunFEM<Mesh> &uh, const MacroElemen
             const auto FK   = Vh[k];
             const auto cutK = macro.Th_.get_cut_part(k, 0);
 
-            for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+            for (auto it = cutK.element_begin(); it != cutK.element_end();
+                 ++it) {
                 double meas = cutK.measure(it);
 
                 for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
@@ -233,7 +250,8 @@ std::map<int, double> computeMeanValue(const FunFEM<Mesh> &uh, const MacroElemen
 
 // Only for discontinuous Lagrange
 template <typename Mesh>
-std::vector<double> extendToMacro_P0(const FunFEM<Mesh> &uh, const std::map<int, double> &u_mean,
+std::vector<double> extendToMacro_P0(const FunFEM<Mesh> &uh,
+                                     const std::map<int, double> &u_mean,
                                      const MacroElement<Mesh> &macro) {
     typedef typename GFESpace<Mesh>::FElement FElement;
     typedef typename Mesh::Rd Rd;
@@ -243,8 +261,8 @@ std::vector<double> extendToMacro_P0(const FunFEM<Mesh> &uh, const std::map<int,
 
         // compute the value of the dof of the elements in the
         // macro element.
-        // u_{h,M} = {sum_{K in M} |K \cap \Omega|*u_{h}^K }{sum_{K in M} |K \cap
-        // \Omega|}
+        // u_{h,M} = {sum_{K in M} |K \cap \Omega|*u_{h}^K }{sum_{K in M} |K
+        // \cap \Omega|}
         const MElement &MK(p.second);
         int n_element = MK.size();
 
@@ -276,7 +294,8 @@ std::vector<double> extendToMacro_P0(const FunFEM<Mesh> &uh, const std::map<int,
 
 // Only for discontinuous Lagrange
 template <typename Mesh>
-std::vector<double> extendToMacro_P1(const FunFEM<Mesh> &uh, const std::map<int, double> &u_mean,
+std::vector<double> extendToMacro_P1(const FunFEM<Mesh> &uh,
+                                     const std::map<int, double> &u_mean,
                                      const MacroElement<Mesh> &macro) {
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -293,8 +312,8 @@ std::vector<double> extendToMacro_P1(const FunFEM<Mesh> &uh, const std::map<int,
 
         // compute the value of the dof of the elements in the
         // macro element.
-        // u_{h,M} = {sum_{K in M} |K \cap \Omega|*u_{h}^K }{sum_{K in M} |K \cap
-        // \Omega|}
+        // u_{h,M} = {sum_{K in M} |K \cap \Omega|*u_{h}^K }{sum_{K in M} |K
+        // \cap \Omega|}
         const MElement &MK(p.second);
         int n_element         = MK.size();
         double area_total     = MK.area_total_;
@@ -323,11 +342,13 @@ std::vector<double> extendToMacro_P1(const FunFEM<Mesh> &uh, const std::map<int,
         for (auto k : MK.idx_element) {
             const FElement &FK(Wh[k]);
             const Cut_Part<Element> cutK(macro.Th_.get_cut_part(k, 0));
-            for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+            for (auto it = cutK.element_begin(); it != cutK.element_end();
+                 ++it) {
                 double meas = cutK.measure(it);
 
                 for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
-                    typename QF::QuadraturePoint ip(qf[ipq]); // integration point
+                    typename QF::QuadraturePoint ip(
+                        qf[ipq]); // integration point
                     Rd mip = cutK.mapToPhysicalElement(it, ip);
                     C0 -= meas * ip.getWeight() * fun_u_new.eval(k, mip);
 
@@ -362,7 +383,8 @@ std::vector<double> extendToMacro_P1(const FunFEM<Mesh> &uh, const std::map<int,
 }
 
 template <typename Mesh>
-std::vector<double> extendToMacro(const FunFEM<Mesh> &uh, const std::map<int, double> &u_mean,
+std::vector<double> extendToMacro(const FunFEM<Mesh> &uh,
+                                  const std::map<int, double> &u_mean,
                                   const MacroElement<Mesh> &macro) {
     const BasisFctType basisFctType = uh.getBasisFctType();
     if (basisFctType == BasisFctType::P0) {
@@ -370,13 +392,16 @@ std::vector<double> extendToMacro(const FunFEM<Mesh> &uh, const std::map<int, do
     } else if (basisFctType == BasisFctType::P1dc) {
         return extendToMacro_P1(uh, u_mean, macro);
     } else {
-        std::cout << " Extension to macro element not implemented for those element" << std::endl;
+        std::cout
+            << " Extension to macro element not implemented for those element"
+            << std::endl;
         assert(0);
         return std::vector<double>();
     }
 }
 
-// template <typename Mesh> std::vector<double> extendToMacro(const FunFEM<Mesh> &uh, const MacroElement<Mesh> &macro) {
+// template <typename Mesh> std::vector<double> extendToMacro(const FunFEM<Mesh>
+// &uh, const MacroElement<Mesh> &macro) {
 //     const BasisFctType basisFctType = uh.getBasisFctType();
 //     std::map<int, double> u_mean;
 //     if (basisFctType == BasisFctType::P0) {
@@ -384,17 +409,18 @@ std::vector<double> extendToMacro(const FunFEM<Mesh> &uh, const std::map<int, do
 //     } else if (basisFctType == BasisFctType::P1dc) {
 //         return extendToMacro_P1(uh, u_mean, macro);
 //     } else {
-//         std::cout << " Extension to macro element not implemented for those element" << std::endl;
-//         assert(0);
-//         return std::vector<double>();
+//         std::cout << " Extension to macro element not implemented for those
+//         element" << std::endl; assert(0); return std::vector<double>();
 //     }
 // }
 
 // -----------------------------------------------------------------------------
 template <typename Mesh>
-std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &fun_uM, double min_val, double max_val,
-                                              const std::map<int, double> map_mean_value,
-                                              const MacroElement<Mesh> &macro) {
+std::vector<double>
+boundPreservingLimiter_P1(const FunFEM<Mesh> &fun_uM, double min_val,
+                          double max_val,
+                          const std::map<int, double> map_mean_value,
+                          const MacroElement<Mesh> &macro) {
     typedef typename Mesh::Element Element;
     typedef typename Mesh::Rd Rd;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -469,7 +495,8 @@ std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &fun_uM, double
         for (auto k : MK.idx_element) {
             const FElement &FK(Wh[k]);
             const Cut_Part<Element> cutK(macro.Th_.get_cut_part(k, 0));
-            for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+            for (auto it = cutK.element_begin(); it != cutK.element_end();
+                 ++it) {
                 for (int ipq = 0; ipq < nv_loc; ++ipq) {
                     Rd mip     = cutK.get_vertex(it, ipq);
                     double val = fun_uM.eval(k, mip);
@@ -480,8 +507,10 @@ std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &fun_uM, double
         }
 
         // 3) compute theta
-        double v1    = fabs((min_val - u_bar_M) / (min_M - u_bar_M - globalVariable::Epsilon));
-        double v2    = fabs((max_val - u_bar_M) / (max_M - u_bar_M + globalVariable::Epsilon));
+        double v1    = fabs((min_val - u_bar_M) /
+                            (min_M - u_bar_M - globalVariable::Epsilon));
+        double v2    = fabs((max_val - u_bar_M) /
+                            (max_M - u_bar_M + globalVariable::Epsilon));
         double theta = std::min(std::min(v1, v2), 1.);
         // std::cout << theta << std::endl;
         if (fabs(theta) < globalVariable::Epsilon)
@@ -499,19 +528,24 @@ std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &fun_uM, double
     return u_new;
 }
 template <typename Mesh>
-std::vector<double> applyBoundPreservingLimiter(const FunFEM<Mesh> &uh, double min_val, double max_val,
-                                                const std::map<int, double> u_mean, const MacroElement<Mesh> &macro) {
+std::vector<double>
+applyBoundPreservingLimiter(const FunFEM<Mesh> &uh, double min_val,
+                            double max_val, const std::map<int, double> u_mean,
+                            const MacroElement<Mesh> &macro) {
     if (uh.getBasisFctType() == BasisFctType::P1dc) {
         return boundPreservingLimiter_P1(uh, min_val, max_val, u_mean, macro);
     } else {
-        std::cout << " No boundary preserving limiter implemented for this elements" << std::endl;
+        std::cout
+            << " No boundary preserving limiter implemented for this elements"
+            << std::endl;
         exit(EXIT_FAILURE);
         return std::vector<double>();
     }
 }
 
 template <typename Mesh>
-void check_mean_value(const FunFEM<Mesh> &uh, const MacroElement<Mesh> &macro, double minV, double maxV, Rn &u_mean) {
+void check_mean_value(const FunFEM<Mesh> &uh, const MacroElement<Mesh> &macro,
+                      double minV, double maxV, Rn &u_mean) {
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
     typedef typename FElement::QF QF;
@@ -557,11 +591,13 @@ void check_mean_value(const FunFEM<Mesh> &uh, const MacroElement<Mesh> &macro, d
         for (auto k : MK.idx_element) {
             const FElement &FK(Wh[k]);
             const Cut_Part<Element> cutK(macro.Th_.get_cut_part(k, 0));
-            for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+            for (auto it = cutK.element_begin(); it != cutK.element_end();
+                 ++it) {
                 double meas = cutK.measure(it);
                 areaCut += meas;
                 for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
-                    typename QF::QuadraturePoint ip(qf[ipq]); // integration point
+                    typename QF::QuadraturePoint ip(
+                        qf[ipq]); // integration point
                     Rd mip      = cutK.mapToPhysicalElement(it, ip);
                     double Cint = meas * ip.getWeight();
                     u_bar_K += Cint * uh.eval(k, mip);
@@ -576,14 +612,18 @@ void check_mean_value(const FunFEM<Mesh> &uh, const MacroElement<Mesh> &macro, d
     }
     for (int i = 0; i < u_mean.size(); ++i) {
         double u_bar_K = u_mean(i);
-        if (u_bar_K < minV - globalVariable::Epsilon || maxV + globalVariable::Epsilon < u_bar_K) {
-            std::cout << " Mean value does not satisfies maximum principle " << std::endl;
-            std::cout << "[m, M] = [ " << minV << "\t" << u_bar_K << "\t" << maxV << " ]" << std::endl;
+        if (u_bar_K < minV - globalVariable::Epsilon ||
+            maxV + globalVariable::Epsilon < u_bar_K) {
+            std::cout << " Mean value does not satisfies maximum principle "
+                      << std::endl;
+            std::cout << "[m, M] = [ " << minV << "\t" << u_bar_K << "\t"
+                      << maxV << " ]" << std::endl;
         }
     }
 }
 
-template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::vector<double> computeTroubleCellIndicator(const FunFEM<Mesh> &uh) {
 
     using Element = typename Mesh::Element;
     using CutMesh = ActiveMesh<Mesh>;
@@ -595,7 +635,8 @@ template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const F
     std::vector<double> indicator(nt);
     std::vector<double> indicator_loc(nt);
 
-    for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
+    for (int k = Vh.first_element(); k < Vh.last_element();
+         k += Vh.next_element()) {
         const auto cutK = Th.get_cut_part(k, 0);
         const auto FK(Vh[k]);
         double s     = 0.;
@@ -614,14 +655,17 @@ template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const F
             double sj      = 0.;
             double meas_K0 = 0.;
             // compute mean of p_j j=0,1,2,3 on K_0
-            for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+            for (auto it = cutK.element_begin(); it != cutK.element_end();
+                 ++it) {
                 double meas_cut = cutK.measure(it);
                 meas_K0 += meas_cut;
                 for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
                     auto ip(qf[ipq]);
-                    auto mip  = cutK.mapToPhysicalElement(it, ip);
-                    double p0 = meas_cut * ip.getWeight() * uh.eval(k, mip, 0, op_id);
-                    double pj = meas_cut * ip.getWeight() * uh.eval(kn, mip, 0, op_id);
+                    auto mip = cutK.mapToPhysicalElement(it, ip);
+                    double p0 =
+                        meas_cut * ip.getWeight() * uh.eval(k, mip, 0, op_id);
+                    double pj =
+                        meas_cut * ip.getWeight() * uh.eval(kn, mip, 0, op_id);
                     sj += p0 - pj;
                     Pj += p0;
                 }
@@ -634,20 +678,22 @@ template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const F
             double meas_Kj   = 0.;
             // compute mean of p_j j=1,2,3 on K_j
             const auto cutKj = Th.get_cut_part(kn, 0);
-            for (auto it = cutKj.element_begin(); it != cutKj.element_end(); ++it) {
+            for (auto it = cutKj.element_begin(); it != cutKj.element_end();
+                 ++it) {
                 double meas_cut = cutKj.measure(it);
                 meas_Kj += meas_cut;
                 for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
                     auto ip(qf[ipq]);
                     auto mip = cutKj.mapToPhysicalElement(it, ip);
-                    Pj += meas_cut * ip.getWeight() * uh.eval(kn, mip, 0, op_id);
+                    Pj +=
+                        meas_cut * ip.getWeight() * uh.eval(kn, mip, 0, op_id);
                 }
             }
             Pj /= meas_Kj;
             maxPj = std::max(maxPj, std::fabs(Pj));
         }
-        // std::cout << s << "\t" << maxPj << "\t" << s / (maxPj + globalVariable::Epsilon) << std::endl;
-        // getchar();
+        // std::cout << s << "\t" << maxPj << "\t" << s / (maxPj +
+        // globalVariable::Epsilon) << std::endl; getchar();
         indicator_loc[k] = s / (maxPj + globalVariable::Epsilon);
     }
 #ifdef USE_MPI
@@ -659,7 +705,8 @@ template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const F
 }
 
 template <typename Mesh>
-std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
+std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK,
+                                                    const FunFEM<Mesh> &uh) {
     using QF      = typename GFElement<Mesh>::QF;
     using CutMesh = ActiveMesh<Mesh>;
 
@@ -667,7 +714,8 @@ std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK, c
     const CutMesh &Th(FK.Vh.get_mesh());
 
     double m = 1e300, M = -1e300;
-    for (int ifac = 0; ifac < Mesh::Element::nea; ++ifac) { // loop over the edges /faces
+    for (int ifac = 0; ifac < Mesh::Element::nea;
+         ++ifac) { // loop over the edges /faces
         int ifacn = ifac;
         int kn    = FK.Vh.getNeighborElement(FK.index(), ifacn);
         if (kn == -1)
@@ -693,7 +741,8 @@ std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK, c
     return {m, M};
 }
 
-template <typename Mesh> double averageOnKj(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+double averageOnKj(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
     using QF      = typename GFElement<Mesh>::QF;
     using CutMesh = ActiveMesh<Mesh>;
 
@@ -711,14 +760,16 @@ template <typename Mesh> double averageOnKj(const GFElement<Mesh> &FK, const Fun
         for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
             typename QF::QuadraturePoint ip(qf[ipq]); // integration point
             auto mip = cutK.mapToPhysicalElement(it, ip);
-            Uj += meas_cut * ip.getWeight() * uh.eval(FK.index(), mip, 0, op_id);
+            Uj +=
+                meas_cut * ip.getWeight() * uh.eval(FK.index(), mip, 0, op_id);
         }
     }
     return Uj / meas_K;
 }
 
 template <typename Mesh>
-double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj, double m, double M) {
+double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh,
+                    double Uj, double m, double M) {
     using QFB     = typename GFElement<Mesh>::QFB;
     using CutMesh = ActiveMesh<Mesh>;
 
@@ -739,10 +790,13 @@ double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj
 
         if (Th.isCutFace(k, ifac, 0)) {
             typename Mesh::Element::Face face;
-            const Cut_Part<typename Mesh::Element::Face> cutFace(Th.get_cut_face(face, k, ifac, 0));
-            for (auto it = cutFace.element_begin(); it != cutFace.element_end(); ++it) {
+            const Cut_Part<typename Mesh::Element::Face> cutFace(
+                Th.get_cut_face(face, k, ifac, 0));
+            for (auto it = cutFace.element_begin(); it != cutFace.element_end();
+                 ++it) {
                 for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
-                    typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
+                    typename QFB::QuadraturePoint ip(
+                        qfb[ipq]); // integration point
 
                     const R2 mip = cutFace.mapToPhysicalElement(it, (R1)ip);
                     // compute U_j(x_i^*)
@@ -783,7 +837,8 @@ double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj
 }
 
 template <typename Mesh>
-std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<double> &cell_indicator,
+std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh,
+                                      const std::vector<double> &cell_indicator,
                                       const double tol) {
 
     std::vector<double> u_new(uh.array().begin(), uh.array().end());
@@ -797,11 +852,13 @@ std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<
 
     const auto &Vh(*uh.Vh);
     if (cell_indicator.size() != Vh.get_nb_element()) {
-        std::cout << " Cell indicator array not of the required size " << std::endl;
+        std::cout << " Cell indicator array not of the required size "
+                  << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
+    for (int k = Vh.first_element(); k < Vh.last_element();
+         k += Vh.next_element()) {
 
         if (cell_indicator[k] < tol)
             continue;
@@ -831,7 +888,8 @@ std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<
         // 3) Modify U_K
         for (int i = 0; i < T.nv; ++i) {
             u_new[FK.loc2glb(i)] =
-                dof_Taylor(0) * B(i, 0) + alpha * (dof_Taylor(1) * B(i, 1) + dof_Taylor(2) * B(i, 2));
+                dof_Taylor(0) * B(i, 0) +
+                alpha * (dof_Taylor(1) * B(i, 1) + dof_Taylor(2) * B(i, 2));
         }
     }
     return u_new;
@@ -846,7 +904,8 @@ namespace FEM {
 // DEPENDING OF THE POLYNOMIAL ORDER.
 // BY DEFAULT IT USES LINEAR ELEMENTS
 
-template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P0(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> findMinAndMaxValue_P0(const FunFEM<Mesh> &uh) {
     typedef typename Mesh::Rd Rd;
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -857,7 +916,8 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P0(const 
     double max_val_loc = -1e300;
     int k_min, k_max;
 
-    for (int k = Wh.first_element(); k < Wh.last_element(); k += Wh.next_element()) {
+    for (int k = Wh.first_element(); k < Wh.last_element();
+         k += Wh.next_element()) {
         const FElement &FK(Wh[k]);
 
         Rd mip     = FK.T.barycenter();
@@ -881,7 +941,8 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P0(const 
     return {min_val, max_val};
 }
 
-template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P1(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> findMinAndMaxValue_P1(const FunFEM<Mesh> &uh) {
     typedef typename Mesh::Rd Rd;
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -894,7 +955,8 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P1(const 
     double max_val_loc = -1e300;
     // Apply limiter in all element
     int k_min, k_max;
-    for (int k = Wh.first_element(); k < Wh.last_element(); k += Wh.next_element()) {
+    for (int k = Wh.first_element(); k < Wh.last_element();
+         k += Wh.next_element()) {
         const FElement &FK(Wh[k]);
 
         // get the local min and std::max on K
@@ -922,16 +984,18 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue_P1(const 
     return {min_val, max_val};
 }
 
-template <typename Mesh> std::tuple<double, double> findMinAndMaxValue(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> findMinAndMaxValue(const FunFEM<Mesh> &uh) {
     const int fctOrder = uh.getPolynomialOrder();
     if (fctOrder == 0) {
         return findMinAndMaxValue_P0(uh);
     } else if (fctOrder == 1) {
         return findMinAndMaxValue_P1(uh);
     } else {
-        std::cout << " Min and std::max compute using linear elements. Not exact for "
-                     "this polynomial order"
-                  << std::endl;
+        std::cout
+            << " Min and std::max compute using linear elements. Not exact for "
+               "this polynomial order"
+            << std::endl;
         return findMinAndMaxValue_P1(uh);
     }
 }
@@ -939,7 +1003,9 @@ template <typename Mesh> std::tuple<double, double> findMinAndMaxValue(const Fun
 // -------------------------------------------------------------------------
 // -------------------------------------------------------------------------
 
-template <typename Mesh> std::vector<double> computeMeanValue(const FunFEM<Mesh> &uh, double minV, double maxV) {
+template <typename Mesh>
+std::vector<double> computeMeanValue(const FunFEM<Mesh> &uh, double minV,
+                                     double maxV) {
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
     typedef typename FElement::QF QF;
@@ -967,14 +1033,17 @@ template <typename Mesh> std::vector<double> computeMeanValue(const FunFEM<Mesh>
         }
         u_mean[k] = u_bar_K;
         if (u_bar_K < minV || maxV < u_bar_K) {
-            std::cout << " Mean value does not satisfies maximum principle " << std::endl;
-            std::cout << "[m, M] = [ " << minV << "\t" << u_bar_K << "\t" << maxV << " ]" << std::endl;
+            std::cout << " Mean value does not satisfies maximum principle "
+                      << std::endl;
+            std::cout << "[m, M] = [ " << minV << "\t" << u_bar_K << "\t"
+                      << maxV << " ]" << std::endl;
         }
     }
     return u_mean;
 }
 
-template <typename Mesh> void checkMeanValue(const FunFEM<Mesh> &uh, double minV, double maxV) {
+template <typename Mesh>
+void checkMeanValue(const FunFEM<Mesh> &uh, double minV, double maxV) {
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
     typedef typename FElement::QF QF;
@@ -999,15 +1068,18 @@ template <typename Mesh> void checkMeanValue(const FunFEM<Mesh> &uh, double minV
             u_bar_K += Cint * uh.eval(k, mip);
         }
         if (u_bar_K < minV || maxV < u_bar_K) {
-            std::cout << " Mean value does not satisfies maximum principle " << std::endl;
-            std::cout << "[m, M] = [ " << minV << "\t" << u_bar_K << "\t" << maxV << " ]" << std::endl;
+            std::cout << " Mean value does not satisfies maximum principle "
+                      << std::endl;
+            std::cout << "[m, M] = [ " << minV << "\t" << u_bar_K << "\t"
+                      << maxV << " ]" << std::endl;
             getchar();
         }
     }
 }
 
 template <typename Mesh>
-std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, double min_val, double max_val) {
+std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &uh,
+                                              double min_val, double max_val) {
     typedef typename Mesh::Element Element;
     typedef typename Mesh::Rd Rd;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -1060,9 +1132,9 @@ std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, double min
             int df_glb    = FK.loc2glb(df);
             u_new[df_glb] = theta * (uh(df_glb) - u_bar_K) + u_bar_K;
 
-            // if(u_new(df_glb) - min_val < 0 && u_new(df_glb) - min_val > -Epsilon
-            // ) u_new(df_glb) = min_val; if(u_new(df_glb) - max_val > 0 &&
-            // u_new(df_glb) - max_val < Epsilon ) u_new(df_glb) = max_val;
+            // if(u_new(df_glb) - min_val < 0 && u_new(df_glb) - min_val >
+            // -Epsilon ) u_new(df_glb) = min_val; if(u_new(df_glb) - max_val >
+            // 0 && u_new(df_glb) - max_val < Epsilon ) u_new(df_glb) = max_val;
 
             // if(u_new(df_glb) < min_val) {
             //   std::cout << " ----------------------- " << std::endl;
@@ -1082,7 +1154,8 @@ std::vector<double> boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, double min
     return u_new;
 }
 
-template <typename Mesh> std::tuple<double, double> minmaxP1(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> minmaxP1(const FunFEM<Mesh> &uh) {
     typedef typename Mesh::Rd Rd;
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -1110,17 +1183,22 @@ template <typename Mesh> std::tuple<double, double> minmaxP1(const FunFEM<Mesh> 
 }
 
 template <typename Mesh>
-std::vector<double> applyBoundPreservingLimiter(const FunFEM<Mesh> &uh, double min_val, double max_val) {
+std::vector<double> applyBoundPreservingLimiter(const FunFEM<Mesh> &uh,
+                                                double min_val,
+                                                double max_val) {
     if (uh.getBasisFctType() == BasisFctType::P1dc) {
         return boundPreservingLimiter_P1(uh, min_val, max_val);
     } else {
-        std::cout << " No boundary preserving limiter implemented for this elements" << std::endl;
+        std::cout
+            << " No boundary preserving limiter implemented for this elements"
+            << std::endl;
         exit(EXIT_FAILURE);
         return std::vector<double>();
     }
 }
 
-template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::vector<double> computeTroubleCellIndicator(const FunFEM<Mesh> &uh) {
 
     const auto &qf(*QF_Simplex<typename Mesh::Rd>(5));
     const auto &Vh(*uh.Vh);
@@ -1128,7 +1206,8 @@ template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const F
     std::vector<double> indicator(nt);
     std::vector<double> indicator_loc(nt);
 
-    for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
+    for (int k = Vh.first_element(); k < Vh.last_element();
+         k += Vh.next_element()) {
 
         auto FK(Vh[k]);
         // double meas_K0 = FK.get_measure();
@@ -1180,12 +1259,14 @@ template <typename Mesh> std::vector<double> computeTroubleCellIndicator(const F
 }
 
 template <typename Mesh>
-std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
+std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK,
+                                                    const FunFEM<Mesh> &uh) {
     typedef typename GFElement<Mesh>::QF QF;
     const QF &qf(*QF_Simplex<typename GFElement<Mesh>::RdHat>(2));
 
     double m = 1e300, M = -1e300;
-    for (int ifac = 0; ifac < Mesh::Element::nea; ++ifac) { // loop over the edges /faces
+    for (int ifac = 0; ifac < Mesh::Element::nea;
+         ++ifac) { // loop over the edges /faces
         int ifacn = ifac;
         int kn    = FK.Vh.getNeighborElement(FK.index(), ifacn);
         if (kn == -1)
@@ -1203,7 +1284,8 @@ std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK, c
     return {m, M};
 }
 
-template <typename Mesh> double averageOnKj(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+double averageOnKj(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
     typedef typename GFElement<Mesh>::QF QF;
     const QF &qf(*QF_Simplex<typename GFElement<Mesh>::RdHat>(2));
 
@@ -1217,7 +1299,8 @@ template <typename Mesh> double averageOnKj(const GFElement<Mesh> &FK, const Fun
 }
 
 template <typename Mesh>
-double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj, double m, double M) {
+double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh,
+                    double Uj, double m, double M) {
     typedef typename GFElement<Mesh>::QFB QFB;
     const QFB &qfb(*QF_Simplex<typename GFElement<Mesh>::RdHatBord>(4));
 
@@ -1251,7 +1334,8 @@ double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj
 }
 
 template <typename Mesh>
-std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<double> &cell_indicator,
+std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh,
+                                      const std::vector<double> &cell_indicator,
                                       const double tol) {
 
     std::vector<double> u_new(uh.array().begin(), uh.array().end());
@@ -1266,11 +1350,13 @@ std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<
 
     const auto &Vh(*uh.Vh);
     if (cell_indicator.size() != Vh.get_nb_element()) {
-        std::cout << " Cell indicator array not of the required size " << std::endl;
+        std::cout << " Cell indicator array not of the required size "
+                  << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
+    for (int k = Vh.first_element(); k < Vh.last_element();
+         k += Vh.next_element()) {
 
         if (cell_indicator[k] < tol)
             continue;
@@ -1300,7 +1386,8 @@ std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<
         // 3) Modify U_K
         for (int i = 0; i < T.nv; ++i) {
             u_new[FK.loc2glb(i)] =
-                dof_Taylor(0) * B(i, 0) + alpha * (dof_Taylor(1) * B(i, 1) + dof_Taylor(2) * B(i, 2));
+                dof_Taylor(0) * B(i, 0) +
+                alpha * (dof_Taylor(1) * B(i, 1) + dof_Taylor(2) * B(i, 2));
         }
     }
     return u_new;

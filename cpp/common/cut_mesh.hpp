@@ -1,9 +1,3 @@
-/**
- * @file cpp/common/cut_mesh.hpp
- *
- * @brief Contains concepts related to functions
- *
- */
 /*
 This file is part of CutFEM-Library.
 
@@ -27,60 +21,60 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "Mesh3dn.hpp"
 #include "base_interface.hpp"
 
-//TODO: add documentation
 template <typename E> struct Cut_Part {
-    static const int dim = E::RdHat::d;               // dimension of the element
-    typedef SortArray<Ubyte, dim + 1> ElementIdx;     // the vertices of a triangle of the cut:
-    typedef const ElementIdx *const_element_iterator; // const iterator for the elements
-    typedef ElementIdx *element_iterator;             // iterator for the elements
-    typedef typename E::Rd Rd;                        // type for the physical coordinates
-    typedef typename E::RdHat RdHat;                  // type for the coordinates in the reference element
+    static const int dim = E::RdHat::d;               ///< dimension of the element
+    typedef SortArray<Ubyte, dim + 1> ElementIdx;     ///< the vertices of a triangle of the cut:
+    typedef const ElementIdx *const_element_iterator; ///< const iterator for the elements
+    typedef ElementIdx *element_iterator;             ///< iterator for the elements
+    typedef typename E::Rd Rd;                        ///< type for the physical coordinates
+    typedef typename E::RdHat RdHat;                  ///< type for the coordinates in the reference element
 
-    const Virtual_Partition<E> *partition_; // the partition
-    const Partition<E> ip;                  // the partition in the reference element
-    const Physical_Partition<E> pp;         // the partition in the physical element
-    int sign_cut_;                          // the sign of the cut
+    const Virtual_Partition<E> *partition_; ///< the partition
+    const Partition<E> ip;                  ///< the partition in the reference element
+    const Physical_Partition<E> pp;         ///< the partition in the physical element
+    int sign_cut_;                          ///< the sign of the cut
 
-    Cut_Part(const Partition<E> p, int s);          // constructor with a reference partition
-    Cut_Part(const Physical_Partition<E> p, int s); // constructor with a physical partition
-    Cut_Part(const Cut_Part<E> &p);                 // copy constructor
+    Cut_Part(const Partition<E> p, int s);          ///< constructor with a reference partition
+    Cut_Part(const Physical_Partition<E> p, int s); ///< constructor with a physical partition
+    Cut_Part(const Cut_Part<E> &p);                 ///< copy constructor
 
     Cut_Part &operator=(const Cut_Part<E> &p); // copy operator
 
     // GETTERS
-    int get_sign() const;                                        // return the sign of the cut
-    int get_sign_node(int i) const;                              // return the sign of the i-th node
-    int get_nb_element() const;                                  // return the number of elements in the cut
-    int get_local_domain_id() const;                             // return the local domain id
-    void get_list_node(std::vector<typename E::Rd> &node) const; // return the list of nodes
-    Rd get_vertex(const_element_iterator it, const int i) const; // return the i-th vertex of an element
-    CutElement<E> get_element(int k) const;                      // return the k-th element
+    int get_sign() const;                                        ///< return the sign of the cut
+    int get_sign_node(int i) const;                              ///< return the sign of the i-th node
+    int get_nb_element() const;                                  ///< return the number of elements in the cut
+    int get_local_domain_id() const;                             ///< return the local domain id
+    void get_list_node(std::vector<typename E::Rd> &node) const; ///< return the list of nodes
+    Rd get_vertex(const_element_iterator it, const int i) const; ///< return the i-th vertex of an element
+    CutElement<E> get_element(int k) const;                      ///< return the k-th element
 
     // OTHER METHODS
     // GIVE THE MEASURE OF THE CUT PART IN Rd
-    double measure() const;                          // return the measure of the cut part
-    double measure(const_element_iterator it) const; // return the measure of an element
+    double measure() const;                          ///< return the measure of the cut part
+    double measure(const_element_iterator it) const; ///< return the measure of an element
 
     // //GIVE THE MEASURE OF CUT PART OF A FACE IN RdBord
     // double measureBord(int ifac) const {return
     // partition_->measureBord(sign_cut_, ifac);}
 
-    bool multi_interface() const; // return true if there are more than one interface
+    bool multi_interface() const; ///< return true if there are more than one interface
 
     Rd mapToPhysicalElement(const_element_iterator it,
-                            const RdHat Phat) const; // map a point in the reference element to the physical element
+                            const RdHat Phat) const; ///< map a point in the reference element to the physical element
 
     // ITERATORS
-    const_element_iterator element_begin() const; // return an iterator to the beginning of the elements
-    const_element_iterator element_end() const;   // return an iterator to the end of the elements
+    const_element_iterator element_begin() const; ///< return an iterator to the beginning of the elements
+    const_element_iterator element_end() const;   ///< return an iterator to the end of the elements
     const_element_iterator other_side_element_begin()
-        const; // return an iterator to the beginning of the elements on the other side of the cut
+        const; ///< return an iterator to the beginning of the elements on the other side of the cut
     const_element_iterator
-    other_side_element_end() const; // return an iterator to the end of the elements on the other side of the cut
+    other_side_element_end() const; ///< return an iterator to the end of the elements on the other side of the cut
 };
 
 /**
- * @brief Class for the active mesh.
+ * @brief
+ *
  * @note The active mesh of a given subdomain corresponds to those elements of the
  * background mesh that have a non-empty intersection with the subdomain. In the
  * space-time method, the active mesh is taken as all elements that intersect the
@@ -133,14 +127,9 @@ template <typename Mesh> class ActiveMesh {
      * @note interface_id_[itq] returns what exactly ?
      */
     std::vector<std::map<std::pair<int, int>, std::vector<std::pair<const Interface<Mesh> *, int>>>>
-        interface_id_; // [time_quad](domain_id, idx_k) ->
-                       // [n_interface](interface, sign)
-
-    /**
-     * @brief //? What does this do?
-     *
-     */
-    std::vector<int> idx_element_domain;
+        interface_id_;                   // [time_quad](domain_id, idx_k) ->
+                                         // [n_interface](interface, sign)
+    std::vector<int> idx_element_domain; //! What does this do?
 
     // number of quadrature points to approximate integral over the time slab In
     int nb_quadrature_time_;
@@ -164,21 +153,8 @@ template <typename Mesh> class ActiveMesh {
      */
     ActiveMesh(const Mesh &th, const Interface<Mesh> &interface);
 
-    /**
-     * @brief Construct two active meshes for an evolving interface, one for each subdomain on the positive and negative
-     * side of the level set.
-     * @param th Background mesh.
-     * @param interface TimeInterface object.
-     */
     ActiveMesh(const Mesh &th, const TimeInterface<Mesh> &interface);
 
-    /**
-     * @brief Create active mesh for one stationary subdomain.
-     * @note When creating one bulk domain, one removes (truncates) the other domain
-     * corresponding to the other sign of the signed distance function.
-     * @param interface Stationary interface.
-     * @param sign_domain Sign of the signed distance function in the domain you want to remove.
-     */
     void truncate(const Interface<Mesh> &interface, int sign_domain);
 
     /**
@@ -219,14 +195,19 @@ template <typename Mesh> class ActiveMesh {
      */
     void addArtificialInterface(const Interface<Mesh> &interface);
 
-    //! CONTINUE HERE
-    // Public Member Functions
   public:
     int nbElmts() const;
     int NbElement() const;
     int nbBrdElmts() const;
     int nbVertices() const;
 
+    /**
+     * @brief Get the Element of a given index in the active mesh
+     *
+     * @tparam Mesh
+     * @param i index in the active mesh
+     * @return const ActiveMesh<Mesh>::Element&
+     */
     const Element &operator[](int i) const;
     const BorderElement &be(int i) const;
 

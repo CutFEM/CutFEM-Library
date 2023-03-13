@@ -17,18 +17,18 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 // INTEGRATION ON FULL ELEMENT
 
 /**
-* @brief This function adds a bilinear form to the local matrix integrated over the cut mesh.
-* @tparam M The type of the matrix
-* 
-* @tparam M Mesh
-* @param VF: Inner products as a list of vector of basis functions
-* @param Th: Active mesh
-* @note
-* The function allows for OpenMP parallelization, and loops over all elements in the active mesh.
-* For each element, if the element is a cut element, the function addElementContribution is called
-* from the BaseCutFEM class, otherwise the function addElementContribution from the BaseFEM class is called.
-* Finally, the function addLocalContribution is called to add the local contribution to the matrix.
-*/
+ * @brief This function adds a bilinear form to the local matrix integrated over the cut mesh.
+ * @tparam M The type of the matrix
+ *
+ * @tparam M Mesh
+ * @param VF: Inner products as a list of vector of basis functions
+ * @param Th: Active mesh
+ * @note
+ * The function allows for OpenMP parallelization, and loops over all elements in the active mesh.
+ * For each element, if the element is a cut element, the function addElementContribution is called
+ * from the BaseCutFEM class, otherwise the function addElementContribution from the BaseFEM class is called.
+ * Finally, the function addLocalContribution is called to add the local contribution to the matrix.
+ */
 
 template <typename M> void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
@@ -125,7 +125,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
 
         // Create a progress bar for this thread
         std::string title = " Add Bilinear CutMesh, In(" + std::to_string(itq) + ")";
-        int verbose = (thread_id == 0) * globalVariable::verbose;
+        int verbose       = (thread_id == 0) * globalVariable::verbose;
         progress bar(title.c_str(), Th.last_element(), verbose, this->get_nb_thread());
 
         // Loop over all elements in the active mesh
@@ -133,16 +133,19 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
             bar += Th.next_element();
 
-            // Skip inactive elements for this time quadrature (if the element is inactive, it will be active for another time quadrature)
+            // Skip inactive elements for this time quadrature (if the element is inactive, it will be active for
+            // another time quadrature)
             if (Th.isInactive(k, itq))
                 continue;
 
             // Check if the element is cut
             if (Th.isCut(k, itq))
-                // If the element is cut, add contribution to local matrix using addElementContribution function from BaseCutFEM class
+                // If the element is cut, add contribution to local matrix using addElementContribution function from
+                // BaseCutFEM class
                 BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
             else
-                // If the element is not cut, add contribution to local matrix using addElementContribution function from BaseFEM class
+                // If the element is not cut, add contribution to local matrix using addElementContribution function
+                // from BaseFEM class
                 BaseFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
 
             // Add the contribution to the local matrix
@@ -207,8 +210,6 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
     // End the progress bar
     bar.end();
 }
-
-
 
 template <typename M> void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
     assert(VF.isRHS());
@@ -1816,30 +1817,40 @@ void BaseCutFEM<M>::addLagrangeContributionOtherSide(const ListItemVF<Rd::d> &VF
     }
 }
 
+template <typename M>
+void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, const std::span<double> vecCol,
+                                              const R val_rhs) {
+    int ndf = this->rhs_.size();
+    this->rhs_.resize(ndf + 1);
+    this->rhs_(ndf) = val_rhs;
+
+    for (int idx = 0; idx < ndf; idx++) {
+        this->mat_[0][std::make_pair(idx, ndf)] = vecCol[idx];
+        this->mat_[0][std::make_pair(ndf, idx)] = vecRow[idx];
+    }
+}
+
 /**
  * @brief Initializes the solution vector `u0` based on the `mapU0_` data.
- * 
+ *
  * This function initializes the solution vector `u0` based on the `mapU0_` data,
  * which is a map of initial values for each degree of freedom. The map is cleared
  * at the end of the function.
- * 
+ *
  * @tparam M The mesh type.
  * @param u0 The solution vector to be initialized.
  */
-template <typename M> void BaseCutFEM<M>::initialSolution(Rn &u0) {
-    
+template <typename M> void BaseCutFEM<M>::initialSolution(std::span<double> u0) {
+
     // Get the number of degrees of freedom in time
     int nbTime = this->get_nb_dof_time();
 
     // Initialize u0 with the number of degrees of freedom
-    u0.init(this->get_nb_dof());
+    // u0.init(this->get_nb_dof());
+    assert(u0.size() == this->get_nb_dof());
 
     // If the mapU0_ is empty, return without performing any further operations
     if (this->mapU0_.size() == 0) {
-        // If verbosity is greater than 0, print the default initial solution
-        // if(globalVariable::verbose > 0 ){
-        //   std::cout << " Default Initial solution " << std::endl;
-        // }
         return;
     }
 
@@ -1862,12 +1873,12 @@ template <typename M> void BaseCutFEM<M>::initialSolution(Rn &u0) {
         const FESpace &backVh = Wh.get_back_space();
 
         // Create a temporary variable u0S as a subarray of u0
-        KN_<double> u0S(u0(SubArray(Wh.NbDoF() * nbTime, n0)));
+        std::span<double> u0S = u0.subspan(n0, Wh.NbDoF() * nbTime);
 
         // Loop through all the elements of the mesh
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 
-            // If the element is inactive, skip it 
+            // If the element is inactive, skip it
             if (Th.isInactive(k, 0))
                 continue;
 
@@ -1890,8 +1901,9 @@ template <typename M> void BaseCutFEM<M>::initialSolution(Rn &u0) {
             // Loop through all the degrees of freedom of the element
             for (int ic = 0; ic < Wh.N; ++ic) { // ESSAYER VH->N
                 for (int i = FK.dfcbegin(ic); i < FK.dfcend(ic); ++i) {
-                    // Get the value from the map of initial conditions, with the key of the current domain and node in the back mesh.
-                    u0S(FK(i)) = this->mapU0_[std::make_pair(id_domain, FKback(i))];
+                    // Get the value from the map of initial conditions, with the key of the current domain and node in
+                    // the back mesh.
+                    u0S[FK(i)] = this->mapU0_[std::make_pair(id_domain, FKback(i))];
                 }
             }
         }
@@ -1902,10 +1914,7 @@ template <typename M> void BaseCutFEM<M>::initialSolution(Rn &u0) {
     this->mapU0_.clear();
 }
 
-
-
-
-template <typename M> void BaseCutFEM<M>::saveSolution(const Rn &sol) {
+template <typename M> void BaseCutFEM<M>::saveSolution(const std::span<double> sol) {
 
     this->mapU0_.clear();
     int id_domain_0 = 0;
@@ -1918,7 +1927,8 @@ template <typename M> void BaseCutFEM<M>::saveSolution(const Rn &sol) {
         const ActiveMesh<M> &Th(Wh.get_mesh());
         const FESpace &backVh = Wh.get_back_space();
 
-        KN_<double> solS(sol(SubArray(Wh.get_nb_dof() * nbTime, n0)));
+        // KN_<double> solS(sol(SubArray(Wh.get_nb_dof() * nbTime, n0)));
+        const std::span<double> solS = sol.subspan(n0, Wh.get_nb_dof() * nbTime);
 
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 
@@ -1933,7 +1943,7 @@ template <typename M> void BaseCutFEM<M>::saveSolution(const Rn &sol) {
                 for (int i = FK.dfcbegin(ic); i < FK.dfcend(ic); ++i) {
                     R val = 0.;
                     for (int it = 0; it < nbTime; ++it) {
-                        val += solS(FK.loc2glb(i, it));
+                        val += solS[FK.loc2glb(i, it)];
                     }
                     this->mapU0_[std::make_pair(id_domain, FKback(i))] = val;
                 }
