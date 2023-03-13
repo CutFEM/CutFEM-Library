@@ -139,8 +139,12 @@ template <class R> class KN_ : public ShapeOfArray {
 
     KN_ operator()(const SubArray &sa) const { return KN_(*this, sa); } // sub array
 
+    KN_ subspan(int i0, int l) {
+        KN_<R> sub_u(*this, SubArray(l, i0));
+        return sub_u;
+    }
     friend KN_<R> sub_array(const KN_<R> u, int i0, int l) {
-        KN_<R> sub_u(u(SubArray(l, i0)));
+        KN_<R> sub_u(u, SubArray(l, i0));
         return sub_u;
     }
 

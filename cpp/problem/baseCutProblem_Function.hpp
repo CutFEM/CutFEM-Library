@@ -1874,7 +1874,7 @@ template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::ini
         const FESpace &backVh = Wh.get_back_space();
 
         // Create a temporary variable u0S as a subarray of u0
-        std::span<double> u0S = u0.subspan(n0, Wh.NbDoF() * nbTime);
+        vector_t u0S = u0.subspan(n0, Wh.NbDoF() * nbTime);
 
         // Loop through all the elements of the mesh
         for (int k = 0; k < Th.get_nb_element(); ++k) {
@@ -1915,7 +1915,7 @@ template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::ini
     this->mapU0_.clear();
 }
 
-template <typename M> void BaseCutFEM<M>::saveSolution(const std::span<double> sol) {
+template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::saveSolution(const vector_t sol) {
 
     this->mapU0_.clear();
     int id_domain_0 = 0;
@@ -1929,7 +1929,7 @@ template <typename M> void BaseCutFEM<M>::saveSolution(const std::span<double> s
         const FESpace &backVh = Wh.get_back_space();
 
         // KN_<double> solS(sol(SubArray(Wh.get_nb_dof() * nbTime, n0)));
-        const std::span<double> solS = sol.subspan(n0, Wh.get_nb_dof() * nbTime);
+        const vector_t solS = sol.subspan(n0, Wh.get_nb_dof() * nbTime);
 
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 

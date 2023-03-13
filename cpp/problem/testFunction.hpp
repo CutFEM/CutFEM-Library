@@ -38,14 +38,10 @@ static int nextDerivative(int c, int du) {
     else
         return D2(du - 1, c);
 }
+
 static int rotD(int i) {
     int op[2] = {op_dy, op_dx};
     return op[i];
-}
-
-static int rotD(int i){
-  int op[2] = {op_dy, op_dx};
-  return op[i];
 }
 
 void f_id(RNMK_ &x, int cu, int du);
@@ -54,27 +50,28 @@ void f_ln(RNMK_ &x, int cu, int du);
 template <int D> struct TestFunction;
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @tparam N //? What is N? Dimension?
  */
 template <int N = 2> struct ItemTestFunction {
     typedef typename MeshType<N>::Mesh Mesh;
-    typedef TestFunction<N> testFun_t;	// why does ItemTestFunction have a TestFunction obejct, when TestFunction has an ItemTestFunction object?
+    typedef TestFunction<N> testFun_t; // why does ItemTestFunction have a TestFunction obejct, when TestFunction has an
+                                       // ItemTestFunction object?
 
-    double c;			///< c – coefficient //? of what
-    int cu;				///< cu – component of u
-    int du;				///< du – derivative index of u, i.e. dx, dy or dz
-    int dtu;			///< dtu – time derivative index 
+    double c; ///< c – coefficient //? of what
+    int cu;   ///< cu – component of u
+    int du;   ///< du – derivative index of u, i.e. dx, dy or dz
+    int dtu;  ///< dtu – time derivative index
 
-    std::vector<int> ar_nu, conormal;	///< arrays of normal and conormal components of test function //?
-    std::vector<const VirtualParameter *> coefu;	
-    int domain_id_, face_side_;	
-    std::shared_ptr<ExpressionVirtual> expru = nullptr;	
-    const GFESpace<Mesh> *fespace            = nullptr;	
-    const testFun_t *root_fun_p              = nullptr;	
+    std::vector<int> ar_nu, conormal; ///< arrays of normal and conormal components of test function //?
+    std::vector<const VirtualParameter *> coefu;
+    int domain_id_, face_side_;
+    std::shared_ptr<ExpressionVirtual> expru = nullptr;
+    const GFESpace<Mesh> *fespace            = nullptr;
+    const testFun_t *root_fun_p              = nullptr;
 
-    void (*pfun)(RNMK_ &, int, int) = f_id;	
+    void (*pfun)(RNMK_ &, int, int) = f_id;
 
     ItemTestFunction() : c(0.), cu(-1), du(-1), dtu(-1), domain_id_(-1), face_side_(-1) {}
     ItemTestFunction(const GFESpace<Mesh> *fes, double cc, int i, int j, int tu, int dd, testFun_t *ff)
@@ -184,40 +181,39 @@ template <int dim = 2> struct TestFunction {
 
     std::vector<std::vector<itemList_t>> A;
 
+    TestFunction() {} ///< Default constructor
 
-    TestFunction() {}	///< Default constructor
-	
-	/**
-	 * @brief Construct a new Test Function object
-	 * 
-	 * @param Vh Finite Element space
-	 * @param d Number of components of test function
-	 */
+    /**
+     * @brief Construct a new Test Function object
+     *
+     * @param Vh Finite Element space
+     * @param d Number of components of test function
+     */
     TestFunction(const FESpace &Vh, int d) {
         for (int i = 0; i < d; ++i)
             this->push(itemList_t(Vh, 1, i, 0, -1, this));
     }
 
-	/**
-	 * @brief Construct a new Test Function object
-	 * 
-	 * @param Vh Finite Element space
-	 * @param d Number of total components of test function
-	 * @param comp0 Component number of first component //? 
-	 */
+    /**
+     * @brief Construct a new Test Function object
+     *
+     * @param Vh Finite Element space
+     * @param d Number of total components of test function
+     * @param comp0 Component number of first component //?
+     */
     TestFunction(const FESpace &Vh, int d, int comp0) {
         for (int i = 0; i < d; ++i)
             this->push(itemList_t(Vh, 1, comp0 + i, 0, -1, this));
     }
 
-	/**
-	 * @brief Construct a new Test Function object
-	 * 
-	 * @param Vh Finite Element space
-	 * @param d Number of total components of test function
-	 * @param comp0 Component number of first component //? 
-	 * @param domm Domain number
-	 */
+    /**
+     * @brief Construct a new Test Function object
+     *
+     * @param Vh Finite Element space
+     * @param d Number of total components of test function
+     * @param comp0 Component number of first component //?
+     * @param domm Domain number
+     */
     TestFunction(const FESpace &Vh, int d, int comp0, int domm) {
         for (int i = 0; i < d; ++i)
             this->push(itemList_t(Vh, 1, comp0 + i, 0, domm, this));
@@ -605,28 +601,26 @@ template <int D> TestFunction<D> dz(const TestFunction<D> &T) {
 
 template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
     auto [N, M] = T.size();
-	
-	
 
-	TestFunction<D> gradU;
-	for (int i = 0; i < N; ++i) {
-		assert(T.nbCol(i) == 1);
-		for (int d = 0; d < D; ++d) {
-			auto new_list = T.getList(i, 0);
-			for (auto &item : new_list.U) {
-				item.du = nextDerivative(d, item.du);
-			}
-			int irow = T.isScalar() ? d : i;
-			int jrow = T.isScalar() ? 0 : d;
-			gradU.push({irow, jrow}, new_list);
-		}
+    TestFunction<D> gradU;
+    for (int i = 0; i < N; ++i) {
+        assert(T.nbCol(i) == 1);
+        for (int d = 0; d < D; ++d) {
+            auto new_list = T.getList(i, 0);
+            for (auto &item : new_list.U) {
+                item.du = nextDerivative(d, item.du);
+            }
+            int irow = T.isScalar() ? d : i;
+            int jrow = T.isScalar() ? 0 : d;
+            gradU.push({irow, jrow}, new_list);
+        }
     }
     return gradU;
 }
 
 template <int D> TestFunction<D> div(const TestFunction<D> &T) {
     auto [N, M] = T.size();
-	
+
     assert(M == 1);
     assert(N == D);
     TestFunction<D> divU;
@@ -642,53 +636,6 @@ template <int D> TestFunction<D> div(const TestFunction<D> &T) {
     return divU;
 }
 
-
-template <int D>
-TestFunction<D> rotgrad(const TestFunction<D> & T){
-    auto [N, M] = T.size();
-	// print out N and M
-	// std::cout << "N = " << N << std::endl;
-	// std::cout << "M = " << M << std::endl;
-	
-    //assert(M == 1);
-    //assert(N == D);
-
-	// bool scalar = (N==1);
-
-	// int row = scalar ? D : N;	// if scalar, set row to D, otherwise N 
-	// int col = scalar ? 1 : D;	// if scalar, set column to 1, otherwise D
-	
-	
-
-	//TestFunction<D> gradU(row, col);
-	TestFunction<D> gradU;
-        for (int i = 0; i < N; ++i) {
-			assert(T.nbCol(i) == 1);
-			// Loop over the number of dimensions
-			for (int d = 0; d < D; ++d) {
-
-			}
-		}
-
-    //     for(int i=0;i<N;++i) {
-	// 	int nitem = T.A(i,0)->size();
-	// 	for(int j=0;j<D;++j) {
-	// 	int irow = scalar ? j: i;
-	// 	int jrow = scalar ? 0: j;
-	// 	gradU.A(irow,jrow) = new ItemList<D>(nitem);
-	// 	for(int ui=0;ui<nitem;++ui) {
-	// 		const ItemTestFunction<D>& v(T.A(i,0)->getItem(ui));
-	// 		ItemTestFunction<D>& u(gradU.A(irow,jrow)->getItem(ui));
-	// 		u = v;
-	// 		u.du = rotD(j);
-	// 		if (j==0) u.c *= -1;
-	// 	}
-	// 	}
-	// }
-	return gradU;
-}
-
-
 template <int D> TestFunction<D> Eps(const TestFunction<D> &T) {
     auto [N, M] = T.size();
     assert(N == D && M == 1);
@@ -701,12 +648,10 @@ template <int D> TestFunction<D> Eps(const TestFunction<D> &T) {
 //    assert(T.nbCol() == 1);
 //    assert(T.nbRow() == d || T.nbRow() == 1);
 //    int N = T.nbRow();
-
 //    TestFunction<d> DDU(T.nbRow(),
 //                        T.nbCol()); // DDU.init(T.nbRow(), T.nbCol());
 //    for (int i = 0; i < N; ++i)
 //       assert(T.A(i, 0)->size() == 1);
-
 //    for (int i = 0; i < N; ++i) {
 //       DDU.A(i, 0) = new ItemList<d>(3);
 //       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
@@ -775,10 +720,6 @@ template <int d> TestFunction<d> operator*(const CutFEM_Rd<d> &cc, const TestFun
     }
     return resU;
 }
-
-// template <int N> TestFunction<N> ln(const TestFunction<N> &F) {
-//    return TestFunction<N>(F, f_ln);
-// }
 
 template <int d> TestFunction<d> operator*(const typename typeRd<d>::Rd &cc, const TestFunction<d> &T) {
     assert(T.nbCol() == 1);
@@ -984,26 +925,26 @@ template <int D> TestFunction<D> average(const TestFunction<D> &T, const Virtual
     return average(T, para1, para1);
 }
 
+// template <int N> TestFunction<N> ln(const TestFunction<N> &F) {
+//    return TestFunction<N>(F, f_ln);
+// }
+
 // template <int d> TestFunction<d> divS(const TestFunction<d> &T) {
 //    assert(T.nbCol() == 1);
 //    assert(T.nbRow() == d);
 //    int N = T.nbRow();
-
 //    TestFunction<d> divU(1);
 //    int k = 0, ksum = 0;
 //    for (int i = 0; i < N; ++i)
 //       ksum += T.A(i, 0)->size();
 //    divU.A(0, 0) = new ItemList<d>(ksum * (d + 1));
-
 //    for (int i = 0; i < N; ++i) {
 //       assert(T.A(i, 0)->size() == 1);
 //       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-
 //       ItemTestFunction<d> &u(divU.A(0, 0)->getItem(k));
 //       u    = v;
 //       u.du = D1(i);
 //       k++;
-
 //       for (int j = 0; j < d; ++j) {
 //          ItemTestFunction<d> &u(divU.A(0, 0)->getItem(k));
 //          u = v;
@@ -1020,12 +961,10 @@ template <int D> TestFunction<D> average(const TestFunction<D> &T, const Virtual
 // template <int d> TestFunction<d> dzS(const TestFunction<d> &T) {
 //    assert(T.nbCol() == 1 && T.nbRow() == 1);
 //    int N = T.nbRow();
-
 //    TestFunction<d> gradU(N, 1); // gradU.init(N,1);
 //    for (int i = 0; i < N; ++i) {
 //       assert(T.A(i, 0)->size() == 1);
 //       const ItemTestFunction<d> &v(T.A(i, 0)->getItem(0));
-
 //       gradU.A(i, 0) = new ItemList<d>(d + 1);
 //       {
 //          ItemTestFunction<d> &u1(gradU.A(i, 0)->getItem(0));
@@ -1053,16 +992,13 @@ template <int D> TestFunction<D> average(const TestFunction<D> &T, const Virtual
 //    TestFunction Un(N, N);
 //    // Un.init(N, N);
 //    const int ksum = A(0, 0)->size();
-
 //    for (int i = 0; i < N; ++i) {
 //       for (int j = 0; j < N; ++j) {
 //          int k      = 0;
 //          int cst    = 1 + (i == j);
 //          Un.A(i, j) = new ItemList<dim>(cst * ksum);
-
 //          for (int ui = 0; ui < ksum; ++ui, ++k) {
 //             ItemTestFunction<dim> &v(A(0, 0)->getItem(ui));
-
 //             if (i == j) {
 //                ItemTestFunction<dim> &u(Un.A(i, j)->getItem(k));
 //                u = v;
