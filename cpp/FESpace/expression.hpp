@@ -188,7 +188,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     }
 
     template <typename fct_t>
-        requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t>
+        requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
     void init(const FESpace &vh, fct_t f) {
         assert(!data_);
         Vh    = &vh;

@@ -6,6 +6,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/testFunction.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/itemVF.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/problem.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/baseProblem.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/levelSet.cpp
   #GenericMapping.cpp
   # ${CMAKE_CURRENT_SOURCE_DIR}/extension.cpp
   #  levelSet.cpp

@@ -112,6 +112,8 @@ template <class R> std::istream &operator>>(std::istream &f, KN_<R> &v);
 template <class R> std::istream &operator>>(std::istream &f, KN<R> &v);
 
 template <class R> class KN_ : public ShapeOfArray {
+    using element_type = R;
+
   protected:
     R *v;
 

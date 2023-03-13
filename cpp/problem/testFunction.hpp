@@ -38,6 +38,10 @@ static int nextDerivative(int c, int du) {
     else
         return D2(du - 1, c);
 }
+static int rotD(int i) {
+    int op[2] = {op_dy, op_dx};
+    return op[i];
+}
 
 void f_id(RNMK_ &x, int cu, int du);
 void f_ln(RNMK_ &x, int cu, int du);
@@ -811,6 +815,28 @@ template <int D> TestFunction<D> dyS(const TestFunction<D> &T) {
     }
 
     return gradSU;
+}
+
+template <int D> TestFunction<D> rotgrad(const TestFunction<D> &T) {
+    auto [N, M] = T.size();
+    assert(M == 1);
+    TestFunction<D> gradU;
+
+    for (int i = 0; i < N; ++i) {
+        assert(T.nbCol(i) == 1);
+        for (int d = 0; d < D; ++d) {
+            auto new_list = T.getList(i, 0);
+            for (auto &item : new_list.U) {
+                item.du = rotD(d);
+                if (d == 0)
+                    item.c *= -1;
+            }
+            int irow = T.isScalar() ? d : i;
+            int jrow = T.isScalar() ? 0 : d;
+            gradU.push({irow, jrow}, new_list);
+        }
+    }
+    return gradU;
 }
 
 template <int D> TestFunction<D> average(const TestFunction<D> &U, const TestFunction<D> &V, int c1, int c2) {

@@ -2,6 +2,7 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++2a -fPIC -O3")
 
 
 if(USE_MPI)
@@ -24,13 +25,12 @@ add_subdirectory(problem)
 list(APPEND EXTRA_LIBS problem)
 
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++2a -fPIC -O3")
-
-
-
 if(${CUTFEM_BUILD_PYTHON_WRAPPER})
-add_library(_darcy SHARED wrap_lib/lib_darcy.cpp)
-target_link_libraries(_darcy PUBLIC ${EXTRA_LIBS})
+add_library(_pyCutFEM SHARED 
+                            wrap_lib/lib_cutfem.cpp
+                            wrap_lib/lib_darcy.cpp
+                            wrap_lib/lib_stokes.cpp)
+target_link_libraries(_pyCutFEM PUBLIC ${EXTRA_LIBS})
 endif()
 
 

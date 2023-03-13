@@ -1840,7 +1840,8 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
  * @tparam M The mesh type.
  * @param u0 The solution vector to be initialized.
  */
-template <typename M> void BaseCutFEM<M>::initialSolution(std::span<double> u0) {
+
+template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::initialSolution(vector_t u0) {
 
     // Get the number of degrees of freedom in time
     int nbTime = this->get_nb_dof_time();

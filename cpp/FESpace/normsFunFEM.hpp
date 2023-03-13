@@ -603,37 +603,45 @@ template <typename M> double maxNormCut(const std::shared_ptr<ExpressionVirtual>
     }
     return val;
 }
-template <typename Mesh>
-double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<Mesh> &Th, int domain) {
+template <typeMesh mesh_t>
+double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<mesh_t> &Th, int domain) {
 
-    typedef GFESpace<Mesh> FESpace;
-    typedef typename FESpace::FElement FElement;
-    typedef typename ActiveMesh<Mesh>::Element Element;
-    typedef typename FElement::QF QF;
-    typedef typename FElement::Rd Rd;
-    typedef typename QF::QuadraturePoint QuadraturePoint;
+    using fespace_t = GFESpace<mesh_t>;
+    using fe_t      = typename fespace_t::FElement;
+    using e_t       = typename mesh_t::Element;
+    using QF        = typename fe_t::QF;
+    using QFB       = typename fe_t::QFB;
+    using v_t       = typename fe_t::Rd;
+    using qp_t      = typename QF::QuadraturePoint;
 
-    const QF &qf(*QF_Simplex<typename FElement::RdHat>(3));
+    const QF &qf(*QF_Simplex<typename fe_t::RdHat>(5));
+    const QFB &qfb(*QF_Simplex<typename fe_t::RdHatBord>(5));
+
     What_d Fop = Fwhatd(op_id);
-
     double val = 0.;
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
             continue;
-
-        const Cut_Part<Element> cutK(Th.get_cut_part(k, 0));
+        const e_t &K(Th[k]);
+        const Cut_Part<e_t> cutK(Th.get_cut_part(k, 0));
         int kb = Th.idxElementInBackMesh(k);
 
         for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
-
             for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+                auto ip(qf[ipq]); // integration point
+                v_t mip = cutK.mapToPhysicalElement(it, ip);
+                val     = std::max(val, fabs(fh->eval(k, mip)));
+            }
 
-                QuadraturePoint ip(qf[ipq]); // integration point
-                Rd mip = cutK.mapToPhysicalElement(it, ip);
-
-                val = std::max(val, fabs(fh->eval(k, mip)));
+            for (int ifac = 0; ifac < e_t::nea; ++ifac) {
+                for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+                    auto ip(qfb[ipq]); // integration point
+                    auto ipf = K.mapToReferenceElement(ip, ifac);
+                    v_t mip  = cutK.mapToPhysicalElement(it, ipf);
+                    val      = std::max(val, fabs(fh->eval(k, mip)));
+                }
             }
         }
     }

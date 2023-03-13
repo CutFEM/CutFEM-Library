@@ -14,6 +14,33 @@ You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 #include "levelSet.hpp"
+
+namespace LevelSet {
+
+// template<typename Mesh>
+// KN<double> move_2D(const FunFEM<Mesh>&, const FunFEM<Mesh>&, const
+// FunFEM<Mesh>&, double, FunFEM<Mesh>&); template<typename Fun> KN<double>
+// move_3D(const Fun&, const Fun&, const Fun&, double);
+
+void move(const FunFEM<Mesh2> &up, const FunFEM<Mesh2> &betap, const FunFEM<Mesh2> &beta, double dt,
+          FunFEM<Mesh2> &ls) {
+    move_2D<Mesh2>(up, betap, beta, dt, ls);
+}
+// KN<double> move(const FunFEM<MeshQ2> &, const FunFEM<MeshQ2> &, const
+// FunFEM<MeshQ2> &, double);
+void move(const FunFEM<Mesh3> &up, const FunFEM<Mesh3> &betap, const FunFEM<Mesh3> &beta, double dt,
+          FunFEM<Mesh3> &ls) {
+    move_3D<Mesh3>(up, betap, beta, dt, ls);
+}
+void move(const FunFEM<MeshHexa> &up, const FunFEM<MeshHexa> &betap, const FunFEM<MeshHexa> &beta, double dt,
+          FunFEM<MeshHexa> &ls) {
+    move_3D<MeshHexa>(up, betap, beta, dt, ls);
+}
+// KN<double> move(const FunFEM<MeshQ3> &, const FunFEM<MeshQ3> &, const
+// FunFEM<MeshQ3> &, double);
+
+}; // namespace LevelSet
+
 //
 //
 // void LevelSet2::assembly(const Fun& up, const Fun& Betap, const Fun& Beta,

@@ -23,9 +23,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 using namespace globalVariable;
 
 typedef std::map<std::pair<int, int>, R> MatMap;
-typedef Mesh2 Mesh;
-typedef FESpace2 Space;
-typedef CutFESpace<Mesh> CutSpace;
+using mesh_t    = Mesh2;
+using fespace_t = FESpace2;
+typedef CutFESpace<mesh_t> CutSpace;
 typedef TestFunction<2> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 typedef ExpressionFunFEM<Mesh2> Expression;
@@ -45,10 +45,10 @@ typedef ExpressionFunFEM<Mesh2> Expression;
 
 R fun_initial(double *P, int elementComp) { return 0.5 + 0.5 * sin(pi * (P[0] + P[1])); }
 R fun_boundary(double *P, int elementComp, double t) { return 0.5 + 0.5 * sin(pi * (P[0] + P[1] - 4 * t)); }
-void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
+void assembly(const fespace_t &Wh, MatMap &Ah, MatMap &Mh) {
 
     double t0 = getTime();
-    const Mesh &Khi(Wh.Th);
+    const mesh_t &Khi(Wh.Th);
     FEM<Mesh2> problem(Wh);
     R2 beta(3, 1);
     double lambdaE = sqrt(10);
@@ -83,11 +83,11 @@ void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
 
     std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
-void solve_problem(const Space &Wh, const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
+void solve_problem(const fespace_t &Wh, const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
 
     double t0 = getTime();
 
-    const Mesh &Khi(Wh.Th);
+    const mesh_t &Khi(Wh.Th);
 
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
@@ -131,8 +131,8 @@ int main(int argc, char **argv) {
     // =====================================================
     int nx = 40;
     int ny = 40;
-    Mesh Kh(nx, ny, -1., -1., 2., 2.); // [-1,1]*[-1,1]
-    Space Vh(Kh, DataFE<Mesh2>::P0);
+    mesh_t Kh(nx, ny, -1., -1., 2., 2.); // [-1,1]*[-1,1]
+    fespace_t Vh(Kh, DataFE<Mesh2>::P0);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
     dt              = tend / niteration;
     double errSum   = 0;
 
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
 
     // Plot the macro elements
     // {
-    //   Paraview<Mesh> writer(Khi, "peiII.vtk");
+    //   Paraview<mesh_t> writer(Khi, "peiII.vtk");
     //   writer.add(fun_uh, "uh", 0, 1);
     //   writer.add(levelSet, "levelSet", 0, 1);
     //   writer.writeMacroInnerEdge (macro, 0, "pei_macro_inner_edge1.vtk");
@@ -257,14 +257,14 @@ int main(int argc, char **argv) {
         limiter::FEM::check_mean_value(fun_uh_tild, 0., 1.);
 
         // if((i==24) && MPIcf::IamMaster()) {
-        //   Paraview<Mesh> writer(Khi, "maxPrinciple.vtk");
+        //   Paraview<mesh_t> writer(Khi, "maxPrinciple.vtk");
         //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
         //   writer.add(fun_u1, "uhLimiter", 0, 1);
         //   writer.add(fun_uM, "macroExtend", 0, 1);
         // }
 
         // if(MPIcf::IamMaster()) {
-        //   Paraview<Mesh> writer(Kh,
+        //   Paraview<mesh_t> writer(Kh,
         //   "maxPrincipleFEM_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh,
         //   "uhNoLimiter", 0, 1); writer.add(fun_uh_tild, "uhLimiter", 0, 1);
         // }
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
         // ==================================================
         if (MPIcf::IamMaster() && i % 10 == 0 || i + 1 == niteration) {
 
-            Paraview<Mesh> writer(Kh, "smooth_FEM_P0_" + std::to_string(ifig++) + ".vtk");
+            Paraview<mesh_t> writer(Kh, "smooth_FEM_P0_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_u1, "uhLimiter", 0, 1);
             writer.add(fun_ex, "u_exact", 0, 1);
@@ -356,10 +356,10 @@ R fun_initial(double *P, int elementComp, int domain) { return sin(pi * (P[0] + 
 R fun_solution(double *P, int elementComp, int domain, double t) { return sin(pi * (P[0] + P[1] - 4 * t)); }
 R fun_boundary(double *P, int elementComp, int domain, double t) { return sin(pi * (P[0] + P[1] - 4 * t)); }
 
-void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, MatMap &Mh) {
+void assembly(const fespace_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah, MatMap &Mh) {
 
     double t0 = getTime();
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
     CutFEM<Mesh2> problem(Wh);
     CutFEM_R2 beta({R2(3, 1), R2(3, 1)});
     CutFEMParameter lambda(0, 1.);
@@ -411,12 +411,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
 
     std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
-void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
-                   double tn) {
+void solve_problem(const fespace_t &Wh, const Interface<mesh_t> &interface, const Rn &u0, Rn &uh, MatMap &Ah,
+                   MatMap &Mh, double tn) {
 
     double t0 = getTime();
 
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
 
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
@@ -462,10 +462,10 @@ int main(int argc, char **argv) {
     // =====================================================
     int nx = 20;
     int ny = 20;
-    // Mesh Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
+    // mesh_t Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
 
-    Space Vh(Th, DataFE<Mesh2>::P1dc);
+    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -477,26 +477,26 @@ int main(int argc, char **argv) {
     dt              = tend / niteration;
     double errSum   = 0;
 
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DEFINITION OF THE LEVELSET
     // =====================================================
-    Space Lh(Th, DataFE<Mesh2>::P1);
+    fespace_t Lh(Th, DataFE<Mesh2>::P1);
     Fun_h levelSet(Lh, fun_levelSet);
 
     Lagrange2 FE_beta(1);
-    Space Uh(Th, FE_beta);
+    fespace_t Uh(Th, FE_beta);
 
     // CONSTRUCTION INTERFACE AND CUTSPACE
     // =====================================================
-    InterfaceLevelSet<Mesh> interface(Th, levelSet);
-    ActiveMesh<Mesh> Khi(Th, interface);
+    InterfaceLevelSet<mesh_t> interface(Th, levelSet);
+    ActiveMesh<mesh_t> Khi(Th, interface);
     // Khi.truncate(interface, 1);
     CutSpace Wh(Khi, Vh);
     CutSpace Qh(Khi, Uh);
 
-    MacroElement<Mesh> macro(Khi, 0.5);
+    MacroElement<mesh_t> macro(Khi, 0.5);
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
     // =====================================================
@@ -511,7 +511,7 @@ int main(int argc, char **argv) {
 
     // Plot the macro elements
     // {
-    //   Paraview<Mesh> writer(Khi, "test_accuracy_mesh.vtk");
+    //   Paraview<mesh_t> writer(Khi, "test_accuracy_mesh.vtk");
     //   writer.add(fun_uh, "uh", 0, 1);
     //   writer.add(levelSet, "levelSet", 0, 1);
     //   writer.writeMacroInnerEdge (macro, 1, "pei_macro_inner_edge1.vtk");
@@ -548,7 +548,7 @@ int main(int argc, char **argv) {
         // uM = u0;
         // uh = u0;
         // limiter::extendToMacroP1(fun_uh, uM, u_mean, macro);
-        // limiter::check_maximum_principle<Mesh>(u_mean, 0, 1);
+        // limiter::check_maximum_principle<mesh_t>(u_mean, 0, 1);
         // The U_mean should satisfy the maximum principle
         // u0 = uh_tild;
 
@@ -607,7 +607,7 @@ int main(int argc, char **argv) {
         auto [min_uh, max_uh] = limiter::CutFEM::findMinAndMaxValue(fun_uh);
         auto [min_u1, max_u1] = limiter::CutFEM::findMinAndMaxValue(fun_uh_tild);
         // if(MPIcf::IamMaster()) {
-        //   Paraview<Mesh> writer(Khi,
+        //   Paraview<mesh_t> writer(Khi,
         //   "smoothSol_CutFEM_"+std::to_string(ifig++)+".vtk");
         //   writer.add(fun_uh, "uhNoLimiter", 0, 1); writer.add(fun_uh_tild,
         //   "uhLimiter", 0, 1);
@@ -632,7 +632,7 @@ int main(int argc, char **argv) {
             std::cout << max_u0 - max_u1 << std::endl;
 
             // if(MPIcf::IamMaster()) {
-            //   Paraview<Mesh> writer(Khi,
+            //   Paraview<mesh_t> writer(Khi,
             //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
             //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
             //   writer.add(fun_uh_tild, "uhLimiter", 0, 1);
@@ -658,7 +658,7 @@ int main(int argc, char **argv) {
         // ==================================================
         if (MPIcf::IamMaster() && i % 5 == 0 || i + 1 == niteration) {
 
-            Paraview<Mesh> writer(Khi, "smoothSolCutFEM_" + std::to_string(ifig++) + ".vtk");
+            Paraview<mesh_t> writer(Khi, "smoothSolCutFEM_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_uh_tild, "uhLimiter", 0, 1);
             writer.add(femErrh, "error", 0, 1);
@@ -717,10 +717,10 @@ R fun_initial(double *P, int elementComp, int domain) {
 R fun_boundary(double *P, int elementComp, double t) { return 0.; }
 R fun_velocity(double *P, int elementComp, int domain) { return (elementComp == 0) ? -2 * pi * P[1] : 2 * pi * P[0]; }
 
-void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, MatMap &Mh, const Fun_h &beta) {
+void assembly(const fespace_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah, MatMap &Mh, const Fun_h &beta) {
 
     double t0 = getTime();
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
     CutFEM<Mesh2> problem(Wh);
     CutFEMParameter lambda(0, 1.);
     double lambdaE = sqrt(2) * 2 * pi;
@@ -789,12 +789,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
 
     std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
-void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
-                   double tn) {
+void solve_problem(const fespace_t &Wh, const Interface<mesh_t> &interface, const Rn &u0, Rn &uh, MatMap &Ah,
+                   MatMap &Mh, double tn) {
 
     double t0 = getTime();
 
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
 
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
@@ -844,10 +844,10 @@ int main(int argc, char **argv) {
 
     // DEFINITION OF THE MESH and SPACE
     // ====================================================
-    int nx = 20;                                     // 160;
-    int ny = 20;                                     // 160;
-    Mesh Th(nx, ny, -1.0075, -1.0075, 2.015, 2.015); // [-1,1]*[-1,1]
-    Space Vh(Th, DataFE<Mesh2>::P0);
+    int nx = 20;                                       // 160;
+    int ny = 20;                                       // 160;
+    mesh_t Th(nx, ny, -1.0075, -1.0075, 2.015, 2.015); // [-1,1]*[-1,1]
+    fespace_t Vh(Th, DataFE<Mesh2>::P0);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -859,27 +859,27 @@ int main(int argc, char **argv) {
     dt              = tend / niteration;
     double errSum   = 0;
 
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DEFINITION OF THE LEVELSET
     // =====================================================
-    Space Lh(Th, DataFE<Mesh2>::P1);
+    fespace_t Lh(Th, DataFE<Mesh2>::P1);
     Fun_h levelSet(Lh, fun_levelSet);
 
     Lagrange2 FE_beta(1);
-    Space Uh(Th, FE_beta);
+    fespace_t Uh(Th, FE_beta);
 
     // CONSTRUCTION INTERFACE AND CUTSPACE
     // =====================================================
-    InterfaceLevelSet<Mesh> interface(Th, levelSet);
-    ActiveMesh<Mesh> Khi(Th);
+    InterfaceLevelSet<mesh_t> interface(Th, levelSet);
+    ActiveMesh<mesh_t> Khi(Th);
     Khi.truncate(interface, 1);
     CutSpace Wh(Khi, Vh);
     CutSpace Qh(Khi, Uh);
     Fun_h beta(Qh, fun_velocity);
 
-    MacroElement<Mesh> macro(Khi, 0.5);
+    MacroElement<mesh_t> macro(Khi, 0.5);
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
     // =====================================================
@@ -894,7 +894,7 @@ int main(int argc, char **argv) {
 
     // Plot the macro elements
     {
-        Paraview<Mesh> writer(Khi, "test_accuracy_mesh.vtk");
+        Paraview<mesh_t> writer(Khi, "test_accuracy_mesh.vtk");
         writer.add(fun_uh, "uh", 0, 1);
         // writer.add(levelSet, "levelSet", 0, 1);
         writer.writeMacroInnerEdge(macro, 0, "pei_macro_inner_edge1.vtk");
@@ -933,7 +933,7 @@ int main(int argc, char **argv) {
         // uM = u0;
         // uh = u0;
         // limiter::extendToMacroP1(fun_uh, uM, u_mean, macro);
-        // limiter::check_maximum_principle<Mesh>(u_mean, 0, 1);
+        // limiter::check_maximum_principle<mesh_t>(u_mean, 0, 1);
         // The U_mean should satisfy the maximum principle
         // u0 = uh_tild;
 
@@ -1027,7 +1027,7 @@ int main(int argc, char **argv) {
         if (i % 1 == 0 || i + 1 == niteration) {
 #endif
             // Fun_h fun_thet (Wh, fun_theta);
-            Paraview<Mesh> writer(Khi, "test_accuracyP0_" + std::to_string(ifig++) + ".vtk");
+            Paraview<mesh_t> writer(Khi, "test_accuracyP0_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_uh_tild, "uhLimiter", 0, 1);
             writer.add(femErrh, "error", 0, 1);
@@ -1112,10 +1112,10 @@ R fun_solution(double *P, int elementComp, int domain, double t) {
     }
 }
 
-void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
+void assembly(const fespace_t &Wh, MatMap &Ah, MatMap &Mh) {
 
     double t0 = getTime();
-    const Mesh &Khi(Wh.Th);
+    const mesh_t &Khi(Wh.Th);
 
     FEM<Mesh2> problem(Wh);
     // CutFEMParameter lambdaE(sqrt(10), sqrt(10));  // max B = sqrt(10)/sqrt(5)
@@ -1145,11 +1145,11 @@ void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
 
     std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
-void solve_problem(const Space &Wh, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
+void solve_problem(const fespace_t &Wh, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh, double tn) {
 
     double t0 = getTime();
 
-    const Mesh &Khi(Wh.Th);
+    const mesh_t &Khi(Wh.Th);
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
     optionProblem.clear_matrix_ = false;
@@ -1217,10 +1217,10 @@ int main(int argc, char **argv) {
     int nx = 40;
     int ny = 40;
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
-    Space Vh(Th, DataFE<Mesh2>::P1dc);
+    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
 
     // LagrangeDC2 FE_Flux(1);
-    // Space Fh_0(Th, FE_Flux);
+    // fespace_t Fh_0(Th, FE_Flux);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -1232,12 +1232,12 @@ int main(int argc, char **argv) {
     dt              = tend / niteration;
     double errSum   = 0;
 
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DEFINITION OF THE LEVELSET
     // =====================================================
-    Space Lh(Th, DataFE<Mesh2>::P1);
+    fespace_t Lh(Th, DataFE<Mesh2>::P1);
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
     // =====================================================
@@ -1252,7 +1252,7 @@ int main(int argc, char **argv) {
 
     // Plot the macro elements
     // {
-    //   Paraview<Mesh> writer(Khi, "test_burger_mesh.vtk");
+    //   Paraview<mesh_t> writer(Khi, "test_burger_mesh.vtk");
     //   writer.add(fun_uh, "uh", 0, 1);
     //   writer.add(levelSet, "levelSet", 0, 1);
     //   writer.writeMacroInnerEdge (macro, 0,
@@ -1347,7 +1347,7 @@ int main(int argc, char **argv) {
             // std::cout << max_u0 - max_u1 << std::endl;
 
             // if(MPIcf::IamMaster()) {
-            //   Paraview<Mesh> writer(Khi,
+            //   Paraview<mesh_t> writer(Khi,
             //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
             //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
             //   writer.add(fun_uh_tild, "uhLimiter", 0, 1);
@@ -1373,7 +1373,7 @@ int main(int argc, char **argv) {
         // ==================================================
         // if(MPIcf::IamMaster() && i%5 == 0 || i+1 == niteration) {
         //   // Fun_h fun_thet (Wh, fun_theta);
-        //   Paraview<Mesh> writer(Th,
+        //   Paraview<mesh_t> writer(Th,
         //   "test_burgerFEM_P01_"+std::to_string(ifig++)+".vtk");
         //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
         //   // writer.add(fun_uh_tild, "uhLimiter", 0, 1);
@@ -1441,10 +1441,10 @@ R fun_solution(double *P, int elementComp, int domain, double t) {
 //   return sin(pi*(P[0]+P[1] - 4*t));
 // }
 
-void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, MatMap &Mh) {
+void assembly(const fespace_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah, MatMap &Mh) {
 
     double t0 = getTime();
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
 
     CutFEM<Mesh2> problem(Wh);
     CutFEMParameter lambda(0, 1.);
@@ -1498,12 +1498,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
 
     std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
-void solve_problem(const Space &Wh, const Interface<Mesh> &interface, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
+void solve_problem(const fespace_t &Wh, const Interface<mesh_t> &interface, Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
                    double tn) {
 
     double t0 = getTime();
 
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
     optionProblem.clear_matrix_ = false;
@@ -1588,7 +1588,7 @@ int main(int argc, char **argv) {
     int nx = 40;
     int ny = 40;
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
-    Space Vh(Th, DataFE<Mesh2>::P1dc);
+    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -1600,22 +1600,22 @@ int main(int argc, char **argv) {
     dt              = tend / niteration;
     double errSum   = 0;
 
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DEFINITION OF THE LEVELSET
     // =====================================================
-    Space Lh(Th, DataFE<Mesh2>::P1);
+    fespace_t Lh(Th, DataFE<Mesh2>::P1);
     Fun_h levelSet(Lh, fun_levelSet);
 
     // CONSTRUCTION INTERFACE AND CUTSPACE
     // =====================================================
-    InterfaceLevelSet<Mesh> interface(Th, levelSet);
-    ActiveMesh<Mesh> Khi(Th, interface);
+    InterfaceLevelSet<mesh_t> interface(Th, levelSet);
+    ActiveMesh<mesh_t> Khi(Th, interface);
     CutSpace Wh(Khi, Vh);
     std::cout << "Number of dof = \t" << Wh.NbDoF() << std::endl;
 
-    MacroElement<Mesh> macro(Khi, 0.5);
+    MacroElement<mesh_t> macro(Khi, 0.5);
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
     // =====================================================
@@ -1630,7 +1630,7 @@ int main(int argc, char **argv) {
 
     // Plot the macro elements
     //   {
-    //     Paraview<Mesh> writer(Khi, "test_burger_mesh.vtk");
+    //     Paraview<mesh_t> writer(Khi, "test_burger_mesh.vtk");
     //     writer.add(fun_uh, "uh", 0, 1);
     //     writer.add(levelSet, "levelSet", 0, 1);
     //     writer.writeMacroInnerEdge (macro, 0,
@@ -1724,7 +1724,7 @@ int main(int argc, char **argv) {
             // std::cout << max_u0 - max_u1 << std::endl;
 
             // if(MPIcf::IamMaster()) {
-            //   Paraview<Mesh> writer(Khi,
+            //   Paraview<mesh_t> writer(Khi,
             //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
             //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
             //   writer.add(fun_uh_tild, "uhLimiter", 0, 1);
@@ -1750,7 +1750,7 @@ int main(int argc, char **argv) {
         // ==================================================
         if (MPIcf::IamMaster() && i % 5 == 0 || i + 1 == niteration) {
             // Fun_h fun_thet (Wh, fun_theta);
-            Paraview<Mesh> writer(Khi, "test_burger_P1_" + std::to_string(ifig++) + ".vtk");
+            Paraview<mesh_t> writer(Khi, "test_burger_P1_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_uh_tild, "uhLimiter", 0, 1);
             writer.add(femErrh, "error", 0, 1);
@@ -1791,11 +1791,11 @@ R fun_initial(double *P, int elementComp, int domain) {
 }
 R fun_boundary(double *P, int elementComp, int domain, double t) { return 0.; }
 
-void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
+void assembly(const fespace_t &Wh, MatMap &Ah, MatMap &Mh) {
 
     double t0 = getTime();
-    const Mesh &Khi(Wh.Th);
-    FEM<Mesh> problem(Wh);
+    const mesh_t &Khi(Wh.Th);
+    FEM<mesh_t> problem(Wh);
     R2 beta(1, 1);
     double lambdaE = sqrt(10);
     const MeshParameter &h(Parameter::h);
@@ -1829,16 +1829,17 @@ void assembly(const Space &Wh, MatMap &Ah, MatMap &Mh) {
     std::cout << " Time assembly \t" << getTime() - t0 << std::endl;
 }
 
-template <typename Vec> KN<double> solve_problem(const Space &Wh, const Vec &u0, MatMap &Ah, MatMap &Mh, double tn) {
+template <typename Vec>
+KN<double> solve_problem(const fespace_t &Wh, const Vec &u0, MatMap &Ah, MatMap &Mh, double tn) {
 
     double t0 = getTime();
 
-    const Mesh &Khi(Wh.Th);
+    const mesh_t &Khi(Wh.Th);
 
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
     optionProblem.clear_matrix_ = false;
-    FEM<Mesh> problem(Wh, optionProblem);
+    FEM<mesh_t> problem(Wh, optionProblem);
 
     R2 beta(1, 1);
     double lambdaB = sqrt(10);
@@ -1879,11 +1880,11 @@ int main(int argc, char **argv) {
     // =====================================================
     int nx = 20;
     int ny = 20;
-    // Mesh Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
+    // mesh_t Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
 
-    Space Vh(Th, DataFE<Mesh2>::P1dc);
-    Space Eh(Th, DataFE<Mesh2>::P0);
+    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
+    fespace_t Eh(Th, DataFE<Mesh2>::P0);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -1895,7 +1896,7 @@ int main(int argc, char **argv) {
     dt              = tend / niteration;
     double errSum   = 0;
 
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
@@ -1974,7 +1975,7 @@ int main(int argc, char **argv) {
                 if (MPIcf::IamMaster())
 #endif
                 {
-                    Paraview<Mesh> writer(Th, "checkErrorFEMDiscontinuous.vtk");
+                    Paraview<mesh_t> writer(Th, "checkErrorFEMDiscontinuous.vtk");
                     writer.add(fun_uh, "uhNoLimiter", 0, 1);
                     writer.add(fun_uh_tild0, "uhLimiter", 0, 1);
                     writer.add(fun_indicator, "indicator", 0, 1);
@@ -2013,7 +2014,7 @@ int main(int argc, char **argv) {
 
             // limiter::CutFEM::extendToMacroP1(fun_u1, uM, map_mean_value, macro);
             // std::cout << "hey " << std::endl;
-            // Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
+            // Paraview<mesh_t> writer(Khi, "maxPrincipleU0.vtk");
             // writer.add(fun_u1, "u0", 0, 1);
             // writer.add(fun_uM, "macroextended", 0, 1);
             // writer.add(fun_u_mean, "uMean", 0, 1);
@@ -2024,7 +2025,7 @@ int main(int argc, char **argv) {
 
             // std::cout << min_u0 << "\t" << max_u0 << std::endl;
             // // if(MPIcf::IamMaster()) {
-            //   // Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
+            //   // Paraview<mesh_t> writer(Khi, "maxPrincipleU0.vtk");
             //   writer.add(fun_uM, "macroLimited", 0, 1);
             // // }
 
@@ -2056,7 +2057,7 @@ int main(int argc, char **argv) {
             std::cout << min_u1 << " < u1_{h,M} < " << max_u1 << std::endl;
 
             // if(MPIcf::IamMaster()) {
-            //   Paraview<Mesh> writer(Khi,
+            //   Paraview<mesh_t> writer(Khi,
             //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
             //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
             //   writer.add(fun_uh_tild, "uhLimiter", 0, 1);
@@ -2067,7 +2068,7 @@ int main(int argc, char **argv) {
         // PLOT THE SOLUTION
         // ==================================================
         // if(MPIcf::IamMaster() && i%1 == 0 || i+1 == niteration) {
-        //   Paraview<Mesh> writer(Khi,
+        //   Paraview<mesh_t> writer(Khi,
         //   "conservationP1_"+std::to_string(ifig++)+".vtk"); writer.add(fun_uh ,
         //   "uhNoLimiter", 0, 1); writer.add(fun_uh_tild, "uhLimiter"  , 0, 1);
         // }
@@ -2106,10 +2107,10 @@ R fun_boundary(double *P, int elementComp, int domain, double t) {
     // return sin(pi*(P[0]+P[1] - 4*t));
 }
 
-void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, MatMap &Mh) {
+void assembly(const fespace_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah, MatMap &Mh) {
 
     double t0 = getTime();
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
     CutFEM<Mesh2> problem(Wh);
     CutFEM_R2 beta({R2(1, 1), R2(1, 1)});
     CutFEMParameter lambda(0, 1.);
@@ -2161,12 +2162,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
 }
 
 template <typename Vector1>
-void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Vector1 &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
-                   double tn) {
+void solve_problem(const fespace_t &Wh, const Interface<mesh_t> &interface, const Vector1 &u0, Rn &uh, MatMap &Ah,
+                   MatMap &Mh, double tn) {
 
     double t0 = getTime();
 
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
 
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
@@ -2212,11 +2213,11 @@ int main(int argc, char **argv) {
     // =====================================================
     int nx = 20;
     int ny = 20;
-    // Mesh Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
+    // mesh_t Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
 
-    Space Vh(Th, DataFE<Mesh2>::P1dc);
-    Space Eh0(Th, DataFE<Mesh2>::P0);
+    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
+    fespace_t Eh0(Th, DataFE<Mesh2>::P0);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -2228,22 +2229,22 @@ int main(int argc, char **argv) {
     dt              = tend / niteration;
     double errSum   = 0;
 
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DEFINITION OF THE LEVELSET
     // =====================================================
-    Space Lh(Th, DataFE<Mesh2>::P1);
+    fespace_t Lh(Th, DataFE<Mesh2>::P1);
     Fun_h levelSet(Lh, fun_levelSet);
 
     // CONSTRUCTION INTERFACE AND CUTSPACE
     // =====================================================
-    InterfaceLevelSet<Mesh> interface(Th, levelSet);
-    ActiveMesh<Mesh> Khi(Th, interface);
+    InterfaceLevelSet<mesh_t> interface(Th, levelSet);
+    ActiveMesh<mesh_t> Khi(Th, interface);
     CutSpace Wh(Khi, Vh);
     CutSpace Eh(Khi, Eh0);
 
-    MacroElement<Mesh> macro(Khi, 1.);
+    MacroElement<mesh_t> macro(Khi, 1.);
     // getchar();
     // DECLARATION OF THE VECTOR CONTAINING THE solution
     // =====================================================
@@ -2259,7 +2260,7 @@ int main(int argc, char **argv) {
 
     // Plot the macro elements
     {
-        Paraview<Mesh> writer(Khi, "peiII.vtk");
+        Paraview<mesh_t> writer(Khi, "peiII.vtk");
         writer.add(fun_uh, "uh", 0, 1);
         writer.add(levelSet, "levelSet", 0, 1);
         writer.writeMacroInnerEdge(macro, 0, "pei_macro_inner_edge1.vtk");
@@ -2269,6 +2270,7 @@ int main(int argc, char **argv) {
     }
     // return 0;
 
+    assert(0 && " add std minmax and span and other");
     double qu0    = integral(Khi, fun_uh, 0);
     double min_u0 = uh.min();
     double max_u0 = uh.max();
@@ -2305,7 +2307,7 @@ int main(int argc, char **argv) {
             // std::cout << min_u0 << "\t" << max_u0 << std::endl;
 
             // if(MPIcf::IamMaster()) {
-            //   Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
+            //   Paraview<mesh_t> writer(Khi, "maxPrincipleU0.vtk");
             //   writer.add(fun_u0, "u0", 0, 1);
             //   writer.add(fun_uM, "macroExtend", 0, 1);
             // }
@@ -2367,7 +2369,7 @@ int main(int argc, char **argv) {
                 if (MPIcf::IamMaster())
 #endif
                 {
-                    Paraview<Mesh> writer(Khi, "checkErrorDiscontinuous.vtk");
+                    Paraview<mesh_t> writer(Khi, "checkErrorDiscontinuous.vtk");
                     writer.add(fun_u1, "uh", 0, 1);
                     writer.add(fun_u1_slope, "uh_slope", 0, 1);
                     writer.add(fun_u1_macro, "uh_extend", 0, 1);
@@ -2407,7 +2409,7 @@ int main(int argc, char **argv) {
 
             // limiter::CutFEM::extendToMacroP1(fun_u1, uM, map_mean_value, macro);
             // std::cout << "hey " << std::endl;
-            // Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
+            // Paraview<mesh_t> writer(Khi, "maxPrincipleU0.vtk");
             // writer.add(fun_u1, "u0", 0, 1);
             // writer.add(fun_uM, "macroextended", 0, 1);
             // writer.add(fun_u_mean, "uMean", 0, 1);
@@ -2418,7 +2420,7 @@ int main(int argc, char **argv) {
 
             // std::cout << min_u0 << "\t" << max_u0 << std::endl;
             // // if(MPIcf::IamMaster()) {
-            //   // Paraview<Mesh> writer(Khi, "maxPrincipleU0.vtk");
+            //   // Paraview<mesh_t> writer(Khi, "maxPrincipleU0.vtk");
             //   writer.add(fun_uM, "macroLimited", 0, 1);
             // // }
 
@@ -2437,14 +2439,14 @@ int main(int argc, char **argv) {
         std::cout << " time min max \t" << getTime() - tt << std::endl;
 
         // if((i==24) && MPIcf::IamMaster()) {
-        //   Paraview<Mesh> writer(Khi, "maxPrinciple.vtk");
+        //   Paraview<mesh_t> writer(Khi, "maxPrinciple.vtk");
         //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
         //   writer.add(fun_u1, "uhLimiter", 0, 1);
         //   writer.add(fun_uM, "macroExtend", 0, 1);
         // }
 
         // if(MPIcf::IamMaster()) {
-        //   Paraview<Mesh> writer(Khi,
+        //   Paraview<mesh_t> writer(Khi,
         //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
         //   writer.add(fun_uh, "uhNoLimiter", 0, 1); writer.add(fun_uh_tild,
         //   "uhLimiter", 0, 1);
@@ -2466,7 +2468,7 @@ int main(int argc, char **argv) {
             std::cout << min_u1 << " < u1_{h,M} < " << max_u1 << std::endl;
 
             // if(MPIcf::IamMaster()) {
-            //   Paraview<Mesh> writer(Khi,
+            //   Paraview<mesh_t> writer(Khi,
             //   "maxPrincipleCutFEM_"+std::to_string(ifig++)+".vtk");
             //   writer.add(fun_uh, "uhNoLimiter", 0, 1);
             //   writer.add(fun_uh_tild, "uhLimiter", 0, 1);
@@ -2482,7 +2484,7 @@ int main(int argc, char **argv) {
         if (i % 1 == 0 || i + 1 == niteration)
 #endif
         {
-            Paraview<Mesh> writer(Khi, "conservationP1_" + std::to_string(ifig++) + ".vtk");
+            Paraview<mesh_t> writer(Khi, "conservationP1_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_uh_tild, "uhLimiter", 0, 1);
         }
