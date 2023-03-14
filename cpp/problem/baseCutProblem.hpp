@@ -201,8 +201,13 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void removeDofForHansbo(const FESpace &Vh);
 
     // For time problem
-    template <NonAllocVector vector_t> void saveSolution(const vector_t);
-    template <NonAllocVector vector_t> void initialSolution(vector_t);
+    template <typename V>
+    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
+    void saveSolution(const V);
+
+    template <typename V>
+    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
+    void initialSolution(V);
 
     int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 };
