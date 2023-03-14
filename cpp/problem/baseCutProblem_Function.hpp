@@ -1841,13 +1841,17 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
  * @param u0 The solution vector to be initialized.
  */
 
-template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::initialSolution(vector_t u0) {
+template <typename M>
+template <typename V>
+    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
+void BaseCutFEM<M>::initialSolution(V u0) {
 
     // Get the number of degrees of freedom in time
     int nbTime = this->get_nb_dof_time();
 
     // Initialize u0 with the number of degrees of freedom
-    // u0.init(this->get_nb_dof());
+    //u0.init(this->get_nb_dof());
+    std::cout << u0.size() << "\n";
     assert(u0.size() == this->get_nb_dof());
 
     // If the mapU0_ is empty, return without performing any further operations
@@ -1874,7 +1878,7 @@ template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::ini
         const FESpace &backVh = Wh.get_back_space();
 
         // Create a temporary variable u0S as a subarray of u0
-        vector_t u0S = u0.subspan(n0, Wh.NbDoF() * nbTime);
+        KN_<double> u0S = u0.subspan(n0, Wh.NbDoF() * nbTime);
 
         // Loop through all the elements of the mesh
         for (int k = 0; k < Th.get_nb_element(); ++k) {
@@ -1915,7 +1919,10 @@ template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::ini
     this->mapU0_.clear();
 }
 
-template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::saveSolution(const vector_t sol) {
+template <typename M>
+template <typename V>
+    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
+void BaseCutFEM<M>::saveSolution(const V sol) {
 
     this->mapU0_.clear();
     int id_domain_0 = 0;
@@ -1929,7 +1936,7 @@ template <typename M> template <NonAllocVector vector_t> void BaseCutFEM<M>::sav
         const FESpace &backVh = Wh.get_back_space();
 
         // KN_<double> solS(sol(SubArray(Wh.get_nb_dof() * nbTime, n0)));
-        const vector_t solS = sol.subspan(n0, Wh.get_nb_dof() * nbTime);
+        const KN_<double> solS = sol.subspan(n0, Wh.get_nb_dof() * nbTime);
 
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 

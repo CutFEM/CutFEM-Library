@@ -112,12 +112,13 @@ template <class R> std::istream &operator>>(std::istream &f, KN_<R> &v);
 template <class R> std::istream &operator>>(std::istream &f, KN<R> &v);
 
 template <class R> class KN_ : public ShapeOfArray {
-    using element_type = R;
+    
 
   protected:
     R *v;
 
   public:
+    using element_type = R;
     typedef R K; // type of
     long N() const { return n; }
     bool unset() const { return !v; }
@@ -140,6 +141,11 @@ template <class R> class KN_ : public ShapeOfArray {
     KN_ operator()(const SubArray &sa) const { return KN_(*this, sa); } // sub array
 
     KN_ subspan(int i0, int l) {
+        KN_<R> sub_u(*this, SubArray(l, i0));
+        return sub_u;
+    }
+
+    const KN_ subspan(int i0, int l) const {
         KN_<R> sub_u(*this, SubArray(l, i0));
         return sub_u;
     }
