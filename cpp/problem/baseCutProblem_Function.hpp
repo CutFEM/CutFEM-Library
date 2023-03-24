@@ -1844,14 +1844,14 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
 template <typename M>
 template <typename V>
     requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
-void BaseCutFEM<M>::initialSolution(V u0) {
+void BaseCutFEM<M>::initialSolution(V & u0) {
 
     // Get the number of degrees of freedom in time
     int nbTime = this->get_nb_dof_time();
 
     // Initialize u0 with the number of degrees of freedom
     //u0.init(this->get_nb_dof());
-    std::cout << u0.size() << "\n";
+    
     assert(u0.size() == this->get_nb_dof());
 
     // If the mapU0_ is empty, return without performing any further operations
@@ -1912,6 +1912,7 @@ void BaseCutFEM<M>::initialSolution(V u0) {
                 }
             }
         }
+        
         // Increment the id_domain_0 by the number of domains in the mesh
         id_domain_0 += Th.get_nb_domain();
     }

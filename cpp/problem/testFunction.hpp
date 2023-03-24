@@ -33,16 +33,22 @@ static int D2(int i, int j) {
 }
 static int nextDerivative(int c, int du) {
     assert(du <= op_dz);
-    if (du == op_id)
-        return D1(c);
+    // c = index we want to differentiate with
+    // du = current differentiation index of test function
+
+    if (du == op_id)    
+        return D1(c);   // if test function is not differentiated, return first derivative in direction c
     else
-        return D2(du - 1, c);
+        return D2(du - 1, c);   // else, return second derivative in direction c
 }
 
-static int rotD(int i) {
-    int op[2] = {op_dy, op_dx};
+static int rotgradD(int i) {
+    int op[2] = {op_dy, op_dx}; 
     return op[i];
 }
+
+
+// Given test function u with u=(ux, uy, uz) where c denotes the component of u, and 
 
 void f_id(RNMK_ &x, int cu, int du);
 void f_ln(RNMK_ &x, int cu, int du);
@@ -50,25 +56,29 @@ void f_ln(RNMK_ &x, int cu, int du);
 template <int D> struct TestFunction;
 
 /**
- * @brief
- *
- * @tparam N //? What is N? Dimension?
+ * @brief ItemTestFunction is the core class representing a test function
+ * @tparam N Physical dimension //?
+ * @note This class holds all necessary information about the test function, 
+ * such as the coefficient, the component of the field, the derivative index,
+ * the time derivative index, the normal and conormal components, the domain id
+ * and the face side. It also holds the pointer to the root TestFunction object
+ * and the pointer to the function that evaluates the test function.
  */
 template <int N = 2> struct ItemTestFunction {
     typedef typename MeshType<N>::Mesh Mesh;
     typedef TestFunction<N> testFun_t; // why does ItemTestFunction have a TestFunction obejct, when TestFunction has an
                                        // ItemTestFunction object?
 
-    double c; ///< c – coefficient //? of what
+    double c; ///< c – scalar multiple of the test function
     int cu;   ///< cu – component of u
     int du;   ///< du – derivative index of u, i.e. dx, dy or dz
     int dtu;  ///< dtu – time derivative index
 
     std::vector<int> ar_nu, conormal; ///< arrays of normal and conormal components of test function //?
-    std::vector<const VirtualParameter *> coefu;
-    int domain_id_, face_side_;
-    std::shared_ptr<ExpressionVirtual> expru = nullptr;
-    const GFESpace<Mesh> *fespace            = nullptr;
+    std::vector<const VirtualParameter *> coefu;    
+    int domain_id_, face_side_; ///< e.g. average(u) saves the same test function but with different domain_id/face_side_
+    std::shared_ptr<ExpressionVirtual> expru = nullptr;     ///> if multiplied by a function
+    const GFESpace<Mesh> *fespace            = nullptr;     ///< so that integration is performed on the right space
     const testFun_t *root_fun_p              = nullptr;
 
     void (*pfun)(RNMK_ &, int, int) = f_id;
@@ -133,6 +143,12 @@ template <int N = 2> struct ItemTestFunction {
     }
 };
 
+/**
+ * @brief ItemList handles test functions related to each other through an operator
+ * @note For example, if T1 and T2 are two test functions, then the test function T1+T2 
+ * has an ItemList of size two, containing both T1 and T2.
+ * @tparam N Physical dimension
+ */
 template <int N = 2> struct ItemList {
 
     typedef typename MeshType<N>::Mesh Mesh;
@@ -140,7 +156,9 @@ template <int N = 2> struct ItemList {
     typedef ItemTestFunction<N> item_t;
     typedef TestFunction<N> testFun_t;
 
-    std::vector<item_t> U;
+    std::vector<item_t> U;      ///< vector of Items
+
+    //! When does the vector consist of more than one item?
 
     ItemList() {}
     ItemList(const ItemList &L) {
@@ -154,6 +172,17 @@ template <int N = 2> struct ItemList {
     //       U.push_back(item_t(*L.U(i), f));
     // }
 
+    //! CONTINUE HERE
+    /**
+     * @brief Construct a new ItemList object
+     * 
+     * @param Vh Finite Element Space
+     * @param cc Scalar coefficient that is multiplied with the testfunction
+     * @param i  Component index
+     * @param j  Derivative index (op_id = 0, op_dx = 1, op_dy = 2, op_dz = 3 etc)
+     * @param dd Domain index: -1 equals main domain if only one is defined
+     * @param ff Pointer to the testfunction
+     */
     ItemList(const FESpace &Vh, double cc, int i, int j, int dd, testFun_t *ff) {
         U.push_back(item_t(&Vh, cc, i, j, 0, dd, ff));
     }
@@ -172,6 +201,15 @@ template <int N = 2> struct ItemList {
     }
 };
 
+/**
+ * @brief Test function class
+ * @note A test function object is just a matrix A of ItemLists. 
+ * A[i] returns a vector of the ith components of the test function
+ * If one takes grad in 2D of a a 2D vector, it becomes a 2x2 matrix
+ * | dx(ux) |  dy(ux) |
+ * | dx(uy) |  dy(uy) | 
+ * @tparam dim Physical dimension of the problem
+ */
 template <int dim = 2> struct TestFunction {
     typedef typename typeRd<dim>::Rd Rd;
     typedef typename MeshType<dim>::Mesh Mesh;
@@ -191,7 +229,8 @@ template <int dim = 2> struct TestFunction {
      */
     TestFunction(const FESpace &Vh, int d) {
         for (int i = 0; i < d; ++i)
-            this->push(itemList_t(Vh, 1, i, 0, -1, this));
+            // (FE space, coefficient 1, component i, derivative index identity, domain -1, pointer to testfunction)
+            this->push(itemList_t(Vh, 1, i, 0, -1, this));  
     }
 
     /**
@@ -234,14 +273,15 @@ template <int dim = 2> struct TestFunction {
     const item_t &getItem(std::pair<int, int> ij, int k) const { return getList(ij.first, ij.second).getItem(k); }
     int sizeItemList(int i, int j) const { return A[i][j].size(); }
 
+    // pushes a new row of ItemList
     void push(const itemList_t &u) {
         std::vector<itemList_t> l_u(1, u);
         A.push_back(l_u);
     }
-    void push(const std::vector<itemList_t> &l_u) { A.push_back(l_u); }
-    int nbRow() const { return A.size(); }
+    void push(const std::vector<itemList_t> &l_u) { A.push_back(l_u); } // push a row of itemList_t 
+    int nbRow() const { return A.size(); }      
     int nbCol(int r = 0) const { return A[r].size(); }
-    std::pair<int, int> size() const { return {nbRow(), nbCol()}; }
+    std::pair<int, int> size() const { return {nbRow(), nbCol()}; } // return the size of the matrix A
     bool isScalar() const { return (nbRow() == 1 && nbCol() == 1); }
 
     const std::vector<itemList_t> &getRow(int i) const { return A[i]; }
@@ -258,7 +298,7 @@ template <int dim = 2> struct TestFunction {
     }
 
     friend std::ostream &operator<<(std::ostream &f, const TestFunction &u) {
-        f << u.nbRow() << " * " << u.nbCol() << std::endl;
+        f << "Number of rows (components): " << u.nbRow() << ", Number of columns: " << u.nbCol() << std::endl;
         for (int i = 0; i < u.nbRow(); ++i) {
             for (int j = 0; j < u.nbCol(); ++j) {
                 f << "( " << i << " , " << j << " ) : \t" << u(i, j);
@@ -600,23 +640,32 @@ template <int D> TestFunction<D> dz(const TestFunction<D> &T) {
 }
 
 template <int D> TestFunction<D> grad(const TestFunction<D> &T) {
-    auto [N, M] = T.size();
+    auto [N, M] = T.size(); // N = number of components of T, M = number of test functions in each component
 
     TestFunction<D> gradU;
+
+    // Iterate over number of components of T
     for (int i = 0; i < N; ++i) {
-        assert(T.nbCol(i) == 1);
+        assert(T.nbCol(i) == 1);    // cannot take gradient of a matrix
+        
+        // Iterate over physical dimensions
         for (int d = 0; d < D; ++d) {
-            auto new_list = T.getList(i, 0);
+
+            // Get the ItemList corresponding to component i
+            auto new_list = T.getList(i, 0);   // e.g. if T is a sum of two test functions, new_list will have two components
+
+            // Iterate over the test functions in the item list
             for (auto &item : new_list.U) {
-                item.du = nextDerivative(d, item.du);
+                item.du = nextDerivative(d, item.du);   // take first derivative if test function not already differentiated, otherwise take second derivative
             }
-            int irow = T.isScalar() ? d : i;
-            int jrow = T.isScalar() ? 0 : d;
-            gradU.push({irow, jrow}, new_list);
+            int irow = T.isScalar() ? d : i;            // if T is a scalar, then grad(T) is a vector and the derivatives of T are placed in the rows, 
+            int jrow = T.isScalar() ? 0 : d;            // otherwise grad(T) is a matrix and the components of T are placed in the rows, and the derivatives in the columns
+            gradU.push({irow, jrow}, new_list);         // push the differentiated item list into the gradU matrix
         }
     }
     return gradU;
 }
+
 
 template <int D> TestFunction<D> div(const TestFunction<D> &T) {
     auto [N, M] = T.size();
@@ -635,6 +684,79 @@ template <int D> TestFunction<D> div(const TestFunction<D> &T) {
     }
     return divU;
 }
+
+
+template<int D> TestFunction<D> rot(const TestFunction<D> &T) {
+    // T = [u0, u1, u2]
+
+    auto [N, M] = T.size();
+    assert(M == 1);             // we do not want to take rot of matrices
+    
+    // ONLY FOR 3D
+    assert(N == 3);
+    assert(D == 3);
+
+    // Temporary test functions
+    TestFunction<D> rotU1;
+    TestFunction<D> rotU2;
+
+    // Iterate over number of components of T
+    for (int i = 0; i < N; ++i) {
+        assert(T.nbCol(i) == 1);
+
+        // In component i, we want to return duj/dxk - duk/dxj 
+        int j      = (i + 1) % 3;        // (if i = x then j = y, k = z, if i=y then j=z, k=x, if i=z then j=x, k=y)
+        int k      = (i + 2) % 3;
+
+        auto uj = T.getList(j, 0);       // component j of T
+        auto uk = T.getList(k, 0);       // component k of T
+
+        // if uj = uj1 + uj2 + ... + ukn, we need to differentiate each term separately
+        assert(uj.U.size() == uk.U.size());
+        for (int l = 0; l < uj.U.size(); ++l) {
+
+            auto &itemj = uj.U[l];       // ujl
+            auto &itemk = uk.U[l];       // ukl
+
+            itemj.du = nextDerivative(k, itemj.du);     // take derivative dxk of ujl
+            itemk.du = nextDerivative(j, itemk.du);     // take derivative dxj of ukl
+        }
+
+        // result should go into row i
+        int irow = i;
+        int jrow = 0;
+
+        rotU1.push({irow, jrow}, uj);   // push duj/dxk 
+        rotU2.push({irow, jrow}, uk);   // push duk/dxj 
+    }
+    
+    return rotU1 - rotU2;       // return duj/dxk - duk/dxj
+}
+
+template <int D> TestFunction<D> rotgrad(const TestFunction<D> &T) {
+    auto [N, M] = T.size();
+    assert(M == 1);
+    TestFunction<D> gradU;
+
+    for (int i = 0; i < N; ++i) {
+        assert(T.nbCol(i) == 1);
+        for (int d = 0; d < D; ++d) {
+            auto new_list = T.getList(i, 0);
+            for (auto &item : new_list.U) {
+                item.du = rotgradD(d);
+                if (d == 0)
+                    item.c *= -1;
+            }
+            int irow = T.isScalar() ? d : i;
+            int jrow = T.isScalar() ? 0 : d;
+            gradU.push({irow, jrow}, new_list);
+        }
+    }
+    return gradU;
+}
+
+
+
 
 template <int D> TestFunction<D> Eps(const TestFunction<D> &T) {
     auto [N, M] = T.size();
@@ -847,27 +969,7 @@ template <int D> TestFunction<D> dyS(const TestFunction<D> &T) {
     return gradSU;
 }
 
-template <int D> TestFunction<D> rotgrad(const TestFunction<D> &T) {
-    auto [N, M] = T.size();
-    assert(M == 1);
-    TestFunction<D> gradU;
 
-    for (int i = 0; i < N; ++i) {
-        assert(T.nbCol(i) == 1);
-        for (int d = 0; d < D; ++d) {
-            auto new_list = T.getList(i, 0);
-            for (auto &item : new_list.U) {
-                item.du = rotD(d);
-                if (d == 0)
-                    item.c *= -1;
-            }
-            int irow = T.isScalar() ? d : i;
-            int jrow = T.isScalar() ? 0 : d;
-            gradU.push({irow, jrow}, new_list);
-        }
-    }
-    return gradU;
-}
 
 template <int D> TestFunction<D> average(const TestFunction<D> &U, const TestFunction<D> &V, int c1, int c2) {
     assert(U.nbCol() == V.nbCol());

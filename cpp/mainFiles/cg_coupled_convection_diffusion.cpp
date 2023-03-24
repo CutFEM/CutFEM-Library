@@ -2344,12 +2344,14 @@ namespace Example1_omega2 {
 } // namespace Example1_omega2
 
 namespace Example2 {
-    R fun_levelSet(double *P, const int i, const R t) {
+    R fun_levelSet(double *P) {
         return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
     }
-    R fun_levelSet(double *P, const int i) {
-        return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
-    }
+
+    // R fun_levelSet(double *P, const int i, const R t) {
+    //     return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
+    // }
+    
     R fun_rhsBulk(double *P, const int i, const R t) {return 0.;}
     R fun_rhsSurf(double *P,const int i, const R t) {return 0.;}
     R fun_neumann_Gamma(double *P, const int i) {return 0.;}
@@ -2397,14 +2399,14 @@ typedef FunFEM<Mesh2> Fun_h;
 // (only works for example 1)
 
 //* Set numerical example (options: "example1", "example2")
-#define example2
+#define example1
 
 //* Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
 #define omega2
-#define neumann // boundary condition on outer domain (options: "dirichlet", "neumann")
+#define dirichlet // boundary condition on outer domain (options: "dirichlet", "neumann")
 
 //* Set scheme for the method (options: "classical", "conservative".)
 #define classical
@@ -2438,10 +2440,10 @@ using namespace Example2;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 1;    // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 3;    // number of mesh refinements   (set to 1 to run
                                     // only once and plot to paraview)
     int nx = 15, ny = 15;           // starting mesh size
-    double h  = 0.05;              // starting mesh size
+    double h  = 0.1;              // starting mesh size
     double dT = 0.125;
 
     int total_number_iteration;
@@ -2606,7 +2608,7 @@ int main(int argc, char **argv) {
 #if defined(levelsetsolve) || defined(example2)
                 // We solve for the level-set using Crank-Nicholson in time
                 if (i < lastQuadTime) {
-                    LevelSet::move(ls[i], vel, vel, dt_levelSet, ls[i + 1]);
+                    LevelSet::move_2D(ls[i], vel, vel, dt_levelSet, ls[i + 1]);
                 }
 #endif
             }
@@ -2664,8 +2666,13 @@ int main(int argc, char **argv) {
             int tot_dof = (int)convdiff.get_nb_dof();   // total degrees of freedom
 
             // Data for initial solution
-            Rn data_u0(tot_dof, 0.);                                    // initial data total
+            //Rn data_u0(tot_dof, 0.);                                    // initial data total     //! DANGEROUS: THIS RUNS BUT GIVES INCORRECT SOLUTION
+            Rn data_u0(convdiff.get_nb_dof(),0.);                                    // initial data total
+            //convdiff.initialSolution(data_u0);                          // allocate memory        //! DANGEROUS: THIS RUNS BUT GIVES INCORRECT SOLUTION
             convdiff.initialSolution(data_u0);                          // allocate memory
+
+            std::cout << data_u0 << "\n";
+            getchar();
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0)));           // initial data bulk
             KN_<R> data_S0(data_u0(SubArray(WhGamma.NbDoF(), idx_s0))); // initial data surface
 
@@ -2758,7 +2765,7 @@ int main(int argc, char **argv) {
 
             double stab_bulk_face      = h * tau1;
             double stab_surf_face      = tau2;
-            double stab_surf_interface = h * tau3;
+            double stab_surf_interface = 0.; //h *tau3;
 
             // Stabilization along the interface
             // convdiff.addBilinear(+innerProduct(stab_surf_interface * grad(uS) * n, grad(vS) * n), interface, In);
