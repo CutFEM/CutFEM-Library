@@ -214,14 +214,6 @@ class BaseCutFEM : public BaseFEM<Mesh> {
     int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 };
 
-/**
- * @brief CutFEM problem for using Higher-Order integration from algoim
- * @note This class is intended to be derived from BaseCutFEM and the only
- * difference should be addElementContribution.
- * @tparam Mesh
- * @tparam L Level-set function on the form required by algoim
- */
-template <typename Mesh, typename Levelset> class AlgoimBaseCutFEM : public BaseCutFEM<Mesh> {};
 
 /**
  * @brief Create main object for a CutFEM problem
