@@ -327,6 +327,9 @@ void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element & K,
   R lx[] = {1.-P.x,P.x};
   R ly[] = {1.-P.y,P.y};
 
+  R2 edge_x(K[0], K[1]);
+  R2 edge_y(K[0], K[3]);
+
   //Linear_Transformation<Element> map(K);
 
   assert(val.N() >= Element::nv);
@@ -343,29 +346,28 @@ void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element & K,
   }
 
   if (whatd & Fop_D1) {
-    R2 phi_hat[4];
-    R Dl[] = {-1, 1};
-    phi_hat[0][0] = Dl[0]*ly[0];
-    phi_hat[0][1] = lx[0]*Dl[0];
-    phi_hat[1][0] = Dl[1]*ly[0];
-    phi_hat[1][1] = lx[1]*Dl[0];
-    phi_hat[2][0] = Dl[1]*ly[1];
-    phi_hat[2][1] = lx[1]*Dl[1];
-    phi_hat[3][0] = Dl[0]*ly[1];
-    phi_hat[3][1] = lx[0]*Dl[1];
 
+    RN_ f0x(val('.', 0, op_dx));
+    RN_ f0y(val('.', 0, op_dy));
+    R Dlx[] = {-1./Norme2(edge_x), 1./Norme2(edge_x)};
+    R Dly[] = {-1./Norme2(edge_y), 1./Norme2(edge_y)};
+    f0x[0] = Dlx[0]*ly[0];
+    f0x[1] = Dlx[1]*ly[0];
+    f0x[2] = Dlx[1]*ly[1]; 
+	f0x[3] = Dlx[0]*ly[1];
+	f0y[0] = Dly[0]*lx[0];
+	f0y[1] = Dly[0]*lx[1];
+	f0y[2] = Dly[1]*lx[1];
+	f0y[3] = Dly[1]*lx[0];
 
-  //   K.Gradlambda(Dl);
-   //  if (whatd & Fop_dx)  {
-   //    RN_ f0x(val('.',0,op_dx));
-   //    map.transform_gradient(phi_hat, f0x, op_dx);
-   //  }
+    // phi_hat[0][1] = lx[0]*Dl[0];
+    // phi_hat[1][0] = Dl[1]*ly[0];
+    // phi_hat[1][1] = lx[1]*Dl[0];
+    // phi_hat[2][0] = Dl[1]*ly[1];
+    // phi_hat[2][1] = lx[1]*Dl[1];
+    // phi_hat[3][0] = Dl[0]*ly[1];
+    // phi_hat[3][1] = lx[0]*Dl[1];
 
-   //  if (whatd & Fop_dy) {
-   //    RN_ f0y(val('.',0,op_dy));
-   //    map.transform_gradient(phi_hat, f0y, op_dy);
-   //  }
-   
   }
 }
 

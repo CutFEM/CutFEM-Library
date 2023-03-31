@@ -771,9 +771,9 @@ std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Norm
 //         uznx.addNormal(0);
 //         uzny.addNormal(1);
 
-//         fun_vector.at(0) = std::make_shared<ExpressionFunFEM<M>>(uynz - uzny);
-//         fun_vector.at(1) = std::make_shared<ExpressionFunFEM<M>>(uznx - uxnz);
-//         fun_vector.at(2) = std::make_shared<ExpressionFunFEM<M>>(uxny - uynx);
+//         fun_vector.at(0) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uynz) - std::make_shared<ExpressionFunFEM<M>>(uzny));
+//         fun_vector.at(1) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uznx) - std::make_shared<ExpressionFunFEM<M>>(uxnz));
+//         fun_vector.at(2) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uxny) - std::make_shared<ExpressionFunFEM<M>>(uynx));
 //     }
 
 //     R operator()(long i) const {

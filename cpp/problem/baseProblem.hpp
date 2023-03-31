@@ -282,5 +282,6 @@ template <typename Mesh> class FEM : public BaseFEM<Mesh>, public Solver {
 
 #include "baseProblem_Function.hpp"
 #include "baseCutProblem.hpp"
+#include "AlgoimBaseCutProblem.hpp"
 
 #endif

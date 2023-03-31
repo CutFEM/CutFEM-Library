@@ -636,7 +636,6 @@ typedef FunFEM<Mesh2> Fun_h;
 // If "omega2":
 // Set type of BCs on interface (options: "dirichlet", "neumann")
 #define neumann
-
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
@@ -667,10 +666,10 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     
     // Mesh settings and data objects
-    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;           // starting mesh size
+    double h  = 0.05;           // starting mesh size
     double dT = 0.25;
 
     int total_number_iteration;
@@ -743,7 +742,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = .5; // Final time
+        const double tfinal = 2.5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -913,7 +912,7 @@ int main(int argc, char **argv) {
             FunTest u(Wh, 1), v(Wh, 1);
 
             // Data for initial solution
-            Rn data_u0; // initial data total
+            Rn data_u0(convdiff.get_nb_dof()); // initial data total
             convdiff.initialSolution(data_u0);
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0))); // initial data bulk
 
