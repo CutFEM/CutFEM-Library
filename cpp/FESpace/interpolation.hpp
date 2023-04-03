@@ -151,7 +151,7 @@ template <Space F, FunctionDomain fct> void interpolate(const F &Mh, KN_<double>
 Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
-template <Space F> void interpolate(const F &Mh, KN_<double> fh, R (*f)(double *, int i, int domain, R t), R tid) {
+template <Space F, FunctionDomainTime fct> void interpolate(const F &Mh, KN_<double> fh, fct f, R tid) {
     // std::cout << " need to double check this interpolate function and add MPI"
     // << std::endl; assert(0);
     typedef typename F::Rd Rd;

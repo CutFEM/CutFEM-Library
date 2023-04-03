@@ -104,7 +104,8 @@ class pyDarcy : public pyProblem {
                           *Khi_p, INTEGRAL_BOUNDARY);
     }
 
-    void add_lagrange_multiplier() override {}
+    // void add_lagrange_multiplier_classic() override {}
+    // void add_lagrange_multiplier_mixed() override {}
     void post_processing_pressure(double (*f)(double *, int, int)) override {}
 
     void add_macro_stabilization(double dlt_i, int stab_method) {

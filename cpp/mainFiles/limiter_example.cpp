@@ -429,7 +429,7 @@ void solve_problem(const fespace_t &Wh, const Interface<mesh_t> &interface, cons
     Normal n;
     FunTest u(Wh, 1), v(Wh, 1);
     Fun_h gh(Wh, fun_boundary, tn);
-    Expression2 gx(gh, 0, op_id);
+    // Expression2 gx(gh, 0, op_id);
 
     // MULTIPLYING A * u_0  => rhs
     // =====================================================
@@ -438,7 +438,7 @@ void solve_problem(const fespace_t &Wh, const Interface<mesh_t> &interface, cons
     int N = problem.get_nb_dof();
     multiply(N, N, Ah, u0, problem.rhs_);
 
-    problem.addLinear(-innerProduct(gx, beta * (0.5 * v) * n) + innerProduct(gx, lambdaB * 0.5 * v), Khi,
+    problem.addLinear(-innerProduct(gh.expr(), beta * (0.5 * v) * n) + innerProduct(gh.expr(), lambdaB * 0.5 * v), Khi,
                       INTEGRAL_BOUNDARY, {1, 4} // label left boundary
     );
 
@@ -460,8 +460,8 @@ int main(int argc, char **argv) {
 
     // DEFINITION OF THE MESH and SPACE
     // =====================================================
-    int nx = 20;
-    int ny = 20;
+    int nx = 40;
+    int ny = 40;
     // mesh_t Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
 
@@ -564,15 +564,19 @@ int main(int argc, char **argv) {
 
             if (Wh.basisFctType == BasisFctType::P1dc) {
                 solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
+
                 u1 += dt * uh;
+
                 limiter::CutFEM::applyBoundPreservingLimiter(fun_u1, u1_tild, min_u0, max_u0, macro);
                 u2 += 3. / 4 * u0 + 1. / 4 * u1_tild;
                 solve_problem(Wh, interface, u1_tild, uh, Ah, Mh, tid + dt);
                 u2 += 1. / 4 * dt * uh;
+
                 limiter::CutFEM::applyBoundPreservingLimiter(fun_u2, u2_tild, min_u0, max_u0, macro);
                 solve_problem(Wh, interface, u2_tild, uh, Ah, Mh, tid + 0.5 * dt);
                 uh *= 2. / 3 * dt;
                 uh += 1. / 3 * u0 + 2. / 3 * u2_tild;
+
                 limiter::CutFEM::applyBoundPreservingLimiter(fun_uh, uh_tild, min_u0, max_u0, macro);
             } else if (Wh.basisFctType == BasisFctType::P0) {
 
@@ -599,11 +603,12 @@ int main(int argc, char **argv) {
         // =================================================
         // Fun2_h femSolh(Wh, uh);
         // Expression2 femSol(femSolh, 0, op_id);
-        double qu             = integral(Khi, fun_uh_tild, 0);
+        double qu = integral(Khi, fun_uh_tild, 0);
         // double min_uh, max_uh;
         // limiter::CutFEM::findMinAndMaxValue(fun_uh, min_uh, max_uh);
         // double min_u1, max_u1;
         // limiter::CutFEM::findMinAndMaxValue(fun_uh_tild, min_u1, max_u1);
+
         auto [min_uh, max_uh] = limiter::CutFEM::findMinAndMaxValue(fun_uh);
         auto [min_u1, max_u1] = limiter::CutFEM::findMinAndMaxValue(fun_uh_tild);
         // if(MPIcf::IamMaster()) {
@@ -647,23 +652,23 @@ int main(int argc, char **argv) {
         interpolate(Wh, usol, fun_solution, tid);
         Rn uerr(usol);
         uerr -= uh_tild;
+
         Fun_h femErrh(Wh, uerr);
         Fun_h fun_ex(Wh, usol);
 
-        Expression2 femErr(femErrh, 0, op_id);
-        R errU = sqrt(integral(Khi, femErr * femErr));
+        R errU = sqrt(integral(Khi, (femErrh.expr() ^ 2)));
         errSum += errU;
 
         // PLOT THE SOLUTION
         // ==================================================
-        if (MPIcf::IamMaster() && i % 5 == 0 || i + 1 == niteration) {
+        // if (MPIcf::IamMaster() && i % 5 == 0 || i + 1 == niteration) {
 
-            Paraview<mesh_t> writer(Khi, "smoothSolCutFEM_" + std::to_string(ifig++) + ".vtk");
-            writer.add(fun_uh, "uhNoLimiter", 0, 1);
-            writer.add(fun_uh_tild, "uhLimiter", 0, 1);
-            writer.add(femErrh, "error", 0, 1);
-            writer.add(fun_ex, "u_exact", 0, 1);
-        }
+        //     Paraview<mesh_t> writer(Khi, "smoothSolCutFEM_" + std::to_string(ifig++) + ".vtk");
+        //     writer.add(fun_uh, "uhNoLimiter", 0, 1);
+        //     writer.add(fun_uh_tild, "uhLimiter", 0, 1);
+        //     writer.add(femErrh, "error", 0, 1);
+        //     writer.add(fun_ex, "u_exact", 0, 1);
+        // }
 
         // std::cout << std::setprecision(16) << "q(u) = " << qu << std::endl;
         std::cout << " || u-uex ||_2 = " << errU << std::endl;
@@ -681,9 +686,9 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef CUTFEM_LIMITER_ACCURACY_TEST
-double c0 = 0.77; // 0.25;
+// double c0 = 0.77; // 0.25;
 R fun_levelSet(double *P, const int i) { return P[0] * P[0] + P[1] * P[1] - 1; }
-R fun_initial1(double *P, int elementComp, int domain) {
+R fun_initial(double *P, int elementComp, int domain) {
     double r0 = 0.4;
     double a  = 0.3;
     return 0.5 * (1 - tanh(((P[0] - r0) * (P[0] - r0) + P[1] * P[1]) / (a * a) - 1));
@@ -705,15 +710,15 @@ R fun_solution(double *P, int elementComp, int domain, double t) {
     double r     = Norme2((R2)(P));
     double theta = fun_theta(P);
     R2 Q(r * cos(theta - 2 * pi * t), r * sin(theta - 2 * pi * t));
-    return fun_initial1(Q, 0, 0);
+    return fun_initial(Q, 0, 0);
 }
 
-R fun_initial(double *P, int elementComp, int domain) {
-    double r0 = 0.4;
-    double a  = 0.2;
-    return 0.5 * (1 - tanh(((P[0] - r0) * (P[0] - r0) + P[1] * P[1]) / (a * a) - 1));
-    // return fun_solution(P, elementComp, domain, 0);
-}
+// R fun_initial(double *P, int elementComp, int domain) {
+//     double r0 = 0.4;
+//     double a  = 0.2;
+//     return 0.5 * (1 - tanh(((P[0] - r0) * (P[0] - r0) + P[1] * P[1]) / (a * a) - 1));
+//     // return fun_solution(P, elementComp, domain, 0);
+// }
 R fun_boundary(double *P, int elementComp, double t) { return 0.; }
 R fun_velocity(double *P, int elementComp, int domain) { return (elementComp == 0) ? -2 * pi * P[1] : 2 * pi * P[0]; }
 
@@ -723,7 +728,10 @@ void assembly(const fespace_t &Wh, const Interface<mesh_t> &interface, MatMap &A
     const ActiveMesh<mesh_t> &Khi(Wh.get_mesh());
     CutFEM<Mesh2> problem(Wh);
     CutFEMParameter lambda(0, 1.);
-    double lambdaE = sqrt(2) * 2 * pi;
+    double lambdaE = pi;
+    // sqrt(2) * 2 * pi;
+    //  pi;
+    //   sqrt(2) * 2 * pi;
 
     const MeshParameter &h(Parameter::h);
 
@@ -804,8 +812,8 @@ void solve_problem(const fespace_t &Wh, const Interface<mesh_t> &interface, cons
     // CutFEM_R2 beta({R2(1,1), R2(1,1)});
     // double lambdaB = sqrt(10);
 
-    Normal n;
-    FunTest u(Wh, 1), v(Wh, 1);
+    // Normal n;
+    // FunTest u(Wh, 1), v(Wh, 1);
     // Fun_h gh(Wh, fun_boundary, tn);
     // Expression2 gx(gh, 0, op_id);
 
@@ -844,10 +852,10 @@ int main(int argc, char **argv) {
 
     // DEFINITION OF THE MESH and SPACE
     // ====================================================
-    int nx = 20;                                       // 160;
-    int ny = 20;                                       // 160;
+    int nx = 40;                                       // 160;
+    int ny = 40;                                       // 160;
     mesh_t Th(nx, ny, -1.0075, -1.0075, 2.015, 2.015); // [-1,1]*[-1,1]
-    fespace_t Vh(Th, DataFE<Mesh2>::P0);
+    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -961,6 +969,7 @@ int main(int argc, char **argv) {
                 uh *= 2. / 3 * dt;
                 uh += 1. / 3 * u0 + 2. / 3 * u2_tild;
                 limiter::CutFEM::applyBoundPreservingLimiter(fun_uh, uh_tild, min_u0, max_u0, macro);
+
             } else if (Wh.basisFctType == BasisFctType::P0) {
 
                 solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
@@ -1004,6 +1013,7 @@ int main(int argc, char **argv) {
             std::cout << "[m, M] = [ " << min_u0 << " , " << max_u0 << " ]" << std::endl;
             std::cout << min_uh << " < u_{h,M}  < " << max_uh << std::endl;
             std::cout << min_u1 << " < u1_{h,M} < " << max_u1 << std::endl;
+            getchar();
         }
 
         // COMPUTATION OF THE L2 ERROR
@@ -1022,21 +1032,17 @@ int main(int argc, char **argv) {
         // PLOT THE SOLUTION
         // ==================================================
 #ifdef USE_MPI
-        if (MPIcf::IamMaster() && i % 1 == 0 || i + 1 == niteration) {
+        if (MPIcf::IamMaster() && i % 1000 == 0 || i + 1 == niteration) {
 #else
         if (i % 1 == 0 || i + 1 == niteration) {
 #endif
-            // Fun_h fun_thet (Wh, fun_theta);
             Paraview<mesh_t> writer(Khi, "test_accuracyP0_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_uh_tild, "uhLimiter", 0, 1);
             writer.add(femErrh, "error", 0, 1);
             writer.add(fun_ex, "u_exact", 0, 1);
-            // writer.add(fun_thet , "yx", 0, 1);
         }
-        // if (i == 10)
-        //    return 0;
-        // std::cout << std::setprecision(16) << "q(u) = " << qu << std::endl;
+
         std::cout << " || u-uex ||_2 = " << errU << std::endl;
         std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
                   << std::endl;
@@ -2127,10 +2133,12 @@ void assembly(const fespace_t &Wh, const Interface<mesh_t> &interface, MatMap &A
     // BUILDING A
     // =====================================================
     problem.set_map(Ah);
+
     problem.addBilinear(innerProduct(beta * u, grad(v)), Khi);
 
     problem.addBilinear(-jump(innerProduct(beta * u, v * n)) - innerProduct(jump(beta * u * n), jump(lambda * v)),
                         interface);
+
     // F(u)_e = {B.u} - lambda_e/2 [u]
     problem.addBilinear(-innerProduct(average(beta * u * n), jump(v)) - innerProduct(0.5 * lambdaE * jump(u), jump(v)),
                         Khi, INTEGRAL_INNER_EDGE_2D);
@@ -2270,7 +2278,7 @@ int main(int argc, char **argv) {
     }
     // return 0;
 
-    assert(0 && " add std minmax and span and other");
+    // assert(0 && " add std minmax and span and other");
     double qu0    = integral(Khi, fun_uh, 0);
     double min_u0 = uh.min();
     double max_u0 = uh.max();
@@ -2326,6 +2334,9 @@ int main(int argc, char **argv) {
                 solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
                 u1 += dt * uh;
                 Fun_h fun_u1(Wh, u1);
+
+                // Apply slope limiter on u_0
+                // Try with P0
 
                 // 1) compute the mean of the macro element (extension)
                 // 2) compute indicator

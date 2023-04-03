@@ -16,6 +16,7 @@
 #include <mutex>
 #include <thread>
 #include <concepts>
+#include <algorithm>
 
 #include "concept/function.hpp"
 #include "common/global.hpp"
@@ -30,6 +31,7 @@
 #include "problem/projection.hpp"
 #include "problem/levelSet.hpp"
 #include "problem/curvature.hpp"
+#include "problem/time_scheme.hpp"
 #include "solver/solver.hpp"
 
 #include "time_stuff.hpp"

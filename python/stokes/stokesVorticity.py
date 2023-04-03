@@ -46,7 +46,7 @@ err_div = np.empty(0)
 
 stab_classic = 0
 stab_mixed = 1
-element = 'RT0'
+element = 'RT1'
 
 for x in range(4):
     stokes = FictitiousStokesVorticityCutFEM()

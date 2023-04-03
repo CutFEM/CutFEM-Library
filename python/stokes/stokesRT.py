@@ -36,8 +36,10 @@ err_u = np.empty(0)
 err_p = np.empty(0)
 err_div = np.empty(0)
 
+stab_manual = -1
 stab_classic = 0
 stab_mixed = 1
+
 element = 'BDM1'
 
 for x in range(4):
@@ -48,16 +50,20 @@ for x in range(4):
 
     stokes.add_bulk_integral(fun_rhs)
     stokes.add_interface_integral(fun_velocity)
-    stokes.add_lagrange_multiplier()
+    
+    stokes.add_lagrange_multiplier_classic(0.)
 
-    stokes.set_stabilization_penalty(1, 1)
-    stokes.add_macro_stabilization(1., stab_mixed)
+    stokes.set_stabilization_Cu(1.)
+    stokes.set_stabilization_Cp(0.)
+    stokes.set_stabilization_Cpu(1.)
+    
+    stokes.add_macro_stabilization(0.5, stab_mixed)
 
     stokes.solve()
     
     stokes.post_process_pressure(fun_pressure)
 
-    # stokes.write_vtk_file('python/output/example_stokes_'+str(x)+'.vtk')
+    stokes.write_vtk_file('python/output/example_stokesRT_'+str(x)+'.vtk')
     
     error_divu_L2 = stokes.L2error_div(fun_div)
     error_u_L2 = stokes.L2error_vel(fun_velocity)

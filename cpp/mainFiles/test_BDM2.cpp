@@ -25,12 +25,10 @@ typedef TestFunction<2> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 typedef Mesh2 Mesh;
 typedef ActiveMeshT2 CutMesh;
-typedef FESpace2 Space;
+using fespace_t = FESpace2;
 typedef CutFESpaceT2 CutSpace;
 
-R fun_exact_u(double *P, int compInd) {
-    return (compInd == 0) ? -P[0] : P[1] - 1;
-}
+R fun_exact_u(double *P, int compInd) { return (compInd == 0) ? -P[0] : P[1] - 1; }
 
 int main(int argc, char **argv) {
 
@@ -39,16 +37,16 @@ int main(int argc, char **argv) {
     int nx = 11; // 6
     int ny = 11; // 6
 
-    std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h,
-        convuPr, convpPr, convdivPr, convdivPrLoc, convmaxdivPr;
+    std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h, convuPr, convpPr, convdivPr,
+        convdivPrLoc, convmaxdivPr;
 
     int iters = 4;
     for (int i = 0; i < iters; ++i) {
         Mesh Kh(nx, ny, 0., 0., 1, 1.);
 
-        Space Vh1(Kh, DataFE<Mesh>::BDM2);
-        Space Vh2(Kh, DataFE<Mesh>::RT1);
-        Space Vh0(Kh, DataFE<Mesh>::RT1);
+        fespace_t Vh1(Kh, DataFE<Mesh>::BDM2);
+        fespace_t Vh2(Kh, DataFE<Mesh>::RT1);
+        fespace_t Vh0(Kh, DataFE<Mesh>::RT1);
 
         double h_i = 1. / (nx - 1);
         Rn uh_data(Vh1.get_nb_dof(), 0.);
@@ -75,22 +73,18 @@ int main(int argc, char **argv) {
         if (i == 0) {
             convuPr.push_back(0);
         } else {
-            convuPr.push_back(log(uPrint[i] / uPrint[i - 1]) /
-                              log(h[i] / h[i - 1]));
+            convuPr.push_back(log(uPrint[i] / uPrint[i - 1]) / log(h[i] / h[i - 1]));
         }
 
         nx = 2 * nx - 1;
         ny = 2 * ny - 1;
     }
     std::cout << "\n"
-              << std::left << std::setw(10) << std::setfill(' ') << "h"
-              << std::setfill(' ') << "err u" << std::setw(15)
+              << std::left << std::setw(10) << std::setfill(' ') << "h" << std::setfill(' ') << "err u" << std::setw(15)
               << std::setfill(' ') << "conv u" << std::setw(15) << "\n"
               << std::endl;
     for (int i = 0; i < uPrint.size(); ++i) {
-        std::cout << std::left << std::setw(10) << std::setfill(' ') << h[i]
-                  << std::setw(15) << std::setfill(' ') << uPrint[i]
-                  << std::setw(15) << std::setfill(' ') << convuPr[i]
-                  << std::endl;
+        std::cout << std::left << std::setw(10) << std::setfill(' ') << h[i] << std::setw(15) << std::setfill(' ')
+                  << uPrint[i] << std::setw(15) << std::setfill(' ') << convuPr[i] << std::endl;
     }
 }

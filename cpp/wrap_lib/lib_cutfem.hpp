@@ -80,11 +80,11 @@ struct pyMixProblemTool {
 
     struct {
         int type{1};
-        double Cu{1.};
-        double Cp{1.};
-        double Cpu{1.};
-        double Cw{1.};
-        double Cwu{1.};
+        double Cu{0.};
+        double Cp{0.};
+        double Cpu{0.};
+        double Cw{0.};
+        double Cwu{0.};
     } stab_param;
 
     struct {
@@ -105,6 +105,13 @@ struct pyMixProblemTool {
         stab_param.Cu = ccu;
         stab_param.Cp = ccp;
     }
+
+    void set_stab_Cu(double l) { stab_param.Cu = l; }
+    void set_stab_Cp(double l) { stab_param.Cp = l; }
+    void set_stab_Cpu(double l) { stab_param.Cpu = l; }
+    void set_stab_Cw(double l) { stab_param.Cw = l; }
+    void set_stab_Cwu(double l) { stab_param.Cwu = l; }
+    void set_penalty_param(double l) { penalty_param.gamma = l; }
 };
 
 class pyProblem : public pyMixProblemTool, public pySolverTool {
@@ -155,12 +162,30 @@ class pyProblem : public pyMixProblemTool, public pySolverTool {
         writer.add(femSol_0dx + femSol_1dy, "divergence");
     }
 
+    virtual void add_lagrange_multiplier_mixed() {
+
+        TestFunction<2> p(*Ph_p, 1), v(*Wh_p, 2);
+
+        CutFEM<mesh_t> lagr(*Wh_p);
+        lagr.add(*Ph_p);
+        lagr.addLinear(innerProduct(1., p), *Khi_p);
+        std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
+        lagr.rhs_ = 0.;
+        lagr.addLinear(innerProduct(1, v * n), *inter_p);
+        problem.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
+    }
+    virtual void add_lagrange_multiplier_classic(double val) {
+        TestFunction<2> p(*Ph_p, 1);
+        problem.addLagrangeMultiplier(innerProduct(1., p), val, *Khi_p);
+    }
+
     virtual void init_space(double (*f)(double *), std::string FE_type)    = 0;
     virtual void add_bulk_integral(double (*f)(double *, int, int))        = 0;
     virtual void add_interface_integral(double (*f)(double *, int, int))   = 0;
     virtual void add_macro_stabilization(double dlt_i, int stab_method)    = 0;
     virtual void add_full_stabilization(int stab_method)                   = 0;
-    virtual void add_lagrange_multiplier()                                 = 0;
+    // virtual void add_lagrange_multiplier_classic()                         = 0;
+    // virtual void add_lagrange_multiplier_mixed()                           = 0;
     virtual void post_processing_pressure(double (*f)(double *, int, int)) = 0;
     virtual void delete_obj()                                              = 0;
     virtual ~pyProblem()                                                   = default;

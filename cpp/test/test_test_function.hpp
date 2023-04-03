@@ -178,6 +178,36 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
       }
    }
 
+   SECTION("Test surface gradient") {
+      TestFunction<2> u(Vh, 1);
+      TestFunction<2> grad_u(gradS(u));
+      std::cout << grad_u << std::endl;
+      REQUIRE(!grad_u.isScalar());
+      // REQUIRE(grad_u.sizeItemList(0, 0) == 1);
+      // REQUIRE(grad_u.sizeItemList(1, 0) == 1);
+
+      // {
+      //    const auto &item(grad_u.getItem({0, 0}, 0));
+      //    REQUIRE(item.du == op_dx);
+      //    REQUIRE(item.c == 1.);
+      //    REQUIRE(item.cu == 0);
+      //    REQUIRE(item.face_side_ == -1);
+      //    REQUIRE(item.fespace == &Vh);
+      //    REQUIRE(item.root_fun_p == &u);
+      //    REQUIRE(item.expru == nullptr);
+      // }
+      // {
+      //    const auto &item(grad_u.getItem({1, 0}, 0));
+      //    REQUIRE(item.du == op_dy);
+      //    REQUIRE(item.c == 1.);
+      //    REQUIRE(item.cu == 0);
+      //    REQUIRE(item.face_side_ == -1);
+      //    REQUIRE(item.fespace == &Vh);
+      //    REQUIRE(item.root_fun_p == &u);
+      //    REQUIRE(item.expru == nullptr);
+      // }
+   }
+
    SECTION("Test grad^2") {
       TestFunction<2> u(Vh, 1);
       TestFunction<2> grad_u(grad(grad(u)));

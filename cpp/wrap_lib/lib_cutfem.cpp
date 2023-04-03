@@ -30,6 +30,13 @@ void init_space(pyProblem *darcy, double (*f)(double *), char *st_type) { darcy-
 
 void set_stabilization_penalty(pyProblem *darcy, double cu, double cp) { darcy->set_stabilization_penalty(cu, cp); }
 
+void set_stab_Cu(pyProblem *problem, double l) { problem->set_stab_Cu(l); }
+void set_stab_Cp(pyProblem *problem, double l) { problem->set_stab_Cp(l); }
+void set_stab_Cpu(pyProblem *problem, double l) { problem->set_stab_Cpu(l); }
+void set_stab_Cwu(pyProblem *problem, double l) { problem->set_stab_Cwu(l); }
+void set_stab_Cw(pyProblem *problem, double l) { problem->set_stab_Cw(l); }
+void set_penalty_param(pyProblem *problem, double l) { problem->set_penalty_param(l); }
+
 void add_bulk_integral(pyProblem *darcy, double (*f)(double *, int, int)) { darcy->add_bulk_integral(f); }
 
 void add_interface_integral(pyProblem *darcy, double (*f)(double *, int, int)) { darcy->add_interface_integral(f); }
@@ -38,7 +45,8 @@ void add_macro_stabilization(pyProblem *darcy, double di, int i) { darcy->add_ma
 
 void add_full_stabilization(pyProblem *darcy, int i) { darcy->add_full_stabilization(i); }
 
-void add_lagrange_multiplier(pyProblem *stokes) { stokes->add_lagrange_multiplier(); }
+void add_lagrange_multiplier_mixed(pyProblem *stokes) { stokes->add_lagrange_multiplier_mixed(); }
+void add_lagrange_multiplier_classic(pyProblem *stokes, double val) { stokes->add_lagrange_multiplier_classic(val); }
 
 void post_processing_pressure(pyProblem *stokes, double (*f)(double *, int, int)) {
     stokes->post_processing_pressure(f);

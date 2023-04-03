@@ -42,16 +42,52 @@ class ProblemCutFEM(object):
         lib.add_interface_integral.argtypes = [ct.c_void_p, USER_FUNC]
         lib.add_interface_integral(self.obj, f)
 
-    def add_lagrange_multiplier(self):
-        lib.add_lagrange_multiplier.argtypes = [ct.c_void_p]
-        lib.add_lagrange_multiplier.restype = None
-        lib.add_lagrange_multiplier(self.obj)
+    def add_lagrange_multiplier_mixed(self):
+        lib.add_lagrange_multiplier_mixed.argtypes = [ct.c_void_p]
+        lib.add_lagrange_multiplier_mixed.restype = None
+        lib.add_lagrange_multiplier_mixed(self.obj)
+
+    def add_lagrange_multiplier_classic(self, val):
+        lib.add_lagrange_multiplier_classic.argtypes = [
+            ct.c_void_p, ct.c_double]
+        lib.add_lagrange_multiplier_classic.restype = None
+        lib.add_lagrange_multiplier_classic(self.obj, val)
 
     def set_stabilization_penalty(self, cu, cp):
         lib.set_stabilization_penalty.restype = None
         lib.set_stabilization_penalty.argtypes = [
             ct.c_void_p, ct.c_double, ct.c_double]
         lib.set_stabilization_penalty(self.obj, cu, cp)
+
+    def set_stabilization_Cu(self, cu):
+        lib.set_stab_Cu.restype = None
+        lib.set_stab_Cu.argtypes = [ct.c_void_p, ct.c_double]
+        lib.set_stab_Cu(self.obj, cu)
+
+    def set_stabilization_Cp(self, cu):
+        lib.set_stab_Cp.restype = None
+        lib.set_stab_Cp.argtypes = [ct.c_void_p, ct.c_double]
+        lib.set_stab_Cp(self.obj, cu)
+
+    def set_stabilization_Cpu(self, cu):
+        lib.set_stab_Cpu.restype = None
+        lib.set_stab_Cpu.argtypes = [ct.c_void_p, ct.c_double]
+        lib.set_stab_Cpu(self.obj, cu)
+
+    def set_stabilization_Cwu(self, cu):
+        lib.set_stab_Cwu.restype = None
+        lib.set_stab_Cwu.argtypes = [ct.c_void_p, ct.c_double]
+        lib.set_stab_Cwu(self.obj, cu)
+
+    def set_stabilization_Cw(self, cu):
+        lib.set_stab_Cw.restype = None
+        lib.set_stab_Cw.argtypes = [ct.c_void_p, ct.c_double]
+        lib.set_stab_Cw(self.obj, cu)
+
+    def set_penalty_param(self, cu):
+        lib.set_penalty_param.restype = None
+        lib.set_penalty_param.argtypes = [ct.c_void_p, ct.c_double]
+        lib.set_penalty_param(self.obj, cu)
 
     def add_full_stabilization(self, stab):
         lib.add_full_stabilization.restype = None
