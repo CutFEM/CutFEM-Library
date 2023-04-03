@@ -25,3 +25,4 @@ using namespace globalVariable;
 #include "test_TimeInterface.hpp"
 #include "test_test_function.hpp"
 #include "test_expression.hpp"
+#include "test_BDM2.hpp"
