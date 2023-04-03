@@ -5,50 +5,52 @@
 
 #include "../algoim/quadrature_general.hpp"
 
-template <typename Mesh, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<Mesh> {
+template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> {
 
-    typedef GFESpace<Mesh> FESpace;
-    typedef typename FESpace::FElement FElement;
-    typedef typename FElement::Rd Rd;
-    typedef typename FElement::QF QF;
-    typedef typename FElement::QFB QFB;
-    typedef typename Mesh::Element Element;
-    typedef typename Mesh::BorderElement BorderElement;
+    using mesh_t        = M;
+    using fespace_t     = GFESpace<mesh_t>;
+    using itemVFlist_t  = ListItemVF<mesh_t>;
+    using FElement      = typename fespace_t::FElement;
+    using Rd            = typename FElement::Rd;
+    using QF            = typename FElement::QF;
+    using QFB           = typename FElement::QFB;
+    using Element       = typename mesh_t::Element;
+    using BorderElement = typename mesh_t::BorderElement;
 
     L phi;
 
   public:
+    void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
-    void addElementContribution(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq, double cst_time);
+    void addInterfaceContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, int ifac, double tid,
+                                  const TimeSlab *In, double cst_time, int itq);
 
-	void addInterfaceContribution(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &interface, int ifac,
-									double tid, const TimeSlab *In, double cst_time, int itq);
+    AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option, int np)
+        : BaseCutFEM<mesh_t>(qt, option, np), phi(phi_) {}
 
-    AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option, int np) : BaseCutFEM<Mesh>(qt, option, np), phi(phi_) {}
-
-    AlgoimBaseCutFEM(const FESpace &vh, L &phi_, const ProblemOption &option, int np) : BaseCutFEM<Mesh>(vh, option, np), phi(phi_) {}
-
+    AlgoimBaseCutFEM(const fespace_t &vh, L &phi_, const ProblemOption &option, int np)
+        : BaseCutFEM<mesh_t>(vh, option, np), phi(phi_) {}
 };
 
-template <meshQuadrilateral M, typename L>
-class AlgoimCutFEM : public AlgoimBaseCutFEM<M, L>, public Solver {
-    typedef GFESpace<M> FESpace;
+template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBaseCutFEM<M, L>, public Solver {
+    typedef GFESpace<M> fespace_t;
     typedef std::map<std::pair<int, int>, R> Matrix;
 
   public:
-    // AlgoimCutFEM(const ProblemOption &option = defaultProblemOption) : BaseCutFEM<Mesh>(option, 1), Solver(option) {}
+    // AlgoimCutFEM(const ProblemOption &option = defaultProblemOption) : BaseCutFEM<mesh_t>(option, 1), Solver(option)
+    // {}
 
     AlgoimCutFEM(const QuadratureFormular1d &qt, L &phi, const ProblemOption &option = defaultProblemOption)
         : AlgoimBaseCutFEM<M, L>(qt, phi, option, 1), Solver(option) {}
 
-    AlgoimCutFEM(const FESpace &vh, L &phi, const ProblemOption &option = defaultProblemOption)
+    AlgoimCutFEM(const fespace_t &vh, L &phi, const ProblemOption &option = defaultProblemOption)
         : AlgoimBaseCutFEM<M, L>(vh, phi, option, 1), Solver(option) {}
 
     // AlgoimCutFEM(const QuadratureFormular1d &qt, int np, const ProblemOption &option = defaultProblemOption)
-    //     : BaseCutFEM<Mesh>(qt, option, np), Solver(option) {}
+    //     : BaseCutFEM<mesh_t>(qt, option, np), Solver(option) {}
 
-    // AlgoimCutFEM(const FESpace &vh, int np, const ProblemOption &option = defaultProblemOption)
-    //     : BaseCutFEM<Mesh>(vh, option, np), Solver(option) {}
+    // AlgoimCutFEM(const fespace_t &vh, int np, const ProblemOption &option = defaultProblemOption)
+    //     : BaseCutFEM<mesh_t>(vh, option, np), Solver(option) {}
 
     void solve() {
         gather(this->mat_);
@@ -65,7 +67,6 @@ class AlgoimCutFEM : public AlgoimBaseCutFEM<M, L>, public Solver {
     //     Solver::solve(A[0], b);
     // }
 };
-
 
 #include "AlgoimBaseCutProblem.tpp"
 

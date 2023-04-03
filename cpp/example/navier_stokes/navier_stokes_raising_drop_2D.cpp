@@ -13,7 +13,7 @@
 #include "../tool.hpp"
 
 using mesh_t     = Mesh2;
-using funtest_t  = TestFunction<mesh_t::D>;
+using funtest_t  = TestFunction<mesh_t>;
 using fct_t      = FunFEM<mesh_t>;
 using cutmesh_t  = ActiveMesh<mesh_t>;
 using space_t    = GFESpace<mesh_t>;

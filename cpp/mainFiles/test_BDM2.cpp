@@ -21,7 +21,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "../tool.hpp"
 
-typedef TestFunction<2> FunTest;
+typedef TestFunction<Mesh2> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 typedef Mesh2 Mesh;
 typedef ActiveMeshT2 CutMesh;

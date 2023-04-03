@@ -24,7 +24,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
  */
 template <typename Mesh> void projection(FunFEM<Mesh> &fh, FunFEM<Mesh> &ph) {
     typedef typename Mesh::Rd Rd;
-    typedef TestFunction<Rd::d> FunTest;
+    typedef TestFunction<Mesh> FunTest;
     typedef GFESpace<Mesh> FESpace;
 
     const FESpace &Fh(*fh.Vh);
@@ -107,10 +107,9 @@ template <typename Mesh> void projection(FunFEM<Mesh> &fh, FunFEM<Mesh> &ph) {
 - uh is the projected vector
  */
 template <typename M>
-void projection(const FunFEM<M> &fh, FunFEM<M> &ph, const Interface<M> &inter,
-                double valLagrange) {
+void projection(const FunFEM<M> &fh, FunFEM<M> &ph, const Interface<M> &inter, double valLagrange) {
     typedef typename M::Rd Rd;
-    typedef TestFunction<Rd::d> FunTest;
+    typedef TestFunction<M> FunTest;
     typedef GFESpace<M> FESpace;
 
     const FESpace &Fh(*fh.Vh);
@@ -139,10 +138,10 @@ void projection(const FunFEM<M> &fh, FunFEM<M> &ph, const Interface<M> &inter,
 - uh is the projected vector
  */
 template <typename M>
-void projection(const FunFEM<M> &fh, FunFEM<M> &ph, const TimeSlab &In,
-                const TimeInterface<M> &interface, double valLagrange) {
+void projection(const FunFEM<M> &fh, FunFEM<M> &ph, const TimeSlab &In, const TimeInterface<M> &interface,
+                double valLagrange) {
     typedef typename M::Rd Rd;
-    typedef TestFunction<Rd::d> FunTest;
+    typedef TestFunction<M> FunTest;
     typedef GFESpace<M> FESpace;
     // typedef GenericInterface<M> Interface;
 
@@ -164,21 +163,18 @@ void projection(const FunFEM<M> &fh, FunFEM<M> &ph, const TimeSlab &In,
     projection.addBilinear(innerProduct(u, v), interface, In);
     projection.addLinear(innerProduct(fh.expression(), v), interface, In);
 
-    projection.addEdgeIntegral(innerProduct(h * jump(grad(u).t() * n),
-                                            1e-2 * h * jump(grad(v).t() * n))
+    projection.addEdgeIntegral(innerProduct(h * jump(grad(u).t() * n), 1e-2 * h * jump(grad(v).t() * n))
 
                                    ,
                                In);
     // in case of time mesh, the interface does not go through all the elements
     // at one time projection.addDiagonal(1e-14);
-    projection.addLagrangeMultiplier(innerProduct(1., v), *interface[0], In,
-                                     projection.qTime[0].x, valLagrange);
+    projection.addLagrangeMultiplier(innerProduct(1., v), *interface[0], In, projection.qTime[0].x, valLagrange);
     // projection.addLagrangeMultiplier(innerProduct(1.,v), *interface[1], In,
     // projection.qTime[1].x, valLagrange);
     // projection.addLagrangeMultiplier(innerProduct(1.,v), *interface[2], In,
     // projection.qTime[2].x, valLagrange);
-    projection.addLagrangeMultiplier(innerProduct(1., v), interface, In,
-                                     valLagrange);
+    projection.addLagrangeMultiplier(innerProduct(1., v), interface, In, valLagrange);
     //
     // matlab::Export(projection.mat, "matProjLap.dat");
     // matlab::Export(projection.rhs, "rhsProjLap.dat");
@@ -188,11 +184,10 @@ void projection(const FunFEM<M> &fh, FunFEM<M> &ph, const TimeSlab &In,
     ph.v = uh;
 }
 
-template <typename M>
-void projection(FunFEM<M> &ph, double (*f)(const typename M::Rd, int i)) {
+template <typename M> void projection(FunFEM<M> &ph, double (*f)(const typename M::Rd, int i)) {
 
     typedef typename M::Rd Rd;
-    typedef TestFunction<Rd::d> FunTest;
+    typedef TestFunction<M> FunTest;
     typedef GFESpace<M> FESpace;
     const FESpace &Vh(*ph.Vh);
     typedef typename FESpace::FElement::QF::QuadraturePoint QuadraturePoint;
@@ -206,15 +201,14 @@ void projection(FunFEM<M> &ph, double (*f)(const typename M::Rd, int i)) {
     projection.addBilinear(innerProduct(u, v));
 
     What_d Fop = Fwhatd(1);
-    for (int k = Vh.first_element(); k < Vh.last_element();
-         k += Vh.next_element()) {
+    for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
         const FElement &FK(Vh[k]);
         const R meas = FK.getMeasure();
         KNMK<double> fv(FK.NbDoF(), 1, 1); //  the value for basic fonction
 
         for (int ipq = 0; ipq < projection.qf.getNbrOfQuads(); ++ipq) {
             QuadraturePoint ip(projection.qf[ipq]); // integration point
-            Rd mip       = FK.map(ip); // quadrature point in global geometry
+            Rd mip       = FK.map(ip);              // quadrature point in global geometry
             const R Cint = meas * ip.getWeight();
 
             FK.BF(Fop, ip, fv);
@@ -230,11 +224,10 @@ void projection(FunFEM<M> &ph, double (*f)(const typename M::Rd, int i)) {
     ph.v = projection.rhs;
 }
 
-template <typename M>
-void projection(FunFEM<M> &ph, double (*f)(double *P, int i, int dd)) {
+template <typename M> void projection(FunFEM<M> &ph, double (*f)(double *P, int i, int dd)) {
 
     typedef typename M::Rd Rd;
-    typedef TestFunction<Rd::d> FunTest;
+    typedef TestFunction<M> FunTest;
     typedef GFESpace<M> FESpace;
     const FESpace &Vh(*ph.Vh);
     const auto &Kh(Vh.get_mesh());
@@ -255,8 +248,7 @@ void projection(FunFEM<M> &ph, double (*f)(double *P, int i, int dd)) {
     const QF &qf(projection.get_quadrature_formular_K());
 
     What_d Fop = Fwhatd(1);
-    for (int k = Vh.first_element(); k < Vh.last_element();
-         k += Vh.next_element()) {
+    for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
         const FElement &FK(Vh[k]);
         const R meas = FK.getMeasure();
         int dom      = FK.get_domain();

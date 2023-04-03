@@ -625,7 +625,7 @@ void addExactLinearForm(R (*f)(double *, int, int), const GFESpace<Mesh2> &Vh, i
 }
 
 int main(int argc, char **argv) {
-    typedef TestFunction<2> FunTest;
+    typedef TestFunction<Mesh2> FunTest;
     typedef FunFEM<Mesh2> Fun_h;
     typedef Mesh2 Mesh;
     typedef ActiveMeshT2 CutMesh;
@@ -765,9 +765,9 @@ int main(int argc, char **argv) {
         // addExactLinearForm(fun_div, Ph, Wh.get_nb_dof(), darcy.rhs_);
 
         darcy.addLinear(-innerProduct(p0.expr(), v * n) // Only on Gamma_N (pressure)
-                        // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D (vel
-                        // normal comp)
-                        // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
+                                                        // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D
+                                                        // (vel normal comp)
+                                                        // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
                         ,
                         Kh_i, INTEGRAL_BOUNDARY);
 
@@ -2333,12 +2333,13 @@ int main(int argc, char **argv) {
 
         darcy.addLinear(innerProduct(fq.expression(), q), Kh_i);
 
-        darcy.addLinear(-innerProduct(p0.expression(), v * n) // Only on Gamma_N (pressure)
-                        // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D (vel
-                        // normal comp)
-                        // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
-                        ,
-                        Kh, INTEGRAL_BOUNDARY);
+        darcy.addLinear(
+            -innerProduct(p0.expression(), v * n) // Only on Gamma_N (pressure)
+                                                  // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D (vel
+                                                  // normal comp)
+                                                  // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
+            ,
+            Kh, INTEGRAL_BOUNDARY);
 
         //
         //     double tt0 = MPIcf::Wtime();
@@ -2882,12 +2883,13 @@ int main(int argc, char **argv) {
 
         darcy.addLinear(innerProduct(fq.expression(), q), Kh_i);
 
-        darcy.addLinear(-innerProduct(p0.expression(), v * n) // Only on Gamma_N (pressure)
-                        // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D (vel
-                        // normal comp)
-                        // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
-                        ,
-                        Kh_i, INTEGRAL_BOUNDARY);
+        darcy.addLinear(
+            -innerProduct(p0.expression(), v * n) // Only on Gamma_N (pressure)
+                                                  // + innerProduct(u0, invh*(v.t()*n)*lambdaB) // Only on Gamma_D (vel
+                                                  // normal comp)
+                                                  // - innerProduct(u0, q) // Only on Gamma_D (vel normal comp)
+            ,
+            Kh_i, INTEGRAL_BOUNDARY);
 
         // t0 = MPIcf::Wtime();
 
