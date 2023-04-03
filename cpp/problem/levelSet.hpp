@@ -140,6 +140,11 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 //
 
 namespace LevelSet {
+void move(const FunFEM<MeshHexa> &up, const FunFEM<MeshHexa> &betap, const FunFEM<MeshHexa> &beta, double dt,
+          FunFEM<MeshHexa> &ls);
+void move(const FunFEM<Mesh2> &up, const FunFEM<Mesh2> &betap, const FunFEM<Mesh2> &beta, double dt, FunFEM<Mesh2> &ls);
+
+void move(const FunFEM<Mesh3> &up, const FunFEM<Mesh3> &betap, const FunFEM<Mesh3> &beta, double dt, FunFEM<Mesh3> &ls);
 
 template <typename Mesh>
 void move_2D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mesh> &Beta, double dt, FunFEM<Mesh> &ls) {
