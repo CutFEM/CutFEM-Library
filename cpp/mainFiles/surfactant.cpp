@@ -1011,7 +1011,7 @@ int main(int argc, char **argv) {
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        int divisionMeshSize = 4;
+        int divisionMeshSize = 8;
 
         // int divisionMeshSize = 2*3*pi;
         // int divisionMeshSize = 18;
@@ -1047,7 +1047,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = 1., tau2 = .5;
+        double tau0 = 0, tau1 = 1., tau2 = 1.;
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
