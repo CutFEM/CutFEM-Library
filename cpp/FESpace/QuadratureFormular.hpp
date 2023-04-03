@@ -175,6 +175,8 @@ extern const QuadratureFormular1d QF_Lobatto4;
 extern const QuadratureFormular1d QF_Lobatto5;
 extern const QuadratureFormular1d QF_Lobatto6;
 extern const QuadratureFormular1d QF_Lobatto7;
+extern const QuadratureFormular1d QF_Lobatto9;
+extern const QuadratureFormular1d QF_Lobatto10;
 extern const QuadratureFormular1d QF_Euler;
 
 extern const GQuadratureFormular<R2> QF_NODE_TRIANGLE;

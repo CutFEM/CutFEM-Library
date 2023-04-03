@@ -18,12 +18,14 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 // #include "baseProblem.hpp"
 
+
 /**
  * @brief The actual solution object in CutFEM problems
  *
  * @tparam Mesh
  */
-template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
+template <typename Mesh>
+class BaseCutFEM : public BaseFEM<Mesh> {
 
     typedef ActiveMesh<Mesh> CutMesh;
     typedef GFESpace<Mesh> FESpace;
@@ -202,15 +204,16 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
     // For time problem
     template <typename V>
-    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
+        requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
     void saveSolution(const V);
 
     template <typename V>
-    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
-    void initialSolution(V);
+        requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
+    void initialSolution(V &);
 
     int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 };
+
 
 /**
  * @brief Create main object for a CutFEM problem

@@ -2344,12 +2344,14 @@ namespace Example1_omega2 {
 } // namespace Example1_omega2
 
 namespace Example2 {
-    R fun_levelSet(double *P, const int i, const R t) {
+    R fun_levelSet(double *P) {
         return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
     }
-    R fun_levelSet(double *P, const int i) {
-        return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
-    }
+
+    // R fun_levelSet(double *P, const int i, const R t) {
+    //     return +(sqrt((P[0]-0.1)*(P[0]-0.1) + (P[1]-0.0)*(P[1]-0.0)) - 0.3) + Epsilon;
+    // }
+    
     R fun_rhsBulk(double *P, const int i, const R t) {return 0.;}
     R fun_rhsSurf(double *P,const int i, const R t) {return 0.;}
     R fun_neumann_Gamma(double *P, const int i) {return 0.;}
@@ -2403,18 +2405,18 @@ typedef FunFEM<Mesh2> Fun_h;
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
-#define omega2
+#define omega1
 #define neumann // boundary condition on outer domain (options: "dirichlet", "neumann")
 
 //* Set scheme for the method (options: "classical", "conservative".)
-#define classical
+#define conservative
 
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
-#define levelsetexact
+#define levelsetsolve
 
 #define use_h       // to set mesh size using the h parameter. Write use_n to decide
                     // using nx, ny.
@@ -2493,7 +2495,7 @@ int main(int argc, char **argv) {
         const Mesh Th(nx, ny, x0, y0, lx, ly);
 
         // Parameters
-        const double tfinal = 1.5; // Final time
+        const double tfinal = 2.0; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -2606,7 +2608,7 @@ int main(int argc, char **argv) {
 #if defined(levelsetsolve) || defined(example2)
                 // We solve for the level-set using Crank-Nicholson in time
                 if (i < lastQuadTime) {
-                    LevelSet::move(ls[i], vel, vel, dt_levelSet, ls[i + 1]);
+                    LevelSet::move_2D(ls[i], vel, vel, dt_levelSet, ls[i + 1]);
                 }
 #endif
             }
@@ -2664,8 +2666,10 @@ int main(int argc, char **argv) {
             int tot_dof = (int)convdiff.get_nb_dof();   // total degrees of freedom
 
             // Data for initial solution
-            Rn data_u0(tot_dof, 0.);                                    // initial data total
+            Rn data_u0(convdiff.get_nb_dof(),0.);                                    // initial data total
+            //convdiff.initialSolution(data_u0);                          // allocate memory        //! DANGEROUS: THIS RUNS BUT GIVES INCORRECT SOLUTION
             convdiff.initialSolution(data_u0);                          // allocate memory
+
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0)));           // initial data bulk
             KN_<R> data_S0(data_u0(SubArray(WhGamma.NbDoF(), idx_s0))); // initial data surface
 
@@ -2758,7 +2762,7 @@ int main(int argc, char **argv) {
 
             double stab_bulk_face      = h * tau1;
             double stab_surf_face      = tau2;
-            double stab_surf_interface = h * tau3;
+            double stab_surf_interface = 0.; //h *tau3;
 
             // Stabilization along the interface
             // convdiff.addBilinear(+innerProduct(stab_surf_interface * grad(uS) * n, grad(vS) * n), interface, In);
@@ -2990,7 +2994,12 @@ int main(int argc, char **argv) {
             if ((iterations == 1) && MPIcf::IamMaster()) {
                 // #else
                 Fun_h sol(Wh, data_u0);
-                Paraview<Mesh> writer(Thi, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
+
+            #ifdef conservative
+                Paraview<Mesh> writer(Thi, path_output_figures + "bulk_conservative" + std::to_string(iter + 1) + ".vtk");
+            #else
+                Paraview<Mesh> writer(Thi, path_output_figures + "bulk_nonconservative" + std::to_string(iter + 1) + ".vtk");
+            #endif
                 writer.add(b0h, "bulk", 0, 1);
 
                 Fun_h uBex(Wh, fun_uBulk, current_time);
@@ -3004,8 +3013,13 @@ int main(int argc, char **argv) {
                 writer.add(ls[1], "levelSet1", 0, 1);
                 writer.add(ls[2], "levelSet2", 0, 1);
 
+            #ifdef conservative
                 Paraview<Mesh> writer_surface(ThGamma,
-                                              path_output_figures + "surface" + std::to_string(iter + 1) + ".vtk");
+                                              path_output_figures + "surface_conservative" + std::to_string(iter + 1) + ".vtk");
+            #else
+                Paraview<Mesh> writer_surface(ThGamma,
+                                              path_output_figures + "surface_nonconservative" + std::to_string(iter + 1) + ".vtk");
+            #endif
                 writer_surface.add(s0h, "surface", 0, 1);
                 Fun_h uSex(WhGamma, fun_uSurf, current_time);
                 Fun_h fS(WhGamma, fun_rhsSurf, current_time);

@@ -645,6 +645,7 @@ double integral(FunFEM<M> &fh, const TimeSlab &In,
    const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
    double val = 0.;
 
+   // Loop over time quadrature points
    for (int it = 0; it < gamma.size(); ++it) {
       const Interface<M> &interface(*gamma(it));
       const QuadratureFormular1d *qTime(gamma.get_quadrature_time());
