@@ -115,22 +115,28 @@ class pyFictitiousStokesRT : public pyProblem {
                           *inter_p);
     }
 
-    void add_lagrange_multiplier() override {
+    // void add_lagrange_multiplier_mixed() override {
 
-        TestFunction<2> p(*Ph_p, 1), v(*Wh_p, 2);
+    //     TestFunction<2> p(*Ph_p, 1), v(*Wh_p, 2);
 
-        CutFEM<mesh_t> lagr(*Wh_p);
-        lagr.add(*Ph_p);
-        lagr.addLinear(innerProduct(1., p), *Khi_p);
-        std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
-        lagr.rhs_ = 0.;
-        lagr.addLinear(innerProduct(1, v * n), *inter_p);
-        problem.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
-    }
+    //     CutFEM<mesh_t> lagr(*Wh_p);
+    //     lagr.add(*Ph_p);
+    //     lagr.addLinear(innerProduct(1., p), *Khi_p);
+    //     std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
+    //     lagr.rhs_ = 0.;
+    //     lagr.addLinear(innerProduct(1, v * n), *inter_p);
+    //     problem.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
+    // }
+    // void add_lagrange_multiplier_classic(double val) override {
+    //     TestFunction<2> p(*Ph_p, 1);
+    //     stokes.addLagrangeMultiplier(innerProduct(1., p), val, *Khi_p);
+    // }
 
     void add_macro_stabilization(double dlt_i, int stab_method) override {
-        double Cu = stab_param.Cu;
-        double Cp = stab_param.Cp;
+        double Cu  = stab_param.Cu;
+        double Cpu = stab_param.Cpu;
+        double Cp  = stab_param.Cp;
+
         double hi = 1. / (mesh_param.nx[0] - 1);
         MacroElement<mesh_t> macro(*Khi_p, dlt_i);
 
@@ -141,10 +147,12 @@ class pyFictitiousStokesRT : public pyProblem {
         problem.addFaceStabilization(innerProduct(Cu * pow(hi, -1) * jump(u), jump(v)) +
                                          innerProduct(Cu * pow(hi, 1) * jump(grad(u) * n), jump(grad(v) * n)) +
                                          innerProduct(Cu * pow(hi, 3) * jump(grad2un), jump(grad2un)) -
-                                         innerProduct(Cp * pow(hi, 1) * jump(p), jump(div(v))) +
-                                         innerProduct(Cp * pow(hi, 1) * jump(div(u)), jump(q)) -
-                                         innerProduct(Cp * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) +
-                                         innerProduct(Cp * pow(hi, 3) * jump(grad(div(v))), jump(grad(q))),
+                                         innerProduct(Cpu * pow(hi, 1) * jump(p), jump(div(v))) +
+                                         innerProduct(Cpu * pow(hi, 1) * jump(div(u)), jump(q)) -
+                                         innerProduct(Cpu * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) +
+                                         innerProduct(Cpu * pow(hi, 3) * jump(grad(div(v))), jump(grad(q))) +
+                                         innerProduct(Cp * pow(hi, 1) * jump(p), jump(q)) +
+                                         innerProduct(Cp * pow(hi, 3) * jump(grad(p)), jump(grad(q))),
                                      *Khi_p, macro);
     }
     void add_full_stabilization(int stab_method) override {
@@ -207,7 +215,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
     enum { primal = 0, mixed = 1 };
 
   public:
-    void delete_obj() { std::cout << "Delete Vorticity Stokes object " << std::endl; }
+    void delete_obj() {}
     void init_mu(double mmu) { mu = mmu; }
     void init_sigma(double s) { sigma = s; }
 
@@ -289,7 +297,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
         problem.addLinear(+innerProduct(u0 * t, tau) + innerProduct(u0 * n, 1. / hi * penaltyParam * v * n), *inter_p);
     }
 
-    void add_lagrange_multiplier() override {
+    void add_lagrange_multiplier_mixed() override {
 
         TestFunction<2> p(*Ph_p, 1), v(*Wh_p, 2);
 
@@ -318,8 +326,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
             Cp  = 0.;
             Cw  = 0.;
         } else {
-            std::cout << " Stabilization method not found" << std::endl;
-            return;
+            std::cout << " Manual choice" << std::endl;
         }
 
         double hi = 1. / (mesh_param.nx[0] - 1);
