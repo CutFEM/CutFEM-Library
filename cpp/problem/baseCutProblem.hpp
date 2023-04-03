@@ -18,14 +18,12 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 // #include "baseProblem.hpp"
 
-
 /**
  * @brief The actual solution object in CutFEM problems
  *
  * @tparam Mesh
  */
-template <typename Mesh>
-class BaseCutFEM : public BaseFEM<Mesh> {
+template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
     typedef ActiveMesh<Mesh> CutMesh;
     typedef GFESpace<Mesh> FESpace;
@@ -35,6 +33,9 @@ class BaseCutFEM : public BaseFEM<Mesh> {
     typedef typename FElement::QFB QFB;
     typedef typename Mesh::Element Element;
     typedef typename Mesh::BorderElement BorderElement;
+
+    using mesh_t       = Mesh;
+    using itemVFlist_t = ListItemVF<mesh_t>;
 
     int number_of_stabilized_edges;
 
@@ -46,157 +47,156 @@ class BaseCutFEM : public BaseFEM<Mesh> {
     BaseCutFEM(const FESpace &vh, const ProblemOption &option, int np) : BaseFEM<Mesh>(vh, option, np) {}
 
     // Integral on K
-    void addBilinear(const ListItemVF<Rd::d> &, const CutMesh &);
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &, int itq, const TimeSlab &In);
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In);
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In, int itq);
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &);
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &, int itq, const TimeSlab &In);
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In);
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In, int itq);
-    void addElementContribution(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq, double cst_time);
+    void addBilinear(const itemVFlist_t &, const CutMesh &);
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &, int itq, const TimeSlab &In);
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In);
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In, int itq);
+    void addLinear(const itemVFlist_t &VF, const CutMesh &);
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, int itq, const TimeSlab &In);
+    void addLinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In);
+    void addLinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In, int itq);
+    void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
-    void addBilinear(const ListItemVF<Rd::d> &, const CutMesh &, const CExtension &, const int);
-    void addLinear(const ListItemVF<Rd::d> &, const CutMesh &, const CExtension &, const int);
-    void addElementContributionOtherSide(const ListItemVF<Rd::d> &, const int, const TimeSlab *, int, double);
+    void addBilinear(const itemVFlist_t &, const CutMesh &, const CExtension &, const int);
+    void addLinear(const itemVFlist_t &, const CutMesh &, const CExtension &, const int);
+    void addElementContributionOtherSide(const itemVFlist_t &, const int, const TimeSlab *, int, double);
 
     // integral on innerFace
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CFacet &b);
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CFacet &b, const TimeSlab &In);
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CFacet &b, const TimeSlab &In, int itq);
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CFacet &b);
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CFacet &b, const TimeSlab &In);
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CFacet &b, const TimeSlab &In, int itq);
-    void addFaceContribution(const ListItemVF<Rd::d> &VF, const std::pair<int, int> &e1, const std::pair<int, int> &e2,
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b);
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b, const TimeSlab &In);
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b, const TimeSlab &In, int itq);
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b);
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b, const TimeSlab &In);
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b, const TimeSlab &In, int itq);
+    void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1, const std::pair<int, int> &e2,
                              const TimeSlab *In, int itq, double cst_time);
 
     // integral on boundary
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CBorder &b, std::list<int> label = {});
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CBorder &b, const TimeSlab &In,
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, std::list<int> label = {});
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, const TimeSlab &In,
                      std::list<int> label = {});
-    void addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CBorder &b, const TimeSlab &In, int itq,
+    void addBilinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, const TimeSlab &In, int itq,
                      std::list<int> label = {});
 
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CBorder &b, std::list<int> label = {});
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CBorder &b, const TimeSlab &In,
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, std::list<int> label = {});
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, const TimeSlab &In,
                    std::list<int> label = {});
-    void addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &, const CBorder &b, const TimeSlab &In, int itq,
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, const TimeSlab &In, int itq,
                    std::list<int> label = {});
-    void addBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K, const BorderElement &BE, int ifac,
+    void addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                const TimeSlab *In, int itq, double cst_time);
 
     void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
 
     // integral on interface
-    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, std::list<int> label = {}) {
+    void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {}) {
         return BaseFEM<Mesh>::addBilinear(VF, gamma, label);
     }
-    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
+    void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
                      std::list<int> label = {}) {
         return BaseFEM<Mesh>::addBilinear(VF, gamma, In, itq, label);
     }
-    void addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
+    void addBilinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
                      std::list<int> label = {}) {
         return BaseFEM<Mesh>::addBilinear(VF, gamma, In, label);
     }
-    void addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In, int itq,
+    void addBilinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In, int itq,
                      std::list<int> label = {}) {
         return BaseFEM<Mesh>::addBilinear(VF, gamma, In, itq, label);
     }
 
-    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, std::list<int> label = {}) {
+    void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {}) {
         return BaseFEM<Mesh>::addLinear(VF, gamma, label);
     }
-    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
+    void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
                    std::list<int> label = {}) {
         return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);
     }
     template <typename Fct>
-    void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
                    std::list<int> label = {}) {
         return BaseFEM<Mesh>::template addLinear<Fct>(f, VF, gamma, In, itq, label);
     }
-    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
+    void addLinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
                    std::list<int> label = {}) {
         return BaseFEM<Mesh>::addLinear(VF, gamma, In, label);
     }
-    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In, int itq,
+    void addLinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In, int itq,
                    std::list<int> label = {}) {
         return BaseFEM<Mesh>::addLinear(VF, gamma, In, itq, label);
     }
     template <typename Fct>
-    void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
                    std::list<int> label = {}) {
         return BaseFEM<Mesh>::template addLinear<Fct>(f, VF, gamma, In, label);
     }
     template <typename Fct>
-    void addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In,
-                   int itq, std::list<int> label = {}) {
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In, int itq,
+                   std::list<int> label = {}) {
         return BaseFEM<Mesh>::template addLinear<Fct>(f, VF, gamma, In, itq, label);
     }
 
-    // void addInterfaceContribution(const ListItemVF<Rd::d>& VF, const
+    // void addInterfaceContribution(const itemVFlist_t& VF, const
     // Interface<Mesh>& gamma, int ifac, double tid, const TimeSlab* In, double
     // cst_time);
 
-    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, const Mapping<Mesh> &mapping,
+    void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const Mapping<Mesh> &mapping,
                      std::list<int> label = {}) {
         return BaseFEM<Mesh>::addBilinear(VF, gamma, mapping, label);
     }
-    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, const Mapping<Mesh> &mapping,
+    void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const Mapping<Mesh> &mapping,
                    std::list<int> label = {}) {
         return BaseFEM<Mesh>::addLinear(VF, gamma, mapping, label);
     }
 
     // integral on inner Ridge / intersection with interface
-    void addBilinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, const CRidge &innerRidge,
+    void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const CRidge &innerRidge,
                      std::list<int> label = {});
-    void addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
+    void addBilinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
                      const TimeSlab &In, std::list<int> label = {});
-    void addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
+    void addBilinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
                      const TimeSlab &In, int itq, std::list<int> label = {});
 
-    void addLinear(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &gamma, const CRidge &innerRidge,
+    void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const CRidge &innerRidge,
                    std::list<int> label = {});
-    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
+    void addLinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
                    const TimeSlab &In, std::list<int> label = {});
-    void addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
+    void addLinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const CRidge &innerRidge,
                    const TimeSlab &In, int itq, std::list<int> label = {});
-    void addInterfaceRidgeContribution(const ListItemVF<Rd::d> &VF, const Interface<Mesh> &interface, int ifac,
+    void addInterfaceRidgeContribution(const itemVFlist_t &VF, const Interface<Mesh> &interface, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
 
     // Face stabilization
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &);
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &, const TimeSlab &In);
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &, const TimeSlab &In, int itq);
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &, const MacroElement<Mesh> &);
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &, const TimeSlab &In,
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &);
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In);
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In, int itq);
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const MacroElement<Mesh> &);
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const TimeMacroElement<Mesh> &);
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &, const TimeSlab &In,
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const TimeMacroElement2<Mesh> &);
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &, const TimeSlab &In,
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const MacroElementPartition<Mesh> &);
-    void addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &, const TimeSlab &In,
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const TimeMacroElementSurface<Mesh> &);
 
-    void addFaceStabilizationRHS(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const MacroElement<Mesh> &macro);
+    void addFaceStabilizationRHS(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<Mesh> &macro);
     // Lagrange multiplier
-    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &);
-    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &, const int k);
-    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th, const TimeSlab &In);
-    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th, const TimeSlab &In, int itq,
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &);
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &, const int k);
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In);
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In, int itq,
                                bool init = true);
-    void addLagrangeContribution(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq,
-                                 double cst_time);
+    void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
-    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &, const CBorder &b,
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &, const CBorder &b,
                                std::list<int> label = {});
-    void addLagrangeBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K, const BorderElement &BE, int ifac,
+    void addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
 
-    void addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th, const CExtension &ext,
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const CExtension &ext,
                                const int epsE);
-    void addLagrangeContributionOtherSide(const ListItemVF<Rd::d> &VF, const int k, const int epsE);
+    void addLagrangeContributionOtherSide(const itemVFlist_t &VF, const int k, const int epsE);
 
     void addLagrangeVecToRowAndCol(const std::span<double> vecRow, const std::span<double> vecCol, const R val_rhs);
 
@@ -213,7 +213,6 @@ class BaseCutFEM : public BaseFEM<Mesh> {
 
     int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 };
-
 
 /**
  * @brief Create main object for a CutFEM problem

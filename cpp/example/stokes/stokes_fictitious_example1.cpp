@@ -1,7 +1,7 @@
 #include "../tool.hpp"
 
 using mesh_t     = Mesh2;
-using funtest_t  = TestFunction<mesh_t::D>;
+using funtest_t  = TestFunction<mesh_t>;
 using fct_t      = FunFEM<mesh_t>;
 using cutmesh_t  = ActiveMesh<mesh_t>;
 using space_t    = GFESpace<mesh_t>;
@@ -37,6 +37,10 @@ double fun_exact_p(R2 P, int i, int dom) {
 }
 
 int main(int argc, char **argv) {
+
+#ifdef USE_MPI
+    MPIcf cfMPI(argc, argv);
+#endif
 
     int nx              = 11;
     double penaltyParam = 4e3;

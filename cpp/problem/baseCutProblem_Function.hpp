@@ -30,7 +30,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
  * Finally, the function addLocalContribution is called to add the local contribution to the matrix.
  */
 
-template <typename M> void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
+template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
 
     //  double t0 = MPIcf::Wtime();
@@ -68,8 +68,7 @@ template <typename M> void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &V
  * @param Th Active mesh
  * @param In Time slab
  */
-template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In) {
+template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
 
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
 
@@ -89,7 +88,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
  * @note The function is scaled with the time quadrature weight, and should therefore not be called directly.
  */
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In, int itq) {
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In, int itq) {
     // Check if the input VF is not a RHS (right-hand side)
     assert(!VF.isRHS());
 
@@ -166,7 +165,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
  * @note The function is *NOT* scaled with the time quadrature weight, and may therefore be called directly.
  */
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
     // Assert that the input is not a RHS
     assert(!VF.isRHS());
     // Get the quadrature time for iteration "itq"
@@ -211,7 +210,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
     bar.end();
 }
 
-template <typename M> void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
+template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(VF.isRHS());
     progress bar(" Add Linear CutMesh", Th.last_element(), globalVariable::verbose);
 
@@ -231,7 +230,7 @@ template <typename M> void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
     assert(VF.isRHS());
     auto tq    = this->get_quadrature_time(itq);
     double tid = In.map(tq);
@@ -252,15 +251,14 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, in
     }
 }
 
-template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In) {
+template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addLinear(VF, Th, In, itq);
     }
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In, int itq) {
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In, int itq) {
     assert(VF.isRHS());
     auto tq    = this->get_quadrature_time(itq);
     double tid = In.map(tq);
@@ -283,7 +281,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, co
 }
 
 template <typename M>
-void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq,
+void BaseCutFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                            double cst_time) {
 
     // GET CUT AND COMPUTE PARAMETERS
@@ -379,7 +377,7 @@ void BaseCutFEM<M>::addElementContribution(const ListItemVF<Rd::d> &VF, const in
 }
 
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CExtension &ext, const int espE) {
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const CExtension &ext, const int espE) {
     assert(!VF.isRHS());
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
@@ -393,7 +391,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
     }
 }
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CExtension &ext, const int espE) {
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const CExtension &ext, const int espE) {
     assert(VF.isRHS());
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
@@ -405,8 +403,8 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, co
     }
 }
 template <typename M>
-void BaseCutFEM<M>::addElementContributionOtherSide(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In,
-                                                    int itq, double cst_time) {
+void BaseCutFEM<M>::addElementContributionOtherSide(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
+                                                    double cst_time) {
 
     // GET CUT AND COMPUTE PARAMETERS
     const FESpace &Vh(VF.get_spaceV(0));
@@ -493,7 +491,7 @@ void BaseCutFEM<M>::addElementContributionOtherSide(const ListItemVF<Rd::d> &VF,
 }
 
 // INTEGRATION ON INNER FACE
-template <typename M> void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CFacet &b) {
+template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const CFacet &b) {
     assert(!VF.isRHS());
     progress bar(" Add Bilinear Face", Th.last_element(), globalVariable::verbose);
 
@@ -521,14 +519,14 @@ template <typename M> void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &V
 }
 
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In) {
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addBilinear(VF, Th, b, In, itq);
     }
 }
 
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In,
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In,
                                 int itq) {
     assert(!VF.isRHS());
 
@@ -569,7 +567,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
     }
 }
 
-template <typename M> void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CFacet &b) {
+template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const CFacet &b) {
     assert(VF.isRHS());
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
@@ -592,15 +590,14 @@ template <typename M> void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF,
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In) {
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addLinear(VF, Th, b, In, itq);
     }
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In,
-                              int itq) {
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const CFacet &b, const TimeSlab &In, int itq) {
     assert(VF.isRHS());
 
     auto tq    = this->get_quadrature_time(itq);
@@ -637,7 +634,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, co
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d> &VF, const std::pair<int, int> &e1,
+void BaseCutFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1,
                                         const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
 
     typedef typename FElement::RdHatBord RdHatBord;
@@ -740,8 +737,7 @@ void BaseCutFEM<M>::addFaceContribution(const ListItemVF<Rd::d> &VF, const std::
 
 // INTEGRATION ON BOUNDARY
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutTh, const CBorder &b,
-                                std::list<int> label) {
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &cutTh, const CBorder &b, std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
 
@@ -787,7 +783,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutT
 }
 
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CBorder &b, const TimeSlab &In,
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const CBorder &b, const TimeSlab &In,
                                 std::list<int> label) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addBilinear(VF, Th, b, In, itq, label);
@@ -795,7 +791,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, 
 }
 
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutTh, const CBorder &b, const TimeSlab &In,
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &cutTh, const CBorder &b, const TimeSlab &In,
                                 int itq, std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -849,8 +845,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutT
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutTh, const CBorder &b,
-                              std::list<int> label) {
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &cutTh, const CBorder &b, std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
 
@@ -889,7 +884,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutTh,
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const CBorder &b, const TimeSlab &In,
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const CBorder &b, const TimeSlab &In,
                               std::list<int> label) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addLinear(VF, Th, b, In, itq, label);
@@ -897,7 +892,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th, co
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutTh, const CBorder &b, const TimeSlab &In,
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &cutTh, const CBorder &b, const TimeSlab &In,
                               int itq, std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -947,8 +942,8 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const CutMesh &cutTh,
 }
 
 template <typename M>
-void BaseCutFEM<M>::addBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K, const BorderElement &BE,
-                                          int ifac, const TimeSlab *In, int itq, double cst_time) {
+void BaseCutFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
+                                          const TimeSlab *In, int itq, double cst_time) {
 
     typedef typename FElement::RdHatBord RdHatBord;
 
@@ -1124,7 +1119,7 @@ template <typename Mesh> void BaseCutFEM<Mesh>::removeDofForHansbo(const FESpace
 
 // On Ridges
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, const CRidge &innerRidge,
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, const CRidge &innerRidge,
                                 std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -1139,15 +1134,15 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> 
     }
 }
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const CRidge &innerRidge,
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma, const CRidge &innerRidge,
                                 const TimeSlab &In, std::list<int> label) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addBilinear(VF, gamma, innerRidge, In, itq, label);
     }
 }
 template <typename M>
-void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &interface,
-                                const CRidge &innerRidge, const TimeSlab &In, int itq, std::list<int> label) {
+void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &interface, const CRidge &innerRidge,
+                                const TimeSlab &In, int itq, std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
     auto tq        = this->get_quadrature_time(itq);
@@ -1171,7 +1166,7 @@ void BaseCutFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, const CRidge &innerRidge,
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, const CRidge &innerRidge,
                               std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -1185,14 +1180,14 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const Interface<M> &g
     }
 }
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const CRidge &innerRidge,
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma, const CRidge &innerRidge,
                               const TimeSlab &In, std::list<int> label) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addLinear(VF, gamma, innerRidge, In, itq, label);
     }
 }
 template <typename M>
-void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &interface, const CRidge &innerRidge,
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const TimeInterface<M> &interface, const CRidge &innerRidge,
                               const TimeSlab &In, int itq, std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -1214,7 +1209,7 @@ void BaseCutFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M
 }
 
 // FACE STABILIZATION
-template <typename M> void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
+template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
     progress bar("Add Face Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
 
@@ -1240,7 +1235,7 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In) {
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
 
     number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();
@@ -1251,7 +1246,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutM
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In, int itq) {
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In, int itq) {
     assert(!VF.isRHS());
     auto tq    = this->get_quadrature_time(itq);
     double tid = In.map(tq);
@@ -1286,7 +1281,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutM
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const MacroElement<M> &macro) {
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<M> &macro) {
 
     progress bar(" Add Macro Stabilization CutMesh", macro.macro_element.size(), globalVariable::verbose);
 
@@ -1310,7 +1305,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutM
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In,
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In,
                                          const TimeMacroElement<M> &macro) {
 
     number_of_stabilized_edges      = 0;
@@ -1347,7 +1342,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutM
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In,
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In,
                                          const MacroElementPartition<M> &macro) {
 
     number_of_stabilized_edges      = 0;
@@ -1384,7 +1379,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutM
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutMesh &Th, const TimeSlab &In,
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In,
                                          const TimeMacroElementSurface<M> &macro) {
     number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();
@@ -1420,8 +1415,7 @@ void BaseCutFEM<M>::addFaceStabilization(const ListItemVF<Rd::d> &VF, const CutM
 }
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilizationRHS(const ListItemVF<Rd::d> &VF, const CutMesh &Th,
-                                            const MacroElement<M> &macro) {
+void BaseCutFEM<M>::addFaceStabilizationRHS(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<M> &macro) {
 
     progress bar(" Add Maro Stabilization RHS CutMesh", macro.macro_element.size(), globalVariable::verbose);
 
@@ -1446,8 +1440,7 @@ void BaseCutFEM<M>::addFaceStabilizationRHS(const ListItemVF<Rd::d> &VF, const C
 }
 
 // LAGRANGE MULTIPLIER
-template <typename M>
-void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th) {
+template <typename M> void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th) {
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
@@ -1467,7 +1460,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double va
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th, const int k) {
+void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const int k) {
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
@@ -1482,8 +1475,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double va
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th,
-                                          const TimeSlab &In) {
+void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In) {
 
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
@@ -1495,8 +1487,8 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double va
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th,
-                                          const TimeSlab &In, int itq, bool init) {
+void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In,
+                                          int itq, bool init) {
     assert(VF.isRHS());
     int ndf = this->rhs_.size() - 1;
     if (init) {
@@ -1531,7 +1523,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double va
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq,
+void BaseCutFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                             double cst_time) {
 
     // GET CUT AND COMPUTE PARAMETERS
@@ -1606,8 +1598,8 @@ void BaseCutFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d> &VF, const i
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &cutTh,
-                                          const CBorder &b, std::list<int> label) {
+void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &cutTh, const CBorder &b,
+                                          std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
 
@@ -1637,9 +1629,8 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double va
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLagrangeBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K,
-                                                  const BorderElement &BE, int ifac, const TimeSlab *In, int itq,
-                                                  double cst_time) {
+void BaseCutFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE,
+                                                  int ifac, const TimeSlab *In, int itq, double cst_time) {
 
     // typedef typename FElement::RdHatBord RdHatBord;
     //
@@ -1731,8 +1722,8 @@ void BaseCutFEM<M>::addLagrangeBorderContribution(const ListItemVF<Rd::d> &VF, c
 }
 
 template <typename M>
-void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const CutMesh &Th,
-                                          const CExtension &ext, const int epsE) {
+void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const CExtension &ext,
+                                          const int epsE) {
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
@@ -1751,7 +1742,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double va
     // (*this)(ndf,ndf) = 1;
 }
 template <typename M>
-void BaseCutFEM<M>::addLagrangeContributionOtherSide(const ListItemVF<Rd::d> &VF, const int k, const int epsE) {
+void BaseCutFEM<M>::addLagrangeContributionOtherSide(const itemVFlist_t &VF, const int k, const int epsE) {
 
     // GET CUT AND COMPUTE PARAMETERS
     const FESpace &Vh(VF.get_spaceV(0));
@@ -1844,14 +1835,14 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
 template <typename M>
 template <typename V>
     requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
-void BaseCutFEM<M>::initialSolution(V & u0) {
+void BaseCutFEM<M>::initialSolution(V &u0) {
 
     // Get the number of degrees of freedom in time
     int nbTime = this->get_nb_dof_time();
 
     // Initialize u0 with the number of degrees of freedom
-    //u0.init(this->get_nb_dof());
-    
+    // u0.init(this->get_nb_dof());
+
     assert(u0.size() == this->get_nb_dof());
 
     // If the mapU0_ is empty, return without performing any further operations
@@ -1912,7 +1903,7 @@ void BaseCutFEM<M>::initialSolution(V & u0) {
                 }
             }
         }
-        
+
         // Increment the id_domain_0 by the number of domains in the mesh
         id_domain_0 += Th.get_nb_domain();
     }
