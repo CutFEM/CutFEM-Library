@@ -26,7 +26,7 @@ typedef std::map<std::pair<int, int>, R> MatMap;
 using mesh_t    = Mesh2;
 using fespace_t = FESpace2;
 typedef CutFESpace<mesh_t> CutSpace;
-typedef TestFunction<2> FunTest;
+typedef TestFunction<mesh_t> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 typedef ExpressionFunFEM<Mesh2> Expression;
 

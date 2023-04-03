@@ -19,7 +19,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
  * This function is called for each integration point, and is used for both the element and the boundary element case.
  */
 template <typename M>
-void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const FElement &FKu, const FElement &FKv, const RNMK_ &fu,
+void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const FElement &FKu, const FElement &FKv, const RNMK_ &fu,
                              const RNMK_ &fv, double Cint) {
     // Get the current thread ID
 #ifdef USE_OMP
@@ -57,7 +57,7 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const FElement &FKu, cons
  */
 
 template <typename M>
-void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const TimeSlab &In, const FElement &FKu, const FElement &FKv,
+void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FElement &FKu, const FElement &FKv,
                              const RNMK_ &fu, const RNMK_ &fv, double Cint) {
     // Get the thread id
 #ifdef USE_OMP
@@ -106,7 +106,7 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const TimeSlab &In, const
  * the contribution of the current local DOF to the total local matrix using the function `addToLocalContribution`.
  */
 template <typename M>
-void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const FElement &FKv, const RNMK_ &fv, double Cint) {
+void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const FElement &FKv, const RNMK_ &fv, double Cint) {
     // Loop over the local degrees of freedom (DOF) associated with the
     // current cell
     for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
@@ -132,7 +132,7 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const FElement &FKv, cons
  * account the time basis function, using the function `addToLocalContribution`.
  */
 template <typename M>
-void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const TimeSlab &In, const FElement &FKv, const RNMK_ &fv,
+void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FElement &FKv, const RNMK_ &fv,
                              double Cint) {
 
     // Step 1: Create a reference to the local time basis functions (bf_time).
@@ -152,7 +152,7 @@ void BaseFEM<M>::addToMatrix(const ItemVF<Rd::d> &VFi, const TimeSlab &In, const
 }
 
 template <typename M>
-void BaseFEM<M>::addToMatrix_Opt(const ItemVF<Rd::d> &VFi, const FElement &FK, const RNMK_ &fv, double Cint) {
+void BaseFEM<M>::addToMatrix_Opt(const itemVF_t &VFi, const FElement &FK, const RNMK_ &fv, double Cint) {
 
     for (int i = FK.dfcbegin(VFi.cv); i < FK.dfcend(VFi.cv); ++i) {
         for (int j = FK.dfcbegin(VFi.cu); j < FK.dfcend(VFi.cu); ++j) {
@@ -162,7 +162,7 @@ void BaseFEM<M>::addToMatrix_Opt(const ItemVF<Rd::d> &VFi, const FElement &FK, c
 }
 
 template <typename M>
-void BaseFEM<M>::addToRHS(const ItemVF<Rd::d> &VFi, const FElement &FKv, const RNMK_ &fv, double Cint) {
+void BaseFEM<M>::addToRHS(const itemVF_t &VFi, const FElement &FKv, const RNMK_ &fv, double Cint) {
     for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
 
         (*this)(FKv.loc2glb(i)) += Cint * fv(i, VFi.cv, VFi.dv);
@@ -170,8 +170,7 @@ void BaseFEM<M>::addToRHS(const ItemVF<Rd::d> &VFi, const FElement &FKv, const R
 }
 
 template <typename M>
-void BaseFEM<M>::addToRHS(const ItemVF<Rd::d> &VFi, const TimeSlab &In, const FElement &FKv, const RNMK_ &fv,
-                          double Cint) {
+void BaseFEM<M>::addToRHS(const itemVF_t &VFi, const TimeSlab &In, const FElement &FKv, const RNMK_ &fv, double Cint) {
     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
 
     for (int it = In.dfcbegin(0); it < In.dfcend(0); ++it) {
@@ -198,7 +197,7 @@ template <typename M> void BaseFEM<M>::setDiagonal(const FESpace &Qh, double val
 }
 
 // INTEGRATION ON FULL ELEMENT
-template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &Th) {
+template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF, const Mesh &Th) {
     assert(!VF.isRHS());
     progress bar("Add Bilinear Mesh", Th.last_element(), globalVariable::verbose);
 
@@ -211,7 +210,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>
     bar.end();
 }
 
-template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const CutMesh &Th) {
+template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
     progress bar("Add Bilinear Mesh", Th.last_element(), globalVariable::verbose);
 
@@ -224,7 +223,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>
     bar.end();
 }
 
-template <typename Mesh> void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &VF, const Mesh &Th) {
+template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, const Mesh &Th) {
     assert(VF.isRHS());
     progress bar("Add Linear Mesh", Th.last_element(), globalVariable::verbose);
 
@@ -236,7 +235,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &
     bar.end();
 }
 template <typename M>
-void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq,
+void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                         double cst_time) {
 
     // CHECK IF IT IS FOR RHS OR MATRIX
@@ -321,7 +320,7 @@ void BaseFEM<M>::addElementContribution(const ListItemVF<Rd::d> &VF, const int k
 }
 
 template <typename M>
-void BaseFEM<M>::addElementContribution_Opt(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq,
+void BaseFEM<M>::addElementContribution_Opt(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                             double cst_time) {
 
     // CHECK IF IT IS FOR RHS OR MATRIX
@@ -392,7 +391,7 @@ void BaseFEM<M>::addElementContribution_Opt(const ListItemVF<Rd::d> &VF, const i
 }
 
 // INTEGRATION ON INNER FACE
-template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &Th, const CFacet &b) {
+template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF, const Mesh &Th, const CFacet &b) {
     assert(!VF.isRHS());
     progress bar("Add Bilinear InnerEdge", Th.last_element(), globalVariable::verbose);
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
@@ -414,7 +413,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d>
     }
     bar.end();
 }
-template <typename Mesh> void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &VF, const Mesh &Th, const CFacet &b) {
+template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, const Mesh &Th, const CFacet &b) {
     assert(VF.isRHS());
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
@@ -434,7 +433,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &
     }
 }
 template <typename M>
-void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d> &VF, const std::pair<int, int> &e1,
+void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1,
                                      const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
 
     typedef typename FElement::RdHatBord RdHatBord;
@@ -525,7 +524,7 @@ void BaseFEM<M>::addFaceContribution(const ListItemVF<Rd::d> &VF, const std::pai
 
 // INTEGRATION ON BOUNDARY
 template <typename Mesh>
-void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &Th, const CBorder &b, std::list<int> label) {
+void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF, const Mesh &Th, const CBorder &b, std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
     progress bar("Add Bilinear border", Th.last_boundary_element(), globalVariable::verbose);
@@ -545,7 +544,7 @@ void BaseFEM<Mesh>::addBilinear(const ListItemVF<Rd::d> &VF, const Mesh &Th, con
     bar.end();
 }
 template <typename Mesh>
-void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &VF, const Mesh &Th, const CBorder &b, std::list<int> label) {
+void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, const Mesh &Th, const CBorder &b, std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
     progress bar("Add Bilinear border", Th.last_boundary_element(), globalVariable::verbose);
@@ -568,8 +567,8 @@ void BaseFEM<Mesh>::addLinear(const ListItemVF<Rd::d> &VF, const Mesh &Th, const
     bar.end();
 }
 template <typename M>
-void BaseFEM<M>::addBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K, const BorderElement &BE,
-                                       int iiifac, const TimeSlab *In, int itq, double cst_time) {
+void BaseFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int iiifac,
+                                       const TimeSlab *In, int itq, double cst_time) {
 
     int subDomId = iiifac / Element::nea;
     int ifac     = iiifac % Element::nea;
@@ -704,7 +703,7 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::li
 // INTEGRATION ON INTERFACE
 // On Faces
 template <typename M>
-void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, std::list<int> label) {
+void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
     progress bar(" Add Bilinear Interface", gamma.last_element(), globalVariable::verbose);
@@ -722,7 +721,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> &ga
 }
 
 template <typename M>
-void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, const TimeSlab &In, int itq,
+void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, const TimeSlab &In, int itq,
                              std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -750,7 +749,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> &ga
 }
 
 template <typename M>
-void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
+void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
                              std::list<int> label) {
 
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
@@ -759,7 +758,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M>
 }
 
 template <typename M>
-void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const TimeSlab &In, int itq,
+void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In, int itq,
                              std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -787,7 +786,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M>
 }
 
 template <typename M>
-void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, std::list<int> label) {
+void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
     progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
@@ -806,7 +805,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamm
 }
 
 template <typename M>
-void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, const TimeSlab &In, int itq,
+void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, const TimeSlab &In, int itq,
                            std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -829,8 +828,8 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamm
 
 template <typename M>
 template <typename Fct>
-void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, const TimeSlab &In,
-                           int itq, std::list<int> label) {
+void BaseFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const Interface<M> &gamma, const TimeSlab &In, int itq,
+                           std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
     auto tq        = this->get_quadrature_time(itq);
@@ -851,7 +850,7 @@ void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const Inte
 }
 
 template <typename M>
-void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
+void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
                            std::list<int> label) {
     assert(VF.isRHS());
 
@@ -861,7 +860,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &
 }
 
 template <typename M>
-void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const TimeSlab &In, int itq,
+void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In, int itq,
                            std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -885,7 +884,7 @@ void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const TimeInterface<M> &
 
 template <typename M>
 template <typename Fct>
-void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
+void BaseFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
                            std::list<int> label) {
     assert(VF.isRHS());
 
@@ -896,8 +895,7 @@ void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF, const Time
 
 template <typename M>
 template <typename Fct>
-void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF,
-                           const TimeInterface<M> &gamma, const TimeSlab &In,
+void BaseFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
                            int itq, std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -920,8 +918,8 @@ void BaseFEM<M>::addLinear(const Fct &f, const ListItemVF<Rd::d> &VF,
 }
 
 template <typename M>
-void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d> &VF, const Interface<M> &interface, int ifac,
-                                          double tid, const TimeSlab *In, double cst_time, int itq) {
+void BaseFEM<M>::addInterfaceContribution(const itemVFlist_t &VF, const Interface<M> &interface, int ifac, double tid,
+                                          const TimeSlab *In, double cst_time, int itq) {
     typedef typename FElement::RdHatBord RdHatBord;
 
     // GET IDX ELEMENT CONTAINING FACE ON backMes
@@ -1017,8 +1015,8 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d> &VF, const Int
 // ! Add addInterfaceContribution for function evaluation (rhs)
 template <typename M>
 template <typename Fct>
-void BaseFEM<M>::addInterfaceContribution(const Fct &f, const ListItemVF<Rd::d> &VF, const Interface<M> &interface,
-                                          int ifac, double tid, const TimeSlab *In, double cst_time, int itq) {
+void BaseFEM<M>::addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,
+                                          double tid, const TimeSlab *In, double cst_time, int itq) {
     typedef typename FElement::RdHatBord RdHatBord;
 
     // GET IDX ELEMENT CONTAINING FACE ON backMes
@@ -1115,7 +1113,7 @@ void BaseFEM<M>::addInterfaceContribution(const Fct &f, const ListItemVF<Rd::d> 
 
 // WITH MAPPING
 template <typename M>
-void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, const Mapping<M> &mapping,
+void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, const Mapping<M> &mapping,
                              std::list<int> label) {
     assert(!VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -1133,7 +1131,7 @@ void BaseFEM<M>::addBilinear(const ListItemVF<Rd::d> &VF, const Interface<M> &ga
     bar.end();
 }
 template <typename M>
-void BaseFEM<M>::addLinear(const ListItemVF<Rd::d> &VF, const Interface<M> &gamma, const Mapping<M> &mapping,
+void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, const Mapping<M> &mapping,
                            std::list<int> label) {
     assert(VF.isRHS());
     bool all_label = (label.size() == 0);
@@ -1174,9 +1172,8 @@ static R determinant(const KNM_<double> &a) {
 }
 
 template <typename M>
-void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d> &VF, const Interface<M> &interface, int ifac,
-                                          double tid, const TimeSlab *In, double cst_time, int itq,
-                                          const Mapping<M> &mapping) {
+void BaseFEM<M>::addInterfaceContribution(const itemVFlist_t &VF, const Interface<M> &interface, int ifac, double tid,
+                                          const TimeSlab *In, double cst_time, int itq, const Mapping<M> &mapping) {
     typedef typename FElement::RdHatBord RdHatBord;
 
     // GET IDX ELEMENT CONTAINING FACE ON backMes
@@ -1285,8 +1282,7 @@ void BaseFEM<M>::addInterfaceContribution(const ListItemVF<Rd::d> &VF, const Int
 }
 
 // LAGRANGE MULTIPLIER
-template <typename Mesh>
-void BaseFEM<Mesh>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double val, const Mesh &Th) {
+template <typename Mesh> void BaseFEM<Mesh>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Mesh &Th) {
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
@@ -1301,7 +1297,7 @@ void BaseFEM<Mesh>::addLagrangeMultiplier(const ListItemVF<Rd::d> &VF, double va
 // ADD LAGRANGE contribution
 
 template <typename M>
-void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d> &VF, const int k, const TimeSlab *In, int itq,
+void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                          double cst_time) {
 
     // Compute parameter coonected to the mesh.
@@ -1362,7 +1358,7 @@ void BaseFEM<M>::addLagrangeContribution(const ListItemVF<Rd::d> &VF, const int 
 }
 
 template <typename M>
-void BaseFEM<M>::addLagrangeBorderContribution(const ListItemVF<Rd::d> &VF, const Element &K, const BorderElement &BE,
+void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE,
                                                int ifac, const TimeSlab *In, int itq, double cst_time) {
 
     typedef typename FElement::RdHatBord RdHatBord;

@@ -26,7 +26,7 @@ template <typename M> class Curvature {
     typedef typename FElement::Rd Rd;
     typedef Mapping<Mesh> IsoMapping;
     typedef FunFEM<Mesh> Fun_h;
-    typedef TestFunction<Rd::d> FunTest;
+    typedef TestFunction<Mesh> FunTest;
 
     static const int D = Rd::d;
     // const Mapping& mapping = DataMapping<Mesh>::Id;
