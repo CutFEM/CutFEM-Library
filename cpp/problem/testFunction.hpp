@@ -1,10 +1,3 @@
-/**
- * @file cpp/problem/testFunction.hpp
- *
- * @brief Contains implementation of the TestFunction class
- *
-/*
-
 /*
 This file is part of CutFEM-Library.
 
@@ -779,7 +772,7 @@ template <typeMesh mesh_t> TestFunction<mesh_t> grad(const TestFunction<mesh_t> 
  * @param T TestFunction
  * @return TestFunction<D> with 3 components
  */
-template <typeMesh mesh_t> TestFunction<mesh_t> rot(const TestFunction<mesh_t> &T) {
+template <typeMesh mesh_t> TestFunction<mesh_t> curl(const TestFunction<mesh_t> &T) {
     // T = [u0, u1, u2]
     int D       = mesh_t::D;
     auto [N, M] = T.size();
@@ -831,7 +824,7 @@ template <typeMesh mesh_t> TestFunction<mesh_t> rot(const TestFunction<mesh_t> &
  * @note This operator is different if TestFunction is a vector or a scalar.
  * If u vector: rotgrad(u) = -dy(ux) + dx(uy)
  * If u scalar: rotgrad(u) = [-dy(u), dx(u)]
- * @tparam D Physical dimension (=2)
+ * @tparam mesh_t Mesh
  * @param T TestFunction
  * @return TestFunction<D> with 2 components if T is a scalar, and 1 component if T is a vector
  */
@@ -840,6 +833,8 @@ template <typeMesh mesh_t> TestFunction<mesh_t> rotgrad(const TestFunction<mesh_
     int D       = mesh_t::D;
     assert(M == 1);             // We do not want to take rotgrad of matrices
     TestFunction<mesh_t> gradU;      // Temporary variable to store rotgrad of T
+
+    assert(T.isScalar());       // only implemented when T is scalar (for now)
 
     // Iterate over number of components of T
     for (int i = 0; i < N; ++i) {
@@ -869,14 +864,21 @@ template <typeMesh mesh_t> TestFunction<mesh_t> rotgrad(const TestFunction<mesh_
             int irow = T.isScalar() ? d : 0;    
             int jrow = T.isScalar() ? 0 : 0;    
             */
-            int irow = T.isScalar() ? d : i;    
-            int jrow = T.isScalar() ? 0 : d;    
+            int irow = T.isScalar() ? d : 0;    
+            int jrow = T.isScalar() ? 0 : 0;    
             gradU.push({irow, jrow}, new_list);
         }
     }
     return gradU;
 }
 
+/**
+ * @brief Compute the symmetric part of the strain tensor of a TestFunction //?
+ * 
+ * @tparam mesh_t Mesh
+ * @param T Test function
+ * @return TestFunction<mesh_t> 
+ */
 template <typeMesh mesh_t> TestFunction<mesh_t> Eps(const TestFunction<mesh_t> &T) {
     auto [N, M] = T.size();
     int D       = mesh_t::D;
@@ -886,11 +888,22 @@ template <typeMesh mesh_t> TestFunction<mesh_t> Eps(const TestFunction<mesh_t> &
     return epsU;
 }
 
+/**
+ * @brief Compute average of a TestFunction
+ * 
+ * @tparam mesh_t Mesh
+ * @param T TestFunction
+ * @param v1 Weight of function on first side of the face
+ * @param v2 Weight of function on second side of the face
+ * @return TestFunction<mesh_t> with the same number of components as T
+ */
 template <typeMesh mesh_t>
 TestFunction<mesh_t> average(const TestFunction<mesh_t> &T, double v1 = 0.5, double v2 = 0.5) {
-    double vv[2] = {v1, v2};
-    int N        = T.nbRow();
-    TestFunction<mesh_t> jumpU;
+    double vv[2] = {v1, v2};        // Array of weights
+    int N        = T.nbRow();       // Number of components of T
+    TestFunction<mesh_t> jumpU;     // Temporary variable to store average of T
+
+    // Iterate over number of components of T
     for (int row = 0; row < N; ++row) {
         int M = T.nbCol();                // Number of columns of T
 
@@ -910,9 +923,7 @@ TestFunction<mesh_t> average(const TestFunction<mesh_t> &T, double v1 = 0.5, dou
                     item.c *= vv[i];        
 
                     // Set the face_side_ to i
-                    item.face_side_ = i;    //? How do we know we take average across face and not on interface separating domains?
-
-                    //? Shouldn't we set domain_id_ as well?
+                    item.face_side_ = i;    //? Are we not able to take average across interface instead of face?
                 }
 
                 jumpU.push({row, col}, new_list);
@@ -993,7 +1004,7 @@ TestFunction<mesh_t> operator*(const typename mesh_t::Rd &cc, const TestFunction
 /**
  * @brief Compute the trangential gradient of a TestFunction
  * @note gradS = (I - nn^T) grad
- * @tparam D Physical dimension
+ * @tparam mesh_t Mesh
  * @param T TestFunction
  * @return TestFunction<D> with D components
  */
@@ -1107,6 +1118,64 @@ template <typeMesh mesh_t> TestFunction<mesh_t> dyS(const TestFunction<mesh_t> &
 
     return gradSU;
 }
+
+/**
+ * @brief Compute the cross product of a normal and a TestFunction
+ * 
+ * @tparam mesh_t Mesh
+ * @param n Normal
+ * @param T Test function
+ * @return TestFunction<mesh_t> of dimension 3 
+ */
+template <typeMesh mesh_t> TestFunction<mesh_t> cross(const Normal& n, const TestFunction<mesh_t> &T) {
+    // T = [u0, u1, u2]
+    int D       = mesh_t::D;
+    auto [N, M] = T.size();
+    assert(M == 1);             // we do not want to take rot of matrices
+    
+    // Particularly for 3D
+    assert(N == 3);
+    assert(D == 3);
+
+    // Temporary test functions
+    TestFunction<mesh_t> rotU1;
+    TestFunction<mesh_t> rotU2;
+
+    // Iterate over number of components of T
+    for (int i = 0; i < N; ++i) {
+        assert(T.nbCol(i) == 1);
+
+        // In component i, we want to return uj*nk - uk*nj
+        int j = (i + 1) % 3; // (if i = x then j = y, k = z, if i=y then j=z, k=x, if i=z then j=x, k=y)
+        int k = (i + 2) % 3;
+
+        auto uj = T.getList(j, 0); // component j of T
+        auto uk = T.getList(k, 0); // component k of T
+
+        // if uj = uj1 + uj2 + ... + ukn, we need to differentiate each term separately
+        assert(uj.U.size() == uk.U.size());
+        for (int l = 0; l < uj.U.size(); ++l) {
+
+            auto &itemj = uj.U[l]; // ujl
+            auto &itemk = uk.U[l]; // ukl
+
+            itemj.addNormal(k); // add nk to ujl
+            itemk.addNormal(j); // add nj to ukl
+        }
+
+        // result should go into row i
+        int irow = i;
+        int jrow = 0;
+
+        rotU1.push({irow, jrow}, uj); // push duj/dxk
+        rotU2.push({irow, jrow}, uk); // push duk/dxj
+    }
+
+    return rotU1 - rotU2; // return duj/dxk - duk/dxj
+
+}
+
+template <typeMesh mesh_t> TestFunction<mesh_t> cross(const TestFunction<mesh_t> &T, const Normal& n) {return -1*cross(n, T);}
 
 template <typeMesh mesh_t>
 TestFunction<mesh_t> average(const TestFunction<mesh_t> &U, const TestFunction<mesh_t> &V, int c1, int c2) {

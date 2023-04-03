@@ -172,7 +172,6 @@ template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const Time
 }
 
 
-
 template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &interface, int sign_domain_remove) {
 
     // Get number of subdomains of resulting mesh //?
@@ -223,13 +222,14 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &
                 auto ittt = interface_id_[0].erase(it_gamma);
             }
 
-            // SET NEW INDICES AND PUT BACK INTERFACES
+            // Set new indices and put back interfaces
             idx_in_background_mesh_[d].push_back(kb);
             it_k->second = nt[d];
             for (int i = 0; i < nb_interface; ++i) {
                 interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
             }
-            // IS CUT SO NEED TO ADD INTERFACE AND SIGN
+
+            // Is cut so need to add interface and sign
             if (signK.cut()) {
                 interface_id_[0][std::make_pair(d, nt[d])].push_back(std::make_pair(&interface, -sign_domain_remove));
             }

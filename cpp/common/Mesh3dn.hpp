@@ -42,6 +42,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 class Mesh3 : public GenericMesh<Tet, Triangle3, Vertex3> {
 
  public:
+
+   static const int D = 3;
+   
    Mesh3() {}
    Mesh3(const std::string);
    Mesh3(int nnv, int nnt, int nnbe, Vertex3 *vv, Tet *tt, Triangle3 *bb);

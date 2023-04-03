@@ -90,7 +90,7 @@ const int d = 2;
 typedef MeshQuad2 Mesh;
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
-typedef TestFunction<d> FunTest;
+typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh> Fun_h;
 
 using namespace Diffusion;
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 
         std::vector<double> gamma_length, gamma_length_saye;
 
-        Fun_h fh(Wh, fun_rhs0);
+        Fun_h funrhs(Wh, fun_rhs0);
 
         Normal n;
 
@@ -201,11 +201,7 @@ int main(int argc, char **argv) {
         // Add RHS on surface
         surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface);
 
-        surfactant.addLagrangeMultiplier(
-                innerProduct(1.,v)
-                , interface
-                , 0.
-        );
+        //surfactant.addLagrangeMultiplier(innerProduct(1.,v), interface, 0.);
 
         // Solve linear system
         surfactant.solve("mumps");

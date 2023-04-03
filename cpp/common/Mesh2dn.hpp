@@ -55,6 +55,8 @@ class Mesh2 : public GenericMesh<Triangle2, BoundaryEdge2, Vertex2> {
 
 class MeshQuad2 : public GenericMesh<Quad2, BoundaryEdge2, Vertex2> {
   public:
+    
+    static const int D = 2;
     MeshQuad2(int nx, int ny, R orx, R ory, R lx, R ly); // build structured mesh
 
   private:

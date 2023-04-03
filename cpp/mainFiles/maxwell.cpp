@@ -292,7 +292,7 @@ NOTES:
   using namespace Erik_Data_UNFITTED_MAXWELL;
 
   int main(int argc, char** argv ) {
-    typedef TestFunction<2> FunTest;
+    typedef TestFunction<Mesh2> FunTest;
     typedef FunFEM<Mesh2> Fun_h;
     typedef Mesh2 Mesh;
     typedef ActiveMeshT2 CutMesh;
@@ -366,6 +366,7 @@ NOTES:
         innerProduct(rotgrad(w), v)           // + -> -
         - innerProduct(k*k*eps_r*u, v)
         - innerProduct(p, div(v))
+//        + innerProduct(cross(fh,n)*taux, v)
         , Khi
       );
       maxwell.addLinear(

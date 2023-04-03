@@ -72,10 +72,14 @@ class ParameterCutFEM;
 // class ExpressionProduct;
 // class ExpressionDif;
 
+/**
+ * @brief Base class for all expressions
+ *
+ */
 class FunFEMVirtual {
   public:
-    double *data_ = nullptr;
-    KN_<double> v;
+    double *data_ = nullptr; ///< data //?
+    KN_<double> v;           ///< coefficients in the degrees of freedom
 
     FunFEMVirtual() : v(data_, 0) {}
     FunFEMVirtual(int df) : data_(new double[df]), v(data_, df) { v = 0.; }
@@ -108,6 +112,11 @@ class FunFEMVirtual {
     const double *data() const { return v.data(); }
 };
 
+/**
+ * @brief FunFEM represents functions defined on a finite element space
+ * @note
+ * @tparam M Mesh
+ */
 template <typename M> class FunFEM : public FunFEMVirtual {
   public:
     typedef M Mesh;
@@ -116,7 +125,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     typedef typename Mesh::Rd Rd;
 
     bool alloc     = false;
-    double *databf = nullptr;
+    double *databf = nullptr; ///< data for basis functions //?
 
   public:
     FESpace const *Vh  = nullptr;
@@ -189,7 +198,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
 
     template <typename fct_t>
         requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
-    
+
     void init(const FESpace &vh, fct_t f) {
         assert(!data_);
         Vh    = &vh;
@@ -738,18 +747,135 @@ class ExpressionNormal3 : public ExpressionVirtual {
 };
 std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Normal &n);
 
-
 /**
  * @brief n x u, where u is an expression of a 3D vector field
- * 
+ *
  */
+class ExpressionNormalCrossX3 : public ExpressionVirtual {
+    typedef Mesh3 M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> uzny, uynz;
+
+    public:
+    ExpressionNormalCrossX3(const FunFEM<M> &fh1) : fun(fh1), uynz(fh1, 1, op_id, 0, 0), uzny(fh1, 2, op_id, 0, 0) {
+        assert(fh1.Vh->N == 3); // assert that the function is a 3D vector field
+        
+        uzny.addNormal(1);
+        uynz.addNormal(2);
+        
+    }
+
+    virtual R operator()(long i) const { 
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        return uzny.eval(k, x, normal) - uynz.eval(k, x, normal);
+    }
+
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        return uzny.eval(k, x, t, normal) - uynz.eval(k, x, t, normal);
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return uzny.evalOnBackMesh(k, dom, x, normal) - uynz.evalOnBackMesh(k, dom, x, normal);
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return uzny.evalOnBackMesh(k, dom, x, t, normal) - uynz.evalOnBackMesh(k, dom, x, t, normal);
+    }
+
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+};
+
+class ExpressionNormalCrossY3 : public ExpressionVirtual {
+    typedef Mesh3 M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> uxnz, uznx;
+
+    public:
+    ExpressionNormalCrossY3(const FunFEM<M> &fh1) : fun(fh1), uxnz(fh1, 0, op_id, 0, 0), uznx(fh1, 2, op_id, 0, 0) {
+        assert(fh1.Vh->N == 3); // assert that the function is a 3D vector field
+
+        uznx.addNormal(0);
+        uxnz.addNormal(2);
+        
+    }
+
+    virtual R operator()(long i) const { 
+        assert(0);
+        return 0;
+    };
+
+
+    R eval(const int k, const R *x, const R *normal) const {
+        return uxnz.eval(k, x, normal) - uznx.eval(k, x, normal);
+    }
+
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        return uxnz.eval(k, x, t, normal) - uznx.eval(k, x, t, normal);
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return uxnz.evalOnBackMesh(k, dom, x, normal) - uznx.evalOnBackMesh(k, dom, x, normal);
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return uxnz.evalOnBackMesh(k, dom, x, t, normal) - uznx.evalOnBackMesh(k, dom, x, t, normal);
+    }
+
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+};
+
+class ExpressionNormalCrossZ3 : public ExpressionVirtual {
+    typedef Mesh3 M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> uynx, uxny;
+public:
+    ExpressionNormalCrossZ3(const FunFEM<M> &fh1) : fun(fh1), uynx(fh1, 1, op_id, 0, 0), uxny(fh1, 0, op_id, 0, 0) {
+        assert(fh1.Vh->N == 3); // assert that the function is a 3D vector field
+
+        uynx.addNormal(0);
+        uxny.addNormal(1);
+    }
+
+    virtual R operator()(long i) const { 
+        assert(0);
+        return 0;
+    };
+
+
+    R eval(const int k, const R *x, const R *normal) const {
+        return uynx.eval(k, x, normal) - uxny.eval(k, x, normal);
+    }
+
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        return uynx.eval(k, x, t, normal) - uxny.eval(k, x, t, normal);
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return uynx.evalOnBackMesh(k, dom, x, normal) - uxny.evalOnBackMesh(k, dom, x, normal);
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return uynx.evalOnBackMesh(k, dom, x, t, normal) - uxny.evalOnBackMesh(k, dom, x, t, normal);
+    }
+
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+};
 
 // class ExpressionNormalCross3 : public ExpressionVirtual {
 //     typedef Mesh3 M;
 //     const FunFEM<M> &fun;
-//     ExpressionFunFEM<M> uxny, uxnz, uynx, uynz, uznx, uzny;
-//     std::array<std::shared_ptr<ExpressionFunFEM<M>>, 3> fun_vector;
 
+//     ExpressionFunFEM<M> uxny, uxnz, uynx, uynz, uznx, uzny;
 
 //   public:
 //     // ExpressionNormal3(const FunFEM<M> &fh1)
@@ -761,9 +887,10 @@ std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Norm
 //     // }
 
 //     ExpressionNormalCross3(const FunFEM<M> &fh1)
-//         : fun(fh1), uxny(fh1, 0, op_id, 0, 0), uxnz(fh1, 0, op_id, 0, 0), uynx(fh1, 1, op_id, 0, 0), uynz(fh1, 1, op_id, 0, 0), uznx(fh1, 2, op_id, 0, 0), uzny(fh1, 2, op_id, 0, 0) {
+//         : fun(fh1), uxny(fh1, 0, op_id, 0, 0), uxnz(fh1, 0, op_id, 0, 0), uynx(fh1, 1, op_id, 0, 0),
+//           uynz(fh1, 1, op_id, 0, 0), uznx(fh1, 2, op_id, 0, 0), uzny(fh1, 2, op_id, 0, 0) {
 //         assert(fh1.Vh->N == 3); // assert that the function is a 3D vector field
-        
+
 //         uxny.addNormal(1);
 //         uxnz.addNormal(2);
 //         uynx.addNormal(0);
@@ -771,9 +898,12 @@ std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Norm
 //         uznx.addNormal(0);
 //         uzny.addNormal(1);
 
-//         fun_vector.at(0) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uynz) - std::make_shared<ExpressionFunFEM<M>>(uzny));
-//         fun_vector.at(1) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uznx) - std::make_shared<ExpressionFunFEM<M>>(uxnz));
-//         fun_vector.at(2) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uxny) - std::make_shared<ExpressionFunFEM<M>>(uynx));
+//         fun_vector.at(0) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uynz) -
+//                                                                  std::make_shared<ExpressionFunFEM<M>>(uzny));
+//         fun_vector.at(1) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uznx) -
+//                                                                  std::make_shared<ExpressionFunFEM<M>>(uxnz));
+//         fun_vector.at(2) = std::make_shared<ExpressionFunFEM<M>>(std::make_shared<ExpressionFunFEM<M>>(uxny) -
+//                                                                  std::make_shared<ExpressionFunFEM<M>>(uynx));
 //     }
 
 //     R operator()(long i) const {
@@ -806,11 +936,8 @@ std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Norm
 //     int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
 //     ~ExpressionNormalCross3() {}
 // };
-// std::shared_ptr<ExpressionNormalCross3> cross(const FunFEM<Mesh3> &f1, const Normal &n);
 
-
-
-
+std::list<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
 
 // divS for 2d
 class ExpressionDSx2 : public ExpressionVirtual {

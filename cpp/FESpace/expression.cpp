@@ -95,6 +95,14 @@ std::shared_ptr<ExpressionAverage> operator*(const ExpressionAverage &fh, double
     return std::make_shared<ExpressionAverage>(fh.fun1, c * fh.k1, c * fh.k2);
 }
 
+
+std::list<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n) {
+
+    return {std::make_shared<ExpressionNormalCrossX3>(f1), std::make_shared<ExpressionNormalCrossY3>(f1),
+             std::make_shared<ExpressionNormalCrossZ3>(f1)};
+}
+
+
 ExpressionBurgerFlux burgerFlux(const ExpressionVirtual &f1) { return ExpressionBurgerFlux(f1); }
 ExpressionNormalBurgerFlux burgerFlux(const ExpressionVirtual &f1, const Normal &n) {
     return ExpressionNormalBurgerFlux(f1);
