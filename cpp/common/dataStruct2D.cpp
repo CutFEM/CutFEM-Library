@@ -123,3 +123,12 @@ R2 Triangle2::mapToReferenceElement(const R1 &P, int i) const {
 double Triangle2::mesureBord(int i) const {
    return (at(nvedge[i][0]) - at(nvedge[i][1])).norm();
 }
+
+double Quad2::mesureBord(int i) const {
+   return (at(nvedge[i][0]) - at(nvedge[i][1])).norm();
+}
+
+R2 Quad2::mapToReferenceElement(const R1 &P, int i) const {
+    return (1 - P.X()) * R2::KHat[nvedge[i][0]] + P.X() * R2::KHat[nvedge[i][1]];
+}
+

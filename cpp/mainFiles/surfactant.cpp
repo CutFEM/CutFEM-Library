@@ -897,7 +897,7 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 10; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 6; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
     double h  = 0.1;             // starting mesh size
@@ -1011,7 +1011,7 @@ int main(int argc, char **argv) {
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        int divisionMeshSize = 8;
+        int divisionMeshSize = 4;
 
         // int divisionMeshSize = 2*3*pi;
         // int divisionMeshSize = 18;
@@ -1047,7 +1047,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = 1., tau2 = 1.;
+        double tau0 = 0, tau1 = 3., tau2 = 1.;
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
@@ -1327,7 +1327,7 @@ int main(int argc, char **argv) {
             // Add RHS on surface
             surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface, In);
 
-            // surfactant.addLinear(fun_rhs, +innerProduct(1., v), interface, In);
+            //surfactant.addLinear(fun_rhs, +innerProduct(1., v), interface, In);
 
             // Compute integrals //! PUT BACK
             // intF = integral(funrhs, In, interface, 0);
@@ -1538,8 +1538,11 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
+        if (j==iterations-2)
         h *= sqrt(0.5);     //! CHANGE BACK
-        //h *= 0.5;
+        else
+        h *= 0.5;
+        // h *= 0.5;
 #endif
         }
 

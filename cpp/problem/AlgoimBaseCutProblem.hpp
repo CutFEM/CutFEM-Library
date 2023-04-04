@@ -17,13 +17,27 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     using Element       = typename mesh_t::Element;
     using BorderElement = typename mesh_t::BorderElement;
 
+    int quadrature_order = 5;
+
     L phi;
 
   public:
+    void addBilinear(const itemVFlist_t &VF, const Interface<mesh_t> &interface);
+	void addLinear(const itemVFlist_t &VF, const Interface<mesh_t> &interface);
+    //template <typename Fct>
+    //void addLinear(const Fct &f, const itemVFlist_t &VF, const Interface<Mesh> &gamma);
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<mesh_t> &interface);
+    void addFaceStabilization(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th) {
+        return BaseCutFEM<mesh_t>::addFaceStabilization(VF, Th);
+	};
+
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
     void addInterfaceContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, int ifac, double tid,
                                   const TimeSlab *In, double cst_time, int itq);
+
+    void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface,
+                                                        const int iface);
 
     AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option, int np)
         : BaseCutFEM<mesh_t>(qt, option, np), phi(phi_) {}

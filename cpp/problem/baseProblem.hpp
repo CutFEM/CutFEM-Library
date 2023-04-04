@@ -218,6 +218,9 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     // integral for Lagrange multiplier
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Mesh &Th);
     void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<Mesh> &gamma);
+    void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface);
+    
     void addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
 };

@@ -4830,7 +4830,7 @@ const int d = 2;
 typedef Mesh2 Mesh;
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
-typedef TestFunction<d> FunTest;
+typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 
 // Note: standard for this program is to solve the equations on the inner domain
@@ -4880,7 +4880,7 @@ using namespace Example2;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;            // starting mesh size
@@ -5151,6 +5151,26 @@ int main(int argc, char **argv) {
                 // Assemble linear part of Jacobian DF
                 if (newton_iterations == 0) {
 
+#ifdef conservative
+
+                     // Time derivative terms
+                    convdiff.addBilinear(-innerProduct(wB, dt(vB)), Thi, In);
+                    convdiff.addBilinear(-innerProduct(wS, dt(vS)), interface, In);
+
+                    // Time penalty terms (only) LHS
+                    convdiff.addBilinear(+innerProduct(wB, vB), Thi, lastQuadTime, In);
+                    convdiff.addBilinear(+innerProduct(wS, vS), *interface(lastQuadTime), In, lastQuadTime);
+
+                    // Convection
+                    convdiff.addBilinear(-innerProduct(wB, (vel.exprList() * grad(vB))), Thi, In);
+                    convdiff.addBilinear(-innerProduct(wS, (vel.exprList() * grad(vS))),
+                                         interface, In);
+
+                    // Outer boundary term 
+                    convdiff.addBilinear(innerProduct(vel.exprList() * wB * n, vB), Thi, INTEGRAL_BOUNDARY, In);
+
+#elif defined(classical)
+
                     // Time derivative terms
                     convdiff.addBilinear(+innerProduct(dt(wB), vB), Thi, In);
                     convdiff.addBilinear(+innerProduct(dt(wS), vS), interface, In);
@@ -5159,14 +5179,16 @@ int main(int argc, char **argv) {
                     convdiff.addBilinear(+innerProduct(wB, vB), Thi, 0, In);
                     convdiff.addBilinear(+innerProduct(wS, vS), *interface(0), In, 0);
 
-                    // Diffusion
-                    convdiff.addBilinear(+innerProduct(D * grad(wB), grad(vB)), Thi, In);
-                    convdiff.addBilinear(+innerProduct(DGamma * gradS(wS), gradS(vS)), interface, In);
-
                     // Convection
                     convdiff.addBilinear(+innerProduct((vel.exprList() * grad(wB)), vB), Thi, In);
                     convdiff.addBilinear(+innerProduct((vel.exprList() * grad(wS)), vS) +innerProduct(wS * divS(vel), vS),
                                          interface, In);
+#endif
+                    // Diffusion
+                    convdiff.addBilinear(+innerProduct(D * grad(wB), grad(vB)), Thi, In);
+                    convdiff.addBilinear(+innerProduct(DGamma * gradS(wS), gradS(vS)), interface, In);
+
+                    
 
                     // Linear part of coupling term
                     convdiff.addBilinear(innerProduct(wB - wS, vB - vS), interface, In);

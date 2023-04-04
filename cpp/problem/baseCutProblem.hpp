@@ -149,6 +149,10 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
         return BaseFEM<Mesh>::addLinear(VF, gamma, mapping, label);
     }
 
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<mesh_t> &gamma) {
+        return BaseFEM<Mesh>::addLagrangeMultiplier(VF, val, gamma);
+    }
+
     // integral on inner Ridge / intersection with interface
     void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const CRidge &innerRidge,
                      std::list<int> label = {});
@@ -187,6 +191,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In, int itq,
                                bool init = true);
+
     void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &, const CBorder &b,

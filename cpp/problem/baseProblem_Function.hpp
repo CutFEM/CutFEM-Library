@@ -1358,6 +1358,109 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const int k, co
 }
 
 template <typename M>
+void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<M> &gamma) {
+    assert(VF.isRHS());
+    
+    int ndf = this->rhs_.size();
+    this->rhs_.resize(ndf + 1);
+    this->rhs_(ndf) = val;
+
+    for(int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
+
+        BaseFEM<M>::addLagrangeContribution(VF, gamma, iface);
+        this->addLocalContributionLagrange(ndf);
+
+    }
+}
+
+template <typename M>
+void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface<M> &interface, const int ifac) {
+    typedef typename FElement::RdHatBord RdHatBord;
+
+    // GET IDX ELEMENT CONTAINING FACE ON backMes
+    const int kb = interface.idxElementOfFace(ifac);
+    const Element &K(interface.get_element(kb));
+    double measK = K.measure();
+    double h     = K.get_h();
+    double meas  = interface.measure(ifac);
+    std::array<double, 2> measCut;
+    //KNM<double> invJ(Rd::d, Rd::d);
+
+    { // compute each cut part
+        const FESpace &Vh(VF.get_spaceV(0));
+        const ActiveMesh<M> &Th(Vh.get_mesh());
+        std::vector<int> idxV = Vh.idxAllElementFromBackMesh(kb, -1);
+
+        const Cut_Part<Element> cutK(Th.get_cut_part(idxV[0], 0));
+        measCut[0] = cutK.measure();
+        measCut[1] = measCut[0];
+        if (idxV.size() == 2) {
+            const Cut_Part<Element> cutK(Th.get_cut_part(idxV[1], 0));
+            measCut[1] = cutK.measure();
+        }
+    }
+
+    const Rd linear_normal(-interface.normal(ifac));
+
+    // GET THE QUADRATURE RULE
+    const QFB &qfb(this->get_quadrature_formular_cutFace());
+
+    for (int l = 0; l < VF.size(); ++l) {
+        // if(!VF[l].on(domain)) continue;
+
+        // FINITE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+
+        std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+        int kv = VF[l].onWhatElementIsTestFunction(idxV);
+        
+        const FElement &FKv(Vhv[kv]);
+        int domv = FKv.get_domain();
+        this->initIndex(FKv, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT && NORMAL
+        double coef = VF[l].computeCoefInterface(h, meas, measK, measCut, {domv, domv});
+        // coef *= VF[l].computeCoefFromNormal(linear_normal);
+
+        // // LOOP OVER QUADRATURE IN SPACE
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+
+            typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
+            const Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
+            const Rd face_ip = K.mapToReferenceElement(mip);
+            double Cint      = meas * ip.getWeight();
+
+            //const Rd map_mip = mapping.map(kb, mip);
+
+            //mapping.computeInverseJacobian(kb, mip, invJ);
+            //Rd normal   = invJ * linear_normal;
+            
+            //double DetJ = 1. / determinant(invJ);
+
+            //Cint *= coef * VF[l].c * DetJ * normal.norm();
+            Cint *= coef * VF[l].c * linear_normal.norm();
+            //normal = normal / normal.norm();
+
+            // EVALUATE THE BASIS FUNCTIONS
+            FKv.BF(Fop, face_ip, fv);
+    
+            //Cint *= VF[l].computeCoefFromNormal(normal);
+            Cint *= VF[l].computeCoefFromNormal(linear_normal);
+            //Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), domv, normal);
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domv, domv), mip, 0., linear_normal);
+
+
+            this->addToRHS(VF[l], FKv, fv, Cint);
+        }
+    }
+}
+
+template <typename M>
 void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE,
                                                int ifac, const TimeSlab *In, int itq, double cst_time) {
 

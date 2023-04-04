@@ -39,39 +39,44 @@
 #include "../num/matlab.hpp"
 #include "paraview.hpp"
 
-#include "../algoim/quadrature_general.hpp"
+//#include "../algoim/quadrature_general.hpp"
+#include "../problem/AlgoimIntegration.hpp"
 
 using namespace globalVariable;
 
 namespace Diffusion {
 
         // RHS for surface variable
-        double fun_rhs0(double * P, int elementComp) {
-                R x = P[0], y = P[1];
+        double fun_rhs0(const R2 P, int elementComp) {
+                R x = P.x, y = P.y;
                 return (9*y*(3*x*x - y*y))/(x*x + y*y);
 
         }
 
         // Exact solution on surface
-        double fun_uSurface(double * P,  int elementComp) {
-                return 3.0*P[0]*P[0]*P[1] - pow(P[1],3);
+        double fun_uSurface(const R2 P,  int elementComp) {
+                return 3.0*P.x*P.x*P.y - pow(P.y,3);
         }
 
         // Exact solution on surface for time-step t
-        double fun_uSurfaceT(double * P,  int elementComp, double t) {
-                return 3.0*P[0]*P[0]*P[1] - pow(P[1],3);
+        double fun_uSurfaceT(const R2 P,  int elementComp, double t) {
+                return 3.0*P.x*P.x*P.y - pow(P.y,3);
         }
 
         // Level-set function
-        double fun_levelSet(double * P, const int i) {
-                return (P[0])*(P[0]) + (P[1])*(P[1]) - 1.0;
+        double fun_levelSet(const R2 P, const int i) {
+                return (P.x)*(P.x) + (P.y)*(P.y) - 1.0 - Epsilon;
         }
+
+        double fun_one(const R2 P, const int i) { return 1.; }
 
         template <int N> struct Levelset {
 
-            // level set function
-            template <typename T> T operator()(const algoim::uvector<T, N> &x) const { 
-                return x(0)*x(0) + x(1)*x(1) - 1;
+                double t;
+
+                // level set function
+                template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
+                    return x(0) * x(0) + x(1) * x(1) - 1;
 
             }
 
@@ -108,21 +113,19 @@ int main(int argc, char **argv) {
     std::cout << std::setprecision(16);
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
-    double h  = 0.1;             // starting mesh size
+    double h  = 0.05;             // starting mesh size
     
 	std::array<double, iterations> errors;             // array to hold L2 errors vs h
     std::array<double, iterations> gamma_length_h;
-    std::array<double, iterations> gamma_length_h_saye;
     std::array<double, iterations> nxs; // array to hold mesh sizes
     std::array<double, iterations> nys; // array to hold mesh sizes
     std::array<double, iterations> hs;  // array to hold mesh sizes
     
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
-
 
         // Mesh
         double lx = 3., ly = 3.;
@@ -156,7 +159,7 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << "\n";
         
         // CG stabilization parameters
-        double tau1 = 1., tau2 = .1;
+        double tau1 = 1e-10, tau2 = .1;
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
@@ -181,51 +184,52 @@ int main(int argc, char **argv) {
         std::vector<double> gamma_length, gamma_length_saye;
 
         Fun_h funrhs(Wh, fun_rhs0);
+        Fun_h funone(Wh, fun_one);
 
         Normal n;
 
         // Test and Trial functions
-        FunTest u(Wh, 1), v(Wh, 1); // Omega2
+        FunTest u(Wh, 1), v(Wh, 1); 
 
         // Scheme for diffusion
         surfactant.addBilinear(+innerProduct(gradS(u), gradS(v)), interface);
 
         // Stabilization
         double stab_surf_face = tau1;
-        double stab_surf_interface = 0.;//h * h * tau2;
-
         surfactant.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(u) * n), jump(grad(v) * n)), ThGamma);
-
-        surfactant.addBilinear(+innerProduct(stab_surf_interface * grad(u) * n, grad(v) * n), interface);
 
         // Add RHS on surface
         surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface);
+        //surfactant.addLinear(fun_rhs, innerProduct(1., v), interface);
 
-        //surfactant.addLagrangeMultiplier(innerProduct(1.,v), interface, 0.);
-
+        surfactant.addLagrangeMultiplier(innerProduct(1.,v), 0., interface);
+        
+        matlab::Export(surfactant.mat_[0], "mat.dat");
         // Solve linear system
         surfactant.solve("mumps");
+
+
 
         KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
         Fun_h us(Wh, dw);
 
-        errL2 = L2normSurf(us, fun_uSurfaceT, interface, 0, 1);
+        errL2 = L2_norm_surface(us, fun_uSurface, interface, phi, 0, 1);
 
-        errors.at(j) = errL2;
-        gamma_length_h.at(j) = intGamma;
+        intGamma             = integral_saye<Levelset<2>, Fun_h>(funone, interface, 0, phi);
+        errors.at(j)         = errL2;
+        gamma_length_h.at(j) = fabs(intGamma - 2*pi);
 
-        // if (iterations == 1) {
-        //     Fun_h sol(Wh, datau0);
+        if (iterations == 1) {
 
-        //     Paraview<Mesh> writer(ThGamma, path_figures + "surfactant_" + std::to_string(iter + 1) + ".vtk");
+            Paraview<Mesh> writer(ThGamma, path_figures + "surfactant.vtk");
 
-        //     Fun_h uS_ex(Wh, fun_sol_surfactant, tid);
-        //     writer.add(u0, "surfactant", 0, 1);
-        //     writer.add(uS_ex, "surfactant_exact", 0, 1);
-        //     writer.add(fabs(u0.expr() - uS_ex.expr()), "surfactant_error");
-        //     writer.add(ls[0], "levelSet", 0, 1);
-        //     // writer.add(ls[2], "levelSet2", 0, 1);
-        // }
+            Fun_h uS_ex(Wh, fun_uSurface);
+            writer.add(us, "surfactant", 0, 1);
+            writer.add(uS_ex, "surfactant_exact", 0, 1);
+            writer.add(fabs(us.expr() - uS_ex.expr()), "surfactant_error");
+            writer.add(levelSet, "levelSet", 0, 1);
+            // writer.add(ls[2], "levelSet2", 0, 1);
+        }
 
 
         // Refine mesh
@@ -250,6 +254,21 @@ int main(int argc, char **argv) {
               << "\n";
 
     std::cout << "\n";
+
+	std::cout << "\n";
+    std::cout << "Length Gamma = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << gamma_length_h.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]"
+              << "\n";
+
+    std::cout << "\n";
+
     std::cout << "h = [";
     for (int i = 0; i < iterations; i++) {
 

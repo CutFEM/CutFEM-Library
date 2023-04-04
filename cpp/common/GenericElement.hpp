@@ -186,7 +186,8 @@ template <typename Data> class GenericElement : public Label {
    } // 0 : no permutation
 
    R lenEdge(int i) const {
-      assert(i >= 0 && i < 3);
+      //assert(i >= 0 && i < 3);
+      assert(i >= 0 && i < 4);   //! my change!
       Rd E = Edge(i);
       return sqrt((E, E));
    }

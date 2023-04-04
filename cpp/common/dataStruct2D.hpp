@@ -312,12 +312,17 @@ class Quad2 : public GenericElement<DataQuad2> {
       double c2 = (AP, AC) / AC.norme2();
       return R2(c1, c2);
    }
+
+   R2 mapToReferenceElement(const R1 &P, int i) const;
+
    // R2 centroid() const {
    //   return 1./3*((*vertices[0])+(*vertices[1])+(*vertices[2]));
    // }
 
    // R2 toKref(const R1& P, int i) const;
    // double mesureBord(int i) const ;
+
+   double mesureBord(int i) const;
 };
 
 // Forward declaration
