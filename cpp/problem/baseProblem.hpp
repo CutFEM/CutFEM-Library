@@ -205,8 +205,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
                    std::list<int> label = {});
     void addLinear(const itemVFlist_t &VF, const TimeInterface<Mesh> &gamma, const TimeSlab &In, int itq,
                    std::list<int> label = {});
-    void addInterfaceContribution(const itemVFlist_t &VF, const Interface<Mesh> &gamma, int ifac, double tid,
-                                  const TimeSlab *In, double cst_time, int itq);
+    virtual void addInterfaceContribution(const itemVFlist_t &VF, const Interface<Mesh> &gamma, int ifac, double tid,
+                                          const TimeSlab *In, double cst_time, int itq);
 
     void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const Mapping<Mesh> &,
                      std::list<int> label = {});
@@ -220,7 +220,7 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<Mesh> &gamma);
     void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface);
-    
+
     void addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
 };
