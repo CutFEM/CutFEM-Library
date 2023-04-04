@@ -1360,16 +1360,15 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const int k, co
 template <typename M>
 void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<M> &gamma) {
     assert(VF.isRHS());
-    
+
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_(ndf) = val;
 
-    for(int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
+    for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
 
         BaseFEM<M>::addLagrangeContribution(VF, gamma, iface);
         this->addLocalContributionLagrange(ndf);
-
     }
 }
 
@@ -1384,7 +1383,7 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
     double h     = K.get_h();
     double meas  = interface.measure(ifac);
     std::array<double, 2> measCut;
-    //KNM<double> invJ(Rd::d, Rd::d);
+    // KNM<double> invJ(Rd::d, Rd::d);
 
     { // compute each cut part
         const FESpace &Vh(VF.get_spaceV(0));
@@ -1412,8 +1411,8 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
         const FESpace &Vhv(VF.get_spaceV(l));
 
         std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
-        int kv = VF[l].onWhatElementIsTestFunction(idxV);
-        
+        int kv                = VF[l].onWhatElementIsTestFunction(idxV);
+
         const FElement &FKv(Vhv[kv]);
         int domv = FKv.get_domain();
         this->initIndex(FKv, FKv);
@@ -1435,27 +1434,27 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = meas * ip.getWeight();
 
-            //const Rd map_mip = mapping.map(kb, mip);
+            // const Rd map_mip = mapping.map(kb, mip);
 
-            //mapping.computeInverseJacobian(kb, mip, invJ);
-            //Rd normal   = invJ * linear_normal;
-            
-            //double DetJ = 1. / determinant(invJ);
+            // mapping.computeInverseJacobian(kb, mip, invJ);
+            // Rd normal   = invJ * linear_normal;
 
-            //Cint *= coef * VF[l].c * DetJ * normal.norm();
+            // double DetJ = 1. / determinant(invJ);
+
+            // Cint *= coef * VF[l].c * DetJ * normal.norm();
             Cint *= coef * VF[l].c * linear_normal.norm();
-            //normal = normal / normal.norm();
+            // normal = normal / normal.norm();
 
             // EVALUATE THE BASIS FUNCTIONS
             FKv.BF(Fop, face_ip, fv);
-    
-            //Cint *= VF[l].computeCoefFromNormal(normal);
+
+            // Cint *= VF[l].computeCoefFromNormal(normal);
             Cint *= VF[l].computeCoefFromNormal(linear_normal);
-            //Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), domv, normal);
-            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domv, domv), mip, 0., linear_normal);
+            // Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), domv, normal);
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domv, domv), mip, 0.,
+                                                           linear_normal);
 
-
-            this->addToRHS(VF[l], FKv, fv, Cint);
+            this->addToMatrix(VF[l], FKv, fv, Cint);
         }
     }
 }
