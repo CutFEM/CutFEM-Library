@@ -161,7 +161,6 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addBilinear(const itemVFlist_t &VF, const CutMesh &);
     void addLinear(const itemVFlist_t &VF, const Mesh &);
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
-    void addElementContribution_Opt(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
     // integral on innerFace
     void addBilinear(const itemVFlist_t &VF, const Mesh &, const CFacet &b);
@@ -219,7 +218,7 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Mesh &Th);
     void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<Mesh> &gamma);
-    void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface);
+    virtual void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface);
 
     void addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);

@@ -49,7 +49,7 @@ template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, co
         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
             bar += Th.next_element();
             if (Th.isCut(k, 0)) {
-                BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+                addElementContribution(VF, k, nullptr, 0, 1.);
             } else {
                 BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
             }
@@ -141,7 +141,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const
             if (Th.isCut(k, itq))
                 // If the element is cut, add contribution to local matrix using addElementContribution function from
                 // BaseCutFEM class
-                BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
+                addElementContribution(VF, k, &In, itq, cst_time);
             else
                 // If the element is not cut, add contribution to local matrix using addElementContribution function
                 // from BaseFEM class
@@ -197,7 +197,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, int i
 
         // If the element is cut, add its contribution using BaseCutFEM
         if (Th.isCut(k, itq))
-            BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+            addElementContribution(VF, k, &In, itq, 1.);
         // Else, add its contribution using BaseFEM
         else
             BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
@@ -218,7 +218,7 @@ template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, cons
         bar += Th.next_element();
 
         if (Th.isCut(k, 0)) {
-            BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+            addElementContribution(VF, k, nullptr, 0, 1.);
         } else {
             BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
         }
@@ -243,7 +243,7 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, int itq
             continue;
 
         if (Th.isCut(k, itq))
-            BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+            addElementContribution(VF, k, &In, itq, 1.);
         else
             BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
 
@@ -274,7 +274,7 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const T
             continue;
 
         if (Th.isCut(k, itq))
-            BaseCutFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
+            addElementContribution(VF, k, &In, itq, cst_time);
         else
             BaseFEM<M>::addElementContribution(VF, k, &In, itq, cst_time);
     }
@@ -382,8 +382,8 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (Th.isCut(k, 0)) {
-            BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
-            BaseCutFEM<M>::addElementContributionOtherSide(VF, k, nullptr, 0, espE);
+            addElementContribution(VF, k, nullptr, 0, 1.);
+            addElementContributionOtherSide(VF, k, nullptr, 0, espE);
         } else
             BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
 
@@ -396,8 +396,8 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const C
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (Th.isCut(k, 0)) {
-            BaseCutFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
-            BaseCutFEM<M>::addElementContributionOtherSide(VF, k, nullptr, 0, espE);
+            addElementContribution(VF, k, nullptr, 0, 1.);
+            addElementContributionOtherSide(VF, k, nullptr, 0, espE);
         } else
             BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
     }
@@ -509,7 +509,7 @@ template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, co
             std::pair<int, int> e2 = std::make_pair(kn, jfac);
             // CHECK IF IT IS A CUT EDGE
             if (Th.isCutFace(k, ifac, 0))
-                BaseCutFEM<M>::addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
+                addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
             else
                 BaseFEM<M>::addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
         }
@@ -558,7 +558,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const
             // CHECK IF IT IS A CUT EDGE
             if (Th.isCutFace(k, ifac, itq)) {
                 // std::cout << k << "\t" << ifac << std::endl;
-                BaseCutFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+                addFaceContribution(VF, e1, e2, &In, itq, cst_time);
 
             } else
                 BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
@@ -582,7 +582,7 @@ template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, cons
             std::pair<int, int> e2 = std::make_pair(kn, jfac);
             // CHECK IF IT IS A CUT EDGE
             if (Th.isCutFace(k, ifac, 0))
-                BaseCutFEM<M>::addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
+                addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
             else
                 BaseFEM<M>::addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
         }
@@ -626,7 +626,7 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const C
             std::pair<int, int> e2 = std::make_pair(kn, jfac);
             // CHECK IF IT IS A CUT EDGE
             if (Th.isCutFace(k, ifac, itq))
-                BaseCutFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+                addFaceContribution(VF, e1, e2, &In, itq, cst_time);
             else
                 BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
         }
@@ -761,7 +761,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &cutTh, co
 
             // CHECK IF IT IS A CUT EDGE
             if (cutTh.isCutFace(idxK[0], ifac, 0))
-                BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
+                addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
             else {
                 if (idxK.size() == 1) {
                     BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
@@ -819,7 +819,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &cutTh, co
 
             // CHECK IF IT IS A CUT EDGE
             if (cutTh.isCutFace(idxK[0], ifac, itq)) {
-                BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+                addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
             } else {
                 if (idxK.size() == 1) {
                     BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
@@ -918,7 +918,7 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &cutTh, cons
 
             // CHECK IF IT IS A CUT EDGE
             if (cutTh.isCutFace(idxK[0], ifac, itq))
-                BaseCutFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+                addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
             else {
                 if (idxK.size() == 1) {
                     BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
@@ -1450,7 +1450,7 @@ template <typename M> void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
         if (Th.isCut(k, 0))
-            BaseCutFEM<M>::addLagrangeContribution(VF, k, nullptr, 0, 1);
+            addLagrangeContribution(VF, k, nullptr, 0, 1);
         else
             BaseFEM<M>::addLagrangeContribution(VF, k, nullptr, 0, 1);
 
@@ -1513,7 +1513,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
             continue;
 
         if (Th.isCut(k, itq))
-            BaseCutFEM<M>::addLagrangeContribution(VF, k, &In, itq, cst_time);
+            addLagrangeContribution(VF, k, &In, itq, cst_time);
         else
             BaseFEM<M>::addLagrangeContribution(VF, k, &In, itq, cst_time);
 
@@ -1620,7 +1620,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
 
             // CHECK IF IT IS A CUT EDGE
             if (cutTh.isCutFace(idxK[0], ifac, 0))
-                BaseCutFEM<M>::addLagrangeBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
+                addLagrangeBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
             else
                 BaseFEM<M>::addLagrangeBorderContribution(VF, K, BE, ifac, nullptr, 0, 1.);
             this->addLocalContributionLagrange(ndf);
@@ -1732,8 +1732,8 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (Th.isCut(k, 0)) {
-            BaseCutFEM<M>::addLagrangeContribution(VF, k);
-            BaseCutFEM<M>::addLagrangeContributionOtherSide(VF, k, epsE);
+            addLagrangeContribution(VF, k);
+            addLagrangeContributionOtherSide(VF, k, epsE);
         } else
             BaseFEM<M>::addLagrangeContribution(VF, k);
 

@@ -319,77 +319,6 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
     }
 }
 
-template <typename M>
-void BaseFEM<M>::addElementContribution_Opt(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
-                                            double cst_time) {
-
-    // CHECK IF IT IS FOR RHS OR MATRIX
-    bool to_rhs = VF.isRHS();
-
-    // Compute parameter coonected to the mesh.
-    // on can take the one from the first test function
-    const FESpace &Vh(*VF[0].fespaceV);
-    const FElement &FK(Vh[k]);
-    const Element &K(FK.T);
-    double meas = K.measure();
-    double h    = K.get_h();
-    int domain  = FK.get_domain();
-    int kb      = Vh.idxElementInBackMesh(k);
-
-    // GET THE QUADRATURE RULE
-    const QF &qf(this->get_quadrature_formular_K());
-    auto tq    = this->get_quadrature_time(itq);
-    double tid = (In) ? (double)In->map(tq) : 0.;
-
-    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
-    this->initIndex(FK, FK);
-    // BF MEMORY MANAGEMENT -
-    int lastop = VF.get_lastOp();
-    RNMK_ fv(this->databf_, FK.NbDoF(), FK.N,
-             lastop); //  the value for basic fonction
-    What_d Fop = Fwhatd(lastop);
-    this->loc_mat.init(FK.NbDoF(), FK.NbDoF());
-    this->loc_mat = 0.;
-    for (int l = 0; l < VF.size(); ++l) {
-
-        // if(!VF[l].on(domain)) continue;
-        // BF MEMORY MANAGEMENT -
-        // int lastop = getLastop(VF[l].du, VF[l].dv);
-        // RNMK_ fv(this->databf_,FK.NbDoF(),FK.N,lastop); //  the value for basic
-        // fonction What_d Fop = Fwhatd(lastop);
-
-        // COMPUTE COEFFICIENT
-        double coef = VF[l].computeCoefElement(h, meas, meas, meas, domain);
-
-        // LOOP OVER QUADRATURE IN SPACE
-        for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
-            typename QF::QuadraturePoint ip(qf[ipq]);
-            const Rd mip = K.map(ip);
-            double Cint  = meas * ip.getWeight() * cst_time;
-
-            // EVALUATE THE BASIS FUNCTIONS
-            FK.BF(Fop, ip, fv);
-
-            // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
-            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
-
-            Cint *= coef * VF[l].c;
-
-            if (In) {
-                if (VF.isRHS())
-                    this->addToRHS(VF[l], *In, FK, fv, Cint);
-                else
-                    this->addToMatrix(VF[l], *In, FK, FK, fv, fv, Cint);
-            } else {
-                if (VF.isRHS())
-                    this->addToRHS(VF[l], FK, fv, Cint);
-                else
-                    this->addToMatrix_Opt(VF[l], FK, fv, Cint);
-            }
-        }
-    }
-}
-
 // INTEGRATION ON INNER FACE
 template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF, const Mesh &Th, const CFacet &b) {
     assert(!VF.isRHS());
@@ -1367,7 +1296,7 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
 
-        BaseFEM<M>::addLagrangeContribution(VF, gamma, iface);
+        addLagrangeContribution(VF, gamma, iface);
         this->addLocalContributionLagrange(ndf);
     }
 }

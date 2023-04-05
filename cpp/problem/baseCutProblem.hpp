@@ -67,8 +67,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void addLinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b);
     void addLinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b, const TimeSlab &In);
     void addLinear(const itemVFlist_t &VF, const CutMesh &, const CFacet &b, const TimeSlab &In, int itq);
-    void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1, const std::pair<int, int> &e2,
-                             const TimeSlab *In, int itq, double cst_time);
+    virtual void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1,
+                                     const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time);
 
     // integral on boundary
     void addBilinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, std::list<int> label = {});
@@ -81,8 +81,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                    std::list<int> label = {});
     void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, const TimeSlab &In, int itq,
                    std::list<int> label = {});
-    void addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
-                               const TimeSlab *In, int itq, double cst_time);
+    virtual void addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
+                                       const TimeSlab *In, int itq, double cst_time);
 
     void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
 

@@ -247,20 +247,21 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
 //     // TODO
 // }
 
-template <typename M, typename L>
-void AlgoimBaseCutFEM<M, L>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<mesh_t> &gamma) {
-    assert(VF.isRHS());
+// template <typename M, typename L>
+// void AlgoimBaseCutFEM<M, L>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const Interface<mesh_t>
+// &gamma) {
+//     assert(VF.isRHS());
 
-    int ndf = this->rhs_.size();
-    this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val;
+//     int ndf = this->rhs_.size();
+//     this->rhs_.resize(ndf + 1);
+//     this->rhs_(ndf) = val;
 
-    for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
+//     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
 
-        AlgoimBaseCutFEM<M, L>::addLagrangeContribution(VF, gamma, iface);
-        this->addLocalContributionLagrange(ndf);
-    }
-}
+//         AlgoimBaseCutFEM<M, L>::addLagrangeContribution(VF, gamma, iface);
+//         this->addLocalContributionLagrange(ndf);
+//     }
+// }
 
 template <typename M, typename L>
 void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface,
