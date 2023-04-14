@@ -18,6 +18,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <span>
 
 class R0 {
   public:
@@ -38,9 +39,12 @@ class R1 {
     R1() : x(0.) {}
     R1(R a) : x(a) {}
     R1(R *a) : x(a[0]) {}
+    R1(std::span<R> a) : x(a[0]) {}
     R1(const R1 &a, const R1 &b) : x(b.x - a.x) {}
     operator double() const { return x; }
     operator double *() { return &x; }
+    operator std::span<R>() { return std::span<R>(&x, 1); }
+
     operator const double *() const { return &x; }
     const R X() const { return x; }
     R &X() { return x; }
@@ -99,10 +103,12 @@ class R2 {
     R2(R a, R b) : x(a), y(b) {}
     R2(const R *a) : x(a[0]), y(a[1]) {}
     R2(R *a) : x(a[0]), y(a[1]) {}
+    R2(std::span<R> a) : x(a[0]), y(a[1]) {}
     R2(const R2 &a, const R2 &b) : x(b.x - a.x), y(b.y - a.y) {}
 
     operator const double *() const { return &x; }
     operator double *() { return &x; }
+    operator std::span<R>() { return std::span<R>(&x, 2); }
 
     R2 &operator=(const R *P) {
         x = P[0];
@@ -187,6 +193,7 @@ class R3 {
     R3() : x(0), y(0), z(0){};
     R3(R a, R b, R c) : x(a), y(b), z(c) {}
     R3(const R *a) : x(a[0]), y(a[1]), z(a[2]) {}
+    R3(std::span<R> a) : x(a[0]), y(a[1]), z(a[2]) {}
 
     R3(R2 P2) : x(P2.x), y(P2.y), z(0) {}
     R3(R2 P2, R zz) : x(P2.x), y(P2.y), z(zz) {}
@@ -194,6 +201,7 @@ class R3 {
     static R3 diag(R a) { return R3(a, a, a); }
     operator const double *() const { return &x; }
     operator double *() { return &x; }
+    operator std::span<R>() { return std::span<R>(&x, 3); }
 
     R3 &operator=(const R *P) {
         x = P[0];
