@@ -1047,11 +1047,9 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = 3., tau2 = 1.;
+        double tau0 = 0, tau1 = 2., tau2 = 2.;
 
         // Background FE Space, Time FE Space & Space-Time Space
-        // 2D Domain space
-
         FESpace2 Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
         FESpace2 Vh2(Th, DataFE<Mesh>::P2); // higher order space
         FESpace2 Vh3(Th, DataFE<Mesh>::P3); // higher order space
@@ -1112,7 +1110,7 @@ int main(int argc, char **argv) {
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
-
+            
             int current_iteration = iter;
             double tid            = iter * time_step;
 
@@ -1538,9 +1536,9 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        if (j==iterations-2)
-        h *= sqrt(0.5);     //! CHANGE BACK
-        else
+        //if (j==iterations-2)
+        //h *= sqrt(0.5);     //! CHANGE BACK
+        //else
         h *= 0.5;
         // h *= 0.5;
 #endif

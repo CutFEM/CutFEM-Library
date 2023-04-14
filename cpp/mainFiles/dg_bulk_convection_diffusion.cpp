@@ -454,7 +454,7 @@ const int d = 2;
 typedef Mesh2 Mesh;
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
-typedef TestFunction<d> FunTest;
+typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 
 // The below parameters can be varied according to the options to use different methods,
@@ -680,7 +680,7 @@ int main(int argc, char **argv) {
             std::cout << " Time      \t : \t" << current_iteration * time_step << '\n';
             std::cout << "dT = " << dT << '\n';
 
-            ls.begin()->swap(ls[nbTime - 1]);
+            swap(ls[0], ls[lastQuadTime]);
 
             // computation of the interface in each of the three quadrature points
             for (int i = 0; i < nbTime; ++i) {

@@ -18,7 +18,7 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
     What_d Fop = Fwhatd(op_id);
 
     double val = 0.;
-    int quadrature_order = 7;
+    int quadrature_order = 5;
 
     for (int iface = interface.first_element(); iface < interface.last_element(); iface +=
     interface.next_element()) {
@@ -83,7 +83,7 @@ double integral_saye(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L
     using BorderElement = typename mesh_t::BorderElement;
 
 	double val = 0.;
-    int quadrature_order = 7;
+    int quadrature_order = 5;
 
     for (int iface = interface.first_element(); iface < interface.last_element();
             iface += interface.next_element()) {

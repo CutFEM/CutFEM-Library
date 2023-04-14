@@ -614,7 +614,7 @@ const int d = 2;
 typedef Mesh2 Mesh;
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
-typedef TestFunction<d> FunTest;
+typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 
 // The below parameters can be varied according to the options to use different methods,

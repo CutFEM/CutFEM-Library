@@ -27,7 +27,7 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    FESpace2 Rh(mesh, DataFE<Mesh2>::RT0);
 
    SECTION("Constructor") {
-      TestFunction<2> u(Vh, 1);
+      TestFunction<Mesh2> u(Vh, 1);
 
       REQUIRE(u.isScalar());
       const auto item(u.getItem({0, 0}, 0));
@@ -37,9 +37,9 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test dx, dy, dz, dt operator") {
-      TestFunction<2> u(Vh, 1);
+      TestFunction<Mesh2> u(Vh, 1);
       {
-         TestFunction<2> dxu(dx(u));
+         TestFunction<Mesh2> dxu(dx(u));
          const auto item(dxu.getItem({0, 0}, 0));
          REQUIRE(dxu.isScalar());
          REQUIRE(dxu.sizeItemList(0, 0) == 1);
@@ -48,7 +48,7 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
          REQUIRE(item.cu == 0);
       }
       {
-         TestFunction<2> dyu(dy(u));
+         TestFunction<Mesh2> dyu(dy(u));
          const auto item(dyu.getItem({0, 0}, 0));
          REQUIRE(dyu.isScalar());
          REQUIRE(dyu.sizeItemList(0, 0) == 1);
@@ -57,7 +57,7 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
          REQUIRE(item.cu == 0);
       }
       {
-         TestFunction<2> dzu(dz(u));
+         TestFunction<Mesh2> dzu(dz(u));
          const auto item(dzu.getItem({0, 0}, 0));
          REQUIRE(dzu.isScalar());
          REQUIRE(dzu.sizeItemList(0, 0) == 1);
@@ -66,7 +66,7 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
          REQUIRE(item.cu == 0);
       }
       {
-         TestFunction<2> dtu(dt(u));
+         TestFunction<Mesh2> dtu(dt(u));
          const auto item(dtu.getItem({0, 0}, 0));
          REQUIRE(dtu.isScalar());
          REQUIRE(dtu.sizeItemList(0, 0) == 1);
@@ -77,11 +77,11 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test operator +, -") {
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> v(Vh, 1);
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> v(Vh, 1);
 
       {
-         TestFunction<2> uv(u + dx(v));
+         TestFunction<Mesh2> uv(u + dx(v));
 
          REQUIRE(uv.isScalar());
          REQUIRE(uv.sizeItemList(0, 0) == 2);
@@ -95,7 +95,7 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
          REQUIRE(item2.cu == 0);
       }
       {
-         TestFunction<2> vu(dx(u) - dz(v));
+         TestFunction<Mesh2> vu(dx(u) - dz(v));
          REQUIRE(vu.isScalar());
          REQUIRE(vu.sizeItemList(0, 0) == 2);
          const auto item(vu.getItem({0, 0}, 0));
@@ -110,9 +110,9 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test operator *") {
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> v(Vh, 1);
-      TestFunction<2> uu(5. * u * 3.);
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> v(Vh, 1);
+      TestFunction<Mesh2> uu(5. * u * 3.);
 
       REQUIRE(uu.isScalar());
       REQUIRE(uu.sizeItemList(0, 0) == 1);
@@ -128,9 +128,9 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test simplify") {
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> v(Vh, 1);
-      TestFunction<2> uv(u + u + v);
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> v(Vh, 1);
+      TestFunction<Mesh2> uv(u + u + v);
 
       REQUIRE(uv.isScalar());
       REQUIRE(uv.sizeItemList(0, 0) == 2);
@@ -149,8 +149,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test grad") {
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> grad_u(grad(u));
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> grad_u(grad(u));
 
       REQUIRE(!grad_u.isScalar());
       REQUIRE(grad_u.sizeItemList(0, 0) == 1);
@@ -179,8 +179,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test surface gradient") {
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> grad_u(gradS(u));
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> grad_u(gradS(u));
       std::cout << grad_u << std::endl;
       REQUIRE(!grad_u.isScalar());
       // REQUIRE(grad_u.sizeItemList(0, 0) == 1);
@@ -209,8 +209,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test grad^2") {
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> grad_u(grad(grad(u)));
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> grad_u(grad(grad(u)));
 
       REQUIRE(!grad_u.isScalar());
       REQUIRE(grad_u.sizeItemList(0, 0) == 1);
@@ -261,8 +261,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
    }
 
    SECTION("Test Average") {
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> jump_u(average(u, 1.5, -1.5));
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> jump_u(average(u, 1.5, -1.5));
 
       REQUIRE(jump_u.isScalar());
       REQUIRE(jump_u.sizeItemList(0, 0) == 2);
@@ -291,8 +291,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
 
    SECTION("Test Normal multiplication with scalar") {
       Normal N;
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> un(u * N);
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> un(u * N);
 
       REQUIRE(!un.isScalar());
       REQUIRE(un.nbRow() == 2);
@@ -325,8 +325,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
 
    SECTION("Test Normal multiplication with vector") {
       Normal N;
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> un(grad(u) * N);
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> un(grad(u) * N);
 
       REQUIRE(un.isScalar());
       REQUIRE(un.sizeItemList(0, 0) == 2);
@@ -359,8 +359,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
 
    SECTION("Test Normal multiplication with matrix") {
       Normal N;
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> un(grad(grad(u)) * N);
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> un(grad(grad(u)) * N);
 
       REQUIRE(!un.isScalar());
       REQUIRE(un.sizeItemList(0, 0) == 2);
@@ -418,8 +418,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
 
    SECTION("Test Tangent multiplication with scalar") {
       Tangent T;
-      TestFunction<2> u(Vh, 1);
-      TestFunction<2> un(u * T);
+      TestFunction<Mesh2> u(Vh, 1);
+      TestFunction<Mesh2> un(u * T);
 
       REQUIRE(!un.isScalar());
       REQUIRE(un.nbRow() == 2);
@@ -478,8 +478,8 @@ TEST_CASE("Test Test Function class for scalar case", "[TestFunction]") {
 
    SECTION("Test Eps operator") {
 
-      TestFunction<2> u(Rh, 2);
-      TestFunction<2> epsU(Eps(u));
+      TestFunction<Mesh2> u(Rh, 2);
+      TestFunction<Mesh2> epsU(Eps(u));
 
       REQUIRE(!epsU.isScalar());
       REQUIRE(epsU.nbRow() == 2);

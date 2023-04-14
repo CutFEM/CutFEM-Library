@@ -29,7 +29,7 @@
 #include "cfmpi.hpp"
 #endif
 #include "finiteElement.hpp"
-#include "../num/gnuplot.hpp"
+
 // #include "GenericMapping.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
@@ -72,13 +72,13 @@ namespace Diffusion {
 
         template <int N> struct Levelset {
 
-                double t;
+			double t;
 
-                // level set function
-                template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
-                    return x(0) * x(0) + x(1) * x(1) - 1;
+			// level set function
+			template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
+				return x(0) * x(0) + x(1) * x(1) - 1;
 
-            }
+			}
 
             // gradient of level set function
             template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
@@ -86,7 +86,15 @@ namespace Diffusion {
                 return algoim::uvector<T, N>(2.0 * x(0), 2.0 * x(1));
 
             }
-    };
+
+			// normal = grad(phi)/norm(grad(phi))
+			R2 normal(const R2 P) {
+                R normalize = 1./sqrt(4. * P.x * P.x + 4. * P.y * P.y);
+                return R2(-2.0 * P.x * normalize, -2.0 * P.y * normalize);
+        	}
+
+                
+        };
 
 }
 
@@ -116,9 +124,9 @@ int main(int argc, char **argv) {
     const size_t iterations = 1; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
-    double h  = 0.05;             // starting mesh size
+    double h  = 0.1;             // starting mesh size
     
-	std::array<double, iterations> errors;             // array to hold L2 errors vs h
+    std::array<double, iterations> errors;             // array to hold L2 errors vs h
     std::array<double, iterations> gamma_length_h;
     std::array<double, iterations> nxs; // array to hold mesh sizes
     std::array<double, iterations> nys; // array to hold mesh sizes
@@ -136,6 +144,8 @@ int main(int argc, char **argv) {
 #endif
         
         Mesh Th(nx, ny, -1.5, -1.5, lx, ly);
+
+        std::cout << "Number of elements in background mesh: " << Th.nbElements() << "\n";
 
         // Paths to store data
         const std::string path_output_data = "../output_files/surface/algoim/laplace_beltrami/data/";
@@ -159,7 +169,7 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << "\n";
         
         // CG stabilization parameters
-        double tau1 = 1e-10, tau2 = .1;
+        double tau1 = 0.01;
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
@@ -175,9 +185,11 @@ int main(int argc, char **argv) {
         ActiveMesh<MeshQuad2> ThGamma(Th);
         ThGamma.createSurfaceMesh(interface);
 
+        std::cout << "Number of elements in active mesh: " << ThGamma.get_nb_element() << "\n";
         CutSpace Wh(ThGamma, Vh);
 
         AlgoimCutFEM<MeshQuad2, Levelset<2>> surfactant(Wh, phi);
+        //CutFEM<MeshQuad2> surfactant(Wh);
 
         double errL2 = 0., intGamma = 0., intGammaSaye = 0.; 
 
@@ -204,7 +216,7 @@ int main(int argc, char **argv) {
 
         surfactant.addLagrangeMultiplier(innerProduct(1.,v), 0., interface);
         
-        matlab::Export(surfactant.mat_[0], "mat.dat");
+        matlab::Export(surfactant.mat_[0], "mat_algoim_" + std::to_string(j) + ".dat");
         // Solve linear system
         surfactant.solve("mumps");
 

@@ -93,6 +93,8 @@ class R2 {
 
     static const int d = 2;
     static const std::vector<R2> KHat;
+    static const std::vector<R2> QuadHat;
+    
     R x, y;
 
     R2() : x(0.), y(0.) {}

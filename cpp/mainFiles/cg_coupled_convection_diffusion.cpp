@@ -2391,7 +2391,7 @@ const int d = 2;
 typedef Mesh2 Mesh;
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
-typedef TestFunction<d> FunTest;
+typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh2> Fun_h;
 
 // Note: standard for this program is to solve the equations on the inner domain

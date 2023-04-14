@@ -273,10 +273,25 @@ class Quad2 : public GenericElement<DataQuad2> {
       this->set(v0, iv, r, mss);
    }; // constructor empty for array
 
-   Rd operator()(const RdHat &Phat) const {
-      Rd r = (1. - Phat.sum()) * (*(Rd *)vertices[0]) +
-             Phat[0] * (*(Rd *)vertices[1]) + Phat[1] * (*(Rd *)vertices[3]);
-      return r;
+   
+   /**
+    * @brief Map coordinates in reference element to physical element
+    * 
+    * @param Phat Coordinates in reference element.
+    * @note We map a point Phat in the reference element to its
+    * corresponding point P in the physical element.
+    * @return Rd Coordinates in physical element.
+    */
+   Rd operator()(const RdHat &Phat) const override {
+      // Phat = (Phat.x, Phat.y)
+      // P = (x, y) where
+      // x = x0 + h_x * xhat
+      // y = y0 + h_y * yhat
+
+      R x  = vertices[0]->x + (vertices[1]->x - vertices[0]->x) * Phat.x;
+      R y  = vertices[0]->y + (vertices[3]->y - vertices[0]->y) * Phat.y;
+
+      return Rd(x, y);
    }
 
    // R2 H(int i) const { assert(i>=0 && i <3);
