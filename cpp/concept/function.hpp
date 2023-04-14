@@ -28,6 +28,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <concepts>
 #include <span>
 #include <vector>
+#include <functional>
 
 class Mesh1;
 class Mesh2;
@@ -42,8 +43,8 @@ template <typename C>
 concept meshQuadrilateral = std::is_same_v<MeshQuad2, C> || std::is_same_v<MeshHexa, C>;
 
 // template <typename L>
-// concept AlgoimLevelset = requires(L phi) { 
-//     phi<typename T>(const algoim::uvector<T, typename N> &); 
+// concept AlgoimLevelset = requires(L phi) {
+//     phi<typename T>(const algoim::uvector<T, typename N> &);
 
 // }
 
@@ -68,8 +69,9 @@ using fct_scalar_ptr = std::add_pointer_t<double(double *)>;
 using fct_scalar_R2  = std::add_pointer_t<double(R2)>;
 using fct_scalar_R3  = std::add_pointer_t<double(R3)>;
 template <typename fct_t>
-concept FunctionScalar = std::is_same_v<fct_t, fct_scalar_ptr> || std::is_same_v<fct_t, fct_scalar_R2> ||
-                         std::is_same_v<fct_t, fct_scalar_R3>;
+concept FunctionScalar =
+    std::is_same_v<fct_t, fct_scalar_ptr> || std::is_same_v<fct_t, fct_scalar_R2> ||
+    std::is_same_v<fct_t, fct_scalar_R3> || std::is_convertible_v<fct_t, std::function<double(std::span<double>)>>;
 
 using fct_ptr_int = std::add_pointer_t<double(double *, int)>;
 using fct_R2_int  = std::add_pointer_t<double(R2, int)>;
