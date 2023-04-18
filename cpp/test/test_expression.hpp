@@ -24,8 +24,8 @@ TEST_CASE("Test Expression class for scalar functions", "[Expression]") {
    FESpace2 Vh(mesh, DataFE<Mesh2>::P1);
    //    FESpace2 Rh(mesh, DataFE<Mesh2>::RT0);
 
-   auto f1 = [](double *x) -> double { return x[0] + x[1]; };
-   auto f2 = [](double *x) -> double { return x[0] - 2; };
+   auto f1 = [](std::span<double> x) -> double { return x[0] + x[1]; };
+   auto f2 = [](std::span<double> x) -> double { return x[0] - 2; };
 
    FunFEM<Mesh2> f1h(Vh, f1);
    FunFEM<Mesh2> f2h(Vh, f2);
