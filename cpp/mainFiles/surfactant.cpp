@@ -741,8 +741,11 @@ R fun_levelSet(double *P, const int i, const R t) {
 }
 R fun_levelSet(double *P, const int i) { return sqrt((P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1]) - 1 - Epsilon; }
 
-// R fun_levelSet(double *P, const int i, const R t) { return (P[0]+0.5-2*t)*(P[0]+0.5-2*t) + P[1] * P[1] - 1 - Epsilon;
-// } R fun_levelSet(double *P, const int i) { return (P[0]+0.5)*(P[0]+0.5) + P[1] * P[1] - 1 - Epsilon; }
+//! NOTE: USUALLY I USE THE ABOVE DEFINITION OF THE LEVEL SET
+// R fun_levelSet(double *P, const int i, const R t) {
+//     return (P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1] - 1 - Epsilon;
+// }
+// R fun_levelSet(double *P, const int i) { return (P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1] - 1 - Epsilon; }
 
 R fun_one(double *P, const int cc, const R t) { return 1.; }
 
@@ -897,10 +900,11 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 6; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
-    double h  = 0.1;             // starting mesh size
+    double h  = 0.1*pow(0.5, 5)*sqrt(0.5);             // starting mesh size
+    //double h  = 0.1;
     // double h  = 0.00625/sqrt(2);             // starting mesh size
     double dT = 0.0625;
 
@@ -1047,7 +1051,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = 2., tau2 = 2.;
+        double tau0 = 0, tau1 = 1., tau2 = 5.;
 
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace2 Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
@@ -1110,7 +1114,7 @@ int main(int argc, char **argv) {
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
-            
+
             int current_iteration = iter;
             double tid            = iter * time_step;
 
@@ -1325,7 +1329,7 @@ int main(int argc, char **argv) {
             // Add RHS on surface
             surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface, In);
 
-            //surfactant.addLinear(fun_rhs, +innerProduct(1., v), interface, In);
+            // surfactant.addLinear(fun_rhs, +innerProduct(1., v), interface, In);
 
             // Compute integrals //! PUT BACK
             // intF = integral(funrhs, In, interface, 0);
@@ -1536,9 +1540,9 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        //if (j==iterations-2)
-        //h *= sqrt(0.5);     //! CHANGE BACK
-        //else
+        // if (j==iterations-2)
+        // h *= sqrt(0.5);     //! CHANGE BACK
+        // else
         h *= 0.5;
         // h *= 0.5;
 #endif

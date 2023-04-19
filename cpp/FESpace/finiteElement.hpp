@@ -26,6 +26,14 @@ class Lagrange2 : public GTypeOfFESum<Mesh2> {
    Lagrange2(int k = 1) : GTypeOfFESum<Mesh2>(FEarray(2, FE_[k])) {}
 };
 
+class LagrangeQuad2 : public GTypeOfFESum<MeshQuad2> {
+   typedef KN<const GTypeOfFE<MeshQuad2> *> FEarray;
+   static const GTypeOfFE<MeshQuad2> *FE_[1][2];
+
+ public:
+   LagrangeQuad2(int k = 1) : GTypeOfFESum<MeshQuad2>(FEarray(2, FE_[k])) {}
+};
+
 class LagrangeDC2 : public GTypeOfFESum<Mesh2> {
    typedef KN<const GTypeOfFE<Mesh2> *> FEarray;
    static const GTypeOfFE<Mesh2> *FE_[4][2];

@@ -37,66 +37,59 @@
 // #include "projection.hpp"
 // #include "../util/redirectOutput.hpp"
 #include "../num/matlab.hpp"
+#include "../num/gnuplot.hpp"
 #include "paraview.hpp"
 
-//#include "../algoim/quadrature_general.hpp"
+// #include "../algoim/quadrature_general.hpp"
 #include "../problem/AlgoimIntegration.hpp"
 
 using namespace globalVariable;
 
 namespace Diffusion {
 
-        // RHS for surface variable
-        double fun_rhs0(const R2 P, int elementComp) {
-                R x = P.x, y = P.y;
-                return (9*y*(3*x*x - y*y))/(x*x + y*y);
-
-        }
-
-        // Exact solution on surface
-        double fun_uSurface(const R2 P,  int elementComp) {
-                return 3.0*P.x*P.x*P.y - pow(P.y,3);
-        }
-
-        // Exact solution on surface for time-step t
-        double fun_uSurfaceT(const R2 P,  int elementComp, double t) {
-                return 3.0*P.x*P.x*P.y - pow(P.y,3);
-        }
-
-        // Level-set function
-        double fun_levelSet(const R2 P, const int i) {
-                return (P.x)*(P.x) + (P.y)*(P.y) - 1.0 - Epsilon;
-        }
-
-        double fun_one(const R2 P, const int i) { return 1.; }
-
-        template <int N> struct Levelset {
-
-			double t;
-
-			// level set function
-			template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
-				return x(0) * x(0) + x(1) * x(1) - 1;
-
-			}
-
-            // gradient of level set function
-            template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
-                
-                return algoim::uvector<T, N>(2.0 * x(0), 2.0 * x(1));
-
-            }
-
-			// normal = grad(phi)/norm(grad(phi))
-			R2 normal(const R2 P) {
-                R normalize = 1./sqrt(4. * P.x * P.x + 4. * P.y * P.y);
-                return R2(-2.0 * P.x * normalize, -2.0 * P.y * normalize);
-        	}
-
-                
-        };
-
+// RHS for surface variable
+double fun_rhs0(const R2 P, int elementComp) {
+    R x = P.x, y = P.y;
+    return (9 * y * (3 * x * x - y * y)) / (x * x + y * y);
 }
+
+double fun_testbasisfunction(const R2 P, int elementComp) {
+    R x = P.x, y = P.y;
+    return 0.5 * x * y;
+}
+
+// Exact solution on surface
+double fun_uSurface(const R2 P, int elementComp) { return 3.0 * P.x * P.x * P.y - pow(P.y, 3); }
+
+// Exact solution on surface for time-step t
+double fun_uSurfaceT(const R2 P, int elementComp, double t) { return 3.0 * P.x * P.x * P.y - pow(P.y, 3); }
+
+// Level-set function
+double fun_levelSet(const R2 P, const int i) { return (P.x) * (P.x) + (P.y) * (P.y) - 1.0 - Epsilon; }
+
+double fun_one(const R2 P, const int i) { return 1.; }
+
+template <int N> struct Levelset {
+
+    double t;
+
+    // level set function
+    template <typename T> T operator()(const algoim::uvector<T, N> &x) const { return x(0) * x(0) + x(1) * x(1) - 1; }
+
+    // gradient of level set function
+    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+
+        return algoim::uvector<T, N>(2.0 * x(0), 2.0 * x(1));
+    }
+
+    // normal = grad(phi)/norm(grad(phi))
+    R2 normal(const R2 P) {
+        R normalize = 1. / sqrt(4. * P.x * P.x + 4. * P.y * P.y);
+        return R2(2.0 * P.x * normalize, 2.0 * P.y * normalize);
+    }
+};
+
+} // namespace Diffusion
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -114,24 +107,24 @@ using namespace Diffusion;
 #if defined(fem)
 int main(int argc, char **argv) {
 
-    verbose = 0;    // 2 for more info
+    verbose = 0; // 2 for more info
 
     MPIcf cfMPI(argc, argv);
 
     std::cout << std::setprecision(16);
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 4; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
-    double h  = 0.1;             // starting mesh size
-    
-    std::array<double, iterations> errors;             // array to hold L2 errors vs h
+    double h = 0.1;              // starting mesh size
+
+    std::array<double, iterations> errors; // array to hold L2 errors vs h
     std::array<double, iterations> gamma_length_h;
     std::array<double, iterations> nxs; // array to hold mesh sizes
     std::array<double, iterations> nys; // array to hold mesh sizes
     std::array<double, iterations> hs;  // array to hold mesh sizes
-    
+
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
 
@@ -142,7 +135,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        
+
         Mesh Th(nx, ny, -1.5, -1.5, lx, ly);
 
         std::cout << "Number of elements in background mesh: " << Th.nbElements() << "\n";
@@ -159,21 +152,21 @@ int main(int argc, char **argv) {
 
         // Data file to hold problem data
         std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
-        
+
         hs.at(j)  = h;
         nxs.at(j) = nx;
         nys.at(j) = ny;
-        
+
         std::cout << "h = " << h << "\n";
         std::cout << "nx = " << nx << "\n";
         std::cout << "ny = " << ny << "\n";
-        
+
         // CG stabilization parameters
         double tau1 = 0.01;
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
-        GFESpace<MeshQuad2> Vh(Th, DataFE<MeshQuad2>::P1);  // continuous basis functions
+        GFESpace<MeshQuad2> Vh(Th, DataFE<MeshQuad2>::P1); // continuous basis functions
 
         // Set up level-set function
         GFESpace<MeshQuad2> Lh(Th, DataFE<MeshQuad2>::P1);
@@ -189,19 +182,24 @@ int main(int argc, char **argv) {
         CutSpace Wh(ThGamma, Vh);
 
         AlgoimCutFEM<MeshQuad2, Levelset<2>> surfactant(Wh, phi);
-        //CutFEM<MeshQuad2> surfactant(Wh);
+        // CutFEM<MeshQuad2> surfactant(Wh);
 
-        double errL2 = 0., intGamma = 0., intGammaSaye = 0.; 
+        double errL2 = 0., intGamma = 0., intGammaSaye = 0.;
 
         std::vector<double> gamma_length, gamma_length_saye;
 
         Fun_h funrhs(Wh, fun_rhs0);
         Fun_h funone(Wh, fun_one);
+        Fun_h funtestbasisfunction(Wh, fun_testbasisfunction);
 
         Normal n;
 
+        // gnuplot::save(Th);
+        // gnuplot::save<Mesh, Levelset<2>>(interface, phi);
+        // gnuplot::save<Mesh>(interface);
+
         // Test and Trial functions
-        FunTest u(Wh, 1), v(Wh, 1); 
+        FunTest u(Wh, 1), v(Wh, 1);
 
         // Scheme for diffusion
         surfactant.addBilinear(+innerProduct(gradS(u), gradS(v)), interface);
@@ -212,24 +210,22 @@ int main(int argc, char **argv) {
 
         // Add RHS on surface
         surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface);
-        //surfactant.addLinear(fun_rhs, innerProduct(1., v), interface);
+        // surfactant.addLinear(fun_rhs, innerProduct(1., v), interface);
 
-        surfactant.addLagrangeMultiplier(innerProduct(1.,v), 0., interface);
-        
+        surfactant.addLagrangeMultiplier(innerProduct(1., v), 0., interface);
+
         matlab::Export(surfactant.mat_[0], "mat_algoim_" + std::to_string(j) + ".dat");
         // Solve linear system
         surfactant.solve("mumps");
-
-
 
         KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
         Fun_h us(Wh, dw);
 
         errL2 = L2_norm_surface(us, fun_uSurface, interface, phi, 0, 1);
 
-        intGamma             = integral_saye<Levelset<2>, Fun_h>(funone, interface, 0, phi);
+        intGamma             = integral_algoim<Levelset<2>, Fun_h>(funone, interface, 0, phi);
         errors.at(j)         = errL2;
-        gamma_length_h.at(j) = fabs(intGamma - 2*pi);
+        gamma_length_h.at(j) = fabs(intGamma - 2 * pi);
 
         if (iterations == 1) {
 
@@ -239,10 +235,10 @@ int main(int argc, char **argv) {
             writer.add(us, "surfactant", 0, 1);
             writer.add(uS_ex, "surfactant_exact", 0, 1);
             writer.add(fabs(us.expr() - uS_ex.expr()), "surfactant_error");
+            writer.add(funtestbasisfunction, "test_basis_function", 0, 1);
             writer.add(levelSet, "levelSet", 0, 1);
             // writer.add(ls[2], "levelSet2", 0, 1);
         }
-
 
         // Refine mesh
 #ifdef use_n
@@ -267,7 +263,7 @@ int main(int argc, char **argv) {
 
     std::cout << "\n";
 
-	std::cout << "\n";
+    std::cout << "\n";
     std::cout << "Length Gamma = [";
     for (int i = 0; i < iterations; i++) {
 
@@ -305,11 +301,10 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-
 #elif defined(integration)
 int main(int argc, char **argv) {
 
-    verbose = 0;    // 2 for more info
+    verbose = 0; // 2 for more info
 
     MPIcf cfMPI(argc, argv);
 
@@ -320,14 +315,14 @@ int main(int argc, char **argv) {
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
     double h  = 0.1;             // starting mesh size
-    //double h  = 0.00625/sqrt(2);             // starting mesh size
+    // double h  = 0.00625/sqrt(2);             // starting mesh size
     double dT = 0.0625;
 
     int total_number_iteration;
     double time_step;
     double t0 = 0.;
 
-	std::array<double, iterations> errors;             // array to hold L2 errors vs h
+    std::array<double, iterations> errors; // array to hold L2 errors vs h
     std::array<double, iterations> gamma_length_h;
     std::array<double, iterations> gamma_length_h_saye;
     std::array<double, iterations> nxs; // array to hold mesh sizes
@@ -368,19 +363,19 @@ int main(int argc, char **argv) {
         // Mesh Th(f.c_str());
 #elif defined(deckelnick) || defined(deckelnick2)
         const double lx = 4.8, ly = 4.8;
-        //const double lx = 8., ly = 6.;
+        // const double lx = 8., ly = 6.;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        
+
         MeshQuad2 Th(nx, ny, -2.4, -2.4, lx, ly);
-        //Mesh Th(nx, ny, -3, -3, lx, ly);
+        // Mesh Th(nx, ny, -3, -3, lx, ly);
 #endif
 
         // Parameters
-        double tfinal = .5; // Final time
+        double tfinal          = .5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -394,8 +389,8 @@ int main(int argc, char **argv) {
 
         total_number_iteration = int(tfinal / dT);
 #endif
-        dT        = tfinal / total_number_iteration;
-        time_step = dT;
+        dT                     = tfinal / total_number_iteration;
+        time_step              = dT;
 
         hs.at(j)  = h;
         nxs.at(j) = nx;
@@ -418,15 +413,14 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << "\n";
         std::cout << "dT = " << dT << "\n";
 
-		double D = 1.;
+        double D = 1.;
 
         // CG stabilization parameters
         double tau1 = 1., tau2 = .1;
 
-
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
-        GFESpace<MeshQuad2> Vh(Th, DataFE<MeshQuad2>::P1);  // continuous basis functions
+        GFESpace<MeshQuad2> Vh(Th, DataFE<MeshQuad2>::P1); // continuous basis functions
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
@@ -440,15 +434,15 @@ int main(int argc, char **argv) {
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
 
-		// Velocity field
+        // Velocity field
 #if defined(shi1) || defined(shi2) || defined(shi3) || defined(deckelnick2)
         Lagrange2 FEvelocity(0);
-#elif defined(example1) || defined(deckelnick) 
+#elif defined(example1) || defined(deckelnick)
         Lagrange2 FEvelocity(1);
 #else
         Lagrange2 FEvelocity(2);
 #endif
-		GFESpace<MeshQuad2> VelVh(Th, FEvelocity);
+        GFESpace<MeshQuad2> VelVh(Th, FEvelocity);
         Fun_h vel(VelVh, fun_velocity);
 
         // Set up level-set function
@@ -473,7 +467,7 @@ int main(int argc, char **argv) {
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << "\n";
 
         int iter = 0;
-        
+
         double intGamma = 0., intGammaSaye = 0.; // hold integrals of rhs and Neumann bcs
 
         std::vector<double> gamma_length, gamma_length_saye;
@@ -522,20 +516,21 @@ int main(int argc, char **argv) {
             Fun_h funx(Vh, In, fun_x);
             auto fundx   = dx(funx.expr());
             // intGamma = integral(funone, interface(1), 0);
-            intGamma = integral(funone, In, interface, 0); 
-            //Levelset<2> phi;
-            intGammaSaye = integral_saye(funone, In, interface, 0, phi);        
+            intGamma     = integral(funone, In, interface, 0);
+            // Levelset<2> phi;
+            intGammaSaye = integral_saye(funone, In, interface, 0, phi);
 
-            gamma_length.push_back(intGamma/dT);
-            
-            gamma_length_saye.push_back(intGammaSaye/dT);
+            gamma_length.push_back(intGamma / dT);
+
+            gamma_length_saye.push_back(intGammaSaye / dT);
 
             // 6.27844864122449
 
             // Levelset<2> phi2;
             // phi2.t = tid;
-            
-            // algoim::QuadratureRule<2> q2 = algoim::quadGen<2>(phi2, algoim::HyperRectangle<double, 2>(-2.4, 2.4), 2, -1, 4);
+
+            // algoim::QuadratureRule<2> q2 = algoim::quadGen<2>(phi2, algoim::HyperRectangle<double, 2>(-2.4, 2.4), 2,
+            // -1, 4);
 
             // std::cout << "[";
             // for (auto &node : q2.nodes) {
@@ -548,34 +543,30 @@ int main(int argc, char **argv) {
             iter++;
         }
 
-        
-        gamma_length_h.at(j) = intGamma;
-        gamma_length_h_saye.at(j) = intGammaSaye/dT;
-        
+        gamma_length_h.at(j)      = intGamma;
+        gamma_length_h_saye.at(j) = intGammaSaye / dT;
 
         std::cout << "\n";
         std::cout << "Length of Gamma(t) vs t = [";
-        for (auto & length : gamma_length) {
+        for (auto &length : gamma_length) {
 
             std::cout << length;
-            
+
             std::cout << ", ";
-            
         }
         std::cout << "]"
-        << "\n";
+                  << "\n";
 
         std::cout << "\n";
         std::cout << "Length of Gamma(t) Saye vs t = [";
-        for (auto & length : gamma_length_saye) {
+        for (auto &length : gamma_length_saye) {
 
             std::cout << length;
-            
+
             std::cout << ", ";
-            
         }
         std::cout << "]"
-        << "\n";
+                  << "\n";
 
         // Refine mesh
 
@@ -585,37 +576,34 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        //h *= sqrt(0.5);     //! CHANGE BACK
+        // h *= sqrt(0.5);     //! CHANGE BACK
         h *= 0.5;
 #endif
     }
 
     std::cout << "\n";
     std::cout << "Length of Gamma(t) = [";
-    for (auto & length : gamma_length_h) {
+    for (auto &length : gamma_length_h) {
 
         std::cout << length;
-        
+
         std::cout << ", ";
-        
     }
     std::cout << "]"
-    << "\n";
+              << "\n";
 
     std::cout << "\n";
     std::cout << "Length of Gamma(t) Saye = [";
-    for (auto & length : gamma_length_h_saye) {
+    for (auto &length : gamma_length_h_saye) {
 
         std::cout << length;
-        
+
         std::cout << ", ";
-        
     }
     std::cout << "]"
-    << "\n";
+              << "\n";
 
     return 0;
 }
-
 
 #endif

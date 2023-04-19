@@ -180,11 +180,6 @@ void save(const TimeMacroElement<Mesh> &macro, std::string path = "./") {
    plot10.close();
 }
 
-// TODO
-template <typename Mesh, typename L>
-void save(const Interface<Mesh> &Gh, const L &phi, std::string filename = "Gh.dat") {
-
-}
 
 // template <class Mesh> void save(const Interface<Mesh> &Gh, std::string filename = "Gh.dat") {
 
@@ -201,7 +196,6 @@ void save(const Interface<Mesh> &Gh, const L &phi, std::string filename = "Gh.da
 // }
 
 template <class Mesh> void save(const Interface<Mesh> & Gh, std::string filename = "Gh.dat") {
-//template <class Mesh> void save(const Interface<Mesh> & Gh) {
 
         std::ofstream plot;
 		plot.open(filename.c_str(), std::ofstream::out);
@@ -219,6 +213,29 @@ template <class Mesh> void save(const Interface<Mesh> & Gh, std::string filename
         for(int k=0; k<Gh.nbElement();++k) {
             plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
 
+
+        }
+        plot.close();
+
+}
+
+template <class Mesh, typename L> void save(const Interface<Mesh> & Gh, L & phi, std::string filename = "Gh.dat") {
+
+        std::ofstream plot;
+		plot.open(filename.c_str(), std::ofstream::out);
+        const int nve = 2;
+        for(int k=0; k<Gh.nbElement();++k) {
+            for(int i=0;i<nve;++i) {
+                plot << Gh(k,i) << std::endl;
+            }
+            plot << std::endl;
+            plot << std::endl;
+        }
+        plot.close();
+
+        plot.open("normal_algoim.dat", std::ofstream::out);
+        for(int k=0; k<Gh.nbElement();++k) {
+            plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*phi.normal(0.5*(Gh(k,0)+Gh(k,1))) << std::endl;
 
         }
         plot.close();

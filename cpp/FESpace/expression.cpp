@@ -108,9 +108,7 @@ ExpressionNormalBurgerFlux burgerFlux(const ExpressionVirtual &f1, const Normal 
     return ExpressionNormalBurgerFlux(f1);
 }
 
-std::shared_ptr<ExpressionDSx2> dxS(const FunFEM<Mesh2> &f1) { return std::make_shared<ExpressionDSx2>(f1); }
-std::shared_ptr<ExpressionDSy2> dyS(const FunFEM<Mesh2> &f1) { return std::make_shared<ExpressionDSy2>(f1); }
-std::shared_ptr<ExpressionDivS2> divS(const FunFEM<Mesh2> &f1) { return std::make_shared<ExpressionDivS2>(f1); }
+
 std::shared_ptr<ExpressionDSx3> dxS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSx3>(f1); }
 std::shared_ptr<ExpressionDSy3> dyS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSy3>(f1); }
 std::shared_ptr<ExpressionDSz3> dzS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSz3>(f1); }

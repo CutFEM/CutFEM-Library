@@ -43,31 +43,24 @@ using namespace globalVariable;
 
 namespace Diffusion {
 
-        // RHS for surface variable
-        double fun_rhs0(const R2 P, int elementComp) {
-                R x = P.x, y = P.y;
-                return (9*y*(3*x*x - y*y))/(x*x + y*y);
-
-        }
-
-        // Exact solution on surface
-        double fun_uSurface(const R2 P,  int elementComp) {
-                return 3.0*P.x*P.x*P.y - pow(P.y,3);
-        }
-
-        // Exact solution on surface for time-step t
-        double fun_uSurfaceT(const R2 P,  int elementComp, double t) {
-                return 3.0*P.x*P.x*P.y - pow(P.y,3);
-        }
-
-        // Level-set function
-        double fun_levelSet(const R2 P, const int i) {
-                return (P.x)*(P.x) + (P.y)*(P.y) - 1.0 - Epsilon;
-        }
-
-        double fun_one(const R2 P, const int i) { return 1.; }
-
+// RHS for surface variable
+double fun_rhs0(const R2 P, int elementComp) {
+    R x = P.x, y = P.y;
+    return (9 * y * (3 * x * x - y * y)) / (x * x + y * y);
 }
+
+// Exact solution on surface
+double fun_uSurface(const R2 P, int elementComp) { return 3.0 * P.x * P.x * P.y - pow(P.y, 3); }
+
+// Exact solution on surface for time-step t
+double fun_uSurfaceT(const R2 P, int elementComp, double t) { return 3.0 * P.x * P.x * P.y - pow(P.y, 3); }
+
+// Level-set function
+double fun_levelSet(const R2 P, const int i) { return (P.x) * (P.x) + (P.y) * (P.y) - 1.0 - Epsilon; }
+
+double fun_one(const R2 P, const int i) { return 1.; }
+
+} // namespace Diffusion
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -79,31 +72,30 @@ typedef FunFEM<Mesh> Fun_h;
 
 using namespace Diffusion;
 
-#define dg
+#define cg
 
 #define use_h
 
-
 int main(int argc, char **argv) {
 
-    verbose = 0;    // 2 for more info
+    verbose = 0; // 2 for more info
 
     MPIcf cfMPI(argc, argv);
 
     std::cout << std::setprecision(16);
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
-    double h  = 0.1;             // starting mesh size
-    
-	std::array<double, iterations> errors;             // array to hold L2 errors vs h
+    double h = 0.1;              // starting mesh size
+
+    std::array<double, iterations> errors; // array to hold L2 errors vs h
     std::array<double, iterations> gamma_length_h;
     std::array<double, iterations> nxs; // array to hold mesh sizes
     std::array<double, iterations> nys; // array to hold mesh sizes
     std::array<double, iterations> hs;  // array to hold mesh sizes
-    
+
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
 
@@ -112,12 +104,12 @@ int main(int argc, char **argv) {
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
-        h = lx / (nx - 1);
+        h             = lx / (nx - 1);
 #endif
-        
+
         Mesh Th(nx, ny, -1.5, -1.5, lx, ly);
 
-        std::cout << "Number of elements in background mesh: " << Th.nbElements() << "\n";
+        Th.info();
 
         // Paths to store data
         const std::string path_output_data = "../output_files/surface/laplace_beltrami/data/";
@@ -131,30 +123,31 @@ int main(int argc, char **argv) {
 
         // Data file to hold problem data
         std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
-        
+
         hs.at(j)  = h;
         nxs.at(j) = nx;
         nys.at(j) = ny;
-        
+
         std::cout << "h = " << h << "\n";
         std::cout << "nx = " << nx << "\n";
         std::cout << "ny = " << ny << "\n";
-        
-	#if defined(cg)
-        // CG stabilization parameter
-        double tau1 = 1e-6;
-	#elif defined(dg)
-		// DG penalty and stabilization parameters
-		double lambda = 50;
-		double tau1 = 1, tau2 = 1, tau3 = 0.1;
-    #endif
 
-        // Background FE Space, Time FE Space & Space-Time Space
-	#if defined(cg)
-		GFESpace<Mesh> Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
-	#elif defined(dg)
-		GFESpace<Mesh> Vh(Th, DataFE<Mesh>::P1dc);  // continuous basis functions
-	#endif
+#if defined(cg)
+        // CG stabilization parameter
+        // double tau1 = 1e-6;
+        double tau1 = 1;
+#elif defined(dg)
+        // DG penalty and stabilization parameters
+        double lambda = 50;
+        double tau1 = 1, tau2 = 1, tau3 = 0.1;
+#endif
+
+// Background FE Space, Time FE Space & Space-Time Space
+#if defined(cg)
+        GFESpace<Mesh> Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+#elif defined(dg)
+        GFESpace<Mesh> Vh(Th, DataFE<Mesh>::P1dc); // continuous basis functions
+#endif
         // Set up level-set function
         GFESpace<Mesh> Lh(Th, DataFE<Mesh>::P1);
         Fun_h levelSet(Lh, fun_levelSet);
@@ -163,65 +156,73 @@ int main(int argc, char **argv) {
         // Create active meshes
         ActiveMesh<Mesh> ThGamma(Th);
         ThGamma.createSurfaceMesh(interface);
-        std::cout << "Number of elements in active mesh: " << ThGamma.get_nb_element() << "\n";
+
+        ThGamma.info();
 
         CutSpace Wh(ThGamma, Vh);
-        ProblemOption problem_option;
-        problem_option.order_space_element_quadrature_ = 5;     // 5 = default
-        CutFEM<Mesh> surfactant(Wh, problem_option);
+        // ProblemOption problem_option;
+        // problem_option.order_space_element_quadrature_ = 5;     // 5 = default
+        // CutFEM<Mesh> surfactant(Wh, problem_option);
+        CutFEM<Mesh> surfactant(Wh);
 
-        double errL2 = 0., intGamma = 0.; 
+        double errL2 = 0., intGamma = 0.;
 
         Fun_h funrhs(Wh, fun_rhs0);
-		Fun_h funone(Wh, fun_one);
+        Fun_h funone(Wh, fun_one);
 
         Normal n;
         Tangent t;
 
-        gnuplot::save(Th);
-        //gnuplot::save(interface, "interface.dat");
-        gnuplot::save(interface);
+        // gnuplot::save(Th);
+        // gnuplot::save(interface);
 
         // Test and Trial functions
-        FunTest u(Wh, 1), v(Wh, 1); 
+        FunTest u(Wh, 1), v(Wh, 1);
+
+        
 
         // Scheme for diffusion
         surfactant.addBilinear(+innerProduct(gradS(u), gradS(v)), interface);
 
-	#if defined(dg)
-		surfactant.addBilinear(
-            - innerProduct(average(gradS(u)*t,0.5,-0.5), jump(v)) 
-            - innerProduct(jump(u), average(gradS(v)*t,0.5,-0.5))    
-            + innerProduct(lambda/h*jump(u), jump(v))                             
-            , interface
-            , INTEGRAL_INNER_NODE_2D
-        );
+        
 
-		// Stabilization
-        surfactant.addFaceStabilization(
-			+ innerProduct(tau1 * 1./h/h * jump(u), jump(v))
-			+ innerProduct(tau2 * jump(grad(u) * n), jump(grad(v) * n)), ThGamma);
-		
-		surfactant.addBilinear(
-                innerProduct(tau3*h*h*grad(u)*n, grad(v)*n)
-                , interface
-        );
+#if defined(dg)
 
-	#elif defined(cg)
+        //surfactant.cleanBuildInMatrix();
 
-		// Stabilization
-        surfactant.addFaceStabilization(
-			+ innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n)), ThGamma);
+        //! Doesn't work with tangents, works without
+        surfactant.addBilinear(-innerProduct(average(gradS(u) * t, 0.5, -0.5), jump(v)) -
+                                   innerProduct(jump(u), average(gradS(v) * t, 0.5, -0.5)) +
+                                   innerProduct(lambda / h * jump(u), jump(v)),
+                               interface, INTEGRAL_INNER_NODE_2D);
 
-	#endif
+        
+
+        // Stabilization
+        surfactant.addFaceStabilization(+innerProduct(tau1 * 1. / h / h * jump(u), jump(v)) +
+                                            innerProduct(tau2 * jump(grad(u) * n), jump(grad(v) * n)),
+                                        ThGamma);
+
+        // surfactant.cleanBuildInMatrix();
+        surfactant.addBilinear(innerProduct(tau3 * h * h * grad(u) * n, grad(v) * n), interface);
+        // matlab::Export(surfactant.mat_[0], "mat_new.dat");
+        // return 0;
+
+#elif defined(cg)
+
+        // Stabilization
+        surfactant.addFaceStabilization(+innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n)), ThGamma);
+
+#endif
+
+        // Add Lagrange multiplier such that the averages of the test functions are zero
+        surfactant.addLagrangeMultiplier(innerProduct(1., v), 0., interface);
 
         // Add RHS on surface
         surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface);
 
-		// Add Lagrange multiplier such that the averages of the test functions are zero
-        surfactant.addLagrangeMultiplier(innerProduct(1.,v), 0., interface);
-        
-        matlab::Export(surfactant.mat_[0], "mat_triangle_" + std::to_string(j) + ".dat");
+        // matlab::Export(surfactant.mat_[0], "mat_new.dat");
+        // return 0;
         
         // Solve linear system
         surfactant.solve("mumps");
@@ -231,9 +232,9 @@ int main(int argc, char **argv) {
 
         errL2 = L2normSurf(us, fun_uSurface, interface, 0, 1);
 
-        intGamma = integral(funone, interface, 0);
+        intGamma             = integral(funone, interface, 0);
         errors.at(j)         = errL2;
-        gamma_length_h.at(j) = fabs(intGamma - 2*pi);
+        gamma_length_h.at(j) = fabs(intGamma - 2 * pi);
 
         if (iterations == 1) {
 
@@ -246,7 +247,6 @@ int main(int argc, char **argv) {
             writer.add(levelSet, "levelSet", 0, 1);
             // writer.add(ls[2], "levelSet2", 0, 1);
         }
-
 
         // Refine mesh
 #ifdef use_n
@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
 
     std::cout << "\n";
 
-	std::cout << "\n";
+    std::cout << "\n";
     std::cout << "Length Gamma = [";
     for (int i = 0; i < iterations; i++) {
 
@@ -295,8 +295,8 @@ int main(int argc, char **argv) {
     }
     std::cout << "]"
               << "\n";
-	
-	std::cout << "\n";
+
+    std::cout << "\n";
 
     std::cout << "nx = [";
     for (int i = 0; i < iterations; i++) {

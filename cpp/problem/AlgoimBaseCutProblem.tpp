@@ -99,7 +99,7 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
                                                       double tid, const TimeSlab *In, double cst_time, int itq) {
     typedef typename FElement::RdHatBord RdHatBord;
 
-    phi.t = tid; // update time in level set function
+    phi.t = tid; // update time in level set function //? Should it be tid = this->get_quadrature_time(itq)?
 
     // GET IDX ELEMENT CONTAINING FACE ON backMes
     const int kb = interface.idxElementOfFace(ifac);
@@ -154,19 +154,23 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
             // typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
             // const Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
 
-            const Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             const R weight   = q.nodes.at(ipq).w;
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = weight * cst_time;
 
             const Rd normal(phi.normal(mip));
-			assert(fabs(normal.norm() - 1) < 1e-14);
+            
+            assert(fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);
             //std::cout << coef << "\n";
             // EVALUATE THE BASIS FUNCTIONS
-            FKv.BF(Fop, face_ip, fv);
+            FKv.BF(Fop, face_ip, fv); //! evaluated on reference element
+            //FKv.BF(Fop, mip, fv);       //! evaluated on physical element (MINE)
             if (!same)
-                FKu.BF(Fop, face_ip, fu);
+                FKu.BF(Fop, face_ip, fu); //! OLD
+                //FKu.BF(Fop, mip, fu);       //! NEW
+
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip, tid,
                                                            normal);
             Cint *= coef * VF[l].c;
@@ -242,7 +246,7 @@ void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, con
 
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
-            const Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             const double weight = q.nodes.at(ipq).w;
 			const Rd face_ip = K.mapToReferenceElement(mip);
 			double Cint = weight;
