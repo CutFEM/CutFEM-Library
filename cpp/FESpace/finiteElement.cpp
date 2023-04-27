@@ -28,6 +28,14 @@ BaseFE_Array<Mesh2, ContinuityType::continuous>::BaseFE_Array(int k) : GTypeOfFE
 Lagrange2::Lagrange2(int k) : BaseFE_Array<Mesh2, ContinuityType::continuous>(k){};
 
 template <>
+std::vector<std::vector<const GTypeOfFE<MeshQuad2> *>> BaseFE_Array<MeshQuad2, ContinuityType::continuous>::FE_ = {
+    {&DataFE<MeshQuad2>::P0, &DataFE<MeshQuad2>::P0}, {&DataFE<MeshQuad2>::P1, &DataFE<MeshQuad2>::P1}};
+
+template <>
+BaseFE_Array<MeshQuad2, ContinuityType::continuous>::BaseFE_Array(int k) : GTypeOfFESum<MeshQuad2>(this->FE_.at(k)) {}
+LagrangeQuad2::LagrangeQuad2(int k) : BaseFE_Array<MeshQuad2, ContinuityType::continuous>(k){};
+
+template <>
 std::vector<std::vector<const GTypeOfFE<Mesh3> *>> BaseFE_Array<Mesh3, ContinuityType::continuous>::FE_ = {
     {&DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0},
     {&DataFE<Mesh3>::P1, &DataFE<Mesh3>::P1, &DataFE<Mesh3>::P1},

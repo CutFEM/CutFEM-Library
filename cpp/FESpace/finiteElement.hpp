@@ -31,12 +31,9 @@ class Lagrange2 : public BaseFE_Array<Mesh2, ContinuityType::continuous> {
   public:
     Lagrange2(int k);
 };
-class LagrangeQuad2 : public GTypeOfFESum<MeshQuad2> {
-    typedef KN<const GTypeOfFE<MeshQuad2> *> FEarray;
-    static const GTypeOfFE<MeshQuad2> *FE_[1][2];
-
+class LagrangeQuad2 : public BaseFE_Array<MeshQuad2, ContinuityType::continuous> {
   public:
-    LagrangeQuad2(int k = 1) : GTypeOfFESum<MeshQuad2>(FEarray(2, FE_[0])) {}
+    LagrangeQuad2(int k);
 };
 
 class Lagrange3 : public BaseFE_Array<Mesh3, ContinuityType::continuous> {
