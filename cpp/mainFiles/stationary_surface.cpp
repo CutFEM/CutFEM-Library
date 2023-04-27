@@ -55,9 +55,7 @@ double fun_levelSet(const R2 P, const int i) { return (P.x) * (P.x) + (P.y) * (P
 double fun_one(const R2 P, const int i) { return 1.; }
 
 // Velocity Field
-R fun_velocity(const R2 P, const int i) {
-    return 0.;
-}
+R fun_velocity(const R2 P, const int i) { return 0.; }
 template <int N> struct Levelset {
 
     double t;
@@ -85,7 +83,9 @@ namespace ConvectionDiffusionConstVel {
 // RHS for surface variable
 double fun_rhs0(const R2 P, int elementComp) {
     R x = P.x, y = P.y;
-    return -(3.*(- 3*pow(x,4) + 2.*pow(x,3)*y + 9.*x*x*y*y - 45.*x*x*y - 6.*x*pow(y,3) + 15.*pow(y,3)))/(5*(x*x + y*y));
+    return -(3. * (-3 * pow(x, 4) + 2. * pow(x, 3) * y + 9. * x * x * y * y - 45. * x * x * y - 6. * x * pow(y, 3) +
+                   15. * pow(y, 3))) /
+           (5 * (x * x + y * y));
 }
 
 // Exact solution on surface
@@ -95,7 +95,7 @@ double fun_uSurface(const R2 P, int elementComp) { return 3.0 * P.x * P.x * P.y 
 double fun_uSurfaceT(const R2 P, int elementComp, double t) { return 3.0 * P.x * P.x * P.y - pow(P.y, 3); }
 
 // Level-set function
-double fun_levelSet(const R2 P, const int i) { return ((P.x) * (P.x) + (P.y) * (P.y) - 1.0) - Epsilon; }
+double fun_levelSet(const R2 P, const int i) { return ((P.x) * (P.x) + (P.y) * (P.y) - 1.0); }
 
 // Velocity Field
 R fun_velocity(const R2 P, const int i) {
@@ -127,7 +127,7 @@ template <int N> struct Levelset {
     }
 };
 
-} // namespace ConvectionDiffusion
+} // namespace ConvectionDiffusionConstVel
 
 namespace ConvectionDiffusion {
 
@@ -145,7 +145,7 @@ double fun_uSurface(const R2 P, int elementComp) { return 3.0 * P.x * P.x * P.y 
 double fun_uSurfaceT(const R2 P, int elementComp, double t) { return 3.0 * P.x * P.x * P.y - pow(P.y, 3); }
 
 // Level-set function
-double fun_levelSet(const R2 P, const int i) { return ((P.x) * (P.x) + (P.y) * (P.y) - 1.0) - Epsilon; }
+double fun_levelSet(const R2 P, const int i) { return ((P.x) * (P.x) + (P.y) * (P.y) - 1.0); }
 
 // Velocity Field
 R fun_velocity(const R2 P, const int i) {
@@ -179,9 +179,9 @@ template <int N> struct Levelset {
 
 } // namespace ConvectionDiffusion
 
-using namespace ConvectionDiffusionConstVel;
+using namespace ConvectionDiffusion;
 
-#define quad // option: "algoim", "quad", "triangle"
+#define quad     // option: "algoim", "quad", "triangle"
 #define fem
 #define use_h
 
@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
 
         // Mesh
 
-        double x0 = -1.5, y0 = -1.5, lx = 3., ly = 3.;
+        double x0 = -1.5 + 0.0003, y0 = -1.5 + 0.0003, lx = 3., ly = 3.;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
@@ -269,6 +269,9 @@ int main(int argc, char **argv) {
 #endif
         FESpace VelVh(Th, FEvelocity);
         Fun_h vel(VelVh, fun_velocity);
+
+        // std::cout << vel.v << "\n";
+        // return 0;
 
         // Level-set function
         GFESpace<Mesh> Lh(Th, DataFE<Mesh>::P1);
@@ -350,8 +353,8 @@ int main(int argc, char **argv) {
             writer.add(us, "surfactant", 0, 1);
             writer.add(uS_ex, "surfactant_exact", 0, 1);
             writer.add(fabs(us.expr() - uS_ex.expr()), "surfactant_error");
-            writer.add(vx, "velx");
-            writer.add(vy, "vely");
+            ThB.add(vx, "velx");
+            ThB.add(vy, "vely");
             // writer.add(funtestbasisfunction, "test_basis_function", 0, 1);
             writer.add(levelSet, "levelSet", 0, 1);
             writer.writeActiveMesh(ThGamma, path_figures + "ActiveMesh.vtk");

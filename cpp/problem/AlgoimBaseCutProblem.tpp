@@ -31,7 +31,7 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
     auto tq    = this->get_quadrature_time(itq);
     double tid = (In) ? (double)In->map(tq) : 0.;
 
-    phi.t = tid;            // update time in level set function
+    phi.t = tid; // update time in level set function
 
     // Get quadrature rule for the intersection between the element K and the negative part of the level set function
     algoim::QuadratureRule<2> q =
@@ -50,9 +50,9 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
         this->initIndex(FKu, FKv);
 
         // Basis functions memory management
-        bool same   = (&Vhu == &Vhv);
-        int lastop  = getLastop(VF[l].du, VF[l].dv);
-        
+        bool same  = (&Vhu == &Vhv);
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
         long offset = iam * this->offset_bf_;
         RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
                  lastop); //  the value for basic function
@@ -67,7 +67,7 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
             Rd cut_ip = K.mapToReferenceElement(mip); // map the quadrature points in the cut part to reference element
             const R weight = q.nodes.at(ipq).w;
 
-            double Cint    = weight * cst_time;
+            double Cint = weight * cst_time;
 
             // Evaluate the basis functions
             FKv.BF(Fop, cut_ip, fv);
@@ -91,7 +91,6 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
             }
         }
     }
-    
 }
 
 template <typename M, typename L>
@@ -100,12 +99,12 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
     typedef typename FElement::RdHatBord RdHatBord;
 
     phi.t = tid; // update time in level set function
-    
+
     // GET IDX ELEMENT CONTAINING FACE ON backMes
     const int kb = interface.idxElementOfFace(ifac);
     const Element &K(interface.get_element(kb));
 
-    //const Rd normal(-interface.normal(ifac));
+    // const Rd normal(-interface.normal(ifac));
 
     const auto &V0(K.at(0)); // vertex 0
     const auto &V2(K.at(2)); // vertex 2   diagonally opposed
@@ -117,6 +116,8 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
 
     for (int l = 0; l < VF.size(); ++l) {
+        // std::cout << "hello?"
+        //           << "\n";
         // if(!VF[l].on(domain)) continue;
 
         // FINITE ELEMENT SPACES && ELEMENTS
@@ -146,7 +147,7 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
         // double coef = VF[l].computeCoefInterface(h, meas, measK, measCut, {domu, domv});
         // coef *= VF[l].computeCoefFromNormal(normal);
 
-        //double coef = VF[l].computeCoefFromNormal(normal);
+        // double coef = VF[l].computeCoefFromNormal(normal);
 
         // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
@@ -159,21 +160,19 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
             double Cint      = weight * cst_time;
 
             const Rd normal(phi.normal(mip));
-            
+
             assert(fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);
-            
+
             FKv.BF(Fop, face_ip, fv);
-            
+
             if (!same)
                 FKu.BF(Fop, face_ip, fu);
-                
 
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip, tid,
                                                            normal);
             Cint *= coef * VF[l].c;
-            //Cint *= VF[l].c;
-            
+
             if (In) {
                 if (VF.isRHS())
                     this->addToRHS(VF[l], *In, FKv, fv, Cint);
@@ -181,8 +180,6 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
                     this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
             } else {
                 if (VF.isRHS()) {
-                    // std::cout << Cint << std::endl;
-                    // std::cout << fv << std::endl;
                     this->addToRHS(VF[l], FKv, fv, Cint);
                 } else
                     this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
@@ -190,7 +187,6 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
         }
     }
 }
-
 
 template <typename M, typename L>
 void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface,
@@ -201,15 +197,15 @@ void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, con
     const fespace_t &Vh(VF.get_spaceV(0));
 
     const int kb = interface.idxElementOfFace(iface); // idx element in background mesh
-    const Element &K(interface.get_element(kb)); //(interface.get_element(kb));
+    const Element &K(interface.get_element(kb));      //(interface.get_element(kb));
     // const FElement &FK(Vh[kb]);
     // int domain  = FK.get_domain();
 
     // const typename Interface::FaceIdx& face = interface[iface];  // the face
     // const R meas = interface.computeDx(face).norm();
     // const double h = meas;
-    
-	// const Rd linear_normal(-interface.normal(iface));
+
+    // const Rd linear_normal(-interface.normal(iface));
     // assert(fabs(linear_normal.norm() - 1) < 1e-14);
 
     int nend = this->rhs_.size() - 1;
@@ -246,42 +242,42 @@ void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, con
 
             Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             const double weight = q.nodes.at(ipq).w;
-			const Rd face_ip = K.mapToReferenceElement(mip);
-			double Cint = weight;
+            const Rd face_ip    = K.mapToReferenceElement(mip);
+            double Cint         = weight;
 
-			const Rd normal(phi.normal(mip));
-			assert(fabs(normal.norm() - 1) < 1e-14);
-			double coef = VF[l].computeCoefFromNormal(normal);
-			//std::cout << VF[l].c << "\n";
+            const Rd normal(phi.normal(mip));
+            assert(fabs(normal.norm() - 1) < 1e-14);
+            double coef = VF[l].computeCoefFromNormal(normal);
+            // std::cout << VF[l].c << "\n";
 
             // QuadraturePoint ip(qfb[ipq]); // integration point
-			// const Rd mip = interface.mapToFace(face,(RdHatBord)ip);
-			// mapping.computeInverseJacobian(km, mip, invJ);
-			// Rd normal = invJ*linear_normal;
-			// double DetJ = 1./determinant(invJ);
-			// const R Cint = meas * ip.getWeight()*DetJ*normal.norm();
+            // const Rd mip = interface.mapToFace(face,(RdHatBord)ip);
+            // mapping.computeInverseJacobian(km, mip, invJ);
+            // Rd normal = invJ*linear_normal;
+            // double DetJ = 1./determinant(invJ);
+            // const R Cint = meas * ip.getWeight()*DetJ*normal.norm();
 
-			FKv.BF(Fop, face_ip, fv); // need point in local reference element
+            FKv.BF(Fop, face_ip, fv); // need point in local reference element
 
-			// mapping.transform(FKv, fv, invJ);
-			Cint *= coef * VF[l].c;
+            // mapping.transform(FKv, fv, invJ);
+            Cint *= coef * VF[l].c;
 
-			this->addToMatrix(VF[l], FKv, fv, Cint);
-			// for(int j = FKv.dfcbegin(VF[l].cv); j < FKv.dfcend(VF[l].cv); ++j) {
-			//     (*this)(nend, FKv.loc2glb(j)) +=  Cint *  VF[l].c *fv(j,VF[l].cv,VF[l].dv);
-			//     (*this)(FKv.loc2glb(j), nend) +=  Cint *  VF[l].c *fv(j,VF[l].cv,VF[l].dv);
+            this->addToMatrix(VF[l], FKv, fv, Cint);
+            // for(int j = FKv.dfcbegin(VF[l].cv); j < FKv.dfcend(VF[l].cv); ++j) {
+            //     (*this)(nend, FKv.loc2glb(j)) +=  Cint *  VF[l].c *fv(j,VF[l].cv,VF[l].dv);
+            //     (*this)(FKv.loc2glb(j), nend) +=  Cint *  VF[l].c *fv(j,VF[l].cv,VF[l].dv);
 
-			// }
+            // }
         }
 
         // this->resetIndex();
     }
 }
 
-
 // template <typename M, typename L>
 // template <typename Fct>
-// void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,
+// void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M>
+// &interface, int ifac,
 //                                           double tid, const TimeSlab *In, double cst_time, int itq) {
 
 // }

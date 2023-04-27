@@ -900,7 +900,7 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
     // double h  = 0.1*pow(0.5, 5)*sqrt(0.5);             // starting mesh size
@@ -1154,7 +1154,7 @@ int main(int argc, char **argv) {
 
             CutSpace Wh(ThGamma, Vh);
 
-            // CutFEM<Mesh> initial_condition(Wh);
+            CutFEM<Mesh> initial_condition(Wh);
 
             // Data for initial solution
             surfactant.initSpace(Wh, In);
@@ -1174,18 +1174,16 @@ int main(int argc, char **argv) {
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1);
 
-            // // Solve for initial condition
-            // FunTest s(Wh, 1), r(Wh, 1);
-            // initial_condition.addBilinear(+innerProduct(s, r), *interface(0));
-            // initial_condition.addFaceStabilization(+innerProduct(0.01 * h * jump(grad(s) * n), jump(grad(r) * n)),
-            //                                        ThGamma);
-            // initial_condition.addLinear(+innerProduct(u0.expr(), r), *interface(0));
-            // initial_condition.solve("mumps");
-            // datas0 = initial_condition.rhs_;
-            // // KN_<double> dw0(initial_condition.rhs_);
-            // // Rn datas0_new(dw0);
-            // // KN_<double> s0_new(datas0_new(SubArray(Wh.get_nb_dof(), 0)));
-            // Fun_h u0new(Wh, datas0);
+            // Solve for initial condition
+            FunTest s(Wh, 1), r(Wh, 1);
+            initial_condition.addBilinear(+innerProduct(s, r), *interface(0));
+            initial_condition.addFaceStabilization(+innerProduct(0.01 * h * jump(grad(s) * n), jump(grad(r) * n)),
+                                                   ThGamma);
+            initial_condition.addLinear(+innerProduct(u0.expr(), r), *interface(0));
+            initial_condition.solve("mumps");
+            datas0 = initial_condition.rhs_;
+            
+            Fun_h u0new(Wh, datas0);
 
             // std::cout << "datas0 = " << datas0 << "\n";
             // std::cout << "datas0_new = " << datas0_new << "\n";
@@ -1514,6 +1512,7 @@ int main(int argc, char **argv) {
                 if (iterations == 1) {
                     Fun_h sol(Wh, datau0);
 
+                    Paraview<Mesh> ThB(Th, path_figures + "Th.vtk");
                     Paraview<Mesh> writer(ThGamma, path_figures + "surfactant_" + std::to_string(iter + 1) + ".vtk");
 
                     Fun_h uS_ex(Wh, fun_sol_surfactant, tid);
@@ -1523,7 +1522,8 @@ int main(int argc, char **argv) {
                     writer.add(ls[0], "levelSet1", 0, 1);
                     writer.add(ls[1], "levelSet2", 0, 1);
                     writer.add(ls[2], "levelSet3", 0, 1);
-                    // writer.writeActiveMesh(ThGamma, path_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                    writer.writeActiveMesh(ThGamma, path_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                    writer.writeFaceStab(ThGamma, 0, path_figures + "FacesInitial" + std::to_string(iter + 1) + ".vtk");
                     //  writer.add(ls[2], "levelSet2", 0, 1);
                 }
 

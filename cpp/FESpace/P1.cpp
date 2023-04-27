@@ -316,7 +316,7 @@ int TypeOfFE_P1QLagrange2d::Data[] = {
     0, 1, 2, 3, // the node of the df
     0, 1, 2, 3, // which are de df on sub FE
     1, 0, 0, 0, // nb node on what
-    0,          // for each compontant $j=0,N-1$ it give the sub FE associated
+    0,          // for each component $j=0,N-1$ it give the sub FE associated
     0,          // begin_dfcomp
     4           // end_dfcomp
 };

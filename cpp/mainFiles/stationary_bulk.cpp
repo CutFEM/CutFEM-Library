@@ -119,7 +119,7 @@ double fun_g_Neumann(double *P, int elementComp) {
 }
 
 // Level-set function
-double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0) + Epsilon; }
+double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0); }
 
 template <int N> struct Levelset {
 
@@ -177,7 +177,7 @@ double fun_g_Neumann(double *P, int elementComp) {
 }
 
 // Level-set function
-double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0) + Epsilon; }
+double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0); }
 
 template <int N> struct Levelset {
 
@@ -213,7 +213,7 @@ double fun_rhsBulk(double *P, int elementComp) { return 40 * pow(pi, 2) * sin(2 
 double fun_uBulk(double *P, int elementComp, int domain) { return 2 * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_g_Neumann(double *P, int elementComp) { return 0.; }
 double fun_levelSet(double *P, const int i) {
-    return -((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.5) * (P[1] - 0.5) - 0.25 * 0.25) + Epsilon;
+    return -((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.5) * (P[1] - 0.5) - 0.25 * 0.25);
 }
 // Velocity Field
 R fun_velocity(double *P, const int i) { return 0.; }
@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, -1.5, -1.5, lx, ly);
+        Mesh Th(nx, ny, -1.5+0.00003, -1.5+0.00003, lx, ly);
 
         hs.at(j)  = h;
         nxs.at(j) = nx;
@@ -395,18 +395,18 @@ int main(int argc, char **argv) {
         // Inner boundary
 
         // Neumann
-        // convdiff.addLinear(innerProduct(g_Neumann.expr(), v), interface);
+        convdiff.addLinear(innerProduct(g_Neumann.expr(), v), interface);
 
-        // Dirichlet
-        convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
-                                 - innerProduct(u, D * grad(v) * n) // added to make symmetric
-                                 + innerProduct(u, lambda / h * v)  // added penalty
-                             ,
-                             interface);
+        // // Dirichlet
+        // convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
+        //                          - innerProduct(u, D * grad(v) * n) // added to make symmetric
+        //                          + innerProduct(u, lambda / h * v)  // added penalty
+        //                      ,
+        //                      interface);
 
-        // RHS terms
-        convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v),
-                           interface);
+        // // RHS terms
+        // convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v),
+        //                    interface);
 
         // // Outer boundary
 
