@@ -93,10 +93,10 @@ class dataTypeOfFE {
 
     const int *ndfOn() const { return &ndfonVertex; }
 
-    dataTypeOfFE(const std::vector<int> &nitemdim,
-                 const KN<dataTypeOfFE const *> &);
-    dataTypeOfFE(const std::vector<int> &nitem, const int *Data, int nbdf,
-                 int NN);
+    dataTypeOfFE(const std::vector<int> &nitemdim, const KN<dataTypeOfFE const *> &);
+    dataTypeOfFE(const std::vector<int> &nitemdim, std::vector<dataTypeOfFE const *> &&);
+
+    dataTypeOfFE(const std::vector<int> &nitem, const int *Data, int nbdf, int NN);
 
     virtual ~dataTypeOfFE() {
         if (dataalloc)
@@ -140,8 +140,7 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
     KN<GTypeOfFE<Mesh> *> Sub_ToFE;
     KN<int> begin_dfcomp, end_dfcomp;
 
-    virtual void get_Coef_Pi_h(const GbaseFElement<Mesh> &K,
-                               KN_<double> &v) const {
+    virtual void get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v) const {
         assert(coef_Pi_h);
         // std::cout << "get coef in GTypeOfFE" << std::endl;
         v = KN_<double>(coef_Pi_h, ipj_Pi_h.N());
@@ -154,12 +153,10 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
      * Simple constructor for simple finite element
      * (not for union of FE)
      */
-    GTypeOfFE(const int nbdf, const int NN, const int *data, int kPi, int npPi,
-              double *coef_Pi_h_a = 0)
+    GTypeOfFE(const int nbdf, const int NN, const int *data, int kPi, int npPi, double *coef_Pi_h_a = 0)
         : dataTypeOfFE(Element::itemTopology(), data, nbdf, NN),
 
-          NbPtforInterpolation(npPi), NbcoefforInterpolation(kPi),
-          ipj_Pi_h(kPi), Pt_Pi_h(npPi), coef_Pi_h(coef_Pi_h_a),
+          NbPtforInterpolation(npPi), NbcoefforInterpolation(kPi), ipj_Pi_h(kPi), Pt_Pi_h(npPi), coef_Pi_h(coef_Pi_h_a),
           // begin_coef_Pi_h, end_coef_Pi_h;
           Sub_ToFE(nbOfFE), begin_dfcomp(N, 0), end_dfcomp(N, nbdf)
     // begin_dfcomp(data+4*nbdf+4+N),
@@ -173,9 +170,17 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
      *
      */
     GTypeOfFE(const KN<GTypeOfFE<Mesh> const *> &t)
-        : dataTypeOfFE(Element::itemTopology(), t),
-          NbPtforInterpolation(this->nbNode),
-          NbcoefforInterpolation(this->nbNode), Sub_ToFE(nbOfFE),
+        : dataTypeOfFE(Element::itemTopology(), t), NbPtforInterpolation(this->nbNode),
+          NbcoefforInterpolation(this->nbNode), Sub_ToFE(nbOfFE), begin_dfcomp(N, 0), end_dfcomp(N, this->nbDoF)
+
+    {
+
+        Sub_ToFE = this;
+    }
+
+    GTypeOfFE(std::vector<GTypeOfFE<Mesh> const *> &t)
+        : dataTypeOfFE(Element::itemTopology(), std::vector<dataTypeOfFE const *>(t.begin(), t.end())),
+          NbPtforInterpolation(this->nbNode), NbcoefforInterpolation(this->nbNode), Sub_ToFE(nbOfFE),
           begin_dfcomp(N, 0), end_dfcomp(N, this->nbDoF)
 
     {
@@ -204,10 +209,8 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
     // }
 
     // virtual void init(InterpolationMatrix<RdHat> & M) const;
-    virtual void FB(const What_d whatd, const Element &K, const Rd &P,
-                    KNMK_<R> &val) const = 0;
-    virtual void FB(const What_d whatd, const Element &K, const Rd &P,
-                    KNMK_<R> &val, const KNM_<R> &J) const {
+    virtual void FB(const What_d whatd, const Element &K, const Rd &P, KNMK_<R> &val) const = 0;
+    virtual void FB(const What_d whatd, const Element &K, const Rd &P, KNMK_<R> &val, const KNM_<R> &J) const {
         assert(0);
     };
 
@@ -261,30 +264,22 @@ template <class mesh> struct DataFE {
     static GTypeOfFE<mesh> &P1dcTaylor;
 };
 
-template <int D>
-void jacobianLinearTransformation(KNM<R> &J, const Triangle2 &T);
+template <int D> void jacobianLinearTransformation(KNM<R> &J, const Triangle2 &T);
 
-template <int D>
-void inverseJacobian(const KNM<R> &J, const double inv_detJ, KNM<R> &invJ);
+template <int D> void inverseJacobian(const KNM<R> &J, const double inv_detJ, KNM<R> &invJ);
 
 template <int D> double inverseDeterminant(const KNM<R> &J);
 
 template <int D>
-void piolatTransformation(const KN_<R> &Ji, double inv_detJ,
-                          const std::vector<std::vector<double>> &bf,
-                          RN_ &bfMat);
+void piolatTransformation(const KN_<R> &Ji, double inv_detJ, const std::vector<std::vector<double>> &bf, RN_ &bfMat);
+
+template <int D> double piolatTransformation(const KN_<R> &Ji, double inv_detJ, std::vector<double> &phi);
 
 template <int D>
-double piolatTransformation(const KN_<R> &Ji, double inv_detJ,
-                            std::vector<double> &phi);
+void piolatTransformationGradient(int df, const KNM_<R> &J, const KNM_<R> &invJ, double inv_det_J,
+                                  const KNM_<R> &Dphi_ref, KNMK_<R> &bfMat);
 
-template <int D>
-void piolatTransformationGradient(int df, const KNM_<R> &J, const KNM_<R> &invJ,
-                                  double inv_det_J, const KNM_<R> &Dphi_ref,
-                                  KNMK_<R> &bfMat);
-
-template <>
-inline void jacobianLinearTransformation<2>(KNM<R> &J, const Triangle2 &T) {
+template <> inline void jacobianLinearTransformation<2>(KNM<R> &J, const Triangle2 &T) {
     R2 xv0  = T.at(0);
     R2 xv1  = T.at(1);
     R2 xv2  = T.at(2);
@@ -294,9 +289,7 @@ inline void jacobianLinearTransformation<2>(KNM<R> &J, const Triangle2 &T) {
     J(1, 1) = xv2[1] - xv0[1];
 }
 
-template <>
-inline void inverseJacobian<2>(const KNM<R> &J, const double inv_detJ,
-                               KNM<R> &invJ) {
+template <> inline void inverseJacobian<2>(const KNM<R> &J, const double inv_detJ, KNM<R> &invJ) {
     invJ(0, 0) = inv_detJ * J(1, 1);
     invJ(0, 1) = -inv_detJ * J(0, 1);
     invJ(1, 0) = -inv_detJ * J(1, 0);
@@ -323,42 +316,30 @@ template <> inline double inverseDeterminant<2>(const KNM<R> &J) {
 //     * (Ji[1]));
 // }
 template <>
-inline void
-piolatTransformation<2>(const KN_<R> &Ji, double inv_detJ,
-                        const std::vector<std::vector<double>> &bf_ref,
-                        RN_ &bfMat) {
+inline void piolatTransformation<2>(const KN_<R> &Ji, double inv_detJ, const std::vector<std::vector<double>> &bf_ref,
+                                    RN_ &bfMat) {
     int df = 0;
     for (const auto &phi : bf_ref) {
         bfMat[df++] = inv_detJ * (phi[0] * (Ji[0]) + phi[1] * (Ji[1]));
     }
 }
 
-template <>
-inline double piolatTransformation<2>(const KN_<R> &Ji, double inv_detJ,
-                                      std::vector<double> &phi) {
+template <> inline double piolatTransformation<2>(const KN_<R> &Ji, double inv_detJ, std::vector<double> &phi) {
     return inv_detJ * (phi[0] * Ji[0] + phi[1] * Ji[1]);
 }
 
 template <>
-inline void
-piolatTransformationGradient<2>(int df, const KNM_<R> &J, const KNM_<R> &invJ,
-                                double inv_det_J, const KNM_<R> &Dphi_ref,
-                                KNMK_<R> &bfMat) {
+inline void piolatTransformationGradient<2>(int df, const KNM_<R> &J, const KNM_<R> &invJ, double inv_det_J,
+                                            const KNM_<R> &Dphi_ref, KNMK_<R> &bfMat) {
 
     std::vector<std::vector<double>> J_Dphi = {
-        {J(0, 0) * Dphi_ref(0, 0) + J(0, 1) * Dphi_ref(1, 0),
-         J(0, 0) * Dphi_ref(0, 1) + J(0, 1) * Dphi_ref(1, 1)},
-        {J(1, 0) * Dphi_ref(0, 0) + J(1, 1) * Dphi_ref(1, 0),
-         J(1, 0) * Dphi_ref(0, 1) + J(1, 1) * Dphi_ref(1, 1)}};
+        {J(0, 0) * Dphi_ref(0, 0) + J(0, 1) * Dphi_ref(1, 0), J(0, 0) * Dphi_ref(0, 1) + J(0, 1) * Dphi_ref(1, 1)},
+        {J(1, 0) * Dphi_ref(0, 0) + J(1, 1) * Dphi_ref(1, 0), J(1, 0) * Dphi_ref(0, 1) + J(1, 1) * Dphi_ref(1, 1)}};
 
-    bfMat(df, 0, op_dx) =
-        inv_det_J * (J_Dphi[0][0] * invJ(0, 0) + J_Dphi[0][1] * invJ(1, 0));
-    bfMat(df, 0, op_dy) =
-        inv_det_J * (J_Dphi[0][0] * invJ(0, 1) + J_Dphi[0][1] * invJ(1, 1));
-    bfMat(df, 1, op_dx) =
-        inv_det_J * (J_Dphi[1][0] * invJ(0, 0) + J_Dphi[1][1] * invJ(1, 0));
-    bfMat(df, 1, op_dy) =
-        inv_det_J * (J_Dphi[1][0] * invJ(0, 1) + J_Dphi[1][1] * invJ(1, 1));
+    bfMat(df, 0, op_dx) = inv_det_J * (J_Dphi[0][0] * invJ(0, 0) + J_Dphi[0][1] * invJ(1, 0));
+    bfMat(df, 0, op_dy) = inv_det_J * (J_Dphi[0][0] * invJ(0, 1) + J_Dphi[0][1] * invJ(1, 1));
+    bfMat(df, 1, op_dx) = inv_det_J * (J_Dphi[1][0] * invJ(0, 0) + J_Dphi[1][1] * invJ(1, 0));
+    bfMat(df, 1, op_dy) = inv_det_J * (J_Dphi[1][0] * invJ(0, 1) + J_Dphi[1][1] * invJ(1, 1));
 }
 
 #endif
