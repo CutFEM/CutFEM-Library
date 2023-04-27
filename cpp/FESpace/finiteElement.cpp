@@ -15,32 +15,47 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 #include "finiteElement.hpp"
 
-const GTypeOfFE<Mesh2> *TaylorHood2::FE_[3] = {
-    &DataFE<Mesh2>::P2, &DataFE<Mesh2>::P2,
-    &DataFE<Mesh2>::P1}; //&DataFE<Mesh2>::P2;
-const GTypeOfFE<Mesh2> *Lagrange2::FE_[5][2] = {
+template <>
+std::vector<std::vector<const GTypeOfFE<Mesh2> *>> BaseFE_Array<Mesh2, ContinuityType::continuous>::FE_ = {
     {&DataFE<Mesh2>::P0, &DataFE<Mesh2>::P0},
     {&DataFE<Mesh2>::P1, &DataFE<Mesh2>::P1},
     {&DataFE<Mesh2>::P2, &DataFE<Mesh2>::P2},
     {&DataFE<Mesh2>::P3, &DataFE<Mesh2>::P3},
     {&DataFE<Mesh2>::P4, &DataFE<Mesh2>::P4}};
 
-const GTypeOfFE<Mesh2> *LagrangeDC2::FE_[4][2] = {
+template <>
+BaseFE_Array<Mesh2, ContinuityType::continuous>::BaseFE_Array(int k) : GTypeOfFESum<Mesh2>(this->FE_.at(k)) {}
+Lagrange2::Lagrange2(int k) : BaseFE_Array<Mesh2, ContinuityType::continuous>(k){};
+
+template <>
+std::vector<std::vector<const GTypeOfFE<Mesh3> *>> BaseFE_Array<Mesh3, ContinuityType::continuous>::FE_ = {
+    {&DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0},
+    {&DataFE<Mesh3>::P1, &DataFE<Mesh3>::P1, &DataFE<Mesh3>::P1},
+    {&DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2}};
+
+template <>
+BaseFE_Array<Mesh3, ContinuityType::continuous>::BaseFE_Array(int k) : GTypeOfFESum<Mesh3>(this->FE_.at(k)) {}
+Lagrange3::Lagrange3(int k) : BaseFE_Array<Mesh3, ContinuityType::continuous>(k){};
+
+template <>
+std::vector<std::vector<const GTypeOfFE<Mesh2> *>> BaseFE_Array<Mesh2, ContinuityType::discontinuous>::FE_ = {
     {&DataFE<Mesh2>::P0, &DataFE<Mesh2>::P0},
     {&DataFE<Mesh2>::P1dc, &DataFE<Mesh2>::P1dc},
     {&DataFE<Mesh2>::P2dc, &DataFE<Mesh2>::P2dc},
     {&DataFE<Mesh2>::P3dc, &DataFE<Mesh2>::P3dc}};
 
-const GTypeOfFE<Mesh3> *TaylorHood3::FE_[4] = {
-    &DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2,
-    &DataFE<Mesh3>::P1}; //&DataFE<Mesh2>::P2;
+template <>
+BaseFE_Array<Mesh2, ContinuityType::discontinuous>::BaseFE_Array(int k) : GTypeOfFESum<Mesh2>(this->FE_.at(k)) {}
+LagrangeDC2::LagrangeDC2(int k) : BaseFE_Array<Mesh2, ContinuityType::discontinuous>(k){};
 
-const GTypeOfFE<Mesh3> *Lagrange3::FE_[3][3] = {
-    {&DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0},
-    {&DataFE<Mesh3>::P1, &DataFE<Mesh3>::P1, &DataFE<Mesh3>::P1},
-    {&DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2}
-    // ,{&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3}
-};
+// const GTypeOfFE<Mesh2> *TaylorHood2::FE_[3] = {&DataFE<Mesh2>::P2, &DataFE<Mesh2>::P2,
+//                                                &DataFE<Mesh2>::P1}; //&DataFE<Mesh2>::P2;
+//                                                                     // const GTypeOfFE<Mesh2> *Lagrange2::FE_[5][2] =
+//                                                                     {
+
+// const GTypeOfFE<Mesh3> *TaylorHood3::FE_[4] = {&DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2, &DataFE<Mesh3>::P2,
+//                                                &DataFE<Mesh3>::P1}; //&DataFE<Mesh2>::P2;
+
 // template<>
 // const GTypeOfFE<MeshHexa>* Lagrange3<MeshHexa>::FE_[3][3] =
 // {{&DataFE<MeshHexa>::P0,&DataFE<MeshHexa>::P0,&DataFE<MeshHexa>::P0},

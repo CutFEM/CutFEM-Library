@@ -17,45 +17,45 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #define FINITE_ELEMENT_HPP
 
 #include "GTypeOfFE_Sum.hpp"
+#include "../concept/function.hpp"
 
-class Lagrange2 : public GTypeOfFESum<Mesh2> {
-   typedef KN<const GTypeOfFE<Mesh2> *> FEarray;
-   static const GTypeOfFE<Mesh2> *FE_[5][2];
+enum class ContinuityType { continuous, discontinuous };
 
- public:
-   Lagrange2(int k = 1) : GTypeOfFESum<Mesh2>(FEarray(2, FE_[k])) {}
+template <typeMesh mesh_t, ContinuityType C> class BaseFE_Array : public GTypeOfFESum<mesh_t> {
+  public:
+    static std::vector<std::vector<const GTypeOfFE<mesh_t> *>> FE_;
+    BaseFE_Array(int k);
 };
 
-class LagrangeDC2 : public GTypeOfFESum<Mesh2> {
-   typedef KN<const GTypeOfFE<Mesh2> *> FEarray;
-   static const GTypeOfFE<Mesh2> *FE_[4][2];
-
- public:
-   LagrangeDC2(int k = 1) : GTypeOfFESum<Mesh2>(FEarray(2, FE_[k])) {}
+class Lagrange2 : public BaseFE_Array<Mesh2, ContinuityType::continuous> {
+  public:
+    Lagrange2(int k);
 };
 
-class TaylorHood2 : public GTypeOfFESum<Mesh2> {
-   typedef KN<const GTypeOfFE<Mesh2> *> FEarray;
-   static const GTypeOfFE<Mesh2> *FE_[3];
+class Lagrange3 : public BaseFE_Array<Mesh3, ContinuityType::continuous> {
 
- public:
-   TaylorHood2() : GTypeOfFESum<Mesh2>(FEarray(3, FE_)) {}
+    Lagrange3(int k);
 };
 
-class TaylorHood3 : public GTypeOfFESum<Mesh3> {
-   typedef KN<const GTypeOfFE<Mesh3> *> FEarray;
-   static const GTypeOfFE<Mesh3> *FE_[4];
-
- public:
-   TaylorHood3() : GTypeOfFESum<Mesh3>(FEarray(4, FE_)) {}
+class LagrangeDC2 : public BaseFE_Array<Mesh2, ContinuityType::discontinuous> {
+  public:
+    LagrangeDC2(int k);
 };
 
-class Lagrange3 : public GTypeOfFESum<Mesh3> {
-   typedef KN<const GTypeOfFE<Mesh3> *> FEarray;
-   static const GTypeOfFE<Mesh3> *FE_[3][3];
+// class TaylorHood2 : public GTypeOfFESum<Mesh2> {
+//     typedef KN<const GTypeOfFE<Mesh2> *> FEarray;
+//     static const GTypeOfFE<Mesh2> *FE_[3];
 
- public:
-   Lagrange3(int k = 1) : GTypeOfFESum<Mesh3>(FEarray(3, FE_[k])) {}
-};
+//   public:
+//     TaylorHood2() : GTypeOfFESum<Mesh2>(FEarray(3, FE_)) {}
+// };
+
+// class TaylorHood3 : public GTypeOfFESum<Mesh3> {
+//     typedef KN<const GTypeOfFE<Mesh3> *> FEarray;
+//     static const GTypeOfFE<Mesh3> *FE_[4];
+
+//   public:
+//     TaylorHood3() : GTypeOfFESum<Mesh3>(FEarray(4, FE_)) {}
+// };
 
 #endif

@@ -1,3 +1,7 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from stokes_data_example1_2D import *
+from stokes_wrapper import *
 import sys
 import os
 
@@ -14,18 +18,11 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 
 
-from stokes_wrapper import *
-from stokes_data_example1_2D import *
-import matplotlib.pyplot as plt
-import numpy as np
-
-
 fun_level_set = USER_FUN_LS(func_level_set)
 fun_rhs = USER_FUNC(func_rhs)
 fun_div = USER_FUNC(func_div)
 fun_velocity = USER_FUNC(func_velocity)
 fun_pressure = USER_FUNC(func_pressure)
-
 
 
 set_verbose(2)
@@ -50,21 +47,21 @@ for x in range(4):
 
     stokes.add_bulk_integral(fun_rhs)
     stokes.add_interface_integral(fun_velocity)
-    
+
     stokes.add_lagrange_multiplier_classic(0.)
 
     stokes.set_stabilization_Cu(1.)
     stokes.set_stabilization_Cp(0.)
     stokes.set_stabilization_Cpu(1.)
-    
+
     stokes.add_macro_stabilization(0.5, stab_mixed)
 
     stokes.solve()
-    
+
     stokes.post_process_pressure(fun_pressure)
 
     stokes.write_vtk_file('python/output/example_stokesRT_'+str(x)+'.vtk')
-    
+
     error_divu_L2 = stokes.L2error_div(fun_div)
     error_u_L2 = stokes.L2error_vel(fun_velocity)
     error_p_L2 = stokes.L2error_pressure(fun_pressure)
@@ -75,8 +72,7 @@ for x in range(4):
     err_div = np.append(err_div, error_divu_L2)
 
     nx = 2*nx - 1
-    
-    
+
 
 print(h)
 print(err_p)

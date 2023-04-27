@@ -38,7 +38,7 @@ class pyFictitiousStokesRT : public pyProblem {
     enum { classic = 0, mixed = 1 };
 
   public:
-    void delete_obj() {}
+    void delete_obj() override {}
     void init_mu(double mmu) { mu = mmu; }
     void init_sigma(double s) { sigma = s; }
     void init_space(double (*f)(double *), std::string FE_type) override {
@@ -87,7 +87,7 @@ class pyFictitiousStokesRT : public pyProblem {
         double hi = 1. / (mesh_param.nx[0] - 1);
         fct_t fh(*Velh_p, f);
 
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
 
         problem.addBilinear(contractProduct(mu * grad(u), grad(v)) - innerProduct(p, div(v)) + innerProduct(div(u), q),
                             *Khi_p);
@@ -102,7 +102,7 @@ class pyFictitiousStokesRT : public pyProblem {
         double penaltyParam = penalty_param.gamma;
 
         fct_t gh(*Velh_p, f);
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
 
         problem.addBilinear(-innerProduct(mu * grad(u) * n, v)                // natural
                                 + innerProduct(u, mu * grad(v) * n)           // symmetry
@@ -117,7 +117,7 @@ class pyFictitiousStokesRT : public pyProblem {
 
     // void add_lagrange_multiplier_mixed() override {
 
-    //     TestFunction<2> p(*Ph_p, 1), v(*Wh_p, 2);
+    //     TestFunction<mesh_t> p(*Ph_p, 1), v(*Wh_p, 2);
 
     //     CutFEM<mesh_t> lagr(*Wh_p);
     //     lagr.add(*Ph_p);
@@ -128,7 +128,7 @@ class pyFictitiousStokesRT : public pyProblem {
     //     problem.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
     // }
     // void add_lagrange_multiplier_classic(double val) override {
-    //     TestFunction<2> p(*Ph_p, 1);
+    //     TestFunction<mesh_t> p(*Ph_p, 1);
     //     stokes.addLagrangeMultiplier(innerProduct(1., p), val, *Khi_p);
     // }
 
@@ -141,8 +141,8 @@ class pyFictitiousStokesRT : public pyProblem {
         MacroElement<mesh_t> macro(*Khi_p, dlt_i);
 
         Normal n;
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
-        TestFunction<2> grad2un = grad(grad(u) * n) * n;
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> grad2un = grad(grad(u) * n) * n;
 
         problem.addFaceStabilization(innerProduct(Cu * pow(hi, -1) * jump(u), jump(v)) +
                                          innerProduct(Cu * pow(hi, 1) * jump(grad(u) * n), jump(grad(v) * n)) +
@@ -161,8 +161,8 @@ class pyFictitiousStokesRT : public pyProblem {
         double hi = 1. / (mesh_param.nx[0] - 1);
 
         Normal n;
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
-        TestFunction<2> grad2un = grad(grad(u) * n) * n;
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> grad2un = grad(grad(u) * n) * n;
 
         problem.addFaceStabilization(innerProduct(Cu * pow(hi, -1) * jump(u), jump(v)) +
                                          innerProduct(Cu * pow(hi, 1) * jump(grad(u) * n), jump(grad(v) * n)) +
@@ -184,7 +184,7 @@ class pyFictitiousStokesRT : public pyProblem {
         double meanP    = integral(*Khi_p, exactp.expr(), 0);
         double meanPfem = integral(*Khi_p, ph.expr(), 0);
 
-        TestFunction<2> q(*Ph_p, 1);
+        TestFunction<mesh_t> q(*Ph_p, 1);
 
         CutFEM<mesh_t> post(*Ph_p);
         post.addLinear(innerProduct(1, q), *Khi_p);
@@ -215,7 +215,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
     enum { primal = 0, mixed = 1 };
 
   public:
-    void delete_obj() {}
+    void delete_obj() override {}
     void init_mu(double mmu) { mu = mmu; }
     void init_sigma(double s) { sigma = s; }
 
@@ -276,7 +276,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
 
         fct_t fh(*Velh_p, f);
 
-        TestFunction<2> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
 
         problem.addBilinear( // w = curl u
             innerProduct(1. / mu * w, tau) - innerProduct(u, rotgrad(tau)), Khi);
@@ -291,7 +291,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
         double penaltyParam = penalty_param.gamma;
 
         fct_t u0(*Velh_p, f);
-        TestFunction<2> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
 
         problem.addBilinear(+innerProduct(p, v * n) + innerProduct(1. / hi * penaltyParam * u * n, v * n), *inter_p);
         problem.addLinear(+innerProduct(u0 * t, tau) + innerProduct(u0 * n, 1. / hi * penaltyParam * v * n), *inter_p);
@@ -299,7 +299,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
 
     void add_lagrange_multiplier_mixed() override {
 
-        TestFunction<2> p(*Ph_p, 1), v(*Wh_p, 2);
+        TestFunction<mesh_t> p(*Ph_p, 1), v(*Wh_p, 2);
 
         CutFEM<mesh_t> lagr(*Uh_p);
         lagr.add(*Wh_p);
@@ -332,9 +332,9 @@ class pyFictitiousStokesVorticity : public pyProblem {
         double hi = 1. / (mesh_param.nx[0] - 1);
         MacroElement<mesh_t> macro(*Khi_p, dlt_i);
         Normal n;
-        TestFunction<2> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
-        TestFunction<2> grad2un = grad(grad(u) * n) * n;
-        TestFunction<2> grad2wn = grad(grad(w) * n) * n;
+        TestFunction<mesh_t> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> grad2un = grad(grad(u) * n) * n;
+        TestFunction<mesh_t> grad2wn = grad(grad(w) * n) * n;
         problem.addFaceStabilization(innerProduct(Cw * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n)) +
                                          innerProduct(Cw * pow(hi, 5) * jump(grad2wn), jump(grad2wn)) +
 
@@ -375,9 +375,9 @@ class pyFictitiousStokesVorticity : public pyProblem {
 
         double hi = 1. / (mesh_param.nx[0] - 1);
         Normal n;
-        TestFunction<2> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
-        TestFunction<2> grad2un = grad(grad(u) * n) * n;
-        TestFunction<2> grad2wn = grad(grad(w) * n) * n;
+        TestFunction<mesh_t> w(*Uh_p, 1, 0), tau(*Uh_p, 1, 0), p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> grad2un = grad(grad(u) * n) * n;
+        TestFunction<mesh_t> grad2wn = grad(grad(w) * n) * n;
         problem.addFaceStabilization(innerProduct(Cw * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n)) +
                                          innerProduct(Cw * pow(hi, 5) * jump(grad2wn), jump(grad2wn)) +
 
@@ -407,7 +407,7 @@ class pyFictitiousStokesVorticity : public pyProblem {
         fct_t p0(*Ph_ex_p, f);
         double meanP    = integral(*Khi_p, p0.expr(), 0);
         double meanPfem = integral(*Khi_p, ph.expr(), 0);
-        TestFunction<2> q(*Ph_p, 1, 0);
+        TestFunction<mesh_t> q(*Ph_p, 1, 0);
         CutFEM<mesh_t> post(*Ph_p.get());
 
         post.addLinear(innerProduct(1, q), *Khi_p);

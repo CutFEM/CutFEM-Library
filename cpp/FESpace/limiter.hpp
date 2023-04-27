@@ -380,7 +380,7 @@ std::vector<double> extendToMacro(const FunFEM<Mesh> &uh, const std::map<int, do
 }
 
 template <typename Mesh>
-void extendToMacro_P0(const FunFEM<Mesh> &uh, Rn &u_new, std::map<int, double> &u_mean,
+void extendToMacro_P0(const FunFEM<Mesh> &uh, Rn &u_new, const std::map<int, double> &u_mean,
                       const MacroElement<Mesh> &macro) {
     typedef typename GFESpace<Mesh>::FElement FElement;
     typedef typename Mesh::Rd Rd;
@@ -423,7 +423,7 @@ void extendToMacro_P0(const FunFEM<Mesh> &uh, Rn &u_new, std::map<int, double> &
 
 // Only for discontinuous Lagrange
 template <typename Mesh>
-void extendToMacro_P1(const FunFEM<Mesh> &uh, Rn &u_new, std::map<int, double> &u_mean,
+void extendToMacro_P1(const FunFEM<Mesh> &uh, Rn &u_new, const std::map<int, double> &u_mean,
                       const MacroElement<Mesh> &macro) {
     typedef typename Mesh::Element Element;
     typedef typename GFESpace<Mesh>::FElement FElement;
@@ -496,8 +496,8 @@ void extendToMacro_P1(const FunFEM<Mesh> &uh, Rn &u_new, std::map<int, double> &
         //            C0 += Cint * (val_old - fun_u_new.eval(k, mip));
 
         //   C0               = C0 / area_total;
-        mean_val         = mean_val / area_total;
-        u_mean[idx_root] = mean_val;
+        mean_val = mean_val / area_total;
+        // u_mean[idx_root] = mean_val;
         for (auto k : MK.idx_element) {
             const FElement &FK(Wh[k]);
             for (int df = 0; df < FK.NbDoF(); ++df) {
@@ -509,7 +509,8 @@ void extendToMacro_P1(const FunFEM<Mesh> &uh, Rn &u_new, std::map<int, double> &
 }
 
 template <typename Mesh>
-void extendToMacro(const FunFEM<Mesh> &uh, Rn &u_new, std::map<int, double> &u_mean, const MacroElement<Mesh> &macro) {
+void extendToMacro(const FunFEM<Mesh> &uh, Rn &u_new, const std::map<int, double> &u_mean,
+                   const MacroElement<Mesh> &macro) {
     const BasisFctType basisFctType = uh.getBasisFctType();
     if (basisFctType == BasisFctType::P0) {
         extendToMacro_P0(uh, u_new, u_mean, macro);
@@ -520,17 +521,17 @@ void extendToMacro(const FunFEM<Mesh> &uh, Rn &u_new, std::map<int, double> &u_m
     }
 }
 
-template <typename Mesh> void extendToMacro(const FunFEM<Mesh> &uh, Rn &u_new, const MacroElement<Mesh> &macro) {
-    const BasisFctType basisFctType = uh.getBasisFctType();
-    std::map<int, double> u_mean;
-    if (basisFctType == BasisFctType::P0) {
-        extendToMacro_P0(uh, u_new, u_mean, macro);
-    } else if (basisFctType == BasisFctType::P1dc) {
-        extendToMacro_P1(uh, u_new, u_mean, macro);
-    } else {
-        std::cout << " Extension to macro element not implemented for those element" << std::endl;
-    }
-}
+// template <typename Mesh> void extendToMacro(const FunFEM<Mesh> &uh, Rn &u_new, const MacroElement<Mesh> &macro) {
+//     const BasisFctType basisFctType = uh.getBasisFctType();
+//     std::map<int, double> u_mean;
+//     if (basisFctType == BasisFctType::P0) {
+//         extendToMacro_P0(uh, u_new, u_mean, macro);
+//     } else if (basisFctType == BasisFctType::P1dc) {
+//         extendToMacro_P1(uh, u_new, u_mean, macro);
+//     } else {
+//         std::cout << " Extension to macro element not implemented for those element" << std::endl;
+//     }
+// }
 
 template <typename Mesh>
 void boundPreservingLimiter_P1(const FunFEM<Mesh> &uh, Rn &u_new, double min_val, double max_val,
@@ -777,6 +778,7 @@ std::vector<double> applyBoundPreservingLimiter(const FunFEM<Mesh> &uh, double m
                                                 const MacroElement<Mesh> &macro) {
     const std::map<int, double> u_mean = limiter::CutFEM::computeMeanValue(uh, macro);
     std::vector<double> uh_M           = limiter::CutFEM::extendToMacro(uh, u_mean, macro);
+    // min and max
     FunFEM<Mesh> fun_uM(*uh.Vh, uh_M);
 
     if (uh.getBasisFctType() == BasisFctType::P1dc) {
@@ -1035,6 +1037,7 @@ double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj
                     const R2 mip = cutFace.mapToPhysicalElement(it, (R1)ip);
                     // compute U_j(x_i^*)
                     double ux    = uh.eval(FK.index(), mip, 0, op_id);
+
                     if (ux - M > 0) {
                         alpha_i = (M - Uj) / (ux - Uj);
                     } else if (ux - m < 0) {
@@ -1042,8 +1045,10 @@ double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj
                     } else {
                         alpha_i = 1.;
                     }
+
                     alpha_i     = std::max(alpha_i, 0.);
                     min_alpha_i = std::min(min_alpha_i, alpha_i);
+
                     assert(min_alpha_i < 1e300);
                 }
             }
@@ -1097,11 +1102,10 @@ std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<
         const auto FK(Vh[k]);
 
         // compute m and M , min max average of neighbor
-        auto [m, M]  = minAndMaxAverageNeighbor(FK, uh);
+        auto [m, M] = minAndMaxAverageNeighbor(FK, uh);
         // compute solution average on K_j
-        double Uj    = averageOnKj(FK, uh);
-        // std::cout << "min max \t" << m << "\t" << M << std::endl;
-        // std::cout << " average Uj \t" << Uj << std::endl;
+        double Uj   = averageOnKj(FK, uh);
+
         double alpha = computeAlpha(FK, uh, Uj, m, M);
 
         const auto &T(FK.T);

@@ -21,7 +21,7 @@ double fun_initial(R2 P, int elementComp, int domain) {
     double r = 0.3;
     double v = (P[0] - xs) * (P[0] - xs) + (P[1] - ys) * (P[1] - ys);
     if (v < r * r)
-        return exp(-pow(P[0] - xs, 2) / r - pow(P[1] - ys, 2) / r);
+        return exp(-pow(P[0] - xs, 2) / (0.5 * r) - pow(P[1] - ys, 2) / (0.5 * r));
     else
         return 0.;
 }
@@ -124,8 +124,8 @@ int main(int argc, char **argv) {
 
     // DEFINITION OF THE MESH and SPACE
     // =====================================================
-    int nx = 100;
-    int ny = 100;
+    int nx = 20;
+    int ny = 20;
     mesh_t Th(nx, ny, 0., 0., 2., 2.);
 
     space_t Vh(Th, DataFE<mesh_t>::P1dc);
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
     double tid      = 0;
     double meshSize = 2. / (nx + 1);
     double dt       = meshSize / 3 / sqrt(10) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
-    double tend     = 0.2;
+    double tend     = 0.3;
     int niteration  = tend / dt;
     dt              = tend / niteration;
     double errSum   = 0;
@@ -169,16 +169,16 @@ int main(int argc, char **argv) {
     fct_t fun_u0(Wh, u0);
 
     // Plot the macro elements
-    {
-        Paraview<mesh_t> writer(Khi, "limiter_smooth_solution_0.vtk");
-        writer.add(fun_u0, "uhLimiter", 0, 1);
-        writer.add(fun_u0, "uhNoLimiter", 0, 1);
-        writer.add(levelSet, "levelSet", 0, 1);
-        writer.writeMacroInnerEdge(macro, 0, "limiter_smooth_solution_macro_inner_edge1.vtk");
-        writer.writeMacroOutterEdge(macro, 0, "limiter_smooth_solution_macro_outter_edge1.vtk");
-        writer.writeMacroInnerEdge(macro, 1, "limiter_smooth_solution_macro_inner_edge2.vtk");
-        writer.writeMacroOutterEdge(macro, 1, "limiter_smooth_solution_macro_outter_edge2.vtk");
-    }
+    // {
+    //     Paraview<mesh_t> writer(Khi, "limiter_smooth_solution_0.vtk");
+    //     writer.add(fun_u0, "uhLimiter", 0, 1);
+    //     writer.add(fun_u0, "uhNoLimiter", 0, 1);
+    //     writer.add(levelSet, "levelSet", 0, 1);
+    //     writer.writeMacroInnerEdge(macro, 0, "limiter_smooth_solution_macro_inner_edge1.vtk");
+    //     writer.writeMacroOutterEdge(macro, 0, "limiter_smooth_solution_macro_outter_edge1.vtk");
+    //     writer.writeMacroInnerEdge(macro, 1, "limiter_smooth_solution_macro_inner_edge2.vtk");
+    //     writer.writeMacroOutterEdge(macro, 1, "limiter_smooth_solution_macro_outter_edge2.vtk");
+    // }
 
     double qu0           = integral(Khi, fun_u0, 0);
     const auto minmax_u0 = std::minmax_element(uh.begin(), uh.end());
@@ -261,9 +261,9 @@ int main(int argc, char **argv) {
 
         // PLOT THE SOLUTION
         // ==================================================
-        if (MPIcf::IamMaster() && i % 10000 == 0 || i + 1 == niteration) {
+        if (MPIcf::IamMaster() && i % 5 == 0 || i + 1 == niteration) {
 
-            Paraview<mesh_t> writer(Khi, "limiter_non_smooth_solution_" + std::to_string(ifig++) + ".vtk");
+            Paraview<mesh_t> writer(Khi, "limiter_non_smooth_solution100_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_uh_tild, "uhLimiter", 0, 1);
         }

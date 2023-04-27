@@ -164,7 +164,7 @@ class pyProblem : public pyMixProblemTool, public pySolverTool {
 
     virtual void add_lagrange_multiplier_mixed() {
 
-        TestFunction<2> p(*Ph_p, 1), v(*Wh_p, 2);
+        TestFunction<mesh_t> p(*Ph_p, 1), v(*Wh_p, 2);
 
         CutFEM<mesh_t> lagr(*Wh_p);
         lagr.add(*Ph_p);
@@ -175,7 +175,7 @@ class pyProblem : public pyMixProblemTool, public pySolverTool {
         problem.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
     }
     virtual void add_lagrange_multiplier_classic(double val) {
-        TestFunction<2> p(*Ph_p, 1);
+        TestFunction<mesh_t> p(*Ph_p, 1);
         problem.addLagrangeMultiplier(innerProduct(1., p), val, *Khi_p);
     }
 
