@@ -736,16 +736,16 @@ R fun_sol_surfactant(double *P, const int i, const R t) {
 }
 
 R fun_velocity(double *P, const int i) { return (i == 0) ? 2. : 0.; }
-R fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1]) - 1 - Epsilon;
-}
-R fun_levelSet(double *P, const int i) { return sqrt((P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1]) - 1 - Epsilon; }
+// R fun_levelSet(double *P, const int i, const R t) {
+//     return sqrt((P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1]) - 1 - Epsilon;
+// }
+// R fun_levelSet(double *P, const int i) { return sqrt((P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1]) - 1 - Epsilon; }
 
 //! NOTE: USUALLY I USE THE ABOVE DEFINITION OF THE LEVEL SET
-// R fun_levelSet(double *P, const int i, const R t) {
-//     return (P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1] - 1 - Epsilon;
-// }
-// R fun_levelSet(double *P, const int i) { return (P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1] - 1 - Epsilon; }
+R fun_levelSet(double *P, const int i, const R t) {
+    return (P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1] - 1 - Epsilon;
+}
+R fun_levelSet(double *P, const int i) { return (P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1] - 1 - Epsilon; }
 
 R fun_one(double *P, const int cc, const R t) { return 1.; }
 
@@ -857,10 +857,10 @@ typedef FunFEM<Mesh2> Fun_h;
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define cg
 // Set numerical example (options: "example1", "shi1", "shi2", "deckelnick", "deckelnick2")
-#define deckelnick2
+#define example1
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
-#define conservative
+#define classical
 // Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 // Decide whether to solve for level set function, or to use exact (options:
@@ -900,11 +900,11 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
-    double h  = 0.1*pow(0.5, 5)*sqrt(0.5);             // starting mesh size
-    //double h  = 0.1;
+    // double h  = 0.1*pow(0.5, 5)*sqrt(0.5);             // starting mesh size
+    double h  = 0.1;
     // double h  = 0.00625/sqrt(2);             // starting mesh size
     double dT = 0.0625;
 
@@ -1051,7 +1051,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = 1., tau2 = 5.;
+        double tau0 = 0, tau1 = .1, tau2 = 5.;
 
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace2 Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
@@ -1064,7 +1064,7 @@ int main(int argc, char **argv) {
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(7));
+        const QuadratureFormular1d &qTime(*Lobatto(3));
 
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
@@ -1154,23 +1154,44 @@ int main(int argc, char **argv) {
 
             CutSpace Wh(ThGamma, Vh);
 
+            // CutFEM<Mesh> initial_condition(Wh);
+
             // Data for initial solution
             surfactant.initSpace(Wh, In);
 
             Rn datau0(surfactant.get_nb_dof(), 0.);
-            surfactant.initialSolution(datau0); //! Q: does this only allocate memory? and if so, of what?
+            surfactant.initialSolution(datau0);
             KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(), 0)));
             if (iter == 0)
                 interpolate(Wh, datas0, fun_init_surfactant);
-            // Rn uh(datau0);
-            Fun_h u0(Wh, datau0);
+
+            // Fun_h u0(Wh, datau0);
+            Fun_h u0(Wh, datas0);
 
             // Objects needed for the weak form
             Normal n;
-            Conormal t;
 
             // Test and Trial functions
-            FunTest u(Wh, 1), v(Wh, 1); // Omega2
+            FunTest u(Wh, 1), v(Wh, 1);
+
+            // // Solve for initial condition
+            // FunTest s(Wh, 1), r(Wh, 1);
+            // initial_condition.addBilinear(+innerProduct(s, r), *interface(0));
+            // initial_condition.addFaceStabilization(+innerProduct(0.01 * h * jump(grad(s) * n), jump(grad(r) * n)),
+            //                                        ThGamma);
+            // initial_condition.addLinear(+innerProduct(u0.expr(), r), *interface(0));
+            // initial_condition.solve("mumps");
+            // datas0 = initial_condition.rhs_;
+            // // KN_<double> dw0(initial_condition.rhs_);
+            // // Rn datas0_new(dw0);
+            // // KN_<double> s0_new(datas0_new(SubArray(Wh.get_nb_dof(), 0)));
+            // Fun_h u0new(Wh, datas0);
+
+            // std::cout << "datas0 = " << datas0 << "\n";
+            // std::cout << "datas0_new = " << datas0_new << "\n";
+
+            // getchar();
+            // surfactant.cleanBuildInMatrix();
 
 //// Assembling linear and bilinear forms
 
@@ -1210,7 +1231,6 @@ int main(int argc, char **argv) {
 #endif
 
             // Scheme for diffusion
-
             surfactant.addBilinear(+innerProduct(D * gradS(u), gradS(v)), interface, In
                                    //, mapping
             );
@@ -1263,7 +1283,7 @@ int main(int argc, char **argv) {
 
             // Stabilization
             double stab_surf_face      = tau1;
-            double stab_surf_interface = h * h * tau2;
+            double stab_surf_interface = 0.; // h * h * tau2;
             double stab_mass           = 0.; // tau1 * h;
             double stab_dt             = 0.; // tau1 *h;
 
@@ -1336,7 +1356,10 @@ int main(int argc, char **argv) {
 
             //! PUT BACK
             Fun_h funone(Vh, In, fun_one);
-            intGamma = integral(funone, interface(1), 0);
+            intGamma = integral(funone, interface(0), 0);
+            
+            //gamma_length_h.at(j) = fabs(intGamma - 2 * pi);
+
             // std::cout << std::setprecision(16);
             // gamma_length.push_back(intGamma);
 
@@ -1497,8 +1520,11 @@ int main(int argc, char **argv) {
                     writer.add(u0, "surfactant", 0, 1);
                     writer.add(uS_ex, "surfactant_exact", 0, 1);
                     writer.add(fabs(u0.expr() - uS_ex.expr()), "surfactant_error");
-                    writer.add(ls[0], "levelSet", 0, 1);
-                    // writer.add(ls[2], "levelSet2", 0, 1);
+                    writer.add(ls[0], "levelSet1", 0, 1);
+                    writer.add(ls[1], "levelSet2", 0, 1);
+                    writer.add(ls[2], "levelSet3", 0, 1);
+                    // writer.writeActiveMesh(ThGamma, path_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                    //  writer.add(ls[2], "levelSet2", 0, 1);
                 }
 
                 if (iterations > 1 && iter == total_number_iteration - 1)
@@ -1629,7 +1655,7 @@ int main(int argc, char **argv) {
                   << "\n";
 
         std::cout << "\n";
-        std::cout << "length of Gamma(t) vs h = [";
+        std::cout << "error in length of Gamma(t) vs h = [";
         for (int i = 0; i < iterations; i++) {
 
             std::cout << gamma_length_h.at(i);

@@ -327,16 +327,42 @@ class Quad2 : public GenericElement<DataQuad2> {
      * @return Fill GradL such that it becomes
      * GradL = (grad(phi_0), grad(phi_1), grad(phi_2), grad(phi_3))
      */
+    //void Gradlambda(R2 *GradL, const R2 &P) const {
     void Gradlambda(R2 *GradL) const {
-        // assert(0);
-        GradL[1] = R2(1. / 4, 1. / 4);
-        GradL[2] = R2(1. / 4, 1. / 4);
-        GradL[3] = R2(1. / 4, 1. / 4);
-        GradL[0] = R2(1. / 4, 1. / 4);
+        // We are working on the physical elements, but when we compute the basis functions 
+        // and its gradients, we use the uniformity required between the physical element
+        // and the reference element, so we equate e.g. (y-y0)/hy = yhat, (y1 - y)/hy = 1-yhat.
+        // In this function, however, P = (x, y) so we map it to the reference element first.
+
+        double hx = (vertices[1]->x - vertices[0]->x);
+        double hy = (vertices[3]->y - vertices[0]->y);
+
+        //R2 PHat(this->(P));    // P will be physical coordinate, so we want to map it to reference coordinates PHat
+        R2 PHat(0.5, 0.5);
+
+        // Assert reference element
+        assert(0. <= PHat.x && PHat.x <= 1.);
+        assert(0. <= PHat.y && PHat.y <= 1.);
+
+        GradL[0] = R2(-1.*(1. - PHat.y)/hx, -1.*(1-PHat.x)/hy);
+        GradL[1] = R2((1. - PHat.y)/hx, - PHat.x/hy);
+        GradL[2] = R2(PHat.y/hx, PHat.x/hy);
+        GradL[3] = R2(-PHat.y/hx, (1. - PHat.x)/hy);
+
+        // GradL[0] = R2(1./4,  1./4);
+        // GradL[1] = R2(1./4 , 1./4);
+        // GradL[2] = R2(1./4,  1./4);
+        // GradL[3] = R2(1./4,  1./4);
+
+        // GradL[0] = R2(0., 0.);
+        // GradL[1] = R2(0., 0.);
+        // GradL[2] = R2(0., 0.);
+        // GradL[3] = R2(0., 0.);
     }
 
 
     R2 toKref(const R2 &P) const {
+
         // same as mapToReferenceElement
         const R2 &A = *vertices[0];
         const R2 &B = *vertices[1];

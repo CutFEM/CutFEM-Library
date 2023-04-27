@@ -71,13 +71,14 @@ namespace Example1 {
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17) - Epsilon;
-    // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
+    return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17) - Epsilon;
+    //return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17) - Epsilon;   //! PUT BACK
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17) - Epsilon;
+    return -((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17) - Epsilon;
+    //return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17) - Epsilon; //! PUT BACK
 }
 
 // The rhs Neumann boundary condition
@@ -637,7 +638,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Set type of BCs on interface (options: "dirichlet", "neumann")
 #define neumann
 //* Set scheme for the method (options: "classical", "conservative")
-#define conservative
+#define classical
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
@@ -666,10 +667,10 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.05;           // starting mesh size
+    double h  = 0.1;           // starting mesh size
     double dT = 0.25;
 
     int total_number_iteration;
@@ -742,7 +743,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = 2.5; // Final time
+        const double tfinal = .5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -1254,8 +1255,8 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        //h *= 0.5;
-        h *= sqrt(0.5);
+        h *= 0.5;
+        //h *= sqrt(0.5);
 #endif
     }
 

@@ -99,8 +99,8 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
                                                       double tid, const TimeSlab *In, double cst_time, int itq) {
     typedef typename FElement::RdHatBord RdHatBord;
 
-    phi.t = tid; // update time in level set function //? Should it be tid = this->get_quadrature_time(itq)?
-
+    phi.t = tid; // update time in level set function
+    
     // GET IDX ELEMENT CONTAINING FACE ON backMes
     const int kb = interface.idxElementOfFace(ifac);
     const Element &K(interface.get_element(kb));
@@ -150,7 +150,6 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
 
         // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
             // typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
             // const Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
 
@@ -163,19 +162,18 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
             
             assert(fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);
-            //std::cout << coef << "\n";
-            // EVALUATE THE BASIS FUNCTIONS
-            FKv.BF(Fop, face_ip, fv); //! evaluated on reference element
-            //FKv.BF(Fop, mip, fv);       //! evaluated on physical element (MINE)
+            
+            FKv.BF(Fop, face_ip, fv);
+            
             if (!same)
-                FKu.BF(Fop, face_ip, fu); //! OLD
-                //FKu.BF(Fop, mip, fu);       //! NEW
+                FKu.BF(Fop, face_ip, fu);
+                
 
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip, tid,
                                                            normal);
             Cint *= coef * VF[l].c;
             //Cint *= VF[l].c;
-
+            
             if (In) {
                 if (VF.isRHS())
                     this->addToRHS(VF[l], *In, FKv, fv, Cint);

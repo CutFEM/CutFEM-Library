@@ -18,12 +18,14 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 const GTypeOfFE<Mesh2> *TaylorHood2::FE_[3] = {
     &DataFE<Mesh2>::P2, &DataFE<Mesh2>::P2,
     &DataFE<Mesh2>::P1}; //&DataFE<Mesh2>::P2;
+
 const GTypeOfFE<Mesh2> *Lagrange2::FE_[5][2] = {
     {&DataFE<Mesh2>::P0, &DataFE<Mesh2>::P0},
     {&DataFE<Mesh2>::P1, &DataFE<Mesh2>::P1},
     {&DataFE<Mesh2>::P2, &DataFE<Mesh2>::P2},
     {&DataFE<Mesh2>::P3, &DataFE<Mesh2>::P3},
     {&DataFE<Mesh2>::P4, &DataFE<Mesh2>::P4}};
+    
 const GTypeOfFE<MeshQuad2> *LagrangeQuad2::FE_[1][2] = {
     {&DataFE<MeshQuad2>::P1, &DataFE<MeshQuad2>::P1}};
 

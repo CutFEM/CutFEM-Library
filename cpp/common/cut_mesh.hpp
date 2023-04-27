@@ -132,7 +132,7 @@ template <typename Mesh> class ActiveMesh {
     std::vector<int> idx_element_domain; //! What does this do?
 
     // number of quadrature points to approximate integral over the time slab In
-    int nb_quadrature_time_;
+    int nb_quadrature_time_{1};
 
     // a list of the elements that are in the active mesh for some time quadrature point, but not for all
     std::vector<std::vector<std::map<int, bool>>> in_active_mesh_; // [dom][itq][idx_element] -> true/false

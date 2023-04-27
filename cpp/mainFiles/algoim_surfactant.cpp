@@ -33,13 +33,35 @@ namespace Example1 {
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17) - Epsilon;
+    return (P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17 - Epsilon;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17) - Epsilon;
+    return (P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17 - Epsilon;
 }
+
+template <int N> struct Levelset {
+
+    double t;
+
+    // level set function
+    template <typename T> T operator()(const algoim::uvector<T, N> &x) const { return (x(0) - 0.5 - 0.28 * sin(pi * t)) * (x(0) - 0.5 - 0.28 * sin(pi * t)) + (x(1) - 0.5 + 0.28 * cos(pi * t)) * (x(1) - 0.5 + 0.28 * cos(pi * t)) - 0.17*0.17;}
+
+    // gradient of level set function
+    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+
+        return algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)), 2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
+    }
+
+    // normal = grad(phi)/norm(grad(phi))
+    R2 normal(double *P) {
+        R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
+                      pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
+        // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
+        return R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm, 2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
+    }
+};
 
 R fun_one(double *P, const int cc, const R t) { return 1.; }
 
@@ -570,6 +592,9 @@ R fun_rhs(double *P, const int cc, const R t) {
              700 * x * sin(t * pi) + 1250 * (x * x) + 1250 * (y * y) + 98 * (cos(t * pi) * cos(t * pi)) +
              98 * (sin(t * pi) * sin(t * pi)) + 625));
 }
+
+
+
 } // namespace Example1
 
 namespace Shi1 {
@@ -715,10 +740,10 @@ namespace Deckelnick2 {
 // "Stability and error analysis for a diffuse interface approach to an advection-diffusion
 // equation on a moving surface" – Example 2
 
-R fun_init_surfactant(double *P, const int i) { return (P[0] + 0.5) * P[1] + 0.; }
+R fun_init_surfactant(double *P, const int i) { return (P[0] + 0.5) * P[1] + 2.; }
 R fun_sol_surfactant(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
-    return exp(-4 * t) * (x + 0.5 - 2 * t) * y + 0.; //! ORIGINAL
+    return exp(-4 * t) * (x + 0.5 - 2 * t) * y + 2.; //! ORIGINAL
     // return exp(-t/4) * (x + 0.5 - 2*t)*y + 0.;    //! SLOWER
 }
 
@@ -850,32 +875,30 @@ R fun_rhs(double *P, const int cc, const R t) {
 }
 } // namespace Deckelnick2NormalizedSlower
 
+
+
+#define triangle
+// Set numerical example (options: "example1", "shi1", "shi2", "deckelnick", "deckelnick2")
+#define example1
+// Set scheme for the dg method (options: "conservative", "classical" see
+// thesis. Irrelevant if "cg" is defined instead of "dg")
+#define classical
+
+#define levelsetexact
+
+#define use_h
+
 // Setup two-dimensional class types
 const int d = 2;
-typedef MeshQuad2 Mesh;
+#if defined(triangle)
+    typedef Mesh2 Mesh;
+#else
+    typedef MeshQuad2 Mesh;
+#endif
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
 typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh> Fun_h;
-
-// Note: standard for this program is to solve the equations on the inner domain
-// Omega 2.
-
-// Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
-#define cg
-// Set numerical example (options: "example1", "shi1", "shi2", "deckelnick", "deckelnick2")
-#define deckelnick2
-// Set scheme for the dg method (options: "conservative", "classical" see
-// thesis. Irrelevant if "cg" is defined instead of "dg")
-#define classical
-// Set stabilization method (options: "fullstab", "macro")
-#define fullstab
-// Decide whether to solve for level set function, or to use exact (options:
-// "levelsetsolve", "levelsetexact")
-#define levelsetexact
-
-#define use_h
-#define use_tnot
 
 #if defined(frachon1)
 using namespace NumericSurfactantEllipse2D;
@@ -907,7 +930,7 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 3;               // number of mesh refinements   (set to 1 to
+    const size_t iterations = 5;               // number of mesh refinements   (set to 1 to
                                                // run only once and plot to paraview)
     int nx = 20, ny = 15;                      // starting mesh size (only apply if use_n is defined)
     //double h  = 0.1 * pow(0.5, 5) * sqrt(0.5); // starting mesh size
@@ -1058,7 +1081,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = 1., tau2 = 2.;
+        double tau0 = 0, tau1 = .1, tau2 = .1;
 
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
@@ -1076,14 +1099,13 @@ int main(int argc, char **argv) {
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
 
-// Velocity field
-#if defined(shi1) || defined(shi2) || defined(shi3) || defined(deckelnick2)
-        LagrangeQuad2 FEvelocity(0);
-#elif defined(example1) || defined(deckelnick)
+    #if defined(algoim) || defined(quad)
+        // Velocity field
         LagrangeQuad2 FEvelocity(1);
-#else
-        LagrangeQuad2 FEvelocity(2);
-#endif
+    #else
+        Lagrange2 FEvelocity(1);
+    #endif
+
         FESpace VelVh(Th, FEvelocity);
         Fun_h vel(VelVh, fun_velocity);
 
@@ -1105,8 +1127,11 @@ int main(int argc, char **argv) {
         
 
         // Convection-Diffusion Problem Object
-        //CutFEM<Mesh> surfactant(qTime);
+    #if defined(algoim)
         AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi);
+    #else
+        CutFEM<Mesh> surfactant(qTime);
+    #endif        
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << "\n";
 
@@ -1163,21 +1188,55 @@ int main(int argc, char **argv) {
             // Data for initial solution
             surfactant.initSpace(Wh, In);
 
+
+            // std::cout << "surfactant.get_nb_dof()" << surfactant.get_nb_dof() << "\n";
+            // std::cout << "Wh.get_nb_dof()" << Wh.get_nb_dof() << "\n";
+
+            // Allocate a zero array for interpolating the DOFs from the previous time slab onto the current time slab
             Rn datau0(surfactant.get_nb_dof(), 0.);
-            surfactant.initialSolution(datau0); //! Q: does this only allocate memory? and if so, of what?
+            // Fill datau0 with the DOFs from the sum of the DOFs of the previous time slab, on the nodes that coincide, and zeros on the rest
+            surfactant.initialSolution(datau0);     // here, the DOFs corresponding to the first time quadrature point of datau0 is filled with the sum of the DOFs from the previous time slab to evaluate it in t_{n-1} 
+            // --> therefore, one might as well use the first DOFs -> datas0
+
             KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(), 0)));
+
+            // std::vector<double> non_zeros;
+            // for (int i = 0; i < datas0.size(); ++i) {
+            //     if (datas0[i] != 0.)
+            //         non_zeros.push_back(datas0[i]);
+            // }
+
+            // ThGamma.info();
+            // std::cout << "size of non_zeros = " << non_zeros.size() << "\n";
+            // std::cout << "Iteration " << iter << " Before \n";
+            // std::cout << "datas0 = " << datas0 << "\n";
             if (iter == 0)
                 interpolate(Wh, datas0, fun_init_surfactant);
+
+            //std::cout << datas0 << "\n";
             // Rn uh(datau0);
             Fun_h u0(Wh, datau0);
-
+            
+            if (iter == 0) {
+                Paraview<Mesh> writer(ThGamma, path_figures + "surfactant_initial" + ".vtk");
+                Fun_h uS_ex(Wh, fun_sol_surfactant, 0);
+                writer.add(u0, "surfactant", 0, 1);
+                writer.add(uS_ex, "surfactant_exact", 0, 1);
+            }
+            
+            
             // Objects needed for the weak form
             Normal n;
 
             // Test and Trial functions
-            FunTest u(Wh, 1), v(Wh, 1); // Omega2
+            FunTest u(Wh, 1), v(Wh, 1);
 
-//// Assembling linear and bilinear forms
+            //phi.t = tid;
+            // gnuplot::save(Th);
+            // gnuplot::save<Mesh, Levelset<2>>(ThGamma, *interface(0), phi, "interface.dat",tid);
+            // gnuplot::save<Mesh>(*interface(0));
+            // getchar();
+
 
 // Partial derivative in time, bulk
 
@@ -1211,7 +1270,7 @@ int main(int argc, char **argv) {
             surfactant.addBilinear(+innerProduct(dt(u), v), interface, In);
             surfactant.addBilinear(innerProduct(u, v), *interface(0), In, 0);
             surfactant.addLinear(innerProduct(u0.expr(), v), *interface(0), In, 0);
-
+            
 #endif
 
             // Scheme for diffusion
@@ -1237,50 +1296,20 @@ int main(int argc, char **argv) {
 
             // Stabilization
             double stab_surf_face      = tau1;
-            double stab_surf_interface = 0.; //h *h *tau2;
+            double stab_surf_interface = 0.; //h *tau2;
             double stab_mass           = 0.; // tau1 * h;
             double stab_dt             = 0.; // tau1 *h;
 
             surfactant.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(u) * n), jump(grad(v) * n)),
                                             ThGamma, In);
+      
+            //surfactant.addBilinear(+innerProduct(stab_surf_interface * grad(u) * n, grad(v) * n), interface, In);
 
-            // stabilize in last quadrature point
-            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
-            double ccmid = 1. / In.T.mesure() * 1. / qTime[lastQuadTime - 1].a;
-            surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)),
-                                            ThGamma, In, lastQuadTime); //! note: which quadrature point?
-
-            // stabilize time derivative term
-            surfactant.addFaceStabilization(-innerProduct(stab_dt * jump(grad(u) * n), jump(grad(dt(v)) * n)), ThGamma,
-                                            In);
-
-
-
-            // numb_stabilized_edges.at(j) = surfactant.number_of_stabilized_edges;
-
-            surfactant.addBilinear(+innerProduct(stab_surf_interface * grad(u) * n, grad(v) * n), interface, In);
-
-            //     surfactant.addLinear(
-            //         + innerProduct(funrhs.expr(), tau1*h*(dx(v)*vx +
-            //         dy(v)*vy)) , interface , In , i
-            //     );
-            // }
 
             Fun_h funrhs(Vh, In, fun_rhs);
 
             // Add RHS on surface
             surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface, In);
-
-            // surfactant.addLinear(fun_rhs, +innerProduct(1., v), interface, In);
-
-            // Compute integrals //! PUT BACK
-            // intF = integral(funrhs, In, interface, 0);
-
-            //! PUT BACK
-            Fun_h funone(Vh, In, fun_one);
-            intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(1), 0, phi);
-            // std::cout << std::setprecision(16);
-            gamma_length_h.at(j) = fabs(intGamma - 2 * pi);
 
 #ifndef USE_MPI
             if ((iter == total_number_iteration - 1) && MPIcf::IamMaster()) {
@@ -1297,40 +1326,58 @@ int main(int argc, char **argv) {
 
                 KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
                 datau0 = dw;
+
+                // std::cout << "Iteration " << iter << " After solving \n";
+                // std::cout << datau0 << "\n";
                 surfactant.saveSolution(datau0);
 
+                
+                // Compute error
+                Rn sol(Wh.get_nb_dof(), 0.);
+                sol += datau0(SubArray(Wh.get_nb_dof(), 0));
+                sol += datau0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
 
-                {
-                    // Compute error
-                    Rn sol(Wh.get_nb_dof(), 0.);
-                    sol += datau0(SubArray(Wh.get_nb_dof(), 0));
-                    sol += datau0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+                Fun_h funuh_0(Wh, datau0);
+                Fun_h funuh(Wh, sol);
 
-                    Fun_h funuh_0(Wh, datau0);
-                    Fun_h funuh(Wh, sol);
+                Fun_h funone(Vh, In, fun_one);
 
-                    errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), tid, phi, 0, 1);
-                    std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
-                    errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, phi, 0, 1);
-                    std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
-                    
+            #if defined(algoim)
+                intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi);
+                // std::cout << std::setprecision(16);
+                std::cout << fabs(intGamma-2*0.17*pi) << "\n";
 
-                    // Conservation error
+                errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), tid, phi, 0, 1);
+                std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
+                errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, phi, 0, 1);
+                std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
+                
+            #else 
+                intGamma = integral(funone, interface(0), 0);
+                // std::cout << std::setprecision(16);
+                std::cout << fabs(intGamma-2*0.17*pi) << "\n";
 
-                    //! PUT BACK
-                    double q0 = integral_algoim<Levelset<2>, Fun_h>(funuh_0, *interface(0), 0, phi);
-                    double q1 = integral_algoim<Levelset<2>, Fun_h>(funuh, *interface(lastQuadTime), 0, phi);
-                    if (iter == 0) {
-                        q_init0 = q0;
-                        q_init1 = q1;
-                        qp1     = q1;
-                        q_init1 = integral_algoim<Levelset<2>, Fun_h>(u0, *interface(0), 0, phi);
-                    }
+                errL2 = L2normSurf(funuh_0, fun_sol_surfactant, *interface(0), tid, 0, 1);
+                std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
+                errL2 = L2normSurf(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, 0, 1);
+                std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
+            #endif
 
-                    output_data << std::setprecision(10);
-                    output_data << tid << "," << (q1 - qp1) << "," << intF << "," << ((q1 - qp1) - intF) << "\n";
-                    qp1 = q1;
-                }
+                // Conservation error
+ 
+                // double q0 = integral_algoim<Levelset<2>, Fun_h>(funuh_0, *interface(0), 0, phi);
+                // double q1 = integral_algoim<Levelset<2>, Fun_h>(funuh, *interface(lastQuadTime), 0, phi);
+                // if (iter == 0) {
+                //     q_init0 = q0;
+                //     q_init1 = q1;
+                //     qp1     = q1;
+                //     q_init1 = integral_algoim<Levelset<2>, Fun_h>(u0, *interface(0), 0, phi);
+                // }
+
+                // output_data << std::setprecision(10);
+                // output_data << tid << "," << (q1 - qp1) << "," << intF << "," << ((q1 - qp1) - intF) << "\n";
+                // qp1 = q1;
+            
 
                 error_t.push_back(errL2);
                 errors.at(j)         = errL2;
@@ -1339,20 +1386,38 @@ int main(int argc, char **argv) {
                 if (iterations == 1) {
                     Fun_h sol(Wh, datau0);
 
+                    Paraview<Mesh> ThB(Th, path_figures + "Th.vtk");
                     Paraview<Mesh> writer(ThGamma, path_figures + "surfactant_" + std::to_string(iter + 1) + ".vtk");
 
                     Fun_h uS_ex(Wh, fun_sol_surfactant, tid);
                     writer.add(u0, "surfactant", 0, 1);
                     writer.add(uS_ex, "surfactant_exact", 0, 1);
                     writer.add(fabs(u0.expr() - uS_ex.expr()), "surfactant_error");
-                    writer.add(ls[0], "levelSet", 0, 1);
-                    // writer.add(ls[2], "levelSet2", 0, 1);
+                    writer.add(ls[0], "levelSet0", 0, 1);
+                    writer.add(ls[1], "levelSet1", 0, 1);
+                    writer.add(ls[2], "levelSet2", 0, 1);
+                    writer.writeActiveMesh(ThGamma, path_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                    writer.writeFaceStab(ThGamma, 0, path_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
+
+                #if defined(algoim)
+                    writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, 0, 2,
+                                                 path_figures + "algoim_quadrature_0_" + std::to_string(iter + 1) +
+                                                     ".vtk");
+                    writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, 1, 2,
+                                                 path_figures + "algoim_quadrature_1_" + std::to_string(iter + 1) +
+                                                     ".vtk");
+                    writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, 2, 2,
+                                                 path_figures + "algoim_quadrature_2_" + std::to_string(iter + 1) +
+                                                     ".vtk");
+                #endif
                 }
 
                 if (iterations > 1 && iter == total_number_iteration - 1)
                     output_data << h << "," << dT << "," << errL2 << "\n";
 
                 iter++;
+
+                //getchar();
             }
 
             //! PUT BACK
@@ -1388,11 +1453,7 @@ int main(int argc, char **argv) {
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
-        // if (j==iterations-2)
-        // h *= sqrt(0.5);     //! CHANGE BACK
-        // else
         h *= 0.5;
-        // h *= 0.5;
 #endif
         }
 
