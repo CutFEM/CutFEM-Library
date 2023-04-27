@@ -132,9 +132,9 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
     int NbPtforInterpolation;   // Nb of interpolation points per elemen
     int NbcoefforInterpolation; // Nb of interpolation points per element
 
-    KN<IPJ> ipj_Pi_h;
-    KN<RdHat> Pt_Pi_h;
-    double *coef_Pi_h;
+    KN<IPJ> ipj_Pi_h;   //?
+    KN<RdHat> Pt_Pi_h;  //?
+    double *coef_Pi_h;  //?
     // KN<int> begin_coef_Pi_h, end_coef_Pi_h;
 
     KN<GTypeOfFE<Mesh> *> Sub_ToFE;

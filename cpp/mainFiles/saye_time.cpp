@@ -768,6 +768,11 @@ namespace Deckelnick2 {
 
         double t;
 
+        R2 normal(const R2 P) {
+            R normalize = 1./sqrt(4. * (P.x+0.5-2*t) * (P.x+0.5-2*t) + 4. * P.y * P.y);
+            return R2(-2.0 * (P.x+0.5-2*t) * normalize, -2.0 * P.y * normalize);
+        }
+
         // level set function
         template <typename T> T operator()(const algoim::uvector<T, N> &x) const { 
             return (x(0)+0.5-2*t)*(x(0)+0.5-2*t) + x(1)*x(1) - 1;
@@ -864,7 +869,7 @@ const int d = 2;
 typedef MeshQuad2 Mesh;
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
-typedef TestFunction<d> FunTest;
+typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh> Fun_h;
 
 // Note: standard for this program is to solve the equations on the inner domain
@@ -1142,8 +1147,8 @@ int main(int argc, char **argv) {
 #else
         Lagrange2 FEvelocity(2);
 #endif
-		GFESpace<MeshQuad2> VelVh(Th, FEvelocity);
-        Fun_h vel(VelVh, fun_velocity);
+		// GFESpace<MeshQuad2> VelVh(Th, FEvelocity);
+        // Fun_h vel(VelVh, fun_velocity);
 
         // Set up level-set function
         GFESpace<MeshQuad2> Lh(Th, DataFE<MeshQuad2>::P1);
@@ -1253,14 +1258,14 @@ int main(int argc, char **argv) {
             surfactant.addBilinear(+innerProduct(D * gradS(u), gradS(v)), interface, In);
 
             // Schemes for convection
-#if defined(classical)
+// #if defined(classical)
             
-            surfactant.addBilinear(+innerProduct((vel.exprList() * grad(u)), v) + innerProduct(u * divS(vel), v),
-                                interface, In);                    
+//             surfactant.addBilinear(+innerProduct((vel.exprList() * grad(u)), v) + innerProduct(u * divS(vel), v),
+//                                 interface, In);                    
 
-#elif defined(conservative)
-            surfactant.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), interface, In);
-#endif
+// #elif defined(conservative)
+//             surfactant.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), interface, In);
+// #endif
 
             // Stabilization
             double stab_surf_face = tau1;

@@ -20,58 +20,60 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <fstream>
 #include "mapping.hpp"
 #include "macroElement.hpp"
+#include "../algoim/quadrature_general.hpp"
 
 namespace gnuplot {
 
-// void save(const Mesh2 & Th, std::string filename = "Th.dat") {
+void save(const Mesh2 & Th, std::string filename = "Th.dat") {
 
-//   std::ofstream plot;
-//   plot.open(filename.c_str(), std::ofstream::out);
-//   const int nve = Th[0].nv;
-//   for(int k=0; k<Th.nt;++k) {
-//     for(int i=0;i<nve;++i) {
-//       plot << Th[k][i] << std::endl;
-//     }
-//     plot << Th[k][0] << std::endl;
-//     plot << std::endl;
-//     plot << std::endl;
-//   }
-//   plot.close();
-// }
+  std::ofstream plot;
+  plot.open(filename.c_str(), std::ofstream::out);
+  const int nve = Th[0].nv;
+  for(int k=0; k<Th.nt;++k) {
+    for(int i=0;i<nve;++i) {
+      plot << Th[k][i] << std::endl;
+    }
+    plot << Th[k][0] << std::endl;
+    plot << std::endl;
+    plot << std::endl;
+  }
+  plot.close();
+}
 
-// void save(const MeshQuad2 & Th, std::string filename = "ThQ.dat") {
+void save(const MeshQuad2 & Th, std::string filename = "ThQ.dat") {
 
-//   std::ofstream plot;
-//   plot.open(filename.c_str(), std::ofstream::out);
-//   const int nve = Th[0].nv;
-//   for(int k=0; k<Th.nt;++k) {
-//     for(int i=0;i<nve;++i) {
-//       plot << Th[k][i] << std::endl;
-//     }
-//     plot << Th[k][0] << std::endl;
-//     plot << std::endl;
-//     plot << std::endl;
-//   }
-//   plot.close();
-// }
-// void save(const Mesh3 & Th, std::string filename = "Th.dat") {
+  std::ofstream plot;
+  plot.open(filename.c_str(), std::ofstream::out);
+  const int nve = Th[0].nv;
+  for(int k=0; k<Th.nt;++k) {
+    for(int i=0;i<nve;++i) {
+      plot << Th[k][i] << std::endl;
+    }
+    plot << Th[k][0] << std::endl;
+    plot << std::endl;
+    plot << std::endl;
+  }
+  plot.close();
+}
 
-//   std::ofstream plot;
-//   plot.open(filename.c_str(), std::ofstream::out);
-//   const int nve = Th[0].nv;
-//   for(int k=0; k<Th.nt;++k) {
-//     for(int i=0;i<nve;++i) {
-//     plot << Th[k][i] << std::endl;
-//     }
-//     plot << Th[k][0] << std::endl;
-//     plot << Th[k][2] << std::endl;
-//     plot << Th[k][1] << std::endl;
-//     plot << Th[k][3] << std::endl;
-//     plot << std::endl;
-//     plot << std::endl;
-//   }
-//   plot.close();
-// }
+void save(const Mesh3 & Th, std::string filename = "Th.dat") {
+
+  std::ofstream plot;
+  plot.open(filename.c_str(), std::ofstream::out);
+  const int nve = Th[0].nv;
+  for(int k=0; k<Th.nt;++k) {
+    for(int i=0;i<nve;++i) {
+    plot << Th[k][i] << std::endl;
+    }
+    plot << Th[k][0] << std::endl;
+    plot << Th[k][2] << std::endl;
+    plot << Th[k][1] << std::endl;
+    plot << Th[k][3] << std::endl;
+    plot << std::endl;
+    plot << std::endl;
+  }
+  plot.close();
+}
 
 template <typename Mesh>
 void save(const TimeMacroElement<Mesh> &macro, std::string path = "./") {
@@ -179,48 +181,159 @@ void save(const TimeMacroElement<Mesh> &macro, std::string path = "./") {
    plot10.close();
 }
 
-template <class Mesh> void save(const Mesh &mesh) {
-   std::ofstream plot;
-   plot.open("Th_nodes.dat", std::ofstream::out);
-   for (int i = 0; i < mesh.nbVertices(); ++i) {
-      plot << mesh(i).x << "\t" << mesh(i).y << std::endl;
-   }
-   plot.close();
 
-   plot.open("Th_elements.dat", std::ofstream::out);
-   for (int k = 0; k < mesh.nbElmts(); ++k) {
-      const typename Mesh::Element &T(mesh[k]);
-      for (int i = 0; i < 3; ++i)
-         plot << mesh(T[i]) << "\t";
-      plot << "0" << std::endl;
-   }
-   plot.close();
+// template <class Mesh> void save(const Interface<Mesh> &Gh, std::string filename = "Gh.dat") {
 
-   plot.open("Th_edges.dat", std::ofstream::out);
-   for (int k = 0; k < mesh.nbBrdElmts(); ++k) {
-      const typename Mesh::BorderElement &T(mesh.be(k));
-      for (int i = 0; i < 2; ++i)
-         plot << mesh(T[i]) << "\t";
-      for (int i = 0; i < 5; ++i)
-         plot << "0 \t";
-      plot << std::endl;
-   }
-   plot.close();
+//    std::ofstream plot;
+//    plot.open(filename.c_str(), std::ofstream::out);
+//    for (int k = 0; k < Gh.nbElement(); ++k) {
+//       plot << Gh(k, 0) << std::endl;
+//       plot << Gh(k, 1) << std::endl;
+//       plot << std::endl;
+//       plot << std::endl;
+//    }
+
+//    plot.close();
+// }
+
+template <class Mesh> void save(const Interface<Mesh> & Gh, std::string filename = "Gh.dat") {
+
+        std::ofstream plot;
+		plot.open(filename.c_str(), std::ofstream::out);
+        const int nve = 2;
+        for(int k=0; k<Gh.nbElement();++k) {
+            for(int i=0;i<nve;++i) {
+                plot << Gh(k,i) << std::endl;
+            }
+            plot << std::endl;
+            plot << std::endl;
+        }
+        plot.close();
+
+        plot.open("normal.dat", std::ofstream::out);
+        for(int k=0; k<Gh.nbElement();++k) {
+            plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
+
+
+        }
+        plot.close();
+
 }
 
-void save(const Interface<Mesh2> &Gh, std::string filename = "Gh.dat") {
+template <class Mesh, typename L> void save(const Interface<Mesh> & Gh, L & phi, std::string filename = "Gh.dat") {
 
-   std::ofstream plot;
-   plot.open(filename.c_str(), std::ofstream::out);
-   for (int k = 0; k < Gh.nbElement(); ++k) {
-      plot << Gh(k, 0) << std::endl;
-      plot << Gh(k, 1) << std::endl;
-      plot << std::endl;
-      plot << std::endl;
-   }
+        std::ofstream plot;
+		plot.open(filename.c_str(), std::ofstream::out);
+        const int nve = 2;
+        for(int k=0; k<Gh.nbElement();++k) {
+            for(int i=0;i<nve;++i) {
+                plot << Gh(k,i) << std::endl;
+            }
+            plot << std::endl;
+            plot << std::endl;
+        }
+        plot.close();
 
-   plot.close();
+        plot.open("normal_algoim.dat", std::ofstream::out);
+        for(int k=0; k<Gh.nbElement();++k) {
+            plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*phi.normal(0.5*(Gh(k,0)+Gh(k,1))) << std::endl;
+
+        }
+        plot.close();
+
 }
+
+template <class Mesh, typename L> void save(const ActiveMesh<Mesh>& Th, const Interface<Mesh> & Gh, L & phi, std::string filename, double t) {
+    using mesh_t        = Mesh;
+    using fespace_t     = GFESpace<mesh_t>;
+    using FElement      = typename fespace_t::FElement;
+    using Rd            = typename FElement::Rd;
+    using Element       = typename mesh_t::Element;
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = 2;
+    for(int k=0; k<Gh.nbElement();++k) {
+        for(int i=0;i<nve;++i) {
+            plot << Gh(k,i) << std::endl;
+        }
+        plot << std::endl;
+        plot << std::endl;
+    }
+    plot.close();
+
+    plot.open("interface_algoim_.dat", std::ofstream::out);
+    phi.t = t;
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        if (Th.isCut(k, 0)) {
+            const Element &K(Th[k]);
+            const auto &V0(K.at(0)); // vertex 0
+            const auto &V2(K.at(2)); // vertex 2   diagonally opposed
+
+            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+            algoim::QuadratureRule<2> q =
+                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, 5);
+            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+                plot << mip << std::endl;
+            }
+        }
+    }
+
+    plot.close();
+
+
+    plot.open("normal_algoim.dat", std::ofstream::out);
+    for(int k=0; k<Gh.nbElement();++k) {
+        plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << -0.1*phi.normal(0.5*(Gh(k,0)+Gh(k,1))) << std::endl;
+
+    }
+    plot.close();
+
+    plot.open("normalQ.dat", std::ofstream::out);
+    for(int k=0; k<Gh.nbElement();++k) {
+        plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
+
+
+    }
+    plot.close();
+
+}
+
+// template <class Mesh> void save(const Mesh &mesh) {
+//    std::ofstream plot;
+//    plot.open("Th_nodes.dat", std::ofstream::out);
+//    for (int i = 0; i < mesh.nbVertices(); ++i) {
+//       plot << mesh(i).x << "\t" << mesh(i).y << std::endl;
+//    }
+//    plot.close();
+
+//    plot.open("Th_elements.dat", std::ofstream::out);
+//    for (int k = 0; k < mesh.nbElmts(); ++k) {
+//       const typename Mesh::Element &T(mesh[k]);
+//       for (int i = 0; i < 3; ++i)
+//          plot << mesh(T[i]) << "\t";
+//       plot << "0" << std::endl;
+//    }
+//    plot.close();
+
+//    plot.open("Th_edges.dat", std::ofstream::out);
+//    for (int k = 0; k < mesh.nbBrdElmts(); ++k) {
+//       const typename Mesh::BorderElement &T(mesh.be(k));
+//       for (int i = 0; i < 2; ++i)
+//          plot << mesh(T[i]) << "\t";
+//       for (int i = 0; i < 5; ++i)
+//          plot << "0 \t";
+//       plot << std::endl;
+//    }
+//    plot.close();
+// }
+
+
+
+
 void save(const Interface<Mesh2> &Gh, const Mapping2 &mapping,
           std::string filename = "Gh.dat") {
 
@@ -241,6 +354,13 @@ void save(const Interface<Mesh2> &Gh, const Mapping2 &mapping,
    }
    plot.close();
 }
+
+
+
+
+
+
+
 
 // void save(const Mesh2 & Th, const Fracture& fracture, std::string filename =
 // "Th_fractured.dat") {
@@ -375,7 +495,7 @@ void save(const Interface<Mesh2> &Gh, const Mapping2 &mapping,
 //     plot << (marker(k,0)+marker(k,1))*0.5 << "\t" << 0.1*normal << std::endl;
 //   }
 //   plot.close();
-//
+
 // }
 
 //

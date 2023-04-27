@@ -1215,7 +1215,8 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
-        if (!Th.isCut(k, 0))
+        
+        if (!Th.isCut(k, 0) && !Th.isInactive(k, 0)) 
             continue;
         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
 
@@ -1821,6 +1822,7 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
     }
 }
 
+//! CHECK DOCUMENTATION ON THE TWO BELOW METHODS
 /**
  * @brief Initializes the solution vector `u0` based on the `mapU0_` data.
  *
@@ -1836,6 +1838,7 @@ template <typename M>
 template <typename V>
     requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
 void BaseCutFEM<M>::initialSolution(V &u0) {
+    // Note: this method changes the input vector u0
 
     // Get the number of degrees of freedom in time
     int nbTime = this->get_nb_dof_time();
@@ -1853,7 +1856,7 @@ void BaseCutFEM<M>::initialSolution(V &u0) {
     // Initialize the id of the domain to 0
     int id_domain_0 = 0;
 
-    // Loop through the mapIdx0_
+    // Loop through the solutions corresponding to different subdomains (and thus different FE spaces)
     for (auto q = this->mapIdx0_.begin(); q != this->mapIdx0_.end(); ++q) {
 
         // Get the FESpace object from the map
@@ -1871,12 +1874,13 @@ void BaseCutFEM<M>::initialSolution(V &u0) {
         // Create a temporary variable u0S as a subarray of u0
         KN_<double> u0S = u0.subspan(n0, Wh.NbDoF() * nbTime);
 
-        // Loop through all the elements of the mesh
+        // Loop through all the elements of the active mesh
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 
-            // If the element is inactive, skip it
-            if (Th.isInactive(k, 0))
-                continue;
+            // Only interested in elements that have intersection with the domain
+            // in the first time quadrature point 
+            if (Th.isInactive(k, 0))    
+                continue;   // has no intersection with domain at itq = 0
 
             // Get the FElement object for the current element
             const FElement &FK(Wh[k]);
@@ -1894,57 +1898,82 @@ void BaseCutFEM<M>::initialSolution(V &u0) {
             // Get the FElement object for the corresponding element in the back mesh
             const FElement &FKback(backVh[kb]);
 
-            // Loop through all the degrees of freedom of the element
+            // Loop over the components of the FE space (1 for scalar problems)
             for (int ic = 0; ic < Wh.N; ++ic) { // ESSAYER VH->N
+            
+                // Loop through all the degrees of freedom of the element
                 for (int i = FK.dfcbegin(ic); i < FK.dfcend(ic); ++i) {
                     // Get the value from the map of initial conditions, with the key of the current domain and node in
                     // the back mesh.
+                    // 
                     u0S[FK(i)] = this->mapU0_[std::make_pair(id_domain, FKback(i))];
                 }
             }
         }
 
-        // Increment the id_domain_0 by the number of domains in the mesh
+        // Set id_domain_0 to the number of subdomains
         id_domain_0 += Th.get_nb_domain();
+
     }
+
     // Clear the map of initial conditions.
     this->mapU0_.clear();
 }
 
+/**
+ * @brief Save the coefficients of the solution.
+ * @note The coefficients are stored in a map with keys representing the domain and the global index of the degrees of
+ * freedom (DOFs) in the back space of the finite element space, and values representing the coefficients of the
+ * solution.
+ *
+ * @param sol The vector of coefficients representing the numerical solution.
+ * @tparam M The type of the mesh.
+ * @tparam V The type of the vector for storing the coefficients.
+ * @requires V to be a NonAllocVector or a vector with element type KN<typename V::element_type>.
+ */
 template <typename M>
 template <typename V>
     requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
 void BaseCutFEM<M>::saveSolution(const V sol) {
+    // Note: this method doesn't change the input sol
 
-    this->mapU0_.clear();
-    int id_domain_0 = 0;
-    int nbTime      = this->get_nb_dof_time();
+    this->mapU0_.clear(); // Clear the map of coefficients.
 
+    int id_domain_0 = 0;                       // Initialize the domain ID to 0.
+    int nbTime      = this->get_nb_dof_time(); // Get the number of degrees of freedom in time.
+
+    // Iterate over the finite element spaces in the map of indices.
     for (typename std::map<const FESpace *, int>::const_iterator q = this->mapIdx0_.begin(); q != this->mapIdx0_.end();
          ++q) {
-        const FESpace &Wh = *q->first;
-        const int n0      = q->second;
-        const ActiveMesh<M> &Th(Wh.get_mesh());
-        const FESpace &backVh = Wh.get_back_space();
+        const FESpace &Wh = *q->first;               // Get the finite element space.
+        const int n0      = q->second;               // Get the starting index of the finite element space.
+        const ActiveMesh<M> &Th(Wh.get_mesh());      // Get the mesh associated with the finite element space.
+        const FESpace &backVh = Wh.get_back_space(); // Get the back space of the finite element space.
 
-        // KN_<double> solS(sol(SubArray(Wh.get_nb_dof() * nbTime, n0)));
+        // Pointer to the vector of coefficients of size nbTime*N_{h,i}^n
         const KN_<double> solS = sol.subspan(n0, Wh.get_nb_dof() * nbTime);
 
+        // Iterate over the elements in the current active mesh.
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 
-            const FElement &FK(Wh[k]);
-            const int domain = Th.get_domain_element(k);
-            int id_domain    = (domain == -1) ? id_domain_0 : id_domain_0 + domain;
+            const FElement &FK(Wh[k]); // Get the finite element associated with the current element in the mesh.
+            const int domain = Th.get_domain_element(k); // Get the domain of the current element.
+            int id_domain    = (domain == -1) ? id_domain_0 : id_domain_0 + domain; // Compute the domain ID.
 
-            int kb = Th.idxElementInBackMesh(k);
-            const FElement &FKback(backVh[kb]);
+            int kb = Th.idxElementInBackMesh(k); // Get the index of the current element in the back mesh.
+            const FElement &FKback(backVh[kb]);  // Get the corresponding element in the back space.
 
+            // Loop over the components of the FE space (1 for scalar problems)
             for (int ic = 0; ic < Wh.N; ++ic) {
+                // Iterate over the degrees of freedom in the finite element (e.g. nodes).
                 for (int i = FK.dfcbegin(ic); i < FK.dfcend(ic); ++i) {
-                    R val = 0.;
+                    R val = 0.; // Initialize the coefficient value to 0.
+
+                    // Sum up the coefficients corresponding to the same global DOF in different time steps.
                     for (int it = 0; it < nbTime; ++it) {
                         val += solS[FK.loc2glb(i, it)];
                     }
+                    // Store the coefficient value in the DOF in the background FE space, to be able to retreive it in the next time slab
                     this->mapU0_[std::make_pair(id_domain, FKback(i))] = val;
                 }
             }

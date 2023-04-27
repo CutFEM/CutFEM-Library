@@ -16,7 +16,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef COMMON_LEVELSET_INTERFACE_TPP
 #define COMMON_LEVELSET_INTERFACE_TPP
 
-
 template <typeMesh M>
 template <typeFunFEM Fct>
 InterfaceLevelSet<M>::InterfaceLevelSet(const M &MM, const Fct &lss, int label)
@@ -49,9 +48,10 @@ Partition<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_part
 }
 
 template <typeMesh M>
-Partition<typename InterfaceLevelSet<M>::Element::Face> InterfaceLevelSet<M>::get_partition_face(const typename Element::Face &face, int k, int ifac) const {
+Partition<typename InterfaceLevelSet<M>::Element::Face>
+InterfaceLevelSet<M>::get_partition_face(const typename Element::Face &face, int k, int ifac) const {
     typedef typename InterfaceLevelSet<M>::Element Element;
-    
+
     double loc_ls[Element::Face::nv];
     for (int i = 0; i < Element::Face::nv; ++i) {
         int j     = Element::nvhyperFace[ifac][i];
@@ -62,22 +62,21 @@ Partition<typename InterfaceLevelSet<M>::Element::Face> InterfaceLevelSet<M>::ge
 }
 
 template <typeMesh M>
-void InterfaceLevelSet<M>::cut_partition(Physical_Partition<typename InterfaceLevelSet<M>::Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
-                    std::list<int> &erased_element, int sign_part) const {
+void InterfaceLevelSet<M>::cut_partition(Physical_Partition<typename InterfaceLevelSet<M>::Element> &local_partition,
+                                         std::vector<ElementIdx> &new_element_idx, std::list<int> &erased_element,
+                                         int sign_part) const {
     std::cout << " An element might be cut multiplue time, and it is not "
-                    "suppose to happen"
-                << std::endl;
+                 "suppose to happen"
+              << std::endl;
     exit(EXIT_FAILURE);
 };
 
-template <typeMesh M>
-R InterfaceLevelSet<M>::measure(const Face &f) const {
+template <typeMesh M> R InterfaceLevelSet<M>::measure(const Face &f) const {
     Rd l[nve];
     for (int i = 0; i < nve; ++i)
         l[i] = this->vertices_[f[i]];
     return geometry::measure_hyper_simplex(l);
 };
-
 
 // Rd get_intersection_node(int k, const Rd A, const Rd B) const {
 //   double fA = fun.eval(k, A);
@@ -87,17 +86,15 @@ R InterfaceLevelSet<M>::measure(const Face &f) const {
 // }
 
 template <typeMesh M>
-typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::mapToPhysicalFace(int ifac, const typename InterfaceLevelSet<M>::Element::RdHatBord x) const {
+typename InterfaceLevelSet<M>::Rd
+InterfaceLevelSet<M>::mapToPhysicalFace(int ifac, const typename InterfaceLevelSet<M>::Element::RdHatBord x) const {
     typename InterfaceLevelSet<M>::Rd N[nve];
     for (int i = 0; i < nve; ++i)
         N[i] = this->vertices_[this->faces_[ifac][i]];
     return geometry::map_point_to_simplex(N, x);
 }
 
-
-
-template <typeMesh M> 
-void InterfaceLevelSet<M>::make_patch(int label) {
+template <typeMesh M> void InterfaceLevelSet<M>::make_patch(int label) {
 
     typedef typename InterfaceLevelSet<M>::Element Element;
     assert(this->backMesh);
@@ -171,15 +168,26 @@ InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_t
     return Face(triIdx, label);
 }
 
+/**
+ * @brief Compute normal from level set function
+ * 
+ * @tparam M Mesh
+ * @param K Mesh element
+ * @param lset c_i, where the level set function is given by phi(x) = sum_{i=0}^{local DOFs} c_i psi_i(x),
+ * where psi_i are the basis functions.  
+ * @return InterfaceLevelSet<M>::Rd Normalized normal vector on K \cap Gamma_h.
+ * @note It holds that grad(phi) = sum_{i=0}^{local DOFs} c_i \grad(psi_i)(x),
+ * and for P1 triangular elements, grad(psi_i) is constant.
+ */
 template <typeMesh M>
 typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::make_normal(const typename Mesh::Element &K,
                                                                     const double lset[Element::nv]) {
 
     Rd grad[Element::nv];
-    K.Gradlambda(grad);
+    K.Gradlambda(grad);     // compute gradient of the basis functions
     Rd normal_ls;
     for (int i = 0; i < Mesh::Element::nv; ++i) {
-        normal_ls += grad[i] * lset[i];
+        normal_ls += grad[i] * lset[i];     // grad(psi_i) * c_i
     }
     normal_ls /= normal_ls.norm();
     return normal_ls;

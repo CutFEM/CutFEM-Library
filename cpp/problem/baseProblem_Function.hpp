@@ -345,6 +345,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF,
 template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, const Mesh &Th, const CFacet &b) {
     assert(VF.isRHS());
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        
         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
 
             int jfac = ifac;
@@ -361,6 +362,8 @@ template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, c
         }
     }
 }
+
+
 template <typename M>
 void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1,
                                      const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
@@ -1293,16 +1296,113 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_(ndf) = val;
+    //this->nb_dof_ += 1; //? added but doesn't make a difference
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
 
         addLagrangeContribution(VF, gamma, iface);
+        
         this->addLocalContributionLagrange(ndf);
     }
 }
 
+// // First attempt
+// template <typename M>
+// void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface<M> &interface, const int ifac) {
+    
+//     typedef typename FElement::RdHatBord RdHatBord;
+
+//     // GET IDX ELEMENT CONTAINING FACE ON backMes
+//     const int kb = interface.idxElementOfFace(ifac);
+//     const Element &K(interface.get_element(kb));
+//     double measK = K.measure();
+//     double h     = K.get_h();
+//     double meas  = interface.measure(ifac);
+//     std::array<double, 2> measCut;
+//     // KNM<double> invJ(Rd::d, Rd::d);
+
+//     // { // compute each cut part
+//     //     const FESpace &Vh(VF.get_spaceV(0));
+//     //     const ActiveMesh<M> &Th(Vh.get_mesh());
+//     //     std::vector<int> idxV = Vh.idxAllElementFromBackMesh(kb, -1);
+
+//     //     const Cut_Part<Element> cutK(Th.get_cut_part(idxV[0], 0));
+//     //     measCut[0] = cutK.measure();
+//     //     measCut[1] = measCut[0];
+//     //     if (idxV.size() == 2) {
+//     //         const Cut_Part<Element> cutK(Th.get_cut_part(idxV[1], 0));
+//     //         measCut[1] = cutK.measure();
+//     //     }
+//     // }
+
+//     const Rd linear_normal(-interface.normal(ifac));
+
+//     // GET THE QUADRATURE RULE
+//     const QFB &qfb(this->get_quadrature_formular_cutFace());
+
+//     for (int l = 0; l < VF.size(); ++l) {
+//         // if(!VF[l].on(domain)) continue;
+
+//         // FINITE ELEMENT SPACES && ELEMENTS
+//         const FESpace &Vhv(VF.get_spaceV(l));
+
+//         std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+//         int kv                = VF[l].onWhatElementIsTestFunction(idxV);
+
+//         const FElement &FKv(Vhv[kv]);
+//         int domv = FKv.get_domain();
+//         this->initIndex(FKv, FKv);
+
+//         // BF MEMORY MANAGEMENT -
+//         //int lastop = getLastop(VF[l].du, VF[l].dv);
+//         int lastop = getLastop(VF[l].dv, 0);
+
+//         RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+//         What_d Fop = Fwhatd(lastop);
+
+//         // COMPUTE COEFFICIENT && NORMAL
+//         double coef = VF[l].computeCoefInterface(h, meas, measK, measCut, {domv, domv});
+//         // coef *= VF[l].computeCoefFromNormal(linear_normal);
+
+//         // // LOOP OVER QUADRATURE IN SPACE
+//         for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+
+//             typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
+//             const Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
+//             const Rd face_ip = K.mapToReferenceElement(mip);
+//             double Cint      = meas * ip.getWeight();
+
+//             //std::cout << Cint << "\n";
+            
+//             // const Rd map_mip = mapping.map(kb, mip);
+
+//             // mapping.computeInverseJacobian(kb, mip, invJ);
+//             // Rd normal   = invJ * linear_normal;
+
+//             // double DetJ = 1. / determinant(invJ);
+
+//             // Cint *= coef * VF[l].c * DetJ * normal.norm();
+//             Cint *= coef * VF[l].c * linear_normal.norm();
+//             // normal = normal / normal.norm();
+
+//             // EVALUATE THE BASIS FUNCTIONS
+//             FKv.BF(Fop, face_ip, fv);
+
+//             // Cint *= VF[l].computeCoefFromNormal(normal);
+//             Cint *= VF[l].computeCoefFromNormal(linear_normal);
+//             // Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), domv, normal);
+//             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domv, domv), mip, 0.,
+//                                                            linear_normal);
+
+//             this->addToMatrix(VF[l], FKv, fv, Cint);
+//         }
+//     }
+// }
+
+
 template <typename M>
 void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface<M> &interface, const int ifac) {
+    
     typedef typename FElement::RdHatBord RdHatBord;
 
     // GET IDX ELEMENT CONTAINING FACE ON backMes
@@ -1312,7 +1412,6 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
     double h     = K.get_h();
     double meas  = interface.measure(ifac);
     std::array<double, 2> measCut;
-    // KNM<double> invJ(Rd::d, Rd::d);
 
     { // compute each cut part
         const FESpace &Vh(VF.get_spaceV(0));
@@ -1328,7 +1427,7 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
         }
     }
 
-    const Rd linear_normal(-interface.normal(ifac));
+    const Rd normal(-interface.normal(ifac));
 
     // GET THE QUADRATURE RULE
     const QFB &qfb(this->get_quadrature_formular_cutFace());
@@ -1338,22 +1437,30 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
 
         // FINITE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+        bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
         std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
-        int kv                = VF[l].onWhatElementIsTestFunction(idxV);
+        std::vector<int> idxU = (same) ? idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
 
+        int kv = VF[l].onWhatElementIsTestFunction(idxV);
+        int ku = VF[l].onWhatElementIsTrialFunction(idxU);
+
+        const FElement &FKu(Vhu[ku]);
         const FElement &FKv(Vhv[kv]);
+        int domu = FKu.get_domain();
         int domv = FKv.get_domain();
-        this->initIndex(FKv, FKv);
+        this->initIndex(FKu, FKv);
 
         // BF MEMORY MANAGEMENT -
         int lastop = getLastop(VF[l].du, VF[l].dv);
         RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
         What_d Fop = Fwhatd(lastop);
 
         // COMPUTE COEFFICIENT && NORMAL
-        double coef = VF[l].computeCoefInterface(h, meas, measK, measCut, {domv, domv});
-        // coef *= VF[l].computeCoefFromNormal(linear_normal);
+        double coef = VF[l].computeCoefInterface(h, meas, measK, measCut, {domu, domv});
+        coef *= VF[l].computeCoefFromNormal(normal);
 
         // // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
@@ -1363,30 +1470,21 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = meas * ip.getWeight();
 
-            // const Rd map_mip = mapping.map(kb, mip);
-
-            // mapping.computeInverseJacobian(kb, mip, invJ);
-            // Rd normal   = invJ * linear_normal;
-
-            // double DetJ = 1. / determinant(invJ);
-
-            // Cint *= coef * VF[l].c * DetJ * normal.norm();
-            Cint *= coef * VF[l].c * linear_normal.norm();
-            // normal = normal / normal.norm();
-
             // EVALUATE THE BASIS FUNCTIONS
             FKv.BF(Fop, face_ip, fv);
-
-            // Cint *= VF[l].computeCoefFromNormal(normal);
-            Cint *= VF[l].computeCoefFromNormal(linear_normal);
-            // Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), domv, normal);
-            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domv, domv), mip, 0.,
-                                                           linear_normal);
+            if (!same)
+                FKu.BF(Fop, face_ip, fu);
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip, 0.,
+                                                           normal);
+            Cint *= coef * VF[l].c;
 
             this->addToMatrix(VF[l], FKv, fv, Cint);
         }
     }
 }
+
+
+
 
 template <typename M>
 void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE,

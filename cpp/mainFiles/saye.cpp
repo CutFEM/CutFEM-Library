@@ -676,7 +676,7 @@ R fun_rhs(double *P, const int cc, const R t) {
 const int d = 2;
 typedef GFESpace<MeshQuad2> FESpace;
 typedef CutFESpace<MeshQuad2> CutSpace;
-typedef TestFunction<d> FunTest;
+typedef TestFunction<MeshQuad2> FunTest;
 typedef FunFEM<MeshQuad2> Fun_h;
 typedef FunFEM<Mesh2> Fun_h_triag;
 // typedef Mesh2 Mesh;

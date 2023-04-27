@@ -355,6 +355,7 @@ double L2normSurf(const FunFEM<Mesh> &fh, const Fct& fex, const Interface<Mesh> 
     }
     return sqrt(val);
 }
+
 template <typename Mesh>
 double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t), const Interface<Mesh> *interface,
                   double tt, int c0, int num_comp) {
