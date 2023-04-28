@@ -1332,7 +1332,9 @@ template <class M> class Paraview {
                 algoim::QuadratureRule<2> q = algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax),
                                                                  algoim_domain, -1, quadrature_order);
 
+                assert(q.nodes.size() != 0);
                 for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
                     mesh_node[kk].push_back(R2(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1)));
                     num_cell[kk]  = std::make_pair(1, 1);
                     idx_in_Vh[kk] = std::make_pair(kb, domain);

@@ -19,10 +19,9 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
 
     int quadrature_order = 5;
 
-    L phi;
+    L &phi;
 
   public:
-
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                 double cst_time) override;
 
@@ -30,7 +29,6 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
                                   const TimeSlab *In, double cst_time, int itq) override;
 
     void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface) override;
-
 
     // template <typename Fct>
     // void addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,

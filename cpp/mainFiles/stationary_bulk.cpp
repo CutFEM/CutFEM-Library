@@ -242,9 +242,9 @@ template <int N> struct Levelset {
 
 } // namespace Poisson
 
-using namespace Diffusion;
+using namespace ConvectionDiffusionConstVel;
 
-#define quad // options: "algoim", "quad", "triangle"
+#define algoim         // options: "algoim", "quad", "triangle"
 #define neumann
 #define use_h
 
@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h = 0.1;              // starting mesh size
@@ -437,9 +437,9 @@ int main(int argc, char **argv) {
         // Compute area of domain in time quadrature point 0
         Fun_h funone(Wh, fun_one);
         double intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, interface, 0, phi);
-        // double intOmega = integral_algoim<Levelset<2>, Fun_h>(funone, Thi, phi, 0);
+        //double intOmega = integral_algoim<Levelset<2>, Fun_h>(funone, Thi, phi, 0);
         gamma.at(j)     = intGamma;
-        // omega.at(j) = intOmega;
+        //omega.at(j) = intOmega;
 
         double errBulk = L2_norm_cut(b0h, fun_uBulk, phi, 0, 1);
 
@@ -464,9 +464,13 @@ int main(int argc, char **argv) {
         if ((iterations == 1)) {
             Fun_h sol(Wh, data_u0);
             Paraview<Mesh> background_mesh(Th, path_output_figures + "Th.vtk");
+            ExpressionFunFEM<Mesh> vx(vel, 0, op_id);
+            ExpressionFunFEM<Mesh> vy(vel, 1, op_id);
+            background_mesh.add(vx, "velx");
+            background_mesh.add(vy, "vely");
+
             Paraview<Mesh> writer(Thi, path_output_figures + "bulk.vtk");
             writer.add(b0h, "bulk", 0, 1);
-
             Fun_h uBex(Wh, fun_uBulk);
             Fun_h fB(Wh, fun_rhsBulk);
             Expression uuh(sol, 0, op_id);

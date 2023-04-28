@@ -181,7 +181,7 @@ template <int N> struct Levelset {
 
 using namespace ConvectionDiffusion;
 
-#define quad     // option: "algoim", "quad", "triangle"
+#define algoim     // option: "algoim", "quad", "triangle"
 #define fem
 #define use_h
 

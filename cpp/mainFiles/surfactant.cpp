@@ -1350,7 +1350,7 @@ int main(int argc, char **argv) {
             // surfactant.addLinear(fun_rhs, +innerProduct(1., v), interface, In);
 
             // Compute integrals //! PUT BACK
-            // intF = integral(funrhs, In, interface, 0);
+            intF = integral(funrhs, In, interface, 0);
 
             //! PUT BACK
             Fun_h funone(Vh, In, fun_one);

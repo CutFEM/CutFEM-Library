@@ -33,12 +33,12 @@ namespace Example1 {
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return (P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17 - Epsilon;
+    return (P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return (P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17 - Epsilon;
+    return (P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17;
 }
 
 template <int N> struct Levelset {
@@ -627,123 +627,14 @@ R fun_rhs(double *P, const int cc, const R t) {
 }
 } // namespace Shi1
 
-namespace Shi1Simplified {
-/* An Eulerian Formulation for Solving Partial Differential Equations
-Along a Moving Interface – Jian-Jun Xu, Hong-Kai Zhao. */
-
-R fun_init_surfactant(double *P, const int i) { return P[1] / 2 + 2.; }
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-4 * t) * y / 2 + 2.;
-    // return exp(-t / 4) * y/2 + 2.;
-}
-
-R fun_velocity(double *P, const int i) { return (i == 0) ? 1. : 0.; }
-R fun_levelSet(double *P, const int i, const R t) { return sqrt((P[0] - t) * (P[0] - t) + P[1] * P[1]) - 2 - Epsilon; }
-R fun_levelSet(double *P, const int i) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 2 - Epsilon; }
-// R fun_levelSet(double *P, const int i, const R t) { return (P[0] - t) * (P[0] - t) + P[1] * P[1] - 2 - Epsilon; }
-// R fun_levelSet(double *P, const int i) { return P[0] * P[0] + P[1] * P[1] - 2 - Epsilon; }
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return (y * exp(-4 * t)) / (2 * ((x - t) * (x - t) + y * y)) - 2 * y * exp(-4 * t); // u = exp(-4t)y/2 + 2
-    // return (y * exp(-t / 4)) / (2 * ((x - t) * (x - t) + y * y)) - (y * exp(-t / 4)) / 8;       // u = exp(-t/4)y/2 +
-    // 2
-}
-} // namespace Shi1Simplified
-
-namespace Shi2 {
-
-R fun_init_surfactant(double *P, const int i) { return P[1] / sqrt(P[0] * P[0] + P[1] * P[1]) + 2; }
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-t / 4) * (y / sqrt((x - 0.1 * t) * (x - 0.1 * t) + y * y)) + 2;
-}
-R fun_velocity(double *P, const int i, const R t) { return (i == 0) ? 0.1 : 0.; }
-R fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] - 0.1 * t) * (P[0] - 0.1 * t) + P[1] * P[1]) - 2 - Epsilon;
-}
-R fun_levelSet(double *P, const int i) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 2 - Epsilon; }
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return -(5 * y * exp(-t / 4) * (t * t - 20 * t * x + 100 * x * x + 100 * y * y - 400)) /
-           (2 * pow(t * t - 20 * t * x + 100 * x * x + 100 * y * y, 1.5));
-}
-
-} // namespace Shi2
-
-namespace Shi3 {
-
-R fun_init_surfactant(double *P, const int i) { return P[1] / sqrt(P[0] * P[0] + P[1] * P[1]) + 2; }
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-t / 4) * (y / sqrt((x - 0.9 * t) * (x - 0.9 * t) + y * y)) + 2;
-}
-R fun_velocity(double *P, const int i, const R t) { return (i == 0) ? 0.9 : 0.; }
-R fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] - 0.9 * t) * (P[0] - 0.9 * t) + P[1] * P[1]) - 2 - Epsilon;
-}
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return -(5 * y * exp(-t / 4) * (81 * (t * t) - 180 * t * x + 100 * (x * x) + 100 * (y * y) - 400)) /
-           (2 * (81 * (t * t) - 180 * t * x + 100 * (x * x) + 100 * (y * y)) *
-            sqrt((81 * (t * t) - 180 * t * x + 100 * (x * x) + 100 * (y * y))));
-}
-
-} // namespace Shi3
-
-namespace Shi4 {
-
-R fun_init_surfactant(double *P, const int i) { return P[1] / sqrt(P[0] * P[0] + P[1] * P[1]) + 2; }
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-t / 4) * (y / sqrt((x - 0.5 * t) * (x - 0.5 * t) + y * y)) + 2;
-}
-R fun_velocity(double *P, const int i, const R t) { return (i == 0) ? 0.5 : 0.; }
-R fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] - 0.5 * t) * (P[0] - 0.5 * t) + P[1] * P[1]) - 2 - Epsilon;
-}
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return -(y * exp(-t / 4) * ((t * t) - 4 * t * x + 4 * (x * x) + 4 * (y * y) - 16)) /
-           (2 * ((t * t) - 4 * t * x + 4 * (x * x) + 4 * (y * y)) *
-            sqrt(((t * t) - 4 * t * x + 4 * (x * x) + 4 * (y * y))));
-}
-
-} // namespace Shi4
-
-namespace Deckelnick {
-// "Stability and error analysis for a diffuse interface approach to an advection-diffusion
-// equation on a moving surface" – Example 1
-
-R fun_init_surfactant(double *P, const int i) { return P[0] * P[1]; }
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-4 * t) * (x * y * cos(pi * t) + 0.5 * (x * x - y * y) * sin(pi * t));
-}
-
-R fun_velocity(double *P, const int i) { return (i == 0) ? 0.5 * pi * P[1] : -0.5 * pi * P[0]; }
-R fun_levelSet(double *P, const int i, const R t) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 1 - Epsilon; }
-// R fun_levelSet(double *P, const int i, const R t) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 2 - Epsilon; }
-R fun_levelSet(double *P, const int i) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 1 - Epsilon; }
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return 0.;
-}
-} // namespace Deckelnick
-
 namespace Deckelnick2 {
 // "Stability and error analysis for a diffuse interface approach to an advection-diffusion
 // equation on a moving surface" – Example 2
 
-R fun_init_surfactant(double *P, const int i) { return (P[0] + 0.5) * P[1] + 2.; }
+R fun_init_surfactant(double *P, const int i) { return (P[0] + 0.5) * P[1] + 0.; }
 R fun_sol_surfactant(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
-    return exp(-4 * t) * (x + 0.5 - 2 * t) * y + 2.; //! ORIGINAL
+    return exp(-4 * t) * (x + 0.5 - 2 * t) * y + 0.; //! ORIGINAL
     // return exp(-t/4) * (x + 0.5 - 2*t)*y + 0.;    //! SLOWER
 }
 
@@ -754,9 +645,9 @@ R fun_velocity(double *P, const int i) { return (i == 0) ? 2. : 0.; }
 // R fun_levelSet(double *P, const int i) { return sqrt((P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1]) - 1 - Epsilon; }
 
 R fun_levelSet(double *P, const int i, R t) {
-    return (P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1] - 1 - Epsilon;
+    return (P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1] - 1;
 }
-R fun_levelSet(double *P, const int i) { return (P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1] - 1 - Epsilon; }
+R fun_levelSet(double *P, const int i) { return (P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1] - 1; }
 
 template <int N> struct Levelset {
 
@@ -795,94 +686,14 @@ R fun_rhs(double *P, const int cc, const R t) {
 }
 } // namespace Deckelnick2
 
-namespace Deckelnick2ToShi1 {
-// Here, we solve using the Deckelnick2 form of solution, but on the
-// Shi1 geometry
-
-R fun_init_surfactant(double *P, const int i) { return P[0] * P[1] + 0.; }
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-4 * t) * (x - t) * y + 0.;
-}
-
-R fun_velocity(double *P, const int i) { return (i == 0) ? 1. : 0.; }
-R fun_levelSet(double *P, const int i, const R t) { return sqrt((P[0] - t) * (P[0] - t) + P[1] * P[1]) - 2 - Epsilon; }
-R fun_levelSet(double *P, const int i) { return sqrt(P[0] * P[0] + P[1] * P[1]) - 2 - Epsilon; }
-
-R fun_one(double *P, const int cc, const R t) { return 1.; }
-
-// R fun_levelSet(double *P, const int i) { return sqrt((P[0]+0.5)*(P[0]+0.5) + P[1] * P[1]) - 1 - Epsilon; }
-// R fun_levelSet(double *P, const int i) { return (P[0]+0.5)*(P[0]+0.5) + P[1] * P[1] - 1 - Epsilon; }
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return (4.0 * y * exp(-4 * t) * (t - x) * (t * t - 2 * t * x + x * x + y * y - 1)) /
-           (t * t - 2.0 * t * x + x * x + y * y);
-}
-} // namespace Deckelnick2ToShi1
-
-namespace Deckelnick2Normalized {
-// "Stability and error analysis for a diffuse interface approach to an advection-diffusion
-// equation on a moving surface" – Example 2
-
-R fun_init_surfactant(double *P, const int i) {
-    R x = P[0], y = P[1];
-    return y / sqrt((x + 0.5) * (x + 0.5) + y * y);
-}
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-4 * t) * y / sqrt((x + 0.5 - 2 * t) * (x + 0.5 - 2 * t) + y * y);
-}
-
-R fun_velocity(double *P, const int i) { return (i == 0) ? 2. : 0.; }
-R fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1]) - 1 - Epsilon;
-}
-R fun_levelSet(double *P, const int i) { return sqrt((P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1]) - 1 - Epsilon; }
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return -(32 * y * exp(-4 * t) * (4 * t * t - 4 * t * x - 2 * t + x * x + x + y * y)) /
-           ((16 * t * t - 16 * t * x - 8 * t + 4 * x * x + 4 * x + 4 * y * y + 1) *
-            sqrt((16 * t * t - 16 * t * x - 8 * t + 4 * x * x + 4 * x + 4 * y * y + 1)));
-}
-} // namespace Deckelnick2Normalized
-
-namespace Deckelnick2NormalizedSlower {
-// "Stability and error analysis for a diffuse interface approach to an advection-diffusion
-// equation on a moving surface" – Example 2
-
-R fun_init_surfactant(double *P, const int i) {
-    R x = P[0], y = P[1];
-    return y / sqrt((x + 0.5) * (x + 0.5) + y * y) + 4.;
-}
-R fun_sol_surfactant(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-    return exp(-t / 4) * y / sqrt((x + 0.5 - 2 * t) * (x + 0.5 - 2 * t) + y * y) + 4.;
-}
-
-R fun_velocity(double *P, const int i) { return (i == 0) ? 2. : 0.; }
-R fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1]) - 1 - Epsilon;
-}
-R fun_levelSet(double *P, const int i) { return sqrt((P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1]) - 1 - Epsilon; }
-
-R fun_rhs(double *P, const int cc, const R t) {
-    R x = P[0], y = P[1];
-    return -(y * exp(-t / 4) * (16 * t * t - 16 * t * x - 8 * t + 4 * x * x + 4 * x + 4 * y * y - 15)) /
-           (2 * ((16 * t * t - 16 * t * x - 8 * t + 4 * x * x + 4 * x + 4 * y * y + 1) *
-                 sqrt((16 * t * t - 16 * t * x - 8 * t + 4 * x * x + 4 * x + 4 * y * y + 1))));
-}
-} // namespace Deckelnick2NormalizedSlower
 
 
-
-#define triangle
+#define algoim
 // Set numerical example (options: "example1", "shi1", "shi2", "deckelnick", "deckelnick2")
 #define example1
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
-#define classical
+#define conservative
 
 #define levelsetexact
 
@@ -1013,7 +824,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, 0., 0., lx, ly);
+        Mesh Th(nx, ny, 0.  + Epsilon, 0. + Epsilon, lx, ly);
 #elif defined(shi1) || defined(shi2) || defined(shi3) || defined(deckelnick2toshi1)
         const double lx = 8., ly = 6.;
 
@@ -1027,7 +838,7 @@ int main(int argc, char **argv) {
         // std::string f = "../mesh/square_seb_"+std::to_string(j+1)+".msh";
         // Mesh Th(f.c_str());
 #elif defined(deckelnick) || defined(deckelnick2)
-        const double lx = 4.8, ly = 4.8;
+        const double lx = 4.8 + 0.0003, ly = 4.8 + 0.0003;
         // const double lx = 8., ly = 6.;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
@@ -1035,7 +846,7 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
 
-        Mesh Th(nx, ny, -2.4, -2.4, lx, ly);
+        Mesh Th(nx, ny, -2.4 - 0.0003, -2.4 - 0.0003, lx, ly);
         // Mesh Th(nx, ny, -3, -3, lx, ly);
 #endif
 
@@ -1311,6 +1122,7 @@ int main(int argc, char **argv) {
             // Add RHS on surface
             surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface, In);
 
+
 #ifndef USE_MPI
             if ((iter == total_number_iteration - 1) && MPIcf::IamMaster()) {
                 matlab::Export(surfactant.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
@@ -1340,12 +1152,14 @@ int main(int argc, char **argv) {
                 Fun_h funuh_0(Wh, datau0);
                 Fun_h funuh(Wh, sol);
 
-                Fun_h funone(Vh, In, fun_one);
+                Fun_h funone(Wh, fun_one, 0.);
 
             #if defined(algoim)
-                intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi);
+                intF = integral_algoim<Mesh, Levelset<2>>(funrhs, In, interface, phi, 0);
+                intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi, tid);  //! why doesn't this give the right length now?
                 // std::cout << std::setprecision(16);
-                std::cout << fabs(intGamma-2*0.17*pi) << "\n";
+                std::cout << "intGamma = " << intGamma << "\n";
+                std::cout << "length error = " << fabs(intGamma - 2 * 0.17 * pi) << "\n";
 
                 errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), tid, phi, 0, 1);
                 std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
@@ -1364,19 +1178,20 @@ int main(int argc, char **argv) {
             #endif
 
                 // Conservation error
- 
-                // double q0 = integral_algoim<Levelset<2>, Fun_h>(funuh_0, *interface(0), 0, phi);
-                // double q1 = integral_algoim<Levelset<2>, Fun_h>(funuh, *interface(lastQuadTime), 0, phi);
-                // if (iter == 0) {
-                //     q_init0 = q0;
-                //     q_init1 = q1;
-                //     qp1     = q1;
-                //     q_init1 = integral_algoim<Levelset<2>, Fun_h>(u0, *interface(0), 0, phi);
-                // }
+            #if defined(algoim)
+                double q0 = integral_algoim<Levelset<2>, Fun_h>(funuh_0, *interface(0), 0, phi, In, qTime, 0);
+                double q1 = integral_algoim<Levelset<2>, Fun_h>(funuh, *interface(lastQuadTime), 0, phi, In, qTime, lastQuadTime);
+                if (iter == 0) {
+                    q_init0 = q0;
+                    //q_init1 = q1;
+                    qp1     = q1;
+                    //q_init1 = integral_algoim<Levelset<2>, Fun_h>(u0, *interface(0), 0, phi);
+                }
 
-                // output_data << std::setprecision(10);
-                // output_data << tid << "," << (q1 - qp1) << "," << intF << "," << ((q1 - qp1) - intF) << "\n";
-                // qp1 = q1;
+                output_data << std::setprecision(10);
+                output_data << tid << "," << (q1 - qp1) << "," << intF << "," << ((q1 - qp1) - intF) << "\n";
+                qp1 = q1;
+            #endif
             
 
                 error_t.push_back(errL2);
@@ -1433,17 +1248,17 @@ int main(int argc, char **argv) {
             // std::cout << "]"
             // << "\n";
 
-            // std::cout << "\n";
-            // std::cout << "Error t = [";
-            // for (auto & err : error_t) {
+            std::cout << "\n";
+            std::cout << "Error t = [";
+            for (auto & err : error_t) {
 
-            //     std::cout << err;
+                std::cout << err;
 
-            //     std::cout << ", ";
+                std::cout << ", ";
 
-            // }
-            // std::cout << "]"
-            // << "\n";
+            }
+            std::cout << "]"
+            << "\n";
 
             // Refine mesh
 
