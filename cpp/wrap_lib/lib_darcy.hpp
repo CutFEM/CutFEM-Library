@@ -71,7 +71,7 @@ class pyDarcy : public pyProblem {
 
     void add_bulk_integral(double (*f)(double *, int, int)) override {
 
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
         fct_t fq(*Ph_p, f);
         problem.addBilinear(innerProduct(u, v) - innerProduct(p, div(v)) + innerProduct(div(u), q), *Khi_p);
 
@@ -85,7 +85,7 @@ class pyDarcy : public pyProblem {
         fct_t phat(*Ph_p, f);
 
         Normal n;
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
 
         problem.addBilinear(innerProduct(mu_G * average(u * n), average(v * n)) +
                                 innerProduct(xi0 * mu_G * jump(u * n), jump(v * n)),
@@ -98,7 +98,7 @@ class pyDarcy : public pyProblem {
         fct_t p0(Lh, f);
 
         Normal n;
-        TestFunction<2> v(*Wh_p, 2);
+        TestFunction<mesh_t> v(*Wh_p, 2);
         problem.addLinear(-innerProduct(p0.expr(), v * n) // Only on Gamma_N (pressure)
                           ,
                           *Khi_p, INTEGRAL_BOUNDARY);
@@ -108,15 +108,15 @@ class pyDarcy : public pyProblem {
     // void add_lagrange_multiplier_mixed() override {}
     void post_processing_pressure(double (*f)(double *, int, int)) override {}
 
-    void add_macro_stabilization(double dlt_i, int stab_method) {
+    void add_macro_stabilization(double dlt_i, int stab_method) override {
         double Cu  = stab_param.Cu;
         double Cp  = stab_param.Cp;
         double h_i = 1. / (mesh_param.nx[0] - 1);
         MacroElement<mesh_t> macro(*Khi_p, dlt_i);
 
         Normal n;
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
-        TestFunction<2> grad2un = grad(grad(u) * n) * n;
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> grad2un = grad(grad(u) * n) * n;
 
         problem.addFaceStabilization(innerProduct(Cu * h_i * jump(u),
                                                   jump(v)) // [Method 1: Remove jump in vel]
@@ -128,14 +128,14 @@ class pyDarcy : public pyProblem {
                                          innerProduct(Cp * pow(h_i, 3) * jump(grad(div(v))), jump(grad(q))),
                                      *Khi_p, macro);
     }
-    void add_full_stabilization(int stab_method) {
+    void add_full_stabilization(int stab_method) override {
         double Cu  = stab_param.Cu;
         double Cp  = stab_param.Cp;
         double h_i = 1. / (mesh_param.nx[0] - 1);
 
         Normal n;
-        TestFunction<2> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
-        TestFunction<2> grad2un = grad(grad(u) * n) * n;
+        TestFunction<mesh_t> p(*Ph_p, 1), q(*Ph_p, 1), u(*Wh_p, 2), v(*Wh_p, 2);
+        TestFunction<mesh_t> grad2un = grad(grad(u) * n) * n;
 
         problem.addFaceStabilization(innerProduct(Cu * h_i * jump(u),
                                                   jump(v)) // [Method 1: Remove jump in vel]

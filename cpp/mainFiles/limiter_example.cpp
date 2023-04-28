@@ -2224,7 +2224,7 @@ int main(int argc, char **argv) {
     // mesh_t Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
 
-    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
+    fespace_t Vh(Th, DataFE<Mesh2>::P0);
     fespace_t Eh0(Th, DataFE<Mesh2>::P0);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
@@ -2232,7 +2232,7 @@ int main(int argc, char **argv) {
     double tid      = 0;
     double meshSize = 2. / nx;
     double dt       = meshSize / 5 / sqrt(2) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
-    double tend     = 0.1;
+    double tend     = 0.3;
     int niteration  = tend / dt;
     dt              = tend / niteration;
     double errSum   = 0;
@@ -2264,7 +2264,6 @@ int main(int argc, char **argv) {
 
     Fun_h fun_u0(Wh, u0);
     Fun_h fun_uh(Wh, uh);
-    Fun_h fun_uh_tild(Wh, uh_tild);
 
     // Plot the macro elements
     {
@@ -2298,6 +2297,7 @@ int main(int argc, char **argv) {
         // THIRD ORDER RK
         // =================================================
         {
+
             Rn u1(u0);
             Rn u2(Wh.NbDoF(), 0.);
 
@@ -2335,16 +2335,19 @@ int main(int argc, char **argv) {
                 u1 += dt * uh;
                 Fun_h fun_u1(Wh, u1);
 
-                // Apply slope limiter on u_0
-                // Try with P0
-
                 // 1) compute the mean of the macro element (extension)
                 // 2) compute indicator
                 // 3) do the slope limiter
                 // 4) reconstruction to keep the mean on the macro elements
                 // 5) boundary preserving
 
-                // need to add function to compute mean.
+                // Try
+                // 1) compute the mean of the macro element (extension)
+                // 2) compute indicator
+                // 3) reconstruction on the macro elements
+                // 4) do the slope limiter
+                // 5) reconstruction to keep the mean on the macro elements
+                // 6) boundary preserving
 
                 std::map<int, double> u_mean = limiter::CutFEM::computeMeanValue(fun_u1, macro);
 
@@ -2389,30 +2392,89 @@ int main(int argc, char **argv) {
                 }
                 return 0;
 
+                // u2 += 3. / 4 * u0 + 1. / 4 * Rn_(u1_tild);
+                // solve_problem(Wh, interface, u1_tild, uh, Ah, Mh, tid + dt);
+                // u2 += 1. / 4 * dt * uh;
+
+                // Fun_h fun_u2(Wh, u2);
+                // std::vector<double> u2_tild =
+                //     limiter::CutFEM::applyBoundPreservingLimiter(fun_u2, min_u0, max_u0, u_mean, macro);
+                // solve_problem(Wh, interface, u2_tild, uh, Ah, Mh, tid + 0.5 * dt);
+                // uh *= 2. / 3 * dt;
+                // uh += 1. / 3 * u0 + 2. / 3 * Rn_(u2_tild);
+                // uh_tild = limiter::CutFEM::applyBoundPreservingLimiter(fun_uh, min_u0, max_u0, u_mean, macro);
+
+            } else if (Wh.basisFctType == BasisFctType::P0) {
+
+                solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
+                u1 += dt * uh;
+                Fun_h fun_u1(Wh, u1);
+
+                // Apply slope limiter on u_0
+                // Try with P0
+
+                // 1) compute the mean of the macro element (extension)
+                // 2) compute indicator
+                // 3) do the slope limiter
+                // 4) reconstruction to keep the mean on the macro elements
+                // 5) boundary preserving
+
+                // need to add function to compute mean.
+
+                std::map<int, double> u_mean  = limiter::CutFEM::computeMeanValue(fun_u1, macro);
+                std::vector<double> indicator = limiter::CutFEM::computeTroubleCellIndicator(fun_u1);
+                std::vector<double> u1_slope(u1.begin(), u1.end());
+                // limiter::CutFEM::applySlopeLimiter(fun_u1, indicator, 0.01);
+                Fun_h fun_u1_slope(Wh, u1_slope);
+
+                std::vector<double> u1_M = limiter::CutFEM::extendToMacro(fun_u1_slope, u_mean, macro);
+                Fun_h fun_u1_macro(Wh, u1_M);
+
+                std::vector<double> u1_tild = u1_M;
+                // limiter::CutFEM::applyBoundPreservingLimiter(fun_u1_macro, min_u0, max_u0, u_mean, macro);
+                Fun_h fun_u1_tild(Wh, u1_tild);
+
+                // uh                    = u1;
+                // uh_tild               = u1_tild;
+                auto [min_uh, max_uh]     = limiter::CutFEM::findMinAndMaxValue(fun_u0);
+                auto [min_u1, max_u1]     = limiter::CutFEM::findMinAndMaxValue(fun_u1);
+                auto [min_u1_s, max_u1_s] = limiter::CutFEM::findMinAndMaxValue(fun_u1_slope);
+                auto [min_u1_M, max_u1_M] = limiter::CutFEM::findMinAndMaxValue(fun_u1_macro);
+                auto [min_u1_t, max_u1_t] = limiter::CutFEM::findMinAndMaxValue(fun_u1_tild);
+
+                // std::cout << "[m, M] = [ " << min_u0 << " , " << max_u0 << " ]" << std::endl;
+                // std::cout << min_uh << " < u_0  < " << max_uh << std::endl;
+                // std::cout << min_u1 << " < u1_{h,1} < " << max_u1 << std::endl;
+                // std::cout << min_u1_s << " < u1_{h,1,s} < " << max_u1_s << std::endl;
+                // std::cout << min_u1_M << " < u1_{h,1,M} < " << max_u1_M << std::endl;
+                // std::cout << min_u1_t << " < u1_{h,1,t} < " << max_u1_t << std::endl;
+                Fun_h fun_indicator(Eh, indicator);
+
                 u2 += 3. / 4 * u0 + 1. / 4 * Rn_(u1_tild);
                 solve_problem(Wh, interface, u1_tild, uh, Ah, Mh, tid + dt);
                 u2 += 1. / 4 * dt * uh;
-
                 Fun_h fun_u2(Wh, u2);
-                std::vector<double> u2_tild =
-                    limiter::CutFEM::applyBoundPreservingLimiter(fun_u2, min_u0, max_u0, u_mean, macro);
+                std::vector<double> u2_tild = limiter::CutFEM::extendToMacro(fun_u2, u_mean, macro);
+                // limiter::CutFEM::applyBoundPreservingLimiter(fun_u2, min_u0, max_u0, u_mean, macro);
                 solve_problem(Wh, interface, u2_tild, uh, Ah, Mh, tid + 0.5 * dt);
                 uh *= 2. / 3 * dt;
                 uh += 1. / 3 * u0 + 2. / 3 * Rn_(u2_tild);
-                uh_tild = limiter::CutFEM::applyBoundPreservingLimiter(fun_uh, min_u0, max_u0, u_mean, macro);
-            } else if (Wh.basisFctType == BasisFctType::P0) {
-                //  solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
-                //  u1 += dt * uh;
-                //  limiter::CutFEM::extendToMacro(fun_u1, u1_tild, macro);
-                //  u2 += 3. / 4 * u0 + 1. / 4 * u1_tild;
-                //  solve_problem(Wh, interface, u1_tild, uh, Ah, Mh, tid + dt);
-                //  u2 += 1. / 4 * dt * uh;
-                //  limiter::CutFEM::extendToMacro(fun_u2, u2_tild, macro);
-                //  solve_problem(Wh, interface, u2_tild, uh, Ah, Mh, tid + 0.5 * dt);
-                //  uh *= 2. / 3 * dt;
-                //  uh += 1. / 3 * u0 + 2. / 3 * u2_tild;
-                //  limiter::CutFEM::extendToMacro(fun_uh, uh_tild, macro);
-                assert(0);
+                uh_tild = limiter::CutFEM::extendToMacro(fun_uh, u_mean, macro);
+
+                // limiter::CutFEM::applyBoundPreservingLimiter(fun_uh, min_u0, max_u0, u_mean, macro);
+
+                // #ifdef USE_MPI
+                //                 if (MPIcf::IamMaster())
+                // #endif
+                //                 {
+                //                     Paraview<mesh_t> writer(Khi, "checkErrorDiscontinuous.vtk");
+                //                     writer.add(fun_u1, "uh", 0, 1);
+                //                     writer.add(fun_u1_slope, "uh_slope", 0, 1);
+                //                     writer.add(fun_u1_macro, "uh_extend", 0, 1);
+                //                     writer.add(fun_u1_tild, "uh_tild", 0, 1);
+                //                     writer.add(fun_indicator, "indicator", 0, 1);
+                //                 }
+                //                 return 0;
             }
 
             // limiter::CutFEM::check_mean_value(fun_u1, macro, 0.,1., u_mean);
@@ -2441,6 +2503,7 @@ int main(int argc, char **argv) {
         u0 = uh_tild;
         tid += dt;
 
+        Fun_h fun_uh_tild(Wh, uh_tild);
         // COMPUTATION OF THE L2 ERROR
         // =================================================
         double tt             = getTime();
@@ -2487,6 +2550,7 @@ int main(int argc, char **argv) {
             // }
             // return 0;
         }
+
         // PLOT THE SOLUTION
         // ==================================================
 #ifdef USE_MPI
@@ -2495,7 +2559,7 @@ int main(int argc, char **argv) {
         if (i % 1 == 0 || i + 1 == niteration)
 #endif
         {
-            Paraview<mesh_t> writer(Khi, "conservationP1_" + std::to_string(ifig++) + ".vtk");
+            Paraview<mesh_t> writer(Khi, "conservationP0_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);
             writer.add(fun_uh_tild, "uhLimiter", 0, 1);
         }

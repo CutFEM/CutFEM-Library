@@ -112,7 +112,6 @@ template <class R> std::istream &operator>>(std::istream &f, KN_<R> &v);
 template <class R> std::istream &operator>>(std::istream &f, KN<R> &v);
 
 template <class R> class KN_ : public ShapeOfArray {
-    
 
   protected:
     R *v;
@@ -137,6 +136,8 @@ template <class R> class KN_ : public ShapeOfArray {
     KN_(const KN_<R> &U, const SubArray &sa) : ShapeOfArray(U, sa), v(U.v + U.index(sa.start)) {}
 
     KN_(const std::span<R> u) : ShapeOfArray(u.size()), v(u.data()) {}
+
+    operator std::span<R>() const { return std::span<R>(v, n); }
 
     KN_ operator()(const SubArray &sa) const { return KN_(*this, sa); } // sub array
 
@@ -535,7 +536,7 @@ template <class R> class KN : public KN_<R> {
         u.n = 0;
     } // remove copy for return of local KN.
 
-    KN(std::list<R> &u) : KN_<R>(new R[u.size()], u.size()) {
+    KN(std::span<R> u) : KN_<R>(new R[u.size()], u.size()) {
         int ii = 0;
         for (auto it = u.begin(); it != u.end(); ++it)
             this->v[ii++] = *it;

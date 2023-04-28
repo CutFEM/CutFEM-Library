@@ -37,11 +37,12 @@ endif()
 
 if(${CUTFEM_BUILD_EXAMPLE})
 add_subdirectory(example/)
-
-
 endif()
 
 
+if(${CUTFEM_BUILD_TESTS})
+add_subdirectory(test/)
+endif()
 
 if(${CUTFEM_BUILD_MAIN})
 

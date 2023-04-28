@@ -585,12 +585,13 @@ template <typeMesh mesh_t> ListItemVF<mesh_t> operator,(const ExpressionAverage 
                 item(k).face_sideU_ = 0;
                 item(k).face_sideV_ = v.face_side_;
                 item(k).domainU_id_ = v.domain_id_;
-                item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-                item(k).dtu      = 0;
-                item(k).dtv      = v.dtu;
-                item(k).expru    = fh.fun1;
-                item(k).exprv    = v.expru;
-                item(k).fespaceV = v.fespace;
+                item(k).domainV_id_ = v.domain_id_;
+                item(k).coefv       = v.coefu;
+                item(k).dtu         = 0;
+                item(k).dtv         = v.dtu;
+                item(k).expru       = fh.fun1;
+                item(k).exprv       = v.expru;
+                item(k).fespaceV    = v.fespace;
 
                 k++;
             }
@@ -605,12 +606,13 @@ template <typeMesh mesh_t> ListItemVF<mesh_t> operator,(const ExpressionAverage 
                 item(k).face_sideU_ = 1;
                 item(k).face_sideV_ = v.face_side_;
                 item(k).domainU_id_ = v.domain_id_;
-                item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-                item(k).dtu      = 0;
-                item(k).dtv      = v.dtu;
-                item(k).expru    = fh.fun1;
-                item(k).exprv    = v.expru;
-                item(k).fespaceV = v.fespace;
+                item(k).domainV_id_ = v.domain_id_;
+                item(k).coefv       = v.coefu;
+                item(k).dtu         = 0;
+                item(k).dtv         = v.dtu;
+                item(k).expru       = fh.fun1;
+                item(k).exprv       = v.expru;
+                item(k).fespaceV    = v.fespace;
 
                 k++;
             }
