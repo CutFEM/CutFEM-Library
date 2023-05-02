@@ -24,163 +24,157 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 namespace gnuplot {
 
-void save(const Mesh2 & Th, std::string filename = "Th.dat") {
+void save(const Mesh2 &Th, std::string filename = "Th.dat") {
 
-  std::ofstream plot;
-  plot.open(filename.c_str(), std::ofstream::out);
-  const int nve = Th[0].nv;
-  for(int k=0; k<Th.nt;++k) {
-    for(int i=0;i<nve;++i) {
-      plot << Th[k][i] << std::endl;
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = Th[0].nv;
+    for (int k = 0; k < Th.nt; ++k) {
+        for (int i = 0; i < nve; ++i) {
+            plot << Th[k][i] << std::endl;
+        }
+        plot << Th[k][0] << std::endl;
+        plot << std::endl;
+        plot << std::endl;
     }
-    plot << Th[k][0] << std::endl;
-    plot << std::endl;
-    plot << std::endl;
-  }
-  plot.close();
+    plot.close();
 }
 
-void save(const MeshQuad2 & Th, std::string filename = "ThQ.dat") {
+void save(const MeshQuad2 &Th, std::string filename = "ThQ.dat") {
 
-  std::ofstream plot;
-  plot.open(filename.c_str(), std::ofstream::out);
-  const int nve = Th[0].nv;
-  for(int k=0; k<Th.nt;++k) {
-    for(int i=0;i<nve;++i) {
-      plot << Th[k][i] << std::endl;
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = Th[0].nv;
+    for (int k = 0; k < Th.nt; ++k) {
+        for (int i = 0; i < nve; ++i) {
+            plot << Th[k][i] << std::endl;
+        }
+        plot << Th[k][0] << std::endl;
+        plot << std::endl;
+        plot << std::endl;
     }
-    plot << Th[k][0] << std::endl;
-    plot << std::endl;
-    plot << std::endl;
-  }
-  plot.close();
+    plot.close();
 }
 
-void save(const Mesh3 & Th, std::string filename = "Th.dat") {
+void save(const Mesh3 &Th, std::string filename = "Th.dat") {
 
-  std::ofstream plot;
-  plot.open(filename.c_str(), std::ofstream::out);
-  const int nve = Th[0].nv;
-  for(int k=0; k<Th.nt;++k) {
-    for(int i=0;i<nve;++i) {
-    plot << Th[k][i] << std::endl;
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = Th[0].nv;
+    for (int k = 0; k < Th.nt; ++k) {
+        for (int i = 0; i < nve; ++i) {
+            plot << Th[k][i] << std::endl;
+        }
+        plot << Th[k][0] << std::endl;
+        plot << Th[k][2] << std::endl;
+        plot << Th[k][1] << std::endl;
+        plot << Th[k][3] << std::endl;
+        plot << std::endl;
+        plot << std::endl;
     }
-    plot << Th[k][0] << std::endl;
-    plot << Th[k][2] << std::endl;
-    plot << Th[k][1] << std::endl;
-    plot << Th[k][3] << std::endl;
-    plot << std::endl;
-    plot << std::endl;
-  }
-  plot.close();
+    plot.close();
 }
 
-template <typename Mesh>
-void save(const TimeMacroElement<Mesh> &macro, std::string path = "./") {
+template <typename Mesh> void save(const TimeMacroElement<Mesh> &macro, std::string path = "./") {
 
-   std::ofstream plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9,
-       plot10;
-   plot1.open("small1.dat", std::ofstream::out);
-   plot2.open("small2.dat", std::ofstream::out);
-   plot3.open("macroElement1.dat", std::ofstream::out);
-   plot4.open("macroElement2.dat", std::ofstream::out);
-   plot7.open("goodEdge1.dat", std::ofstream::out);
-   plot8.open("goodEdge2.dat", std::ofstream::out);
-   plot9.open("innerEdgeME1.dat", std::ofstream::out);
-   plot10.open("innerEdgeME2.dat", std::ofstream::out);
+    std::ofstream plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10;
+    plot1.open("small1.dat", std::ofstream::out);
+    plot2.open("small2.dat", std::ofstream::out);
+    plot3.open("macroElement1.dat", std::ofstream::out);
+    plot4.open("macroElement2.dat", std::ofstream::out);
+    plot7.open("goodEdge1.dat", std::ofstream::out);
+    plot8.open("goodEdge2.dat", std::ofstream::out);
+    plot9.open("innerEdgeME1.dat", std::ofstream::out);
+    plot10.open("innerEdgeME2.dat", std::ofstream::out);
 
-   // const int nve = macro.Th[0].nbVertices();   // get number of vertices of
-   // element
-   const int nve = 3; // number of vertices of a triangle is three
+    // const int nve = macro.Th[0].nbVertices();   // get number of vertices of
+    // element
+    const int nve = 3; // number of vertices of a triangle is three
 
-   for (auto it = macro.small_element.begin(); it != macro.small_element.end();
-        ++it) {
+    for (auto it = macro.small_element.begin(); it != macro.small_element.end(); ++it) {
 
-      int idxC = it->second.index; // index in cutSpace
+        int idxC = it->second.index; // index in cutSpace
 
-      int domain = macro.Th.get_domain_element(idxC);
-      // int idx = macro.Th.idxElementInBackMesh(idxC);
+        int domain = macro.Th.get_domain_element(idxC);
+        // int idx = macro.Th.idxElementInBackMesh(idxC);
 
-      if (domain == 0) {
-         for (int i = 0; i < nve; ++i) {
-            plot1 << macro.Th[i] << 1 << std::endl;
-         }
-         plot1 << macro.Th[0] << 1 << std::endl;
-         plot1 << std::endl;
-         plot1 << std::endl;
-      } else {
-         for (int i = 0; i < nve; ++i) {
-            plot2 << macro.Th[i] << 2 << std::endl;
-         }
-         plot2 << macro.Th[0] << 2 << std::endl;
-         plot2 << std::endl;
-         plot2 << std::endl;
-      }
-   }
-   plot1.close();
-   plot2.close();
-   int icolor = 0;
-   for (auto it = macro.macro_element.begin(); it != macro.macro_element.end();
-        ++it) {
-
-      for (int i = 0; i < it->second.idx_element.size(); ++i) {
-
-         int idxC   = it->second.idx_element[i];
-         int domain = macro.Th.get_domain_element(idxC);
-         // int idx = macro.Vh.idxElementInBackMesh(idxC);
-
-         if (domain == 0) {
-
+        if (domain == 0) {
             for (int i = 0; i < nve; ++i) {
-               plot3 << macro.Th[i] << icolor % 10 << std::endl;
+                plot1 << macro.Th[i] << 1 << std::endl;
             }
-            plot3 << macro.Th[0] << icolor % 10 << std::endl;
-            plot3 << std::endl;
-            plot3 << std::endl;
-         } else {
+            plot1 << macro.Th[0] << 1 << std::endl;
+            plot1 << std::endl;
+            plot1 << std::endl;
+        } else {
             for (int i = 0; i < nve; ++i) {
-               plot4 << macro.Th[i] << icolor % 10 << std::endl;
+                plot2 << macro.Th[i] << 2 << std::endl;
             }
-            plot4 << macro.Th[0] << icolor % 10 << std::endl;
-            plot4 << std::endl;
-            plot4 << std::endl;
-         }
-      }
-      icolor += 3;
-   }
-   plot3.close();
-   plot4.close();
+            plot2 << macro.Th[0] << 2 << std::endl;
+            plot2 << std::endl;
+            plot2 << std::endl;
+        }
+    }
+    plot1.close();
+    plot2.close();
+    int icolor = 0;
+    for (auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
 
-   plot7.close();
-   plot8.close();
+        for (int i = 0; i < it->second.idx_element.size(); ++i) {
 
-   getchar();
-   for (auto it = macro.macro_element.begin(); it != macro.macro_element.end();
-        ++it) {
+            int idxC   = it->second.idx_element[i];
+            int domain = macro.Th.get_domain_element(idxC);
+            // int idx = macro.Vh.idxElementInBackMesh(idxC);
 
-      for (int i = 0; i < it->second.inner_edge.size(); ++i) {
+            if (domain == 0) {
 
-         int idxC   = it->second.inner_edge[i].first;
-         int ie     = it->second.inner_edge[i].second;
-         int domain = macro.Th.get_domain_element(idxC);
-         int idx    = macro.Th.idxElementInBackMesh(idxC);
+                for (int i = 0; i < nve; ++i) {
+                    plot3 << macro.Th[i] << icolor % 10 << std::endl;
+                }
+                plot3 << macro.Th[0] << icolor % 10 << std::endl;
+                plot3 << std::endl;
+                plot3 << std::endl;
+            } else {
+                for (int i = 0; i < nve; ++i) {
+                    plot4 << macro.Th[i] << icolor % 10 << std::endl;
+                }
+                plot4 << macro.Th[0] << icolor % 10 << std::endl;
+                plot4 << std::endl;
+                plot4 << std::endl;
+            }
+        }
+        icolor += 3;
+    }
+    plot3.close();
+    plot4.close();
 
-         int i0 = Mesh2::Element::nvedge[ie][0];
-         int i1 = Mesh2::Element::nvedge[ie][1];
-         R2 P   = 0.5 * (((R2)macro.Th[i0].H(idx)) + ((R2)macro.Th[i1].H(idx)));
+    plot7.close();
+    plot8.close();
 
-         if (domain == 0) {
-            plot9 << P << std::endl;
+    getchar();
+    for (auto it = macro.macro_element.begin(); it != macro.macro_element.end(); ++it) {
 
-         } else {
-            plot10 << P << std::endl;
-         }
-      }
-   }
-   plot9.close();
-   plot10.close();
+        for (int i = 0; i < it->second.inner_edge.size(); ++i) {
+
+            int idxC   = it->second.inner_edge[i].first;
+            int ie     = it->second.inner_edge[i].second;
+            int domain = macro.Th.get_domain_element(idxC);
+            int idx    = macro.Th.idxElementInBackMesh(idxC);
+
+            int i0 = Mesh2::Element::nvedge[ie][0];
+            int i1 = Mesh2::Element::nvedge[ie][1];
+            R2 P   = 0.5 * (((R2)macro.Th[i0].H(idx)) + ((R2)macro.Th[i1].H(idx)));
+
+            if (domain == 0) {
+                plot9 << P << std::endl;
+
+            } else {
+                plot10 << P << std::endl;
+            }
+        }
+    }
+    plot9.close();
+    plot10.close();
 }
-
 
 // template <class Mesh> void save(const Interface<Mesh> &Gh, std::string filename = "Gh.dat") {
 
@@ -196,66 +190,62 @@ void save(const TimeMacroElement<Mesh> &macro, std::string path = "./") {
 //    plot.close();
 // }
 
-template <class Mesh> void save(const Interface<Mesh> & Gh, std::string filename = "Gh.dat") {
-
-        std::ofstream plot;
-		plot.open(filename.c_str(), std::ofstream::out);
-        const int nve = 2;
-        for(int k=0; k<Gh.nbElement();++k) {
-            for(int i=0;i<nve;++i) {
-                plot << Gh(k,i) << std::endl;
-            }
-            plot << std::endl;
-            plot << std::endl;
-        }
-        plot.close();
-
-        plot.open("normal.dat", std::ofstream::out);
-        for(int k=0; k<Gh.nbElement();++k) {
-            plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
-
-
-        }
-        plot.close();
-
-}
-
-template <class Mesh, typename L> void save(const Interface<Mesh> & Gh, L & phi, std::string filename = "Gh.dat") {
-
-        std::ofstream plot;
-		plot.open(filename.c_str(), std::ofstream::out);
-        const int nve = 2;
-        for(int k=0; k<Gh.nbElement();++k) {
-            for(int i=0;i<nve;++i) {
-                plot << Gh(k,i) << std::endl;
-            }
-            plot << std::endl;
-            plot << std::endl;
-        }
-        plot.close();
-
-        plot.open("normal_algoim.dat", std::ofstream::out);
-        for(int k=0; k<Gh.nbElement();++k) {
-            plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*phi.normal(0.5*(Gh(k,0)+Gh(k,1))) << std::endl;
-
-        }
-        plot.close();
-
-}
-
-template <class Mesh, typename L> void save(const ActiveMesh<Mesh>& Th, const Interface<Mesh> & Gh, L & phi, std::string filename, double t) {
-    using mesh_t        = Mesh;
-    using fespace_t     = GFESpace<mesh_t>;
-    using FElement      = typename fespace_t::FElement;
-    using Rd            = typename FElement::Rd;
-    using Element       = typename mesh_t::Element;
+template <class Mesh> void save(const Interface<Mesh> &Gh, std::string filename = "Gh.dat") {
 
     std::ofstream plot;
     plot.open(filename.c_str(), std::ofstream::out);
     const int nve = 2;
-    for(int k=0; k<Gh.nbElement();++k) {
-        for(int i=0;i<nve;++i) {
-            plot << Gh(k,i) << std::endl;
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        for (int i = 0; i < nve; ++i) {
+            plot << Gh(k, i) << std::endl;
+        }
+        plot << std::endl;
+        plot << std::endl;
+    }
+    plot.close();
+
+    plot.open("normal.dat", std::ofstream::out);
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        plot << 0.5 * (Gh(k, 0) + Gh(k, 1)) << "\t" << 0.1 * Gh.normal(k) << std::endl;
+    }
+    plot.close();
+}
+
+template <class Mesh, typename L> void save(const Interface<Mesh> &Gh, L &phi, std::string filename = "Gh.dat") {
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = 2;
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        for (int i = 0; i < nve; ++i) {
+            plot << Gh(k, i) << std::endl;
+        }
+        plot << std::endl;
+        plot << std::endl;
+    }
+    plot.close();
+
+    plot.open("normal_algoim.dat", std::ofstream::out);
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        plot << 0.5 * (Gh(k, 0) + Gh(k, 1)) << "\t" << 0.1 * phi.normal(0.5 * (Gh(k, 0) + Gh(k, 1))) << std::endl;
+    }
+    plot.close();
+}
+
+template <class Mesh, typename L>
+void save(const ActiveMesh<Mesh> &Th, const Interface<Mesh> &Gh, L &phi, std::string filename, double t) {
+    using mesh_t    = Mesh;
+    using fespace_t = GFESpace<mesh_t>;
+    using FElement  = typename fespace_t::FElement;
+    using Rd        = typename FElement::Rd;
+    using Element   = typename mesh_t::Element;
+
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve = 2;
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        for (int i = 0; i < nve; ++i) {
+            plot << Gh(k, i) << std::endl;
         }
         plot << std::endl;
         plot << std::endl;
@@ -275,7 +265,9 @@ template <class Mesh, typename L> void save(const ActiveMesh<Mesh>& Th, const In
 
             algoim::QuadratureRule<2> q =
                 algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, 5);
+            assert(q.nodes.size() != 0);
             for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
                 Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
                 plot << mip << std::endl;
             }
@@ -284,22 +276,17 @@ template <class Mesh, typename L> void save(const ActiveMesh<Mesh>& Th, const In
 
     plot.close();
 
-
     plot.open("normal_algoim.dat", std::ofstream::out);
-    for(int k=0; k<Gh.nbElement();++k) {
-        plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << -0.1*phi.normal(0.5*(Gh(k,0)+Gh(k,1))) << std::endl;
-
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        plot << 0.5 * (Gh(k, 0) + Gh(k, 1)) << "\t" << -0.1 * phi.normal(0.5 * (Gh(k, 0) + Gh(k, 1))) << std::endl;
     }
     plot.close();
 
     plot.open("normalQ.dat", std::ofstream::out);
-    for(int k=0; k<Gh.nbElement();++k) {
-        plot << 0.5*(Gh(k,0)+Gh(k,1)) << "\t" << 0.1*Gh.normal(k) << std::endl;
-
-
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        plot << 0.5 * (Gh(k, 0) + Gh(k, 1)) << "\t" << 0.1 * Gh.normal(k) << std::endl;
     }
     plot.close();
-
 }
 
 // template <class Mesh> void save(const Mesh &mesh) {
@@ -331,36 +318,25 @@ template <class Mesh, typename L> void save(const ActiveMesh<Mesh>& Th, const In
 //    plot.close();
 // }
 
+void save(const Interface<Mesh2> &Gh, const Mapping2 &mapping, std::string filename = "Gh.dat") {
 
+    std::ofstream plot;
+    plot.open(filename.c_str(), std::ofstream::out);
+    const int nve  = 2;
+    const int accu = 10;
 
+    for (int k = 0; k < Gh.nbElement(); ++k) {
+        const int kb = Gh.idxElementOfFace(k); // on the back Mesh
+        for (int i = 0; i < accu + 1; ++i) {
+            R2 P(Gh(k, 0) * (double)i / accu + (1 - (double)i / accu) * Gh(k, 1));
 
-void save(const Interface<Mesh2> &Gh, const Mapping2 &mapping,
-          std::string filename = "Gh.dat") {
-
-   std::ofstream plot;
-   plot.open(filename.c_str(), std::ofstream::out);
-   const int nve  = 2;
-   const int accu = 10;
-
-   for (int k = 0; k < Gh.nbElement(); ++k) {
-      const int kb = Gh.idxElementOfFace(k); // on the back Mesh
-      for (int i = 0; i < accu + 1; ++i) {
-         R2 P(Gh(k, 0) * (double)i / accu + (1 - (double)i / accu) * Gh(k, 1));
-
-         plot << mapping.map(kb, P) << std::endl;
-      }
-      plot << std::endl;
-      plot << std::endl;
-   }
-   plot.close();
+            plot << mapping.map(kb, P) << std::endl;
+        }
+        plot << std::endl;
+        plot << std::endl;
+    }
+    plot.close();
 }
-
-
-
-
-
-
-
 
 // void save(const Mesh2 & Th, const Fracture& fracture, std::string filename =
 // "Th_fractured.dat") {

@@ -37,6 +37,8 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
     algoim::QuadratureRule<2> q =
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
 
+    assert(q.nodes.size() != 0); // assert quadrature rule is not empty
+
     // Loop over the variational formulation items
     for (int l = 0; l < VF.size(); ++l) {
         if (!VF[l].on(domain))
@@ -100,7 +102,7 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
 
     phi.t = tid; // update time in level set function
 
-    // GET IDX ELEMENT CONTAINING FACE ON backMes
+    //  GET IDX ELEMENT CONTAINING FACE ON backMes
     const int kb = interface.idxElementOfFace(ifac);
     const Element &K(interface.get_element(kb));
 
@@ -115,9 +117,11 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
     algoim::QuadratureRule<2> q =
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
 
+    
+    assert(q.nodes.size() != 0); // assert quadrature rule not empty
+
     for (int l = 0; l < VF.size(); ++l) {
-        // std::cout << "hello?"
-        //           << "\n";
+        
         // if(!VF[l].on(domain)) continue;
 
         // FINITE ELEMENT SPACES && ELEMENTS
@@ -150,7 +154,9 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
         // double coef = VF[l].computeCoefFromNormal(normal);
 
         // LOOP OVER QUADRATURE IN SPACE
+
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
             // typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
             // const Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
 
@@ -173,6 +179,12 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
                                                            normal);
             Cint *= coef * VF[l].c;
 
+            // std::cout << "mip = " << mip << "\t" << "feval = "
+            //           << VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv),
+            //           mip,
+            //                                                     tid, normal)
+            //           << "\n";
+
             if (In) {
                 if (VF.isRHS())
                     this->addToRHS(VF[l], *In, FKv, fv, Cint);
@@ -186,6 +198,7 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
             }
         }
     }
+    //getchar();
 }
 
 template <typename M, typename L>
@@ -238,6 +251,7 @@ void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, con
         RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop); //  the value for basic fonction
         What_d Fop = Fwhatd(lastop);
 
+        assert(q.nodes.size() != 0);
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
             Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
