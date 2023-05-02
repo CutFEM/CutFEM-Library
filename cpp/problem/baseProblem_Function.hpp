@@ -345,7 +345,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF,
 template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, const Mesh &Th, const CFacet &b) {
     assert(VF.isRHS());
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
-        
+
         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
 
             int jfac = ifac;
@@ -362,7 +362,6 @@ template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, c
         }
     }
 }
-
 
 template <typename M>
 void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1,
@@ -608,7 +607,16 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::li
                     int id_item = FK.DFOnWhat(df);
 
                     if (id_item < K.nv) {
-                        assert(0);
+                        bool is_on_border = false;
+                        for (int i = 0; i < Element::nv; ++i) {
+                            int i_e = K::nvedge.at(ifac).at(i);
+                            if (i == id_item) {
+                                is_on_border = true;
+                                break;
+                            }
+                        }
+                        int df_glob = FK.loc2glb(df);
+                        dof2set.insert({df_glob, gh(df_glob)});
                     } else if (id_item < K.nv + K.ne) {
                         // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
                         int id_face = id_item - K.nv;
@@ -1296,12 +1304,12 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_(ndf) = val;
-    //this->nb_dof_ += 1; //? added but doesn't make a difference
+    // this->nb_dof_ += 1; //? added but doesn't make a difference
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
 
         addLagrangeContribution(VF, gamma, iface);
-        
+
         this->addLocalContributionLagrange(ndf);
     }
 }
@@ -1309,7 +1317,7 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
 // // First attempt
 // template <typename M>
 // void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface<M> &interface, const int ifac) {
-    
+
 //     typedef typename FElement::RdHatBord RdHatBord;
 
 //     // GET IDX ELEMENT CONTAINING FACE ON backMes
@@ -1373,7 +1381,7 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
 //             double Cint      = meas * ip.getWeight();
 
 //             //std::cout << Cint << "\n";
-            
+
 //             // const Rd map_mip = mapping.map(kb, mip);
 
 //             // mapping.computeInverseJacobian(kb, mip, invJ);
@@ -1391,7 +1399,8 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
 //             // Cint *= VF[l].computeCoefFromNormal(normal);
 //             Cint *= VF[l].computeCoefFromNormal(linear_normal);
 //             // Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), domv, normal);
-//             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domv, domv), mip, 0.,
+//             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domv, domv), mip,
+//             0.,
 //                                                            linear_normal);
 
 //             this->addToMatrix(VF[l], FKv, fv, Cint);
@@ -1399,10 +1408,9 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
 //     }
 // }
 
-
 template <typename M>
 void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface<M> &interface, const int ifac) {
-    
+
     typedef typename FElement::RdHatBord RdHatBord;
 
     // GET IDX ELEMENT CONTAINING FACE ON backMes
@@ -1482,9 +1490,6 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const Interface
         }
     }
 }
-
-
-
 
 template <typename M>
 void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE,
