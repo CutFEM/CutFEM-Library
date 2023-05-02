@@ -321,12 +321,11 @@ int main(int argc, char **argv) {
 
         // Add RHS on surface
         surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface);
+        // surfactant.addLinear(fun_rhs, innerProduct(1., v), interface);
 
-        // Add Lagrange multiplier
         surfactant.addLagrangeMultiplier(innerProduct(1., v), 0., interface);
 
-        matlab::Export(surfactant.mat_[0], path_output_data + "mat_" + std::to_string(j) + ".dat");
-
+        matlab::Export(surfactant.mat_[0], "mat.dat");
         // Solve linear system
         surfactant.solve("mumps");
 
@@ -494,7 +493,7 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
 
-        Mesh Th(nx, ny, -2.4, -2.4, lx, ly);
+        MeshQuad2 Th(nx, ny, -2.4, -2.4, lx, ly);
         // Mesh Th(nx, ny, -3, -3, lx, ly);
 #endif
 
@@ -544,7 +543,7 @@ int main(int argc, char **argv) {
 
         // Background FE Space, Time FE Space & Space-Time Space
         // 2D Domain space
-        GFESpace<Mesh> Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+        GFESpace<MeshQuad2> Vh(Th, DataFE<MeshQuad2>::P1); // continuous basis functions
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;

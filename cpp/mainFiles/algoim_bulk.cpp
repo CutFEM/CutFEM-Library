@@ -72,12 +72,12 @@ namespace Example1 {
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return - ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17) - Epsilon;
+    return - ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17) ;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return - ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17) - Epsilon;
+    return - ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17) ;
 }
 
 template <int N> struct Levelset {
@@ -189,12 +189,12 @@ namespace Example1_pure_diffusion {
 
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 ;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 ;
 }
 
 // The rhs Neumann boundary condition
@@ -266,13 +266,13 @@ namespace Example1_Omega1 {
     // Level-set function
     double fun_levelSet(double *P, const int i, const R t) {
         R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-        return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 - Epsilon;
+        return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 ;
         // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
     }
 
     // Level-set function initial
     double fun_levelSet(double *P, const int i) {
-        return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
+        return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 ;
     }
 
     // The rhs Neumann boundary condition
@@ -756,7 +756,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, 0., 0., lx, ly);
+        Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
 #elif defined(lehrenfeld)
         const double lx = 7., ly = 3.;
 #ifdef use_h

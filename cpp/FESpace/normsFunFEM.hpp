@@ -409,12 +409,12 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, i
             const R Cint = meas * ip.getWeight();
             double a     = fh->eval(k, mip) - fex(mip, fh->cu);
 
-            std::cout << " ----------- " << std::endl;
-            std::cout << mip << std::endl;
-            std::cout << fh->eval(k, mip) << "\t" << fex(mip, fh->cu) << std::endl;
+            // std::cout << " ----------- " << std::endl;
+            // std::cout << mip << std::endl;
+            // std::cout << fh->eval(k, mip) << "\t" << fex(mip, fh->cu) << std::endl;
             val += Cint * a * a;
         }
-        getchar();
+        //getchar();
     }
     double val_receive = 0;
 #ifdef USE_MPI

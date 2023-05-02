@@ -244,7 +244,7 @@ template <int N> struct Levelset {
 
 using namespace ConvectionDiffusionConstVel;
 
-#define algoim         // options: "algoim", "quad", "triangle"
+#define triangle         // options: "algoim", "quad", "triangle"
 #define neumann
 #define use_h
 
@@ -324,11 +324,11 @@ int main(int argc, char **argv) {
 
         const double D = 1., lambda = 10.;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+        FESpace Vh(Th, DataFE<Mesh>::P1);       // continuous basis functions
 
         // Velocity field
 #if defined(algoim) || defined(quad)
-        LagrangeQuad2 FEvelocity(1);
+        LagrangeQuad2 FEvelocity(0);
 #elif defined(triangle)
         Lagrange2 FEvelocity(1);
 #endif
@@ -380,7 +380,7 @@ int main(int argc, char **argv) {
         // gnuplot::save<Mesh, Levelset<2>>(Thi, *interface(0), phi, "interface.dat", current_time);
         // gnuplot::save<Mesh>(*interface(0));
         // getchar();
-
+        
         //* Diffusion term
         convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi);
 
@@ -426,8 +426,9 @@ int main(int argc, char **argv) {
         // Add RHS in bulk
         convdiff.addLinear(+innerProduct(f.expr(), v), Thi);
 
-        matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" +
-                                             std::to_string(j + 1) + ".dat");
+        // matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" +
+        //                                      std::to_string(j + 1) + ".dat");
+        matlab::Export(convdiff.mat_[0], "mat_P1.dat");
 
         // Solve linear system
         convdiff.solve("mumps");

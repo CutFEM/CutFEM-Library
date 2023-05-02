@@ -62,6 +62,8 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
                  lastop); //  the value for basic function
         What_d Fop = Fwhatd(lastop);
 
+        //std::cout << "fu = " << fu << "\n";
+        
         // Loop over quadrature in space
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
@@ -76,6 +78,9 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
             if (!same)
                 FKu.BF(Fop, cut_ip, fu);
 
+            // std::cout << "mip: " << mip
+            //           << ",\t feval = " << VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid) << "\n";
+            
             // Find and compute all the coefficients and parameters
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
             Cint *= VF[l].c;
@@ -93,6 +98,7 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
             }
         }
     }
+    //getchar();
 }
 
 template <typename M, typename L>

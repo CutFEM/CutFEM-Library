@@ -190,8 +190,8 @@ class TypeOfFE_P0LagrangeQ2d : public GTypeOfFE<MeshQuad2> {
 
 const int TypeOfFE_P0LagrangeQ2d::nbNodeOnItem[4] = {0, 0, 1, 0};
 int TypeOfFE_P0LagrangeQ2d::Data[]                = {
-    6,          // the support number  of the node of the df
-    0,          // the number of the df on  the node
+    8,          // 0, 1, 2, 3 denotes nodes of Quad2D elements, 4, 5, 6, 7 its edges, and 8 the whole face (surface of the element), corresponding to dof in the middle 
+    0,          // the number of the df on the node
     0,          // the node of the df
     0,          // which are de df on sub FE
     0, 0, 1, 0, // nb node on what
