@@ -540,6 +540,90 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
 }
 
 /**
+ * @brief Integrate stationary function over stationary domain
+ * 
+ * @tparam L 
+ * @tparam fct_t 
+ * @param fh 
+ * @param Th 
+ * @param phi 
+ * @return double 
+ */
+template <typename L, typename fct_t>
+double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c0) {
+
+    assert(Th.get_nb_domain() == 1);
+
+    using mesh_t        = MeshQuad2;
+    using fespace_t     = GFESpace<mesh_t>;
+    using itemVFlist_t  = ListItemVF<mesh_t>;
+    using FElement      = typename fespace_t::FElement;
+    using Rd            = typename FElement::Rd;
+    using QF            = typename FElement::QF;
+    using QFB           = typename FElement::QFB;
+    using Element       = typename mesh_t::Element;
+    using BorderElement = typename mesh_t::BorderElement;
+
+    double val       = 0.;
+    const int domain = 0;
+    const int cu     = 1; // number of components
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (domain != Th.get_domain_element(k))
+            continue;
+
+
+        const Element &K(Th[k]);
+        int kb = Th.idxElementInBackMesh(k);
+
+        // Get coordinates of current quadrilateral
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+        // Get quadrature rule
+        algoim::QuadratureRule<2> q =
+            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
+
+        // if (Th.isCut(k, 0)) {
+        //     std::cout << "This element is not cut: here comes the quadrature: "
+        //               << "\n";
+        //     for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+        //         Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+        //         std::cout << "mip = " << mip[0] << ", " << mip[1] << "\n";
+        //     }
+        // }
+        // Loop over quadrature in space
+        assert(q.nodes.size() != 0);
+        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            const R weight = q.nodes.at(ipq).w;
+
+            const R Cint = weight;
+            if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+                val += Cint * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
+            } else {
+                val += Cint * fh->evalOnBackMesh(kb, domain, mip);
+            }
+        }
+    }
+
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
+
+/**
  * @brief Integrate function over time-dependent cut domain
  *
  * @tparam L Algoim level set function struct
@@ -584,7 +668,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
             continue;
 
         if (Th.isInactive(k, itq))
-            continue;
+            continue;       //! SHOULD REMOVE THIS?
 
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);

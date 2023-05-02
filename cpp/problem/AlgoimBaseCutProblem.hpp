@@ -30,6 +30,13 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
 
     void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface) override;
 
+    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+
+    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+
+    void addBilinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
+    void addLinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
+
     // template <typename Fct>
     // void addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,
     //                               double tid, const TimeSlab *In, double cst_time, int itq) override;

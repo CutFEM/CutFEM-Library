@@ -62,8 +62,8 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
                  lastop); //  the value for basic function
         What_d Fop = Fwhatd(lastop);
 
-        //std::cout << "fu = " << fu << "\n";
-        
+        // std::cout << "fu = " << fu << "\n";
+
         // Loop over quadrature in space
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
@@ -80,7 +80,7 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
 
             // std::cout << "mip: " << mip
             //           << ",\t feval = " << VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid) << "\n";
-            
+
             // Find and compute all the coefficients and parameters
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
             Cint *= VF[l].c;
@@ -98,7 +98,7 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
             }
         }
     }
-    //getchar();
+    // getchar();
 }
 
 template <typename M, typename L>
@@ -123,11 +123,10 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
     algoim::QuadratureRule<2> q =
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
 
-    
     assert(q.nodes.size() != 0); // assert quadrature rule not empty
 
     for (int l = 0; l < VF.size(); ++l) {
-        
+
         // if(!VF[l].on(domain)) continue;
 
         // FINITE ELEMENT SPACES && ELEMENTS
@@ -204,7 +203,7 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
             }
         }
     }
-    //getchar();
+    // getchar();
 }
 
 template <typename M, typename L>
@@ -293,6 +292,101 @@ void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, con
         // this->resetIndex();
     }
 }
+
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th) {
+    assert(!VF.isRHS());
+
+    //  double t0 = MPIcf::Wtime();
+
+#pragma omp parallel default(shared)
+    {
+#ifdef USE_OMP
+        assert(this->get_nb_thread() == omp_get_num_threads());
+        int thread_id = omp_get_thread_num();
+#else
+        int thread_id = 0;
+#endif
+        int verbose = (thread_id == 0) * globalVariable::verbose;
+        progress bar(" Add Bilinear CutMesh", Th.last_element(), verbose, this->get_nb_thread());
+#pragma omp for
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+            bar += Th.next_element();
+            // if (Th.isCut(k, 0)) {
+            addElementContribution(VF, k, nullptr, 0, 1.);
+            // } else {
+            //     BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+            // }
+            this->addLocalContribution();
+        }
+        bar.end();
+    }
+    // std::cout << " real time " << MPIcf::Wtime() - t0 << std::endl;
+}
+
+
+
+template <typename M, typename L> 
+void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th) {
+    assert(VF.isRHS());
+    progress bar(" Add Linear CutMesh", Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+
+        //if (Th.isCut(k, 0)) {
+        addElementContribution(VF, k, nullptr, 0, 1.);
+        // } else {
+        //     BaseFEM<M>::addElementContribution(VF, k, nullptr, 0, 1.);
+        // }
+        // if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF,
+        // k,nullptr, 0, 1.); else BaseFEM<M>::addElementContribution(VF,
+        // k,nullptr, 0, 1.);
+    }
+    bar.end();
+}
+
+
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const Interface<M> &gamma, std::list<int> label) {
+    assert(!VF.isRHS());
+    bool all_label = (label.size() == 0);
+    progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
+
+    for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
+        bar += gamma.next_element();
+
+        const typename Interface<M>::Face &face = gamma[iface]; // the face
+        if (util::contain(label, face.lab) || all_label) {
+
+            addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
+        }
+    }
+
+    bar.end();
+}
+
+
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Interface<M> &gamma, std::list<int> label) {
+    assert(VF.isRHS());
+    bool all_label = (label.size() == 0);
+    progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
+
+    for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
+        bar += gamma.next_element();
+
+        const typename Interface<M>::Face &face = gamma[iface]; // the face
+        if (util::contain(label, face.lab) || all_label) {
+
+            addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
+        }
+    }
+
+    bar.end();
+}
+
+
 
 // template <typename M, typename L>
 // template <typename Fct>

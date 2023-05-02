@@ -14,12 +14,13 @@ using namespace globalVariable;
 double fun_boundary(double *P, int elementComp) { return 2 * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_rhs(double *P, int elementComp) { return 40 * pow(pi, 2) * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_exact(double *P, int elementComp) { return 2 * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
+double fun_zero(double *P, int elementComp) { return 0.; }
 
-#define quad
+#define triangle
 
 int main(int argc, char **argv) {
 
-    const size_t iterations = 4;
+    const size_t iterations = 5;
 
     // 2 DIMENSIONAL PROBLEM
     // =====================================================
@@ -44,6 +45,7 @@ int main(int argc, char **argv) {
     int lx = 1., ly = 1.;
 
     std::array<double, iterations> errors; // array to hold bulk errors
+    std::array<double, iterations> hs;     // array to hold mesh sizes
 
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
@@ -54,6 +56,7 @@ int main(int argc, char **argv) {
         Mesh Th(nx, ny, 0., 0., lx, ly);
         FESpace Vh(Th, DataFE<Mesh>::P1);
 
+        hs.at(j)      = h;
         double lambda = 100.;
 
         Th.info();
@@ -66,6 +69,7 @@ int main(int argc, char **argv) {
         FEM<Mesh> poisson(Vh);
         Fun_h fh(Vh, fun_rhs);
         Fun_h gh(Vh, fun_exact);
+        Fun_h gh_zero(Vh, fun_zero);
         FunTest u(Vh, 1), v(Vh, 1);
         Normal n;
 
@@ -74,12 +78,15 @@ int main(int argc, char **argv) {
         poisson.addBilinear(innerProduct(grad(u), grad(v)), Th);
         poisson.addLinear(innerProduct(fh.expr(), v), Th);
 
-        poisson.addBilinear(+innerProduct(u, lambda / h * v) // added penalty
+        // poisson.setDirichlet(gh_zero, Th);
+
+        poisson.addBilinear(-innerProduct(grad(u) * n, v) - innerProduct(u, grad(v) * n) +
+                                innerProduct(u, lambda / h * v) // added penalty
                             ,
                             Th, INTEGRAL_BOUNDARY);
 
-        // poisson.addLinear(-innerProduct(gh.expr(), grad(v)*n) + innerProduct(gh.expr(), lambda/h * v), Th,
-        // INTEGRAL_BOUNDARY);
+        poisson.addLinear(- innerProduct(gh.expr(), grad(v) * n) + innerProduct(gh.expr(), lambda / h * v), Th,
+                          INTEGRAL_BOUNDARY);
 
         // RESOLUTION OF THE LINEAR SYSTEM
         // =====================================================
@@ -111,6 +118,16 @@ int main(int argc, char **argv) {
     for (int i = 0; i < iterations; i++) {
 
         std::cout << errors.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+
+    std::cout << "h = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << hs.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }
