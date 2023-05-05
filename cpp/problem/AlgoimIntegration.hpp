@@ -205,33 +205,35 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t)
 
 // Time-dependent bulk L2 norm
 template <typename Mesh, typename L>
-double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, double tt), double t, L &phi, int c0,
-                   int num_comp) {
+double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, double tt), const TimeSlab &In,
+                   const QuadratureFormular1d &qTime, const int itq, L &phi, int c0, int num_comp) {
 
     const GFESpace<Mesh> &Vh(*fh.Vh);
     const ActiveMesh<Mesh> &Th(Vh.get_mesh());
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
-        val += L2_norm_cut_2(ui, fex, Th, t, phi);
+        val += L2_norm_cut_2(ui, fex, Th, In, qTime, itq, phi);
     }
     return sqrt(val);
 }
 
 template <typename M, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
-                     const ActiveMesh<M> &Th, double t, L &phi) {
+                     const ActiveMesh<M> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime, const int itq,
+                     L &phi) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
-        val += L2_norm_cut_2(fh, fex, i, Th, t, phi);
+        val += L2_norm_cut_2(fh, fex, i, Th, In, qTime, itq, phi);
     }
     return val;
 }
 
 template <typename Mesh, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
-                     int domain, const ActiveMesh<Mesh> &Th, double t, L &phi) {
+                     int domain, const ActiveMesh<Mesh> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime,
+                     const int itq, L &phi) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename ActiveMesh<Mesh>::Element Element;
@@ -239,11 +241,17 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 
     double val = 0.;
 
-    phi.t = t;
+    GQuadraturePoint<R1> tq((qTime)[itq]);
+    const double t = In.mapToPhysicalElement(tq);
+    phi.t          = t;
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
+            continue;
+
+        // Integrate only on Omega(t_itq)
+        if (Th.isInactive(k, itq))
             continue;
 
         // const Cut_Part<Element> cutK(Th.get_cut_part(k, 0));
@@ -541,13 +549,13 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
 
 /**
  * @brief Integrate stationary function over stationary domain
- * 
- * @tparam L 
- * @tparam fct_t 
- * @param fh 
- * @param Th 
- * @param phi 
- * @return double 
+ *
+ * @tparam L
+ * @tparam fct_t
+ * @param fh
+ * @param Th
+ * @param phi
+ * @return double
  */
 template <typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c0) {
@@ -572,7 +580,6 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c
 
         if (domain != Th.get_domain_element(k))
             continue;
-
 
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
@@ -622,7 +629,6 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c
     return val_receive;
 }
 
-
 /**
  * @brief Integrate function over time-dependent cut domain
  *
@@ -668,7 +674,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
             continue;
 
         if (Th.isInactive(k, itq))
-            continue;       //! SHOULD REMOVE THIS?
+            continue; //! SHOULD REMOVE THIS?
 
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);

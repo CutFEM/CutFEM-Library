@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h = 0.1;              // starting mesh size

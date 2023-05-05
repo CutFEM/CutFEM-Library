@@ -72,12 +72,12 @@ namespace Example1 {
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return - ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17) ;
+    return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17);
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return - ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17) ;
+    return -((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17 * 0.17);
 }
 
 template <int N> struct Levelset {
@@ -85,12 +85,16 @@ template <int N> struct Levelset {
     double t;
 
     // level set function
-    template <typename T> T operator()(const algoim::uvector<T, N> &x) const { return (x(0) - 0.5 - 0.28 * sin(pi * t)) * (x(0) - 0.5 - 0.28 * sin(pi * t)) + (x(1) - 0.5 + 0.28 * cos(pi * t)) * (x(1) - 0.5 + 0.28 * cos(pi * t)) - 0.17*0.17;}
+    template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
+        return (x(0) - 0.5 - 0.28 * sin(pi * t)) * (x(0) - 0.5 - 0.28 * sin(pi * t)) +
+               (x(1) - 0.5 + 0.28 * cos(pi * t)) * (x(1) - 0.5 + 0.28 * cos(pi * t)) - 0.17 * 0.17;
+    }
 
     // gradient of level set function
     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
 
-        return algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)), 2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
+        return algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
+                                     2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
     }
 
     // normal = grad(phi)/norm(grad(phi))
@@ -98,7 +102,8 @@ template <int N> struct Levelset {
         R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
                       pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
-        return R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm, 2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
+        return R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
+                  2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
     }
 };
 
@@ -189,12 +194,12 @@ namespace Example1_pure_diffusion {
 
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
-    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 ;
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 ;
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17;
 }
 
 // The rhs Neumann boundary condition
@@ -263,96 +268,125 @@ R fun_neumann_top(double *P, const int i, const R t) {
 namespace Example1_Omega1 {
 /* This works for running Test – i.e. a pure bulk problem on Omega_2. */
 
-    // Level-set function
-    double fun_levelSet(double *P, const int i, const R t) {
-        R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-        return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 ;
-        // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
+// Level-set function
+double fun_levelSet(double *P, const int i, const R t) {
+    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17);
+    // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
+}
+
+// Level-set function initial
+double fun_levelSet(double *P, const int i) {
+    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17 * 0.17);
+}
+
+template <int N> struct Levelset {
+
+    double t;
+
+    // level set function
+    template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
+        return -((x(0) - 0.5 - 0.28 * sin(pi * t)) * (x(0) - 0.5 - 0.28 * sin(pi * t)) +
+                 (x(1) - 0.5 + 0.28 * cos(pi * t)) * (x(1) - 0.5 + 0.28 * cos(pi * t)) - 0.17 * 0.17);
     }
 
-    // Level-set function initial
-    double fun_levelSet(double *P, const int i) {
-        return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 ;
+    // gradient of level set function
+    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+
+        return algoim::uvector<T, N>(-2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
+                                     -2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
     }
 
-    // The rhs Neumann boundary condition
-    R fun_neumann_Gamma(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
-
-        // Wrong sign of normal vector at interface
-        return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2 - 0.28 * sin(pi * t))) /
-                (250 * sqrt((pow(x - 1. / 2 - 0.28 * sin(pi * t), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2)))) -
-            (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 0.5 + 0.28 * cos(pi * t))) /
-                (250 * sqrt((pow((x - 1. / 2 - 0.28 * sin(pi * t)), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2))));
+    // normal = grad(phi)/norm(grad(phi))
+    R2 normal(double *P) {
+        R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
+                      pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
+        // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
+        return R2(-2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
+                  -2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
     }
+};
 
-    // Velocity field
-    R fun_velocity(double *P, const int i) {
-        if (i == 0)
-            return M_PI * (0.5 - P[1]);
-        else
-            return M_PI * (P[0] - 0.5);
-    }
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-    // // Normal x-direction
-    // R n1(double *P, const R t) {
-    //    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    //    return (P[0] - xc) /
-    //           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-    // }
+    // Wrong sign of normal vector at interface
+    return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2 - 0.28 * sin(pi * t))) /
+               (250 * sqrt((pow(x - 1. / 2 - 0.28 * sin(pi * t), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2)))) -
+           (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 0.5 + 0.28 * cos(pi * t))) /
+               (250 * sqrt((pow((x - 1. / 2 - 0.28 * sin(pi * t)), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2))));
+}
 
-    // // Normal y-direction
-    // R n2(double *P, const R t) {
-    //    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    //    return (P[1] - yc) /
-    //           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-    // }
+R fun_one(double *P, const int i) { return 1.; }
 
-    // Initial solution bulk
-    R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
+// Velocity field
+R fun_velocity(double *P, const int i) {
+    if (i == 0)
+        return M_PI * (0.5 - P[1]);
+    else
+        return M_PI * (P[0] - 0.5);
+}
 
-    // Exact solution bulk
-    R fun_uBulk(double *P, const int i, const R t) {
-        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
-    }
+// // Normal x-direction
+// R n1(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[0] - xc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
 
-    R fun_uBulkD(double *P, const int i, const int d, const R t) {
-        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
-    }
+// // Normal y-direction
+// R n2(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[1] - yc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
 
-    // RHS fB bulk
-    R fun_rhsBulk(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
 
-        return (M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * cos(M_PI * y)) / 125 -
-            (4 * M_PI * cos(M_PI * x) * cos(M_PI * y) * sin(2 * M_PI * t)) / 5 -
-            (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * sin(M_PI * y) * (x - 0.5)) / 5 +
-            (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * y) * sin(M_PI * x) * (y - 0.5)) / 5;
-    }
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
 
-    R fun_neumann_left(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
 
-        return (pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
-    }
+// RHS fB bulk
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-    R fun_neumann_bottom(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+    return (M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * cos(M_PI * y)) / 125 -
+           (4 * M_PI * cos(M_PI * x) * cos(M_PI * y) * sin(2 * M_PI * t)) / 5 -
+           (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * sin(M_PI * y) * (x - 0.5)) / 5 +
+           (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * y) * sin(M_PI * x) * (y - 0.5)) / 5;
+}
 
-        return (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
-    }
+R fun_neumann_left(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-    R fun_neumann_right(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+    return (pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+}
 
-        return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
-    }
+R fun_neumann_bottom(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-    R fun_neumann_top(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+    return (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+}
 
-        return -(pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
-    }
+R fun_neumann_right(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+}
+
+R fun_neumann_top(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return -(pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+}
 
 } // namespace Example1_Omega1
 
@@ -509,7 +543,7 @@ double fun_levelSet(double *P, const int i, const R t) {
     double r0 = .5 + Epsilon;
     double x = P[0], y = P[1];
 
-    return -(sqrt((x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y) - r0);
+    return -(sqrt((x - (1. / 6 - 5. / 3 * y * y) * t) * (x - (1. / 6 - 5. / 3 * y * y) * t) + y * y) - r0);
 }
 
 // Level-set function initial
@@ -533,15 +567,15 @@ R fun_neumann_Gamma(double *P, const int i, const R t) {
 // Velocity field
 R fun_velocity(double *P, const int i) {
     if (i == 0)
-        return 1./6 - 5./3 * P[1] * P[1];
+        return 1. / 6 - 5. / 3 * P[1] * P[1];
     else
         return 0.;
 }
 
 // Initial solution bulk
-R fun_uBulkInit(double *P, const int i) { 
+R fun_uBulkInit(double *P, const int i) {
     double r0 = .5, x = P[0], y = P[1];
-    return cos(M_PI/r0 * (x * x + y * y));
+    return cos(M_PI / r0 * (x * x + y * y));
 }
 
 // Exact solution bulk
@@ -550,7 +584,7 @@ R fun_uBulk(double *P, const int i, const R t) {
     // return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) +
     // y*y)/r0)*sin(M_PI*t);
 
-    double r = (x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y;
+    double r = (x - (1. / 6 - 5. / 3 * y * y) * t) * (x - (1. / 6 - 5. / 3 * y * y) * t) + y * y;
     return cos(M_PI * r / (r0 * r0));
 
     // double r = sqrt((x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y);
@@ -559,8 +593,8 @@ R fun_uBulk(double *P, const int i, const R t) {
 
 R fun_uBulkD(double *P, const int i, const int d, const R t) {
     double r0 = .5, x = P[0], y = P[1];
-    double r = (x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y;
-    return cos(M_PI*r/(r0*r0));
+    double r = (x - (1. / 6 - 5. / 3 * y * y) * t) * (x - (1. / 6 - 5. / 3 * y * y) * t) + y * y;
+    return cos(M_PI * r / (r0 * r0));
 
     // double r = sqrt((x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y);
     // return cos(M_PI*r/r0);
@@ -569,7 +603,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 // RHS fB bulk
 R fun_rhsBulk(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
-    
+
     // squared
     return 8 * pi * sin(4 * pi * (pow((x + t * ((5 * y * y) / 3 - 1. / 6)), 2) + y * y)) +
            16 * pi * pi * cos(4 * pi * (pow((x + t * ((5 * y * y) / 3 - 1. / 6)), 2) + y * y)) *
@@ -633,7 +667,6 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 
 } // namespace Lehrenfeld2
 
-
 // The below parameters can be varied according to the options to use different methods,
 // different numerical examples, different subdomains and boundary conditions etc.
 
@@ -655,40 +688,41 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 
 // If "omega2":
 // Set type of BCs on interface (options: "dirichlet", "neumann")
-#define dirichlet
+#define neumann
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
 
-#define use_h // to set mesh size using the h parameter. Write use_n to decide
-              // using nx, ny.
+#define use_h    // to set mesh size using the h parameter. Write use_n to decide
+                 // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
-              // proportional to h.
+                 // proportional to h.
+
+// [0.00819470611389158, 0.00777779928730549, 0.007429149520395796]
 
 // Setup two-dimensional class types
 const int d = 2;
 #if defined(triangle)
-    typedef Mesh2 Mesh;
+typedef Mesh2 Mesh;
 #else
-    typedef MeshQuad2 Mesh;
+typedef MeshQuad2 Mesh;
 #endif
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
 typedef TestFunction<Mesh> FunTest;
 typedef FunFEM<Mesh> Fun_h;
 
-
 // Do not touch
 #ifdef example1
-    #ifdef omega1
-        using namespace Example1_Omega1;
-    #elif defined(omega2)
-        using namespace Example1;
-    #endif
+#ifdef omega1
+using namespace Example1_Omega1;
+#elif defined(omega2)
+using namespace Example1;
+#endif
 #elif defined(lehrenfeld)
 using namespace Lehrenfeld_Convection_Dominated;
 #elif defined(lehrenfeld2)
@@ -697,12 +731,12 @@ using namespace Lehrenfeld2;
 
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
-    
+
     // Mesh settings and data objects
-    const size_t iterations = 3;    // number of mesh refinements   (set to 1 to run
-                                    // only once and plot to paraview)
-    int nx = 15, ny = 15;           // starting mesh size
-    double h  = 0.1;                // starting mesh size
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
+                                 // only once and plot to paraview)
+    int nx = 15, ny = 15;        // starting mesh size
+    double h  = 0.1;             // starting mesh size
     double dT = 0.25;
 
     int total_number_iteration;
@@ -739,8 +773,8 @@ int main(int argc, char **argv) {
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
     std::array<double, iterations> hs;     // array to hold mesh sizes
-    std::array<double, iterations> nxs;                      // array to hold mesh sizes
-    std::array<double, iterations> nys;                      // array to hold mesh sizes
+    std::array<double, iterations> nxs;    // array to hold mesh sizes
+    std::array<double, iterations> nys;    // array to hold mesh sizes
     std::array<double, iterations> dts;
     std::array<double, iterations> omega;
     std::array<double, iterations> gamma;
@@ -792,8 +826,8 @@ int main(int argc, char **argv) {
         time_step = dT;
 
         hs.at(j)  = h;
-        nxs.at(j)  = nx;
-        nys.at(j)  = ny;
+        nxs.at(j) = nx;
+        nys.at(j) = ny;
         dts.at(j) = dT;
 
         if (iterations > 1) {
@@ -809,15 +843,15 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
         std::cout << "dT = " << dT << '\n';
 
-    #if defined(convection_dominated)
+#if defined(convection_dominated)
         const double D = 0.01;
-    #else
-        const double D = 1;
-    #endif
+#else
+        const double D         = 1;
+#endif
         const double lambda = 1.; // Nitsche's method penalty parameter
 
         // CG stabilization parameter
-        const double tau1 = 5e-3;
+        const double tau1 = 1.;
 
         FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 
@@ -826,8 +860,6 @@ int main(int argc, char **argv) {
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
-        FESpace1 Ih2(Qh, DataFE<Mesh1>::P2Poly);
-        // FESpace1 Ih3(Qh, DataFE<Mesh1>::P3Poly);
 
         // Quadrature data
         const QuadratureFormular1d &qTime(*Lobatto(3)); // specify order of quadrature in time
@@ -835,12 +867,12 @@ int main(int argc, char **argv) {
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
 
-    #if defined(algoim) || defined(quad)
+#if defined(algoim) || defined(quad)
         // Velocity field
         LagrangeQuad2 FEvelocity(1);
-    #else
+#else
         Lagrange2 FEvelocity(1);
-    #endif
+#endif
 
         FESpace VelVh(Th, FEvelocity);
         Fun_h vel(VelVh, fun_velocity);
@@ -863,13 +895,13 @@ int main(int argc, char **argv) {
 
         // Convection-Diffusion Problem Object
 
-    #if defined(algoim)
+#if defined(algoim)
         // Declare algoim interface
         Levelset<2> phi;
         AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi);
-    #else
+#else
         CutFEM<Mesh> convdiff(qTime);
-    #endif
+#endif
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
@@ -912,28 +944,30 @@ int main(int argc, char **argv) {
             // Create active meshes
             ActiveMesh<Mesh> Thi(Th);
 
-//#ifdef omega1
+            // #ifdef omega1
             Thi.truncate(interface, -1); // remove part with negative sign of level
-//#elif defined(omega2)
-//            Thi.truncate(interface, 1); // remove part with positive sign of level
-                                        // set to get inner domain
-//#endif
-            // Cut FE space
+                                         // #elif defined(omega2)
+            //             Thi.truncate(interface, 1); // remove part with positive sign of level
+            //  set to get inner domain
+            // #endif
+            //  Cut FE space
             CutSpace Wh(Thi, Vh);
+
+            AlgoimCutFEM<Mesh, Levelset<2>> initial_condition(Wh, phi);
+
+            initial_condition.initSpace(Wh, In);
 
             // Initialize the convection-diffusion problem
             convdiff.initSpace(Wh, In);
 
-        
             // Objects needed for the weak form
             Normal n;
             Tangent t;
-            
+
             // gnuplot::save(Th);
             // gnuplot::save<Mesh, Levelset<2>>(Thi, *interface(0), phi, "interface.dat", current_time);
             // gnuplot::save<Mesh>(*interface(0));
             // getchar();
-        
 
             // Right hand side functions
             Fun_h f(Vh, In, fun_rhsBulk);
@@ -951,6 +985,7 @@ int main(int argc, char **argv) {
             // Data for initial solution
             Rn data_u0(convdiff.get_nb_dof(), 0.); // initial data total
             convdiff.initialSolution(data_u0);
+            initial_condition.initialSolution(data_u0);
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0))); // initial data bulk
 
             if (iter == 0)
@@ -958,6 +993,17 @@ int main(int argc, char **argv) {
 
             // Make function objects to use in innerProducts
             Fun_h b0h(Wh, data_B0);
+
+            // // Solve for initial condition
+            // FunTest s(Wh, 1), r(Wh, 1);
+            // initial_condition.addBilinearAlgoim(+innerProduct(s, r), Thi, 0, In);
+            // initial_condition.addFaceStabilization(+innerProduct(0.01 * h * jump(grad(s) * n), jump(grad(r) * n)),
+            //                                        Thi, In);
+            // initial_condition.addLinearAlgoim(+innerProduct(b0h.expr(), r), Thi, 0, In);
+            // initial_condition.solve("mumps");
+            // data_u0 = initial_condition.rhs_;
+
+            // convdiff.cleanBuildInMatrix();
 
             // Plot initial solution in paraview
             // #ifdef USE_MPI
@@ -988,42 +1034,70 @@ int main(int argc, char **argv) {
 
 #ifdef conservative
 
+#if defined(algoim)
+            convdiff.addBilinearAlgoim(-innerProduct(u, dt(v)), Thi, In);
+            convdiff.addBilinearAlgoim(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
+            convdiff.addLinearAlgoim(+innerProduct(b0h.expr(), v), Thi, 0, In);
+#else
             convdiff.addBilinear(-innerProduct(u, dt(v)), Thi, In);
-
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
-
-            // Time penalty term bulk RHS
             convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
-
+#endif
 #else // classical scheme
 
+#if defined(algoim)
+            convdiff.addBilinearAlgoim(+innerProduct(dt(u), v), Thi, In);
+            convdiff.addBilinearAlgoim(+innerProduct(u, v), Thi, 0, In);
+            convdiff.addLinearAlgoim(+innerProduct(b0h.expr(), v), Thi, 0, In);
+            convdiff.addLinearAlgoim(+innerProduct(f.expr(), v), Thi, In);
+#else
             convdiff.addBilinear(+innerProduct(dt(u), v), Thi, In);
-
-            // Time penalty term bulk LHS
             convdiff.addBilinear(+innerProduct(u, v), Thi, 0, In);
-
-            // Time penalty term bulk RHS
             convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
+            convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
+#endif
 
 #endif
 
             //* Diffusion term
+#if defined(algoim)
+            convdiff.addBilinearAlgoim(+innerProduct(D * grad(u), grad(v)), Thi, In);
+#else
             convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi, In);
+#endif
 
             //* Convection term
 #if defined(classical)
+
+#if defined(algoim)
+            convdiff.addBilinearAlgoim(+innerProduct((vel.exprList() * grad(u)), v), Thi, In);
+#else
             convdiff.addBilinear(+innerProduct((vel.exprList() * grad(u)), v), Thi, In);
+#endif
 
 #elif defined(conservative)
+#if defined(algoim)
+            convdiff.addBilinearAlgoim(-innerProduct(u, (vel.exprList() * grad(v))), Thi, In);
+#else
             convdiff.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), Thi, In);
+#endif
 #endif
 
             //* Stabilization
-            convdiff.addFaceStabilization(+innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi, In);
+            double stab_bulk_faces = tau1 * h;
+            double stab_mass       = tau1 * h;
+            double stab_dt         = tau1 * h;
+            convdiff.addFaceStabilization(+innerProduct(stab_bulk_faces * jump(grad(u) * n), jump(grad(v) * n)), Thi,
+                                          In);
 
+            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
+            convdiff.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)), Thi,
+                                          In, lastQuadTime);
+
+            convdiff.addFaceStabilization(-innerProduct(stab_dt * jump(grad(u) * n), jump(grad(dt(v)) * n)), Thi,
+                                          In);
 
             //* Boundary conditions
-
 // If Omega1
 #ifdef omega1
 
@@ -1154,233 +1228,233 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
-            // Add RHS in bulk
-            convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
-
 #ifndef USE_MPI
             if ((iter == total_number_iteration - 1) && MPIcf::IamMaster()) {
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
 #elif defined(USE_MPI)
             if (iter == total_number_iteration - 1) {
-                matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" + std::to_string(j + 1) + ".dat");
+                matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) +
+                                                     "_" + std::to_string(j + 1) + ".dat");
             }
 #endif
 
-            // Solve linear system
-            convdiff.solve("mumps");
+                // Solve linear system
+                convdiff.solve("mumps");
 
-            data_u0 = convdiff.rhs_;
-            convdiff.saveSolution(data_u0);
+                data_u0 = convdiff.rhs_;
+                convdiff.saveSolution(data_u0);
 
-            // Compute conservation error
-            if (iterations == 1) {
-//                 Fun_h funuh(Wh, data_u0);
+                // Compute conservation error
+                if (iterations == 1) {
+                    //                 Fun_h funuh(Wh, data_u0);
 
-//                 intF = integral(Thi, In, f, 0, qTime);
-// #if defined(conservative) && defined(omega1) && defined(neumann1) && defined(neumann2)
-//                 auto outflow = (vel * n) * funuh.expr();
-//                 int_outflow  = integral(Thi, In, (vel * n) * b0h.expr(), INTEGRAL_BOUNDARY,
-//                                         qTime); // integral(outflow, In, interface, 0);
-//                 intG         = -integral(g_Neumann, In, interface, 0);
-// #endif
+                    //                 intF = integral(Thi, In, f, 0, qTime);
+                    // #if defined(conservative) && defined(omega1) && defined(neumann1) && defined(neumann2)
+                    //                 auto outflow = (vel * n) * funuh.expr();
+                    //                 int_outflow  = integral(Thi, In, (vel * n) * b0h.expr(), INTEGRAL_BOUNDARY,
+                    //                                         qTime); // integral(outflow, In, interface, 0);
+                    //                 intG         = -integral(g_Neumann, In, interface, 0);
+                    // #endif
 
-//                 Rn sol2(Wh.NbDoF(), 0.);
-//                 Fun_h funsol(Wh, sol2);
-//                 sol2 += data_u0(SubArray(Wh.NbDoF(), 0));
-//                 double q_0 = integral(Thi, funsol, 0, 0);
-//                 sol2 += data_u0(SubArray(Wh.NbDoF(), Wh.NbDoF()));
-//                 double q_1 = integral(Thi, funsol, 0, lastQuadTime);
+                    //                 Rn sol2(Wh.NbDoF(), 0.);
+                    //                 Fun_h funsol(Wh, sol2);
+                    //                 sol2 += data_u0(SubArray(Wh.NbDoF(), 0));
+                    //                 double q_0 = integral(Thi, funsol, 0, 0);
+                    //                 sol2 += data_u0(SubArray(Wh.NbDoF(), Wh.NbDoF()));
+                    //                 double q_1 = integral(Thi, funsol, 0, lastQuadTime);
 
-//                 if (iter == 0) {
-//                     q0_0 = q_0;
-//                     q0_1 = q_1;
-//                     qp_1 = q_1;
-//                     q0_1 = integral(Thi, b0h, 0, 0);
-//                 }
+                    //                 if (iter == 0) {
+                    //                     q0_0 = q_0;
+                    //                     q0_1 = q_1;
+                    //                     qp_1 = q_1;
+                    //                     q0_1 = integral(Thi, b0h, 0, 0);
+                    //                 }
 
-//                 outputData << std::setprecision(10);
-//                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG << ","
-// #if defined(omega1) && defined(dirichlet2)
-//                     ;
-// #elif defined(omega2) && defined(neumann)
-//                            << ((q_1 - qp_1) - intF - intG) << '\n';
-// #elif defined(omega1) && defined(neumann1)
-//                            << ((q_1 - qp_1) - intF - intG + int_outflow) << '\n';
-// #endif
-//                 qp_1 = q_1;
-            }
+                    //                 outputData << std::setprecision(10);
+                    //                 outputData << current_time << "," << (q_1 - qp_1) << "," << intF << "," << intG
+                    //                 << ","
+                    // #if defined(omega1) && defined(dirichlet2)
+                    //                     ;
+                    // #elif defined(omega2) && defined(neumann)
+                    //                            << ((q_1 - qp_1) - intF - intG) << '\n';
+                    // #elif defined(omega1) && defined(neumann1)
+                    //                            << ((q_1 - qp_1) - intF - intG + int_outflow) << '\n';
+                    // #endif
+                    //                 qp_1 = q_1;
+                }
 
-            Rn sol(Wh.get_nb_dof(), 0.);
-            sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
-            Fun_h funuh(Wh, sol);
+                Rn sol(Wh.get_nb_dof(), 0.);
+                sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
+                Fun_h funuh(Wh, sol);
 
-        #if defined(algoim)
+#if defined(algoim)
 
-            // Compute area of domain in time quadrature point 0
-            Fun_h funone(Wh, fun_one);
-            double intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi, current_time);
-            double intOmega = integral_algoim<Levelset<2>, Fun_h>(funone, Thi, phi, In, qTime, 0);
-            gamma.at(j) = intGamma;
-            omega.at(j) = intOmega;
+                // Compute area of domain in time quadrature point 0
+                Fun_h funone(Wh, fun_one);
+                double intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi, current_time);
+                double intOmega = integral_algoim<Levelset<2>, Fun_h>(funone, Thi, phi, In, qTime, 0);
+                gamma.at(j)     = intGamma;
+                omega.at(j)     = intOmega;
 
-            double errBulk = L2_norm_cut(funuh, fun_uBulkD, current_time, phi, 0, 1);
-        #else
+                double errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1);
+#else
             Fun_h funone(Wh, fun_one);
             double intGamma = integral(funone, interface(0), 0);
             double intOmega = integral(Thi, funone, 0, 0);
-            gamma.at(j) = intGamma;
-            omega.at(j) = intOmega;
+            gamma.at(j)     = intGamma;
+            omega.at(j)     = intOmega;
 
             double errBulk = L2normCut(funuh, fun_uBulkD, current_time, 0, 1);
-        #endif
-            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
+#endif
+                std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
 
-            sol += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
-            
-        #if defined(algoim)
-            errBulk = L2_norm_cut(funuh, fun_uBulkD, current_time + dT, phi, 0, 1);
-        #elif defined(quad)
-            errBulk = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
-        #endif
-            std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
+                sol += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
 
-            errors.at(j) = errBulk;
+#if defined(algoim)
+                errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1);
+#elif defined(quad)
+            errBulk        = L2normCut(funuh, fun_uBulkD, current_time + dT, 0, 1);
+#endif
+                std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
 
-            // #ifdef USE_MPI
-            //          if ((iterations == 1) && MPIcf::IamMaster()) {
-            // #else
-            if ((iterations == 1)) {
-                Fun_h sol(Wh, data_u0);
-                Paraview<Mesh> writer(Thi, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
-                writer.add(b0h, "bulk", 0, 1);
+                errors.at(j) = errBulk;
 
-                Fun_h uBex(Wh, fun_uBulk, current_time);
-                Fun_h fB(Wh, fun_rhsBulk, current_time);
-                
-                writer.add(uBex, "bulk_exact", 0, 1);
-                writer.add(fB, "bulk_rhs", 0, 1);
-                writer.add(g_Neumann, "neumann", 0, 1);
-                writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
-                // writer.add(fabs(uuh - uuex), "bulk_error");
-                writer.add(ls[0], "levelSet0", 0, 1);
-                writer.add(ls[1], "levelSet1", 0, 1);
-                writer.add(ls[2], "levelSet2", 0, 1);
-                writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-                writer.writeFaceStab(Thi, 0, path_output_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
+                // #ifdef USE_MPI
+                //          if ((iterations == 1) && MPIcf::IamMaster()) {
+                // #else
+                if ((iterations == 1)) {
+                    Fun_h sol_h(Wh, sol);
+                    Paraview<Mesh> writer(Thi, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
+                    writer.add(b0h, "bulk", 0, 1);
+                    writer.add(sol_h, "bulk_end", 0, 1);
 
-            #if defined(algoim)
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, -1,
-                                                path_output_figures + "AlgoimQuadrature_0" + std::to_string(iter + 1) +
-                                                    ".vtk");
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, -1,
-                                                path_output_figures + "AlgoimQuadrature_1" + std::to_string(iter + 1) +
-                                                    ".vtk");
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 2, -1,
-                                                path_output_figures + "AlgoimQuadrature_2" + std::to_string(iter + 1) +
-                                                    ".vtk");
-            #endif
+                    Fun_h uBex(Wh, fun_uBulk, current_time);
+                    Fun_h fB(Wh, fun_rhsBulk, current_time);
+
+                    writer.add(uBex, "bulk_exact", 0, 1);
+                    writer.add(fB, "bulk_rhs", 0, 1);
+                    writer.add(g_Neumann, "neumann", 0, 1);
+                    writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
+                    // writer.add(fabs(uuh - uuex), "bulk_error");
+                    writer.add(ls[0], "levelSet0", 0, 1);
+                    writer.add(ls[1], "levelSet1", 0, 1);
+                    writer.add(ls[2], "levelSet2", 0, 1);
+                    writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                    writer.writeFaceStab(Thi, 0, path_output_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
+
+#if defined(algoim)
+                    writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, -1,
+                                                 path_output_figures + "AlgoimQuadrature_0" + std::to_string(iter + 1) +
+                                                     ".vtk");
+                    writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, -1,
+                                                 path_output_figures + "AlgoimQuadrature_1" + std::to_string(iter + 1) +
+                                                     ".vtk");
+                    writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 2, -1,
+                                                 path_output_figures + "AlgoimQuadrature_2" + std::to_string(iter + 1) +
+                                                     ".vtk");
+#endif
+                }
+
+                if (iterations > 1 && iter == total_number_iteration - 1)
+                    outputData << h << "," << dT << "," << errBulk << '\n';
+
+                iter++;
             }
-
-            if (iterations > 1 && iter == total_number_iteration - 1)
-                outputData << h << "," << dT << "," << errBulk << '\n';
-
-            iter++;
-        }
 
 // Refine mesh
 #ifdef use_n
-        nx *= 2;
-        ny *= 2;
+            nx *= 2;
+            ny *= 2;
 #elif defined(use_t)
         dT *= 0.5;
 #elif defined(use_h)
         h *= 0.5;
-        //h *= sqrt(0.5);
+        // h *= sqrt(0.5);
 #endif
-    }
-
-    std::cout << std::setprecision(16);
-    std::cout << '\n';
-    std::cout << "Errors Bulk = [";
-    for (int i = 0; i < iterations; i++) {
-
-        std::cout << errors.at(i);
-        if (i < iterations - 1) {
-            std::cout << ", ";
         }
-    }
-    std::cout << "]" << '\n';
-    std::cout << '\n';
 
-    std::cout << '\n';
-    std::cout << "|Gamma_h| = [";
-    for (int i = 0; i < iterations; i++) {
+        std::cout << std::setprecision(16);
+        std::cout << '\n';
+        std::cout << "Errors Bulk = [";
+        for (int i = 0; i < iterations; i++) {
 
-        std::cout << gamma.at(i);
-        if (i < iterations - 1) {
-            std::cout << ", ";
+            std::cout << errors.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
         }
-    }
-    std::cout << "]" << '\n';
-    std::cout << '\n';
+        std::cout << "]" << '\n';
+        std::cout << '\n';
 
-    std::cout << '\n';
-    std::cout << "|Omega_h| = [";
-    for (int i = 0; i < iterations; i++) {
+        std::cout << '\n';
+        std::cout << "|Gamma_h| = [";
+        for (int i = 0; i < iterations; i++) {
 
-        std::cout << omega.at(i);
-        if (i < iterations - 1) {
-            std::cout << ", ";
+            std::cout << gamma.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
         }
-    }
-    std::cout << "]" << '\n';
-    std::cout << '\n';
-    
-    std::cout << '\n';
-    std::cout << "h = [";
-    for (int i = 0; i < iterations; i++) {
+        std::cout << "]" << '\n';
+        std::cout << '\n';
 
-        std::cout << hs.at(i);
-        if (i < iterations - 1) {
-            std::cout << ", ";
+        std::cout << '\n';
+        std::cout << "|Omega_h| = [";
+        for (int i = 0; i < iterations; i++) {
+
+            std::cout << omega.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
         }
-    }
-    std::cout << "]" << '\n';
-    std::cout << '\n';
+        std::cout << "]" << '\n';
+        std::cout << '\n';
 
-    std::cout << "dT = [";
-    for (int i = 0; i < iterations; i++) {
+        std::cout << '\n';
+        std::cout << "h = [";
+        for (int i = 0; i < iterations; i++) {
 
-        std::cout << dts.at(i);
-        if (i < iterations - 1) {
-            std::cout << ", ";
+            std::cout << hs.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
         }
-    }
-    std::cout << "]" << '\n';
+        std::cout << "]" << '\n';
+        std::cout << '\n';
 
-    std::cout << '\n';
+        std::cout << "dT = [";
+        for (int i = 0; i < iterations; i++) {
 
-    std::cout << "nx = [";
-    for (int i = 0; i < iterations; i++) {
-
-        std::cout << nxs.at(i);
-        if (i < iterations - 1) {
-            std::cout << ", ";
+            std::cout << dts.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
         }
-    }
-    std::cout << "]" << '\n';
+        std::cout << "]" << '\n';
 
-    std::cout << '\n';
+        std::cout << '\n';
 
-    std::cout << "ny = [";
-    for (int i = 0; i < iterations; i++) {
+        std::cout << "nx = [";
+        for (int i = 0; i < iterations; i++) {
 
-        std::cout << nys.at(i);
-        if (i < iterations - 1) {
-            std::cout << ", ";
+            std::cout << nxs.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
         }
-    }
-    std::cout << "]" << '\n';
+        std::cout << "]" << '\n';
 
-    return 0;
-}
+        std::cout << '\n';
+
+        std::cout << "ny = [";
+        for (int i = 0; i < iterations; i++) {
+
+            std::cout << nys.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
+        }
+        std::cout << "]" << '\n';
+
+        return 0;
+    }

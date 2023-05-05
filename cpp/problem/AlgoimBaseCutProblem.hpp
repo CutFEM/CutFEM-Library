@@ -22,20 +22,26 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     L &phi;
 
   public:
+    
+    // Integrals over cut domains
+    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
+    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
+
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                 double cst_time) override;
 
-    void addInterfaceContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, int ifac, double tid,
-                                  const TimeSlab *In, double cst_time, int itq) override;
-
-    void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface) override;
-
-    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
-
-    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
-
+    // Integrals over interfaces
     void addBilinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
     void addLinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
+    void addInterfaceContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, int ifac, double tid,
+                                  const TimeSlab *In, double cst_time, int itq) override;
+    void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface) override;
+
+
 
     // template <typename Fct>
     // void addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,

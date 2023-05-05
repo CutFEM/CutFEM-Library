@@ -193,9 +193,9 @@ template <class M> class Paraview {
                 int kb     = cutTh.idxElementInBackMesh(k);
                 // Sometimes the following three lines should be outcommented, to view the solution in all quadrature
                 // points
-                if (cutTh.isInactive(k, 0)) {
-                    continue;
-                }
+                // if (cutTh.isInactive(k, 0)) {
+                //     continue;
+                // }
                 if (cutTh.isCut(k, 0)) {
 
                     const Cut_Part<Element> cutK(cutTh.get_cut_part(k, 0));
@@ -1313,7 +1313,9 @@ template <class M> class Paraview {
                 if (domain != cutTh.get_domain_element(k))
                     continue;
 
-                if (cutTh.isInactive(k, itq) || !cutTh.isCut(k, itq))
+                // if (cutTh.isInactive(k, itq) || !cutTh.isCut(k, itq))
+                //     continue;
+                if (cutTh.isInactive(k, itq))
                     continue;
 
                 int domain = cutTh.get_domain_element(k);
@@ -1357,13 +1359,14 @@ template <class M> class Paraview {
 
             assert(algoim_domain == -1 || algoim_domain == 2);
 
-            const int quadrature_order = 5;
+            const int quadrature_order = 5; 
             const int domain           = 0; // only for one subdomain
             ntCut_                     = 0;
             ntNotcut_                  = 0;
             nv_                        = 0;
 
-            clearAndResize(10000);
+
+            clearAndResize(quadrature_order*10*cutTh.NbElement());
 
             // std::vector<Rd> all_quadrature_nodes;
 
@@ -1372,8 +1375,8 @@ template <class M> class Paraview {
                 if (domain != cutTh.get_domain_element(k))
                     continue;
 
-                if (!cutTh.isCut(k, 0))
-                    continue;
+                // if (!cutTh.isCut(k, 0))
+                //     continue;
 
                 int domain = cutTh.get_domain_element(k);
                 int kb     = cutTh.idxElementInBackMesh(k);

@@ -37,7 +37,7 @@ class LagrangeQuad2 : public BaseFE_Array<MeshQuad2, ContinuityType::continuous>
 };
 
 class Lagrange3 : public BaseFE_Array<Mesh3, ContinuityType::continuous> {
-
+  public:
     Lagrange3(int k);
 };
 
