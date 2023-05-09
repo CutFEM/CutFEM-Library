@@ -27,6 +27,7 @@
 
 // #include "../algoim/quadrature_general.hpp"
 #include "../problem/AlgoimIntegration.hpp"
+#include "../common/AlgoimInterface.hpp"
 
 using namespace globalVariable;
 
@@ -162,7 +163,10 @@ template <int N> struct Levelset {
     double t;
 
     // level set function
-    template <typename T> T operator()(const algoim::uvector<T, N> &x) const { return x(0) * x(0) + x(1) * x(1) - 1; }
+    //template <typename T> T operator()(const algoim::uvector<T, N> &x) const { return x(0) * x(0) + x(1) * x(1) - 1; }
+    
+    template <typename V> typename V::value_type operator()(const V &x) const { return x[0] * x[0] + x[1] * x[1] - 1; }
+
 
     // gradient of level set function
     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
@@ -278,12 +282,16 @@ int main(int argc, char **argv) {
         Fun_h levelSet(Lh, fun_levelSet);
         InterfaceLevelSet<Mesh> interface(Th, levelSet);
         Levelset<2> phi;
+        AlgoimInterface<Mesh, Levelset<2>> interface_algoim(Th, phi);
+        
 
         // Create active meshes
         ActiveMesh<Mesh> ThGamma(Th);
-        ThGamma.createSurfaceMesh(interface);
+        //ThGamma.createSurfaceMesh(interface);
+        ThGamma.createSurfaceMesh(interface_algoim);
 
         std::cout << "Number of elements in active mesh: " << ThGamma.get_nb_element() << "\n";
+
         CutSpace Wh(ThGamma, Vh);
 
 #if defined(algoim)
@@ -310,17 +318,17 @@ int main(int argc, char **argv) {
         FunTest u(Wh, 1), v(Wh, 1);
 
         // Diffusion
-        surfactant.addBilinear(+innerProduct(gradS(u), gradS(v)), interface);
+        surfactant.addBilinearAlgoim(+innerProduct(gradS(u), gradS(v)), interface);
 
         // Convection
-        surfactant.addBilinear(+innerProduct((vel.exprList() * gradS(u)), v), interface);
+        surfactant.addBilinearAlgoim(+innerProduct((vel.exprList() * gradS(u)), v), interface);
 
         // Stabilization
         double stab_surf_face = tau1;
         surfactant.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(u) * n), jump(grad(v) * n)), ThGamma);
 
         // Add RHS on surface
-        surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface);
+        surfactant.addLinearAlgoim(+innerProduct(funrhs.expr(), v), interface);
         // surfactant.addLinear(fun_rhs, innerProduct(1., v), interface);
 
         surfactant.addLagrangeMultiplier(innerProduct(1., v), 0., interface);

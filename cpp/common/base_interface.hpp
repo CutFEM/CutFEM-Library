@@ -73,8 +73,8 @@ template <typeMesh M> class Interface {
 
     const Mesh *backMesh;
 
-    std::vector<Face> faces_;
-    std::vector<Rd> vertices_;
+    std::vector<Face> faces_;      
+    std::vector<Rd> vertices_;     
     std::vector<Rd> outward_normal_;
     std::vector<Uint> element_of_face_;
     std::map<int, int> face_of_element_;
@@ -107,9 +107,8 @@ template <typeMesh M> class Interface {
 
     Uint nbElement() const { return faces_.size(); }
     Rd normal(const int k) const { return outward_normal_[k]; }
-    bool isCut(const int k) const {
-        return (face_of_element_.find(k) != face_of_element_.end());
-    }
+    virtual bool isCut(const int k) const = 0;
+    
     const Element &get_element(int k) const { return (*backMesh)[k]; }
     const Mesh &get_mesh() const {
         assert(backMesh);

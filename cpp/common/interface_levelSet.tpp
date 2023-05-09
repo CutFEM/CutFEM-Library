@@ -34,6 +34,10 @@ SignElement<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_Si
     return SignElement<Element>(loc_ls);
 }
 
+template <typeMesh M> bool InterfaceLevelSet<M>::isCut(int k) const {
+    return (this->face_of_element_.find(k) != this->face_of_element_.end());
+}
+
 template <typeMesh M>
 Partition<typename InterfaceLevelSet<M>::Element> InterfaceLevelSet<M>::get_partition(int k) const {
     typedef typename InterfaceLevelSet<M>::Element Element;
@@ -170,11 +174,11 @@ InterfaceLevelSet<M>::make_face(const typename RefPatch<Element>::FaceIdx &ref_t
 
 /**
  * @brief Compute normal from level set function
- * 
+ *
  * @tparam M Mesh
  * @param K Mesh element
  * @param lset c_i, where the level set function is given by phi(x) = sum_{i=0}^{local DOFs} c_i psi_i(x),
- * where psi_i are the basis functions.  
+ * where psi_i are the basis functions.
  * @return InterfaceLevelSet<M>::Rd Normalized normal vector on K \cap Gamma_h.
  * @note It holds that grad(phi) = sum_{i=0}^{local DOFs} c_i \grad(psi_i)(x),
  * and for P1 triangular elements, grad(psi_i) is constant.
@@ -184,10 +188,10 @@ typename InterfaceLevelSet<M>::Rd InterfaceLevelSet<M>::make_normal(const typena
                                                                     const double lset[Element::nv]) {
 
     Rd grad[Element::nv];
-    K.Gradlambda(grad);     // compute gradient of the basis functions
+    K.Gradlambda(grad); // compute gradient of the basis functions
     Rd normal_ls;
     for (int i = 0; i < Mesh::Element::nv; ++i) {
-        normal_ls += grad[i] * lset[i];     // grad(psi_i) * c_i
+        normal_ls += grad[i] * lset[i]; // grad(psi_i) * c_i
     }
     normal_ls /= normal_ls.norm();
     return normal_ls;

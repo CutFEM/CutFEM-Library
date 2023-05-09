@@ -23,6 +23,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 class R0 {
   public:
     using R = double;
+    using value_type = double;
 
     static const int d = 0;
     R0() {}
@@ -31,6 +32,7 @@ class R0 {
 class R1 {
   public:
     using R = double;
+    using value_type = double;
 
     static const int d = 1;
     static const std::vector<R1> KHat;
@@ -94,6 +96,7 @@ class R1 {
 class R2 {
   public:
     using R = double;
+    using value_type = double;
 
     static const int d = 2;
     static const std::vector<R2> KHat;
@@ -186,6 +189,7 @@ class R3 {
 
   public:
     using R = double;
+    using value_type = double;
 
     static const int d = 3;
     static const std::vector<R3> KHat;
