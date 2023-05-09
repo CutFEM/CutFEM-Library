@@ -93,9 +93,8 @@ class dataTypeOfFE {
 
     const int *ndfOn() const { return &ndfonVertex; }
 
-    dataTypeOfFE(const std::vector<int> &nitemdim, const KN<dataTypeOfFE const *> &);
+    // dataTypeOfFE(const std::vector<int> &nitemdim, const KN<dataTypeOfFE const *> &);
     dataTypeOfFE(const std::vector<int> &nitemdim, std::vector<dataTypeOfFE const *> &&);
-
     dataTypeOfFE(const std::vector<int> &nitem, const int *Data, int nbdf, int NN);
 
     virtual ~dataTypeOfFE() {
@@ -132,10 +131,9 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
     int NbPtforInterpolation;   // Nb of interpolation points per elemen
     int NbcoefforInterpolation; // Nb of interpolation points per element
 
-    KN<IPJ> ipj_Pi_h;   //?
-    KN<RdHat> Pt_Pi_h;  //?
-    double *coef_Pi_h;  //?
-    // KN<int> begin_coef_Pi_h, end_coef_Pi_h;
+    KN<IPJ> ipj_Pi_h;  //?
+    KN<RdHat> Pt_Pi_h; //?
+    double *coef_Pi_h; //?
 
     KN<GTypeOfFE<Mesh> *> Sub_ToFE;
     KN<int> begin_dfcomp, end_dfcomp;
@@ -157,24 +155,7 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
         : dataTypeOfFE(Element::itemTopology(), data, nbdf, NN),
 
           NbPtforInterpolation(npPi), NbcoefforInterpolation(kPi), ipj_Pi_h(kPi), Pt_Pi_h(npPi), coef_Pi_h(coef_Pi_h_a),
-          // begin_coef_Pi_h, end_coef_Pi_h;
-          Sub_ToFE(nbOfFE), begin_dfcomp(N, 0), end_dfcomp(N, nbdf)
-    // begin_dfcomp(data+4*nbdf+4+N),
-    // end_dfcomp(data+4*nbdf+4+2*N)
-    {
-        Sub_ToFE = this;
-    }
-
-    /*
-     *  Constructor for GTypeOfFE_Sum
-     *
-     */
-    GTypeOfFE(const KN<GTypeOfFE<Mesh> const *> &t)
-        : dataTypeOfFE(Element::itemTopology(), t), NbPtforInterpolation(this->nbNode),
-          NbcoefforInterpolation(this->nbNode), Sub_ToFE(nbOfFE), begin_dfcomp(N, 0), end_dfcomp(N, this->nbDoF)
-
-    {
-
+          Sub_ToFE(nbOfFE), begin_dfcomp(N, 0), end_dfcomp(N, nbdf) {
         Sub_ToFE = this;
     }
 
@@ -188,26 +169,6 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
         Sub_ToFE = this;
     }
 
-    //   /*
-    //  *  Constructor for GTypeOfFE_Time
-    //  *
-    //  */
-    // GTypeOfFE(const KN<GTypeOfFE<Mesh> const *> &t, const GTypeOfFE<Mesh1>*
-    // tt)
-    //   :
-    //   dataTypeOfFE(Element::nitemdim,t, tt),
-    //   NbPtforInterpolation(this->nbNode),
-    //   NbcoefforInterpolation(this->nbNode),
-    //   PtInterpolation(0),
-    //   coefInterpolation(0,0),
-    //   Sub_ToFE(nbOfFE),
-    //   begin_dfcomp(N,0),
-    //   end_dfcomp(N,this->nbDoF)
-
-    // {
-    //   Sub_ToFE = this;
-    // }
-
     // virtual void init(InterpolationMatrix<RdHat> & M) const;
     virtual void FB(const What_d whatd, const Element &K, const Rd &P, KNMK_<R> &val) const = 0;
     virtual void FB(const What_d whatd, const Element &K, const Rd &P, KNMK_<R> &val, const KNM_<R> &J) const {
@@ -220,16 +181,6 @@ template <class Mesh> class GTypeOfFE : public dataTypeOfFE {
     GTypeOfFE(const GTypeOfFE &);
     void operator=(const GTypeOfFE &);
 };
-
-// template<class Mesh>
-// void GTypeOfFE<Mesh>::init(InterpolationMatrix<RdHat> & M) const
-//   {
-//     assert(M.np==NbPtforInterpolation);
-//     assert(M.ncoef==NbcoefforInterpolation);
-//
-//     M.P=PtInterpolation;
-//     M.coef=coefInterpolation;
-//   }
 
 /*
  *   Structure that will contain the different FE

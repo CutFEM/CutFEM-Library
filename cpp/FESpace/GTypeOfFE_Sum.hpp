@@ -53,7 +53,6 @@ template <class Mesh> class GTypeOfFESum : public GTypeOfFE<Mesh> {
     KN<int> NN, DF,
         comp; // increasing array of N, dof and comp (to not recompute BF)
 
-    GTypeOfFESum(const KN<GTypeOfFE<Mesh> const *> &t);
     GTypeOfFESum(std::vector<GTypeOfFE<Mesh> const *> &t);
 
     void init(InterpolationMatrix<RdHat> &M) const;
@@ -64,21 +63,6 @@ template <class Mesh> class GTypeOfFESum : public GTypeOfFE<Mesh> {
     ~GTypeOfFESum() {}
 };
 
-template <class Mesh>
-GTypeOfFESum<Mesh>::GTypeOfFESum(const KN<GTypeOfFE<Mesh> const *> &t)
-    : GTypeOfFE<Mesh>(t), k(t.N()), teb(t), NN(k + 1), DF(k + 1), comp(k) {
-    build();
-
-    this->polynomialOrder = 0;
-    for (int i = 0; i < k; ++i) {
-        this->polynomialOrder = std::max(this->polynomialOrder, t[i]->polynomialOrder);
-    }
-    this->basisFctType = t[0]->basisFctType;
-    for (int i = 1; i < k; ++i) {
-        if (t[i]->basisFctType != this->basisFctType)
-            this->basisFctType = BasisFctType::UNDEFINED;
-    }
-}
 template <class Mesh>
 GTypeOfFESum<Mesh>::GTypeOfFESum(std::vector<GTypeOfFE<Mesh> const *> &t)
     : GTypeOfFE<Mesh>(t), k(t.size()), teb(t), NN(k + 1), DF(k + 1), comp(k) {
