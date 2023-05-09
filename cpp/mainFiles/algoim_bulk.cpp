@@ -98,7 +98,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) {
+    R2 normal(double *P) const {
         R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
                       pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
@@ -298,7 +298,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) {
+    R2 normal(double *P) const {
         R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
                       pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);

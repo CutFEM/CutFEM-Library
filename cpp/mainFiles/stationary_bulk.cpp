@@ -78,7 +78,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) {
+    R2 normal(double *P) const {
         R norm = sqrt(4.0 * P[0] * P[0] + 4.0 * P[1] * P[1]);
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
         return R2(-2.0 * P[0] / norm, -2.0 * P[1] / norm);
@@ -139,7 +139,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) {
+    R2 normal(double *P) const {
         R norm = sqrt(4.0 * P[0] * P[0] + 4.0 * P[1] * P[1]);
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
         return R2(-2.0 * P[0] / norm, -2.0 * P[1] / norm);
@@ -204,7 +204,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) {
+    R2 normal(double *P) const {
         R norm = sqrt(4.0 * P[0] * P[0] + 4.0 * P[1] * P[1]);
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
         return R2(-2.0 * P[0] / norm, -2.0 * P[1] / norm);
@@ -242,7 +242,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) {
+    R2 normal(double *P) const {
         R norm = sqrt(4.0 * (P[0] - 0.5) * (P[0] - 0.5) + 4.0 * (P[1] - 0.5) * (P[1] - 0.5));
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
         return R2(2.0 * (P[0] - 0.5) / norm, 2.0 * (P[1] - 0.5) / norm);

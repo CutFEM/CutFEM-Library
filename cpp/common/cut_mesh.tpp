@@ -565,7 +565,11 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInte
                 const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(kb);
                 const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(kb);
 
-                if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
+                const bool Ki_cut = interface(t)->isCut(kb);
+                const bool Kii_cut = interface(t+1)->isCut(kb);
+
+                //if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
+                if (Ki_cut || Kii_cut || signKi.sign() * signKii.sign() <= 0) {
                     active_element = true;
                     break;
                 }

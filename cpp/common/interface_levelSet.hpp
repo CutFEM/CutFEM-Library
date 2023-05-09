@@ -52,11 +52,11 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
     bool isCutFace(int k, int ifac) const override;
     bool isCut(int k) const override;
 
+    R measure(const Face &f) const override;
+
     Rd normal(int k, std::span<double> x = std::span<double>()) const override { return outward_normal_[k]; }
     void cut_partition(Physical_Partition<Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
                        std::list<int> &erased_element, int sign_part) const override;
-
-    bool isCut(const int k) const override override { return (this->face_of_element_.find(k) != this->face_of_element_.end()); }
 
   private:
     void make_patch(int label);

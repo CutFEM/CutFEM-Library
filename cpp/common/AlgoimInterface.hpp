@@ -27,7 +27,7 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
     std::map<int, algoim::QuadratureRule<2>> cut_elements;
 
   public:
-    AlgoimInterface(const mesh_t &Mesh, L &phi_, int label = 0);
+    AlgoimInterface(const mesh_t &Mesh, const L &phi_, int label = 0);
 
     std::map<int, algoim::QuadratureRule<2>> get_cut_elements() { return cut_elements; }
     int get_nb_cut_elements() { return cut_elements.size(); }
@@ -48,7 +48,21 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     bool isCut(int k) const override;
 
+    Rd normal(int k, std::span<double> x) const override;
+
     Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
+
+    size_t size() const { return cut_elements.size(); }
+#ifdef USE_MPI
+    virtual int first_element() const override { return MPIcf::first_element(size()); }
+    virtual int next_element() const override { return MPIcf::next_element(size()); }
+    virtual int last_element() const override { return MPIcf::last_element(size()); }
+
+#else
+    virtual int first_element() const override { return 0; }
+    virtual int next_element() const override { return 1; }
+    virtual int last_element() const override { return faces_.size(); }
+#endif
 
   private:
     void make_algoim_patch(int label);

@@ -94,7 +94,7 @@ template <typeMesh M> class Interface {
     virtual R measure(const Face &f) const                                            = 0;
     virtual Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const = 0;
     virtual bool isCutFace(int k, int ifac) const                                     = 0;
-    virtual bool isCut(const int k) const                                             = 0;
+    virtual bool isCut(int k) const                                             = 0;
 
     Rd operator()(const int k, const int i) const { return vertices_[faces_[k][i]]; }
     const Rd &operator()(const int i) const { return vertices_[CheckV(i)]; }
@@ -109,9 +109,7 @@ template <typeMesh M> class Interface {
     }
 
     Uint nbElement() const { return faces_.size(); }
-    Rd normal(const int k) const { return outward_normal_[k]; }
-    virtual bool isCut(const int k) const = 0;
-    
+
     const Element &get_element(int k) const { return (*backMesh)[k]; }
     const Mesh &get_mesh() const {
         assert(backMesh);
@@ -129,9 +127,9 @@ template <typeMesh M> class Interface {
     virtual int last_element() const { return MPIcf::last_element(faces_.size()); }
 
 #else
-    int first_element() const { return 0; }
-    int next_element() const { return 1; }
-    int last_element() const { return faces_.size(); }
+    virtual int first_element() const { return 0; }
+    virtual int next_element() const { return 1; }
+    virtual int last_element() const { return faces_.size(); }
 #endif
 
     virtual R measure(int i) const { return measure(faces_[i]); };

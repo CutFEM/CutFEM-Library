@@ -3,23 +3,20 @@
 #define ALGOIM_INTERFACE_TPP
 
 template <typeMesh M, typename L>
-AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, L &phi_, int label) : Interface<M>(Mesh), phi(phi_) {
-    std::cout << "AlgoimInterface constructor"
-              << "\n";
+AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_, int label) : Interface<M>(Mesh), phi(phi_) {
+
     make_algoim_patch(label);
 }
 
 template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(int label) {
 
-    std::cout << "make_algoim_patch  method"
-              << "\n";
     using mesh_t  = M;
     using Element = typename AlgoimInterface<M, L>::Element;
     assert(this->backMesh);
     this->faces_.resize(0); // reinitialize arrays
     this->vertices_.resize(0);
     this->element_of_face_.resize(0);
-    this->outward_normal_.resize(0);
+    //this->outward_normal_.resize(0);
     this->face_of_element_.clear();
 
     const mesh_t &Th = *(this->backMesh); // background mesh
@@ -105,6 +102,10 @@ void AlgoimInterface<M, L>::cut_partition(Physical_Partition<typename AlgoimInte
 template <typeMesh M, typename L> double AlgoimInterface<M, L>::measure(const AlgoimInterface<M,L>::Face &f) const {
     assert(0);
     return 0.;
+}
+
+template <typeMesh M, typename L> typename AlgoimInterface<M, L>::Rd AlgoimInterface<M, L>::normal(int k, std::span<double> x) const {
+    return phi.normal(x);
 }
 
 template <typeMesh M, typename L>
