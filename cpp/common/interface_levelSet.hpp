@@ -53,11 +53,12 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
     bool isCutFace(int k, int ifac) const override;
     bool isCut(int k) const override;
 
+    R measure(const Face &f) const override;
+
     Rd normal(int k, std::span<double> x = std::span<double>()) const override { return outward_normal_[k]; }
     void cut_partition(Physical_Partition<Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
                        std::list<int> &erased_element, int sign_part) const override;
 
-    double measure(const Face &f) const override;
     Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
 
     size_t size() const override { return this->faces_.size(); }

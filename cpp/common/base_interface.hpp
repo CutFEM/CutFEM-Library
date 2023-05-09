@@ -94,7 +94,7 @@ template <typeMesh M> class Interface {
     virtual R measure(const Face &f) const                                            = 0;
     virtual Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const = 0;
     virtual bool isCutFace(int k, int ifac) const                                     = 0;
-    virtual bool isCut(const int k) const                                             = 0;
+    virtual bool isCut(int k) const                                                   = 0;
 
     Rd operator()(const int k, const int i) const { return vertices_[faces_[k][i]]; }
     const Rd &operator()(const int i) const { return vertices_.at(i); }

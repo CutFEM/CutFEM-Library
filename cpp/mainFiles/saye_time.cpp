@@ -768,7 +768,7 @@ namespace Deckelnick2 {
 
         double t;
 
-        R2 normal(const R2 P) {
+        R2 normal(const R2 P) const {
             R normalize = 1./sqrt(4. * (P.x+0.5-2*t) * (P.x+0.5-2*t) + 4. * P.y * P.y);
             return R2(-2.0 * (P.x+0.5-2*t) * normalize, -2.0 * P.y * normalize);
         }

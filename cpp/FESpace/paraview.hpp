@@ -1359,19 +1359,18 @@ template <class M> class Paraview {
 
             assert(algoim_domain == -1 || algoim_domain == 2);
 
-            const int quadrature_order = 5; 
+            const int quadrature_order = 5;
             const int domain           = 0; // only for one subdomain
             ntCut_                     = 0;
             ntNotcut_                  = 0;
             nv_                        = 0;
 
-
-            clearAndResize(quadrature_order*10*cutTh.NbElement());
+            clearAndResize(quadrature_order * 10 * cutTh.NbElement());
 
             // std::vector<Rd> all_quadrature_nodes;
 
             int kk = 0;
-            for (int k = cutTh.first_element(); k < cutTh.last_element(); k += cutTh.next_element()) {
+            for (int k = 0; k < cutTh.NbElement(); k += 1) {
                 if (domain != cutTh.get_domain_element(k))
                     continue;
 
@@ -1405,6 +1404,127 @@ template <class M> class Paraview {
                 nv_ += q.nodes.size();
             }
         }
+
+        // template <typename L>
+        // void buildAlgoimQuadrature(const ActiveMesh<M> &cutTh, L &phi, const TimeSlab &In,
+        //                            const QuadratureFormular1d &qTime, const int itq, const int algoim_domain) {
+        //     using mesh_t    = M;
+        //     using fespace_t = GFESpace<mesh_t>;
+        //     using FElement  = typename fespace_t::FElement;
+        //     using Rd        = typename FElement::Rd;
+        //     using Element   = typename mesh_t::Element;
+
+        //     // algoim_domain = -1 -> integrate {phi < 0} \cap K
+        //     // algoim_domain = 2 -> integrate {phi = 0} \cap K
+
+        //     assert(algoim_domain == -1 || algoim_domain == 2);
+
+        //     const int quadrature_order = 5;
+        //     const int domain           = 0; // only for one subdomain
+        //     ntCut_                     = 0;
+        //     ntNotcut_                  = 0;
+        //     nv_                        = 0;
+
+        //     clearAndResize(1000);
+
+        //     // std::vector<Rd> all_quadrature_nodes;
+
+        //     GQuadraturePoint<R1> tq((qTime)[itq]);
+        //     const double t = In.mapToPhysicalElement(tq);
+        //     phi.t          = t;
+
+        //     int kk = 0;
+        //     for (int k = cutTh.first_element(); k < cutTh.last_element(); k += cutTh.next_element()) {
+        //         if (domain != cutTh.get_domain_element(k))
+        //             continue;
+
+        //         // if (cutTh.isInactive(k, itq) || !cutTh.isCut(k, itq))
+        //         //     continue;
+        //         if (cutTh.isInactive(k, itq))
+        //             continue;
+
+        //         int domain = cutTh.get_domain_element(k);
+        //         int kb     = cutTh.idxElementInBackMesh(k);
+
+        //         check_and_resize_array(kk);
+
+        //         const Element &K(cutTh[k]);
+        //         const auto &V0(K.at(0)); // vertex 0
+        //         const auto &V2(K.at(2)); // vertex 2   diagonally opposed
+
+        //         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+        //         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+        //         algoim::QuadratureRule<2> q = algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin,
+        //         xymax),
+        //                                                          algoim_domain, -1, quadrature_order);
+
+        //         assert(q.nodes.size() != 0);
+        //         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+        //             mesh_node[kk].push_back(R2(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1)));
+        //             num_cell[kk]  = std::make_pair(1, 1);
+        //             idx_in_Vh[kk] = std::make_pair(kb, domain);
+        //             kk++;
+        //             ntNotcut_++;
+        //         }
+
+        //         nv_ += q.nodes.size();
+        //     }
+        // }
+
+        template <typename Q> void buildQuadrature(const ActiveMesh<M> &cutTh, Q &qf) {
+            using mesh_t    = M;
+            using fespace_t = GFESpace<mesh_t>;
+            using FElement  = typename fespace_t::FElement;
+            using Rd        = typename FElement::Rd;
+            using Element   = typename mesh_t::Element;
+
+            const int n      = qf.getNbrOfQuads();
+            const int domain = 0; // only for one subdomain
+            ntCut_           = 0;
+            ntNotcut_        = 0;
+            nv_              = 0;
+
+            clearAndResize(2 * n * cutTh.NbElement());
+
+            // std::vector<Rd> all_quadrature_nodes;
+
+            int kk = 0;
+            for (int k = 0; k < cutTh.NbElement(); k += 1) {
+                if (domain != cutTh.get_domain_element(k))
+                    continue;
+
+                if (cutTh.isCut(k, 0))
+                    continue;
+                const auto &K = cutTh[k];
+
+                // if (cutTh.isCut(k, 0)) {
+
+                // const Cut_Part<Element> cutK(cutTh.get_cut_part(k, 0));
+
+                int domain = cutTh.get_domain_element(k);
+                int kb     = cutTh.idxElementInBackMesh(k);
+                check_and_resize_array(kk);
+
+                // for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+                for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+                    auto ip(qf[ipq]);
+
+                    mesh_node.at(kk).push_back(K.mapToPhysicalElement(ip));
+                    num_cell.at(kk)  = std::make_pair(1, 1);
+                    idx_in_Vh.at(kk) = std::make_pair(kb, domain);
+                    kk++;
+                    ntNotcut_++;
+                }
+
+                //}
+
+                nv_ += qf.getNbrOfQuads();
+            }
+        }
+
         bool isCut(int k) const {
             element_status.find(k);
             return (element_status.find(k) != element_status.end());
@@ -1671,6 +1791,13 @@ template <class M> class Paraview {
     void writeAlgoimQuadrature(const ActiveMesh<M> &cutTh, L &phi, const int algoim_domain, std::string name) {
         outFile_ = name;
         mesh_data.template buildAlgoimQuadrature<L>(cutTh, phi, algoim_domain);
+        this->writeFileMesh();
+        this->writeFileCell();
+    }
+
+    template <typename Q> void writeAlgoimQuadrature(const ActiveMesh<M> &cutTh, Q &qf, std::string name) {
+        outFile_ = name;
+        mesh_data.template buildQuadrature<Q>(cutTh, qf);
         this->writeFileMesh();
         this->writeFileCell();
     }
