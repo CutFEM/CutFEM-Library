@@ -37,7 +37,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../common/Mesh3dn.hpp"
 #include "../common/Mesh2dn.hpp"
 #include "../common/Mesh1dn.hpp"
-// #include "interpolationMatrix.hpp"
 
 /*
  *  compute the number of item used
@@ -168,143 +167,10 @@ static int *builddata_d(const std::vector<int> nbItem, const std::span<dataTypeO
     return data;
 }
 
-dataTypeOfFE::dataTypeOfFE(const std::vector<int> &nitemdim, const KN<dataTypeOfFE const *> &t)
-    : data(builddata_d(nitemdim, t)), dataalloc(data), ndfonVertex(data[0]), ndfonEdge(data[1]), ndfonFace(data[2]),
-      ndfonVolume(data[3]), nbDoF(data[4]), nbNode(data[5]), N(data[6]), nbOfFE(data[7]), nbNodeOnWhat(data + 8),
-      DFOnWhat(data + 15 + 0 * nbDoF), DFOfNode(data + 15 + 1 * nbDoF), NodeOfDF(data + 15 + 2 * nbDoF) {}
-
 dataTypeOfFE::dataTypeOfFE(const std::vector<int> &nitemdim, std::vector<dataTypeOfFE const *> &&t)
     : data(builddata_d(nitemdim, t)), dataalloc(data), ndfonVertex(data[0]), ndfonEdge(data[1]), ndfonFace(data[2]),
       ndfonVolume(data[3]), nbDoF(data[4]), nbNode(data[5]), N(data[6]), nbOfFE(data[7]), nbNodeOnWhat(data + 8),
       DFOnWhat(data + 15 + 0 * nbDoF), DFOfNode(data + 15 + 1 * nbDoF), NodeOfDF(data + 15 + 2 * nbDoF) {}
-
-//
-// static int *builddata_d(const int nbItem[4],
-// 			const KN<dataTypeOfFE const*>& t,
-// 			const dataTypeOfFE * tt)
-// {
-//   int nbDoFTime = tt->nbNode;
-//   int nbDoF = 0;
-//   int dfon[4] = {0,0,0,0};
-//   int k = t.N();
-//   int kt = nbDoFTime*k;
-//   int nbFE = 0;
-//
-//   for(int i=0;i<k;++i) {
-//     nbDoF   += t[i]->nbDoF*nbDoFTime;
-//     dfon[0] += t[i]->ndfonVertex*nbDoFTime;
-//     dfon[1] += t[i]->ndfonEdge*nbDoFTime;
-//     dfon[2] += t[i]->ndfonFace*nbDoFTime;
-//     dfon[3] += t[i]->ndfonVolume*nbDoFTime;
-//     nbFE += t[i]->nbOfFE;
-//   }
-//
-//   KN<int> NN(k+1), DF(kt+1) , comp(kt+1);
-//   int n=0,N=0;
-//   for ( int j=0; j<k; j++) { N += t[j]->N;}
-//
-//   //  reservation des interval en df
-//   int ii=0;
-//   for(int jt=0;jt<nbDoFTime;++jt)
-//     for (int j=0;j<k;j++) {
-//       DF[ii] = n ; n += t[j]->nbDoF;}
-//   DF[kt] = n;
-//
-//   int nwhat = 15;
-//   KN<int> w(nwhat),nn(nwhat);
-//   w=0;
-//   nn=0;
-//
-//   for ( int j=0; j<k; j++)
-//     for ( int i=0; i<t[j]->nbDoF; i++) {
-//       nn[t[j]->DFOnWhat[i]]++;
-//     }
-//
-//   int nbn=0;
-//   for( int j=0; j<nwhat; j++) {
-//     if (nn[j]) nn[j] = nbn++;
-//     else nn[j] = -1;
-//   }
-//
-//   int * data = new int[nwhat+7*nbDoF*nbDoFTime +N];
-//   int lgdata = nwhat+7*nbDoF*nbDoFTime+N;
-//
-//   for(int i=0;i<4;++i) data[i] = dfon[i];
-//
-//   data[4] = nbDoF;
-//   data[5] = nbn;
-//   data[6] = N;
-//   data[7] = nbFE;
-//
-//   int p=8;
-//   for(int i=0; i<=3; ++i){            // loop over each kind of item
-//     int maxN = 0;
-//     for(int j=0; j<k; ++j) {
-//       maxN = max(t[j]->nbNodeOnWhat[i], maxN);
-//     }
-//     data[p++] = maxN;                // save on what item element
-//   }
-//
-//   p = 15;
-//   for ( int j=0; j<k; j++) {
-//     for(int jt=0;jt<nbDoFTime;++jt){
-//       for ( int i=0; i<t[j]->nbDoF; i++){
-// 	data[p++] = t[j]->DFOnWhat[i];
-//       }
-//     }
-//   }
-//
-//   KN<int> dln(nwhat);
-//   dln=0;
-//   for ( int j=0; j<k; j++) {
-//     for(int jt=0;jt<nbDoFTime;++jt){
-//       int  cc=p;
-//       for ( int i=0; i<t[j]->nbDoF; i++) {
-// 	data[p++] = t[j]->DFOfNode[i] + dln[t[j]->DFOnWhat[i]];
-// 	// std::cout << data[p-1] << std::endl;
-//       }
-//
-//       for ( int i=0;i<t[j]->nbDoF;i++)
-// 	dln[t[j]->DFOnWhat[i]] = Max(dln[t[j]->DFOnWhat[i]],data[cc++]+1);
-//     }
-//   }
-//   // std::cout << " --------------" << std::endl;
-//
-//   //  Ok si un noeud par what
-//   for (int j=0; j<k; j++) {
-//     for(int jt=0;jt<nbDoFTime;++jt){
-//       for (int  i=0; i<t[j]->nbDoF; i++) {
-// 	data[p++] = nn[t[j]->DFOnWhat[i]];
-// 	// std::cout << data[p-1] << std::endl;
-//       }
-//     }
-//   }
-//   // getchar();
-//   for(int i=p+nwhat; i<lgdata; ++i)
-//     data[i] = 0;                        // set 0 to the rest
-//   return data;
-// }
-//
-//
-// dataTypeOfFE::dataTypeOfFE(const int nitemdim[4], const KN<dataTypeOfFE
-// const*> &t, 			   const dataTypeOfFE* tt)
-//   :
-//   data(builddata_d(nitemdim,t, tt)),
-//   dataalloc(data),
-//   ndfonVertex(data[0]),
-//   ndfonEdge(data[1]),
-//   ndfonFace(data[2]),
-//   ndfonVolume(data[3]),
-//   nbDoF(data[4]),
-//   nbNode(data[5]),
-//   N(data[6]),
-//   nbOfFE(data[7]),
-//   nbNodeOnWhat(data+8),
-//   DFOnWhat(data+15+0*nbDoF),
-//   DFOfNode(data+15+1*nbDoF),
-//   NodeOfDF(data+15+2*nbDoF)
-// {
-// }
 
 template class GTypeOfFE<Mesh1>;
 template class GTypeOfFE<Mesh2>;

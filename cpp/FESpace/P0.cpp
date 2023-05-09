@@ -249,7 +249,7 @@ class TypeOfFE_P0ScLagrange2d : public GTypeOfFE<Mesh2> {
 
 const int TypeOfFE_P0ScLagrange2d::nbNodeOnItem[4] = {0, 0, 1, 0};
 int TypeOfFE_P0ScLagrange2d::Data[]                = {
-    6,          // the support number  of the node of the df
+    8,          // the support number  of the node of the df
     0,          // the number of the df on  the node
     0,          // the node of the df
     0,          // which are de df on sub FE
