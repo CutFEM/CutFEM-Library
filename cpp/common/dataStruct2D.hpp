@@ -61,9 +61,7 @@ struct DataPoint2 {
     typedef V::Rd Rd;
     typedef R0 Face;
     static double mesure(V *pv[NbOfVertices]) { return 1.; }
-    // static double mesure() {
-    //   return 1.;
-    // }
+
     typedef R0 RdHatBord;
     typedef R0 RdHat;
     static RdHat PBord(const int *nvb, const RdHatBord &P) { return R0(); }
@@ -284,7 +282,7 @@ struct DataQuad2 {
 };
 /**
  * @brief Class for 2D quadrilateral mesh elements
- * 
+ *
  */
 class Quad2 : public GenericElement<DataQuad2> {
   public:
@@ -327,9 +325,9 @@ class Quad2 : public GenericElement<DataQuad2> {
      * @return Fill GradL such that it becomes
      * GradL = (grad(phi_0), grad(phi_1), grad(phi_2), grad(phi_3))
      */
-    //void Gradlambda(R2 *GradL, const R2 &P) const {
+    // void Gradlambda(R2 *GradL, const R2 &P) const {
     void Gradlambda(R2 *GradL) const {
-        // We are working on the physical elements, but when we compute the basis functions 
+        // We are working on the physical elements, but when we compute the basis functions
         // and its gradients, we use the uniformity required between the physical element
         // and the reference element, so we equate e.g. (y-y0)/hy = yhat, (y1 - y)/hy = 1-yhat.
         // In this function, however, P = (x, y) so we map it to the reference element first.
@@ -337,17 +335,17 @@ class Quad2 : public GenericElement<DataQuad2> {
         double hx = (vertices[1]->x - vertices[0]->x);
         double hy = (vertices[3]->y - vertices[0]->y);
 
-        //R2 PHat(this->(P));    // P will be physical coordinate, so we want to map it to reference coordinates PHat
+        // R2 PHat(this->(P));    // P will be physical coordinate, so we want to map it to reference coordinates PHat
         R2 PHat(0.5, 0.5);
 
         // Assert reference element
         assert(0. <= PHat.x && PHat.x <= 1.);
         assert(0. <= PHat.y && PHat.y <= 1.);
 
-        GradL[0] = R2(-1.*(1. - PHat.y)/hx, -1.*(1-PHat.x)/hy);
-        GradL[1] = R2((1. - PHat.y)/hx, - PHat.x/hy);
-        GradL[2] = R2(PHat.y/hx, PHat.x/hy);
-        GradL[3] = R2(-PHat.y/hx, (1. - PHat.x)/hy);
+        GradL[0] = R2(-1. * (1. - PHat.y) / hx, -1. * (1 - PHat.x) / hy);
+        GradL[1] = R2((1. - PHat.y) / hx, -PHat.x / hy);
+        GradL[2] = R2(PHat.y / hx, PHat.x / hy);
+        GradL[3] = R2(-PHat.y / hx, (1. - PHat.x) / hy);
 
         // GradL[0] = R2(1./4,  1./4);
         // GradL[1] = R2(1./4 , 1./4);
@@ -359,7 +357,6 @@ class Quad2 : public GenericElement<DataQuad2> {
         // GradL[2] = R2(0., 0.);
         // GradL[3] = R2(0., 0.);
     }
-
 
     R2 toKref(const R2 &P) const {
 
@@ -377,7 +374,7 @@ class Quad2 : public GenericElement<DataQuad2> {
 
     /**
      * @brief Map point in physical element to reference element
-     * 
+     *
      * @param P Point in physical element
      * @return R2 Corresponding element in reference element
      */
@@ -395,7 +392,7 @@ class Quad2 : public GenericElement<DataQuad2> {
 
     /**
      * @brief Map point on unit interval to point on face of reference element
-     * 
+     *
      * @param P Point between 0 and 1
      * @param i Edge index of reference element
      * @return R2 Coordinates of P on edge i in the reference element

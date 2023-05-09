@@ -20,6 +20,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"
 #include "base_interface.hpp"
+#include "time_interface.hpp"
 
 template <typename E> struct Cut_Part {
     static const int dim = E::RdHat::d;               ///< dimension of the element
@@ -240,6 +241,7 @@ template <typename Mesh> class ActiveMesh {
     int idxElementInBackMesh(const int k) const;
     int idxElementInBackMesh(const int k, int i) const;
     int ElementAdj(const int k, int &j) const;
+    std::tuple<int, int> elementAdjacent(const int k, const int i) const;
 
     void info() const;
 
