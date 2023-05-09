@@ -42,28 +42,29 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
  *
  */
 template <typename Rn> class GenericVertex : public Rn, public Label {
-   template <typename T, typename B, typename V> friend class GenericMesh;
+    template <typename T, typename B, typename V> friend class GenericMesh;
 
-   friend inline std::ostream &operator<<(std::ostream &f,
-                                          const GenericVertex &v) {
-      f << (const Rn &)v << ' ' << (const Label &)v;
-      return f;
-   }
-   friend inline std::istream &operator>>(std::istream &f, GenericVertex &v) {
-      f >> (Rn &)v >> (Label &)v;
-      return f;
-   }
+    friend inline std::ostream &operator<<(std::ostream &f, const GenericVertex &v) {
+        f << (const Rn &)v << ' ' << (const Label &)v;
+        return f;
+    }
+    friend inline std::istream &operator>>(std::istream &f, GenericVertex &v) {
+        f >> (Rn &)v >> (Label &)v;
+        return f;
+    }
 
- public:
-   typedef Rn Rd;
-   static const int d = Rd::d;
+  public:
+    using value_type = typename Rn::value_type;
 
-   GenericVertex() : Rd(), Label(){};                         //,normal(0) {};
-   GenericVertex(const Rd &P, int r = 0) : Rd(P), Label(r){}; //,normal(0){}
+    typedef Rn Rd;
+    static const int d = Rd::d;
 
- private: // pas de copie pour ne pas prendre l'adresse
-   GenericVertex(const GenericVertex &);
-   void operator=(const GenericVertex &);
+    GenericVertex() : Rd(), Label(){};                         //,normal(0) {};
+    GenericVertex(const Rd &P, int r = 0) : Rd(P), Label(r){}; //,normal(0){}
+
+  private: // pas de copie pour ne pas prendre l'adresse
+    GenericVertex(const GenericVertex &);
+    void operator=(const GenericVertex &);
 };
 
 #endif

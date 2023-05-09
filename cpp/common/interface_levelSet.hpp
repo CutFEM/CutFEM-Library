@@ -30,46 +30,37 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
     KN<byte> ls_sign;
     KN<double> ls_;
 
+    std::vector<Rd> outward_normal_;
+
   public:
-    template <typeFunFEM Fct>
-    InterfaceLevelSet(const Mesh &MM, const Fct &lss, int label = 0);
+    template <typeFunFEM Fct> InterfaceLevelSet(const Mesh &MM, const Fct &lss, int label = 0);
 
-    SignElement<Element> get_SignElement(int k) const;
-    Partition<Element> get_partition(int k) const;
-    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
-        // return Partition<Element>((*this->backMesh)[k], loc_ls);
-    // Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
-// {
-//         double loc_ls[Element::Face::nv];
-//         for (int i = 0; i < Element::Face::nv; ++i) {
-//             int j     = Element::nvhyperFace[ifac][i];
-//             int iglb  = this->backMesh->at(k, j);
-//             loc_ls[i] = ls_[iglb];
-//         }
-//         return Partition<typename Element::Face>(face, loc_ls);
-// }
-    bool isCutFace(int k, int ifac) const;
+    SignElement<Element> get_SignElement(int k) const override;
+    Partition<Element> get_partition(int k) const override;
+    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k,
+                                                         int ifac) const override;
+    bool isCutFace(int k, int ifac) const override;
 
-    void cut_partition(Physical_Partition<Element> &local_partition,
-                       std::vector<ElementIdx> &new_element_idx,
-                       std::list<int> &erased_element, int sign_part) const;
+    void cut_partition(Physical_Partition<Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
+                       std::list<int> &erased_element, int sign_part) const override;
 
-    R measure(const Face &f) const;
+    R measure(const Face &f) const override;
+
+    Rd normal(int k, std::span<double> x = std::span<double>()) const override { return outward_normal_[k]; }
+
+    bool isCut(const int k) const override { return (this->face_of_element_.find(k) != this->face_of_element_.end()); }
 
   private:
     void make_patch(int label);
 
-    const Face make_face(const typename RefPatch<Element>::FaceIdx &ref_tri,
-                         const typename Mesh::Element &K,
+    const Face make_face(const typename RefPatch<Element>::FaceIdx &ref_tri, const typename Mesh::Element &K,
                          const double lset[Element::nv], int label);
 
-    Rd make_normal(const typename Mesh::Element &K,
-                   const double lset[Element::nv]);
+    Rd make_normal(const typename Mesh::Element &K, const double lset[Element::nv]);
 
     // Rd get_intersection_node(int k, const Rd A, const Rd B) const;
 
-    Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const;
-    
+    Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
 };
 
 #include "interface_levelSet.tpp"

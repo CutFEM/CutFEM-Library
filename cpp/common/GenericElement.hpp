@@ -39,13 +39,18 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "global.hpp"
 #include "GenericVertex.hpp"
 
-inline R1 ExtNormal(GenericVertex<R1> *const v[2], const std::vector<int> &f) { return (f[0] == 0) ? R1(-1) : R1(1); }
+inline R1 ExtNormal(const std::array<GenericVertex<R1> *, 2> &v, const std::vector<int> &f) {
+    return (f[0] == 0) ? R1(-1) : R1(1);
+}
 
-inline R2 ExtNormal(GenericVertex<R2> *const v[3], const std::vector<int> &f) {
+inline R2 ExtNormal(const std::array<GenericVertex<R2> *, 3> &v, const std::vector<int> &f) {
+    return R2(*v[f.at(1)], *v[f.at(0)]).perp();
+}
+inline R2 ExtNormal(const std::array<GenericVertex<R2> *, 4> &v, const std::vector<int> &f) {
     return R2(*v[f.at(1)], *v[f.at(0)]).perp();
 }
 
-inline R3 ExtNormal(GenericVertex<R3> *const v[4], const std::vector<int> &f) {
+inline R3 ExtNormal(const std::array<GenericVertex<R3> *, 4> &v, const std::vector<int> &f) {
     return R3(*v[f.at(0)], *v[f.at(2)]) ^ R3(*v[f.at(0)], *v[f.at(1)]);
 }
 
@@ -82,7 +87,8 @@ template <typename Data> class GenericElement : public Label {
     static int oppVertOfEdge(int edge, int vert) { return vert == nvedge[edge][0] ? nvedge[edge][1] : nvedge[edge][0]; }
 
   public:
-    Vertex *vertices[nv];
+    std::array<Vertex *, nv> vertices;
+    // Vertex *vertices[nv];
     R mes;
 
   public:
@@ -98,14 +104,13 @@ template <typename Data> class GenericElement : public Label {
         return *vertices[i];
     }
 
-    const Vertex &at(int i) const { return *vertices[i]; }
-
-    Vertex &at(int i) { return *vertices[i]; }
+    const Vertex &at(int i) const { return *vertices.at(i); }
+    Vertex &at(int i) { return *vertices.at(i); }
 
     GenericElement &set(Vertex *v0, int *iv, int r, double mss = globalVariable::UnSetMesure) {
         for (int i = 0; i < nv; ++i)
             vertices[i] = v0 + iv[i];
-        mes = (mss != globalVariable::UnSetMesure) ? mss : Data::mesure(vertices);
+        mes = (mss != globalVariable::UnSetMesure) ? mss : Data::mesure(vertices.data());
         lab = r;
         if (mss != globalVariable::UnSetMesure || mes <= 0) {
             for (int i = 0; i < nv; ++i)
@@ -154,7 +159,7 @@ template <typename Data> class GenericElement : public Label {
      */
     Rd Edge(int i) const {
         assert(i >= 0 && i < ne);
-        
+
         // nvedge[i] = numbering of edge i (e.g. (0,1), (1,2) or (2,0))
         // at(nvedge[i][0]) = Rd coordinates of vertex 0 of edge i, (x_0^i, y_0^i)
         // at(nvedge[i][1]) = Rd coordinates of vertex 1 of edge i, (x_1^i, y_1^i)
@@ -183,7 +188,7 @@ template <typename Data> class GenericElement : public Label {
     int edgePermutation(int i) const { return &at(nvedge[i][1]) < &at(nvedge[i][0]); } // 0 : no permutation
 
     R lenEdge(int i) const {
-        assert(i >= 0 && i < ne); 
+        assert(i >= 0 && i < ne);
         Rd E = Edge(i);
         return sqrt((E, E));
     }
