@@ -251,7 +251,6 @@ void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Activ
     }
 }
 
-
 template <typename M, typename L>
 void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const int itq,
                                                const TimeSlab &In) {
@@ -268,7 +267,6 @@ void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const Act
     // Allocate memory for the time-dependent basis functions
     //! KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1); What does this do?
     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
-
 
     // Compute the time basic functions
     In.BF(tq.x, bf_time);
@@ -555,6 +553,141 @@ void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Inter
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
         }
     }
+
+    bar.end();
+}
+
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<M, L> &gamma) {
+    assert(!VF.isRHS());
+    
+    progress bar(" Add Bilinear Interface", gamma.last_element(), globalVariable::verbose);
+
+    for (const auto &[kb, quadrature_rule] : gamma.get_cut_elements()) {
+
+        assert(quadrature_rule.nodes.size() != 0);
+
+        const Element &K(gamma.get_element(kb));
+
+        for (int l = 0; l < VF.size(); ++l) {
+            // FINITE ELEMENT SPACES && ELEMENTS
+            const fespace_t &Vhv(VF.get_spaceV(l));
+            const fespace_t &Vhu(VF.get_spaceU(l));
+            bool same = (VF.isRHS() || (&Vhu == &Vhv));
+
+            std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+            std::vector<int> idxU =
+                (same) ? idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
+
+            int kv = VF[l].onWhatElementIsTestFunction(idxV);
+            int ku = VF[l].onWhatElementIsTrialFunction(idxU);
+
+            const FElement &FKu(Vhu[ku]);
+            const FElement &FKv(Vhv[kv]);
+            int domu = FKu.get_domain();
+            int domv = FKv.get_domain();
+            this->initIndex(FKu, FKv);
+
+            // BF MEMORY MANAGEMENT -
+            int lastop = getLastop(VF[l].du, VF[l].dv);
+            RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+            RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+            What_d Fop = Fwhatd(lastop);
+
+            for (int ipq = 0; ipq < quadrature_rule.nodes.size(); ++ipq) {
+
+                Rd mip(quadrature_rule.nodes.at(ipq).x(0), quadrature_rule.nodes.at(ipq).x(1));
+                const R weight   = quadrature_rule.nodes.at(ipq).w;
+                const Rd face_ip = K.mapToReferenceElement(mip);
+                double Cint      = weight;
+
+                const Rd normal(phi.normal(mip));
+
+                assert(fabs(normal.norm() - 1) < 1e-14);
+                double coef = VF[l].computeCoefFromNormal(normal);
+
+                FKv.BF(Fop, face_ip, fv);
+
+                if (!same)
+                    FKu.BF(Fop, face_ip, fu);
+
+                Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip,
+                                                               0., normal);
+                Cint *= coef * VF[l].c;
+
+                this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    
+    }
+
+
+    bar.end();
+}
+
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<M, L> &gamma) {
+    assert(VF.isRHS());
+    
+    progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
+
+    for (const auto &[kb, quadrature_rule] : gamma.get_cut_elements()) {
+
+        assert(quadrature_rule.nodes.size() != 0);
+
+        const Element &K(gamma.get_element(kb));
+
+        for (int l = 0; l < VF.size(); ++l) {
+            // FINITE ELEMENT SPACES && ELEMENTS
+            const fespace_t &Vhv(VF.get_spaceV(l));
+            const fespace_t &Vhu(VF.get_spaceU(l));
+            bool same = (VF.isRHS() || (&Vhu == &Vhv));
+
+            std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+            std::vector<int> idxU =
+                (same) ? idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
+
+            int kv = VF[l].onWhatElementIsTestFunction(idxV);
+            int ku = VF[l].onWhatElementIsTrialFunction(idxU);
+
+            const FElement &FKu(Vhu[ku]);
+            const FElement &FKv(Vhv[kv]);
+            int domu = FKu.get_domain();
+            int domv = FKv.get_domain();
+            this->initIndex(FKu, FKv);
+
+            // BF MEMORY MANAGEMENT -
+            int lastop = getLastop(VF[l].du, VF[l].dv);
+            RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+            RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+            What_d Fop = Fwhatd(lastop);
+
+            for (int ipq = 0; ipq < quadrature_rule.nodes.size(); ++ipq) {
+
+                Rd mip(quadrature_rule.nodes.at(ipq).x(0), quadrature_rule.nodes.at(ipq).x(1));
+                const R weight   = quadrature_rule.nodes.at(ipq).w;
+                const Rd face_ip = K.mapToReferenceElement(mip);
+                double Cint      = weight;
+
+                const Rd normal(phi.normal(mip));
+
+                assert(fabs(normal.norm() - 1) < 1e-14);
+                double coef = VF[l].computeCoefFromNormal(normal);
+
+                FKv.BF(Fop, face_ip, fv);
+
+                if (!same)
+                    FKu.BF(Fop, face_ip, fu);
+
+                Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip,
+                                                               0., normal);
+                Cint *= coef * VF[l].c;
+
+                this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    }
+
 
     bar.end();
 }

@@ -48,7 +48,7 @@ template <typename T> class SignElement {
    typedef T Element;
    static const int nve = Element::nv;
 
-   int sum_;
+   int sum_;        // sum of the signs (-1 or 1) in all the nodes of the element to know cut configuration
 
  public:
    SignElement() : sum_(0) {}

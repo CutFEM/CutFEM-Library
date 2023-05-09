@@ -109,7 +109,9 @@ template <typeMesh M> class Interface {
     }
 
     Uint nbElement() const { return faces_.size(); }
-
+    Rd normal(const int k) const { return outward_normal_[k]; }
+    virtual bool isCut(const int k) const = 0;
+    
     const Element &get_element(int k) const { return (*backMesh)[k]; }
     const Mesh &get_mesh() const {
         assert(backMesh);

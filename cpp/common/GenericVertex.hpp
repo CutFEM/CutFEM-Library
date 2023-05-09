@@ -53,11 +53,10 @@ template <typename Rn> class GenericVertex : public Rn, public Label {
         return f;
     }
 
-  public:
-    using value_type = typename Rn::value_type;
-
-    typedef Rn Rd;
-    static const int d = Rd::d;
+ public:
+   using value_type = typename Rn::value_type;
+   typedef Rn Rd;
+   static const int d = Rd::d;
 
     GenericVertex() : Rd(), Label(){};                         //,normal(0) {};
     GenericVertex(const Rd &P, int r = 0) : Rd(P), Label(r){}; //,normal(0){}

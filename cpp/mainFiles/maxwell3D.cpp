@@ -294,14 +294,14 @@ int main(int argc, char **argv) {
             // +innerProduct(wPenParam*pow(hi,3)*jump(grad(w)*n), jump(grad(tau)*n))
             // +innerProduct(wPenParam*pow(hi,5)*jump(grad2wn), jump(grad2wn))
 
-                +innerProduct(uPenParam * pow(hi, 1) * jump(curl(w)), jump(v)) -
-                innerProduct(uPenParam * pow(hi, 1) * jump(u), jump(curl(tau))) +
-                innerProduct(uPenParam * pow(hi, 3) * jump(grad(curl(w))), jump(grad(v))) -
-                innerProduct(uPenParam * pow(hi, 3) * jump(grad(u)), jump(grad(curl(tau)))) +
-                innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) -
-                innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) +
-                innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) -
-                innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(u))), jump(grad(q))),
+            +innerProduct(uPenParam * pow(hi, 1) * jump(curl(w)), jump(v)) -
+            innerProduct(uPenParam * pow(hi, 1) * jump(u), jump(curl(tau))) +
+            innerProduct(uPenParam * pow(hi, 3) * jump(grad(curl(w))), jump(grad(v))) -
+            innerProduct(uPenParam * pow(hi, 3) * jump(grad(u)), jump(grad(curl(tau)))) +
+            innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) -
+            innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) +
+            innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) -
+            innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(u))), jump(grad(q))),
             Khi
             //, macro
 

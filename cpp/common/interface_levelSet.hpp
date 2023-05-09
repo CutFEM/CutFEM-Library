@@ -37,18 +37,26 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
 
     SignElement<Element> get_SignElement(int k) const override;
     Partition<Element> get_partition(int k) const override;
-    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k,
-                                                         int ifac) const override;
+    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const override;
+    // return Partition<Element>((*this->backMesh)[k], loc_ls);
+    // Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
+    // {
+    //         double loc_ls[Element::Face::nv];
+    //         for (int i = 0; i < Element::Face::nv; ++i) {
+    //             int j     = Element::nvhyperFace[ifac][i];
+    //             int iglb  = this->backMesh->at(k, j);
+    //             loc_ls[i] = ls_[iglb];
+    //         }
+    //         return Partition<typename Element::Face>(face, loc_ls);
+    // }
     bool isCutFace(int k, int ifac) const override;
+    bool isCut(int k) const override;
 
+    Rd normal(int k, std::span<double> x = std::span<double>()) const override { return outward_normal_[k]; }
     void cut_partition(Physical_Partition<Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
                        std::list<int> &erased_element, int sign_part) const override;
 
-    R measure(const Face &f) const override;
-
-    Rd normal(int k, std::span<double> x = std::span<double>()) const override { return outward_normal_[k]; }
-
-    bool isCut(const int k) const override { return (this->face_of_element_.find(k) != this->face_of_element_.end()); }
+    bool isCut(const int k) const override override { return (this->face_of_element_.find(k) != this->face_of_element_.end()); }
 
   private:
     void make_patch(int label);
@@ -66,6 +74,7 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
 
     R measure(int i) const override { return measure(this->faces_[i]); };
 };
+
 
 #include "interface_levelSet.tpp"
 

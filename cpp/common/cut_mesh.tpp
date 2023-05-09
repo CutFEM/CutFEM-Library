@@ -488,10 +488,12 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const Interfac
             // std::cout << "domain \t" << d << " Mesh::Element back " << kb << "\t =>
             // loc id " << k << std::endl;
             auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
-            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
+            //const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
+            bool is_cut = interface.isCut(kb);
 
             // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
-            if (!signK.cut()) {
+            //if (!signK.cut()) {
+            if (!is_cut) {
 
                 it_k = idx_from_background_mesh_[d].erase(it_k);
                 continue;
