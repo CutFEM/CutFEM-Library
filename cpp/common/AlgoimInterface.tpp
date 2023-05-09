@@ -16,7 +16,7 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
     this->faces_.resize(0); // reinitialize arrays
     this->vertices_.resize(0);
     this->element_of_face_.resize(0);
-    //this->outward_normal_.resize(0);
+    // this->outward_normal_.resize(0);
     this->face_of_element_.clear();
 
     const mesh_t &Th = *(this->backMesh); // background mesh
@@ -43,6 +43,7 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
 
         else {
             // K is cut
+            this->element_of_face_.push_back(k);
             cut_elements.insert({k, q});
             number_of_cut_elements += 1;
         }
@@ -64,7 +65,7 @@ template <typeMesh M, typename L>
 Partition<typename AlgoimInterface<M, L>::Element> AlgoimInterface<M, L>::get_partition(int k) const {
     using Element = typename AlgoimInterface<M, L>::Element;
 
-    //assert(0);
+    // assert(0);
     double loc_ls[Element::nv];
     for (int i = 0; i < Element::nv; ++i) {
         loc_ls[i] = phi(this->backMesh->operator[](k).at(i));
@@ -99,29 +100,34 @@ void AlgoimInterface<M, L>::cut_partition(Physical_Partition<typename AlgoimInte
     exit(EXIT_FAILURE);
 };
 
-template <typeMesh M, typename L> double AlgoimInterface<M, L>::measure(const AlgoimInterface<M,L>::Face &f) const {
+template <typeMesh M, typename L> double AlgoimInterface<M, L>::measure(const AlgoimInterface<M, L>::Face &f) const {
     assert(0);
     return 0.;
 }
 
-template <typeMesh M, typename L> typename AlgoimInterface<M, L>::Rd AlgoimInterface<M, L>::normal(int k, std::span<double> x) const {
+template <typeMesh M, typename L> double AlgoimInterface<M, L>::measure(int i) const {
+    assert(0);
+    return 0.;
+}
+
+template <typeMesh M, typename L>
+typename AlgoimInterface<M, L>::Rd AlgoimInterface<M, L>::normal(int k, std::span<double> x) const {
     return phi.normal(x);
 }
 
 template <typeMesh M, typename L>
 typename AlgoimInterface<M, L>::Rd
-AlgoimInterface<M,L>::mapToPhysicalFace(int ifac, const typename AlgoimInterface<M,L>::Element::RdHatBord x) const {
-    //typename AlgoimInterface<M,L>::Rd N[nve];
+AlgoimInterface<M, L>::mapToPhysicalFace(int ifac, const typename AlgoimInterface<M, L>::Element::RdHatBord x) const {
+    // typename AlgoimInterface<M,L>::Rd N[nve];
     assert(0);
-//     for (int i = 0; i < nve; ++i)
-//         N[i] = this->vertices_[this->faces_[ifac][i]];
-//     return geometry::map_point_to_simplex(N, x);
+    //     for (int i = 0; i < nve; ++i)
+    //         N[i] = this->vertices_[this->faces_[ifac][i]];
+    //     return geometry::map_point_to_simplex(N, x);
     return typename AlgoimInterface<M, L>::Rd();
 }
 
 // if index is in the cut_elements map, its corresponding element is cut
-template <typeMesh M, typename L>
-bool AlgoimInterface<M,L>::isCut(int k) const {
+template <typeMesh M, typename L> bool AlgoimInterface<M, L>::isCut(int k) const {
     return (cut_elements.find(k) != cut_elements.end());
 }
 #endif

@@ -694,7 +694,7 @@ R fun_rhs(double *P, const int cc, const R t) {
 #define example1
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
-#define classical
+#define conservative
 
 #define levelsetexact
 
@@ -935,7 +935,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Declare time dependent interface
-        TimeInterface<Mesh> interface(qTime);
+        //TimeInterface<Mesh> interface(qTime);
         TimeInterface<Mesh> interface_algoim(qTime);
 
         // Convection-Diffusion Problem Object
@@ -972,15 +972,15 @@ int main(int argc, char **argv) {
             std::cout << " Iteration \t : \t" << iter + 1 << "/" << total_number_iteration << "\n";
             std::cout << " Time      \t : \t" << current_iteration * time_step << "\n";
 
-            swap(ls[0], ls[lastQuadTime]);
+            //swap(ls[0], ls[lastQuadTime]);
             // computation of the interface in each of the three quadrature
             // points
             for (int i = 0; i < nbTime; ++i) {
 #if defined(levelsetexact) && not defined(example2)
                 R tt = In.Pt(R1(qTime(i).x));
-                ls[i].init(Lh, fun_levelSet, tt);
+                //ls[i].init(Lh, fun_levelSet, tt);
 #endif
-                interface.init(i, Th, ls[i]);
+                //interface.init(i, Th, ls[i]);
                 phi.t = tt;
                 interface_algoim.init<Levelset<2>>(i, Th, phi);
 
@@ -1057,11 +1057,11 @@ int main(int argc, char **argv) {
 // reynold scheme
 #ifdef conservative
 
-            surfactant.addBilinear(-innerProduct(u, dt(v)), interface, In);
+            surfactant.addBilinear(-innerProduct(u, dt(v)), interface_algoim, In);
 
-            surfactant.addBilinear(+innerProduct(u, v), *interface(lastQuadTime), In, (int)lastQuadTime);
+            surfactant.addBilinear(+innerProduct(u, v), *interface_algoim(lastQuadTime), In, (int)lastQuadTime);
 
-            surfactant.addLinear(+innerProduct(u0.expr(), v), *interface(0), In, 0);
+            surfactant.addLinear(+innerProduct(u0.expr(), v), *interface_algoim(0), In, 0);
 
             // Added time penalty
             // surfactant.addBilinear(
@@ -1081,9 +1081,9 @@ int main(int argc, char **argv) {
 // classical scheme
 #elif defined(classical)
 
-            surfactant.addBilinear(+innerProduct(dt(u), v), interface, In);
-            surfactant.addBilinear(innerProduct(u, v), *interface(0), In, 0);
-            surfactant.addLinear(innerProduct(u0.expr(), v), *interface(0), In, 0);
+            surfactant.addBilinear(+innerProduct(dt(u), v), interface_algoim, In);
+            surfactant.addBilinear(innerProduct(u, v), *interface_algoim(0), In, 0);
+            surfactant.addLinear(innerProduct(u0.expr(), v), *interface_algoim(0), In, 0);
             
 #endif
 
@@ -1103,7 +1103,7 @@ int main(int argc, char **argv) {
                                        interface_algoim, In);
 
 #elif defined(conservative)
-            surfactant.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), interface, In);
+            surfactant.addBilinear(-innerProduct(u, (vel.exprList() * grad(v))), interface_algoim, In);
 #endif
 
 
@@ -1158,15 +1158,15 @@ int main(int argc, char **argv) {
                 Fun_h funone(Wh, fun_one, 0.);
 
             #if defined(algoim)
-                intF = integral_algoim<Mesh, Levelset<2>>(funrhs, In, interface, phi, 0);
-                intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi, tid);  
+                intF = integral_algoim<Mesh, Levelset<2>>(funrhs, In, interface_algoim, phi, 0);
+                intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface_algoim(0), 0, phi, tid);  
                 // std::cout << std::setprecision(16);
                 std::cout << "intGamma = " << intGamma << "\n";
                 std::cout << "length error = " << fabs(intGamma - 2 * 0.17 * pi) << "\n";
 
-                errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), tid, phi, 0, 1);
+                errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface_algoim(0), tid, phi, 0, 1);
                 std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
-                errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, phi, 0, 1);
+                errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface_algoim(lastQuadTime), tid + dT, phi, 0, 1);
                 std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
                 
             #else 
@@ -1182,8 +1182,8 @@ int main(int argc, char **argv) {
 
                 // Conservation error
             #if defined(algoim)
-                double q0 = integral_algoim<Levelset<2>, Fun_h>(funuh_0, *interface(0), 0, phi, In, qTime, 0);
-                double q1 = integral_algoim<Levelset<2>, Fun_h>(funuh, *interface(lastQuadTime), 0, phi, In, qTime, lastQuadTime);
+                double q0 = integral_algoim<Levelset<2>, Fun_h>(funuh_0, *interface_algoim(0), 0, phi, In, qTime, 0);
+                double q1 = integral_algoim<Levelset<2>, Fun_h>(funuh, *interface_algoim(lastQuadTime), 0, phi, In, qTime, lastQuadTime);
                 if (iter == 0) {
                     q_init0 = q0;
                     //q_init1 = q1;

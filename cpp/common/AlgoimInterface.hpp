@@ -50,6 +50,8 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     Rd normal(int k, std::span<double> x) const override;
 
+    R measure(int i) const override;
+
     Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
 
     size_t size() const override { return cut_elements.size(); }

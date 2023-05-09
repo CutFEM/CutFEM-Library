@@ -144,7 +144,7 @@ template <typeMesh M> class Interface {
         return i;
     }
     inline int CheckT(int i) const {
-        assert(i >= 0 && i < faces_.size());
+        assert(i >= 0 && i < size());
         return i;
     }
 

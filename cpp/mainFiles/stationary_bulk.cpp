@@ -160,7 +160,7 @@ namespace Diffusion {
 // RHS for variable in Omega 1
 double fun_rhsBulk(double *P, int elementComp) {
     double x = P[0], y = P[1];
-    
+
     return -4 * y * std::exp(-x * x - y * y + 1) *
            (3 * x * x * x * x + 2 * x * x * y * y - 12 * x * x - y * y * y * y + 4 * y * y);
 }
@@ -251,10 +251,9 @@ template <int N> struct Levelset {
 
 } // namespace Poisson
 
-
 using namespace ConvectionDiffusion;
 
-#define algoim         // options: "algoim", "quad", "triangle"
+#define algoim // options: "algoim", "quad", "triangle"
 #define neumann
 #define use_h
 
@@ -274,8 +273,11 @@ typedef ExpressionFunFEM<Mesh> Expression;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
+    ProblemOption option;
+    option.order_space_element_quadrature_ = 7;
+
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h = 0.1;              // starting mesh size
@@ -311,7 +313,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, -1.5-Epsilon, -1.5-Epsilon, lx, ly);
+        Mesh Th(nx, ny, -1.5 - Epsilon, -1.5 - Epsilon, lx, ly);
 
         hs.at(j)  = h;
         nxs.at(j) = nx;
@@ -334,7 +336,7 @@ int main(int argc, char **argv) {
 
         const double D = 1., lambda = 1e1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1);       // continuous basis functions
+        FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 
         // Velocity field
 #if defined(algoim) || defined(quad)
@@ -361,7 +363,7 @@ int main(int argc, char **argv) {
 #if defined(algoim)
         // Declare algoim interface
         Levelset<2> phi;
-        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi);
+        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi, option);
 #elif defined(triangle) || defined(quad)
         CutFEM<Mesh> convdiff(Wh);
 #endif
@@ -390,17 +392,16 @@ int main(int argc, char **argv) {
         // gnuplot::save<Mesh, Levelset<2>>(Thi, interface, phi, 0, "interface.dat");
         // gnuplot::save<Mesh>(interface);
         // getchar();
-        
 
-    #if defined(algoim)
-        convdiff.addBilinearAlgoim(+innerProduct(D * grad(u), grad(v)), Thi);
-        convdiff.addBilinearAlgoim(innerProduct((vel.exprList() * grad(u)), v), Thi);
-        convdiff.addLinearAlgoim(+innerProduct(f.expr(), v), Thi);
-    #else
+#if defined(algoim)
         convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi);
         convdiff.addBilinear(innerProduct((vel.exprList() * grad(u)), v), Thi);
         convdiff.addLinear(+innerProduct(f.expr(), v), Thi);
-    #endif
+#else
+        convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi);
+        convdiff.addBilinear(innerProduct((vel.exprList() * grad(u)), v), Thi);
+        convdiff.addLinear(+innerProduct(f.expr(), v), Thi);
+#endif
 
         //* Stabilization
         convdiff.addFaceStabilization(innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi);
@@ -438,12 +439,9 @@ int main(int argc, char **argv) {
         convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                            INTEGRAL_BOUNDARY);
 
-
-
-
         matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" +
                                              std::to_string(j + 1) + ".dat");
-        //matlab::Export(convdiff.mat_[0], "mat_P1.dat");
+        // matlab::Export(convdiff.mat_[0], "mat_P1.dat");
 
         // Solve linear system
         convdiff.solve("mumps");
@@ -463,14 +461,14 @@ int main(int argc, char **argv) {
         Fun_h funone(Wh, fun_one);
         double intGamma = integral(funone, interface, 0);
         double intOmega = integral(Thi, funone, 0);
-        
+
         double errBulk = L2normCut(b0h, fun_uBulk, 0, 1);
         std::cout << "|| u-uex||_2 = " << errBulk << '\n';
 #endif
         errors.at(j) = errBulk;
 
-        gamma.at(j)     = std::fabs(intGamma - 2*pi);
-        omega.at(j)     = std::fabs(intOmega-(pi));
+        gamma.at(j) = std::fabs(intGamma - 2 * pi);
+        omega.at(j) = std::fabs(intOmega - (pi));
 
         if ((iterations == 1)) {
             Fun_h sol(Wh, data_u0);
@@ -495,7 +493,13 @@ int main(int argc, char **argv) {
             writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh.vtk");
             writer.writeFaceStab(Thi, 0, path_output_figures + "Faces.vtk");
 #if defined(algoim)
+            // const auto &qf1 = *QF_Simplex<R1>(7);
+            // std::cout << qf1 << std::endl;
+            const auto &qf(*QF_Quad(9));
+            // std::cout << qf << std::endl;
+
             writer.writeAlgoimQuadrature(Thi, phi, -1, path_output_figures + "AlgoimQuadrature.vtk");
+            writer.writeAlgoimQuadrature(Thi, qf, path_output_figures + "Quadrature.vtk");
 #endif
         }
 

@@ -752,7 +752,7 @@ double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M>
              iface += interface.next_element()) {
 
             const int kb = interface.idxElementOfFace(iface); // idx on backMesh
-            const R meas = interface.measure(iface);
+            //const R meas = interface.measure(iface);
 
             const auto &T(interface.get_element(kb));
             const auto &V0(T.at(0)); // vertex 0
