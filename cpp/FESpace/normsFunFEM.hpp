@@ -249,10 +249,9 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *
 // -----------------------------------------------------------------------------
 
 template <typename Mesh, typename Fct>
-double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh, const Fct &fex,
-                    const Interface<Mesh> &interface) {
-// double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i),
-//                     const Interface<Mesh> &interface) {
+double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh, const Fct &fex, const Interface<Mesh> &interface) {
+    // double L2normSurf_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i),
+    //                     const Interface<Mesh> &interface) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename FElement::QFB QFB;
@@ -343,10 +342,9 @@ double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t), con
     return sqrt(val);
 }
 template <typename Mesh, typename Fct>
-double L2normSurf(const FunFEM<Mesh> &fh, const Fct& fex, const Interface<Mesh> &interface, int c0,
-                  int num_comp) {
-// double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i), const Interface<Mesh> &interface, int c0,
-//                   int num_comp) {
+double L2normSurf(const FunFEM<Mesh> &fh, const Fct &fex, const Interface<Mesh> &interface, int c0, int num_comp) {
+    // double L2normSurf(const FunFEM<Mesh> &fh, R(fex)(double *, int i), const Interface<Mesh> &interface, int c0,
+    //                   int num_comp) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -401,7 +399,7 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, i
 
         const Element &K(Th[k]);
 
-        const R meas = K.mesure();
+        const R meas = K.measure();
         for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
 
             QuadraturePoint ip(qf[ipq]); // integration point
@@ -414,7 +412,7 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, i
             // std::cout << fh->eval(k, mip) << "\t" << fex(mip, fh->cu) << std::endl;
             val += Cint * a * a;
         }
-        //getchar();
+        // getchar();
     }
     double val_receive = 0;
 #ifdef USE_MPI
@@ -443,7 +441,7 @@ template <typename M> double L2norm_2(const std::shared_ptr<ExpressionVirtual> &
 
         const Element &K(Th[k]);
 
-        const R meas = K.mesure();
+        const R meas = K.measure();
         for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
 
             QuadraturePoint ip(qf[ipq]); // integration point

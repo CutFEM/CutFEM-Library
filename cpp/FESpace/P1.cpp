@@ -99,7 +99,7 @@ void TypeOfFE_P1Polynomial1d::FB(const What_d whatd, const Element &K, const R1 
         if (whatd & Fop_dx) {
             RN_ f0x(val('.', 0, op_dx));
             f0x[0] = 0;
-            f0x[1] = 1. / K.mesure();
+            f0x[1] = 1. / K.measure();
         }
     }
 }
@@ -334,8 +334,8 @@ void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
     R x1 = K[2][0], y1 = K[2][1];
 
     // P.x, P.y are the coordinates in the reference element
-    // If we want to express in terms of the basis functions 
-    // on the physical element, we must map these points to 
+    // If we want to express in terms of the basis functions
+    // on the physical element, we must map these points to
     // the physical element
     R2 p      = K(R2(P.x, P.y));
     R phi_x[] = {x1 - p[0], p[0] - x0};
@@ -397,13 +397,13 @@ void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         f0y[3] = Dly[1] * lx[0];
 
         // Sebastian's
-        //std::cout << "phi_x[0]/hx = " << phi_x[0] / hx << std::endl;
-        
-        // Assert that the basis functions on the physical element take values between 0 and 1 
+        // std::cout << "phi_x[0]/hx = " << phi_x[0] / hx << std::endl;
+
+        // Assert that the basis functions on the physical element take values between 0 and 1
         assert((0. - 1e-12 <= phi_x[0] / hx) && (phi_x[0] / hx <= 1. + 1e-12));
-        assert((0. - 1e-12 <= phi_x[1]/hx) && (phi_x[1]/hx <= 1. + 1e-12));
-        assert((0. - 1e-12 <= phi_y[0]/hy) && (phi_y[0]/hy <= 1. + 1e-12));
-        assert((0. - 1e-12 <= phi_y[1]/hy) && (phi_y[1]/hy <= 1. + 1e-12));
+        assert((0. - 1e-12 <= phi_x[1] / hx) && (phi_x[1] / hx <= 1. + 1e-12));
+        assert((0. - 1e-12 <= phi_y[0] / hy) && (phi_y[0] / hy <= 1. + 1e-12));
+        assert((0. - 1e-12 <= phi_y[1] / hy) && (phi_y[1] / hy <= 1. + 1e-12));
 
         // Assert that the basis functions on the reference element take values between 0 and 1
         assert((0. - 1e-12 <= ly[0]) && (ly[0] <= 1. + 1e-12));
@@ -427,7 +427,6 @@ void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         // f0y[1] = -1.0*phi_x[1]/(hx*hy);        // d(phi_1)/dy = -1*(x-x0)/(hx*hy)
         // f0y[2] = phi_x[1]/(hx*hy);             // d(phi_2)/dy = (x-x0)/(hx*hy)
         // f0y[3] = phi_x[0]/(hx*hy);             // d(phi_3)/dy = (x1-x)/(hx*hy)
-
     }
 }
 

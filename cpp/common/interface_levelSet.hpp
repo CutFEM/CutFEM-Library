@@ -39,17 +39,6 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
     Partition<Element> get_partition(int k) const override;
     Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k,
                                                          int ifac) const override;
-    // return Partition<Element>((*this->backMesh)[k], loc_ls);
-    // Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
-    // {
-    //         double loc_ls[Element::Face::nv];
-    //         for (int i = 0; i < Element::Face::nv; ++i) {
-    //             int j     = Element::nvhyperFace[ifac][i];
-    //             int iglb  = this->backMesh->at(k, j);
-    //             loc_ls[i] = ls_[iglb];
-    //         }
-    //         return Partition<typename Element::Face>(face, loc_ls);
-    // }
     bool isCutFace(int k, int ifac) const override;
     bool isCut(int k) const override;
 

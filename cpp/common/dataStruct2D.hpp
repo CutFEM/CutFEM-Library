@@ -200,7 +200,7 @@ class Triangle2 : public GenericElement<DataTriangle2> {
         // E = (x, y)
         // E.perp() = (-y, x)
 
-        return E.perp() / (2. * this->mesure());
+        return E.perp() / (2. * this->measure());
     }
 
     /**

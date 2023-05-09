@@ -40,120 +40,107 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../common/point.hpp"
 
 struct QuadratureWeight {
-   double a;
-   QuadratureWeight(double aa) : a(aa) {}
+    double a;
+    QuadratureWeight(double aa) : a(aa) {}
 };
 
-template <class Rd>
-class GQuadraturePoint : public QuadratureWeight, public Rd {
-   typedef double R;
+template <class Rd> class GQuadraturePoint : public QuadratureWeight, public Rd {
+    typedef double R;
 
- public:
-   R getWeight() const { return this->a; }
+  public:
+    R getWeight() const { return this->a; }
 
-   typedef GQuadraturePoint QP;
-   GQuadraturePoint() : QuadratureWeight(0), Rd() {}
-   GQuadraturePoint(R aa, const Rd &xx) : QuadratureWeight(aa), Rd(xx) {}
-   GQuadraturePoint(const Rd &xx, R aa) : QuadratureWeight(aa), Rd(xx) {}
-   operator R() const { return a; }
-   GQuadraturePoint(R aa, R xx) : QuadratureWeight(aa), Rd(xx) {}
-   GQuadraturePoint(R aa, R x, R y) : QuadratureWeight(aa), Rd(x, y) {}
-   GQuadraturePoint(R aa, R x, R y, R z) : QuadratureWeight(aa), Rd(x, y, z) {}
+    typedef GQuadraturePoint QP;
+    GQuadraturePoint() : QuadratureWeight(0), Rd() {}
+    GQuadraturePoint(R aa, const Rd &xx) : QuadratureWeight(aa), Rd(xx) {}
+    GQuadraturePoint(const Rd &xx, R aa) : QuadratureWeight(aa), Rd(xx) {}
+    operator R() const { return a; }
+    GQuadraturePoint(R aa, R xx) : QuadratureWeight(aa), Rd(xx) {}
+    GQuadraturePoint(R aa, R x, R y) : QuadratureWeight(aa), Rd(x, y) {}
+    GQuadraturePoint(R aa, R x, R y, R z) : QuadratureWeight(aa), Rd(x, y, z) {}
 };
 
 template <class Rdd> class GQuadratureFormular {
- public:
-   typedef Rdd Rd;
-   typedef GQuadraturePoint<Rd> QuadraturePoint;
-   typedef GQuadraturePoint<Rd> QP;
-   typedef double R;
-   const int exact; // exact
-   const int n;     // nombre de point d'integration
- private:
-   QP *p; // les point d'integration
-   const bool clean;
+  public:
+    typedef Rdd Rd;
+    typedef GQuadraturePoint<Rd> QuadraturePoint;
+    typedef GQuadraturePoint<Rd> QP;
+    typedef double R;
+    const int exact; // exact
+    const int n;     // nombre de point d'integration
+  private:
+    QP *p; // les point d'integration
+    const bool clean;
 
- public:
-   R getNbrOfQuads() const { return this->n; }
+  public:
+    R getNbrOfQuads() const { return this->n; }
+    R size() const { return this->n; }
 
-   // -- les fonctions ------------------
-   void Verification(){}; // for verification
-   GQuadratureFormular(int e, int NbOfNodes, QuadraturePoint *pp,
-                       bool c = false)
-       : exact(e), n(NbOfNodes), p(pp), clean(c) {
-      Verification();
-   }
-   GQuadratureFormular(int e, int NbOfNodes, const QuadraturePoint *pp,
-                       bool c = false)
-       : exact(e), n(NbOfNodes), p(pp), clean(c) {
-      Verification();
-   }
-   GQuadratureFormular(int ex, QP p0, QP p1, QP p2, QP p3, QP p4)
-       : exact(ex), n(5), p(new QP[5]), clean(true) {
-      p[0] = p0;
-      p[1] = p1;
-      p[2] = p2;
-      p[3] = p3;
-      p[4] = p4;
-      Verification();
-   }
-   GQuadratureFormular(int ex, QP p0, QP p1, QP p2, QP p3)
-       : exact(ex), n(4), p(new QP[4]), clean(true) {
-      p[0] = p0, p[1] = p1, p[2] = p2;
-      p[3] = p3;
-      Verification();
-   }
-   GQuadratureFormular(int ex, QP p0, QP p1, QP p2)
-       : exact(ex), n(3), p(new QP[3]), clean(true) {
-      p[0] = p0, p[1] = p1, p[2] = p2;
-      Verification();
-   }
-   GQuadratureFormular(int ex, QP p0, QP p1)
-       : exact(ex), n(2), p(new QP[2]), clean(true) {
-      p[0] = p0, p[1] = p1;
-      Verification();
-   }
-   GQuadratureFormular(int ex, QP p0)
-       : exact(ex), n(1), p(new QP[1]), clean(true) {
-      p[0] = p0;
-      Verification();
-   }
+    // -- les fonctions ------------------
+    void Verification(){}; // for verification
+    GQuadratureFormular(int e, int NbOfNodes, QuadraturePoint *pp, bool c = false)
+        : exact(e), n(NbOfNodes), p(pp), clean(c) {
+        Verification();
+    }
+    GQuadratureFormular(int e, int NbOfNodes, const QuadraturePoint *pp, bool c = false)
+        : exact(e), n(NbOfNodes), p(pp), clean(c) {
+        Verification();
+    }
+    GQuadratureFormular(int ex, QP p0, QP p1, QP p2, QP p3, QP p4) : exact(ex), n(5), p(new QP[5]), clean(true) {
+        p[0] = p0;
+        p[1] = p1;
+        p[2] = p2;
+        p[3] = p3;
+        p[4] = p4;
+        Verification();
+    }
+    GQuadratureFormular(int ex, QP p0, QP p1, QP p2, QP p3) : exact(ex), n(4), p(new QP[4]), clean(true) {
+        p[0] = p0, p[1] = p1, p[2] = p2;
+        p[3] = p3;
+        Verification();
+    }
+    GQuadratureFormular(int ex, QP p0, QP p1, QP p2) : exact(ex), n(3), p(new QP[3]), clean(true) {
+        p[0] = p0, p[1] = p1, p[2] = p2;
+        Verification();
+    }
+    GQuadratureFormular(int ex, QP p0, QP p1) : exact(ex), n(2), p(new QP[2]), clean(true) {
+        p[0] = p0, p[1] = p1;
+        Verification();
+    }
+    GQuadratureFormular(int ex, QP p0) : exact(ex), n(1), p(new QP[1]), clean(true) {
+        p[0] = p0;
+        Verification();
+    }
 
-   const QP &operator[](int i) const { return p[i]; }
-   const QP &operator()(int i) const { return p[i]; }
-   const QP &at(int i) const { return p[i]; }
-   ~GQuadratureFormular() {
-      if (clean)
-         delete[] p;
-   }
+    const QP &operator[](int i) const { return p[i]; }
+    const QP &operator()(int i) const { return p[i]; }
+    const QP &at(int i) const { return p[i]; }
+    ~GQuadratureFormular() {
+        if (clean)
+            delete[] p;
+    }
 
- private:
-   GQuadratureFormular(const GQuadratureFormular &) : exact(0), n(0), p(0) {
-      assert(0);
-   }
-   void operator=(const GQuadratureFormular &) { assert(0); }
-   GQuadratureFormular() : exact(0), n(0), p(0) { assert(0); }
-   static const GQuadratureFormular *Default;
+  private:
+    GQuadratureFormular(const GQuadratureFormular &) : exact(0), n(0), p(0) { assert(0); }
+    void operator=(const GQuadratureFormular &) { assert(0); }
+    GQuadratureFormular() : exact(0), n(0), p(0) { assert(0); }
+    static const GQuadratureFormular *Default;
 };
 
-template <class Rd>
-std::ostream &operator<<(std::ostream &f, const GQuadraturePoint<Rd> &p) {
-   f << '{' << (const double)p << '\t' << (const Rd &)p << '}';
-   return f;
+template <class Rd> std::ostream &operator<<(std::ostream &f, const GQuadraturePoint<Rd> &p) {
+    f << '{' << (const double)p << '\t' << (const Rd &)p << '}';
+    return f;
 }
 
-template <class Rd>
-std::ostream &operator<<(std::ostream &f, const GQuadratureFormular<Rd> &fi) {
-   f << "nb de point integration " << fi.n << ", adr = " << &f << std::endl;
-   for (int i = 0; i < fi.n; i++)
-      f << '\t' << fi[i] << std::endl;
-   return f;
+template <class Rd> std::ostream &operator<<(std::ostream &f, const GQuadratureFormular<Rd> &fi) {
+    f << "nb de point integration " << fi.n << ", adr = " << &f << std::endl;
+    for (int i = 0; i < fi.n; i++)
+        f << '\t' << fi[i] << std::endl;
+    return f;
 }
 
-template <class Rd>
-std::ostream &operator<<(std::ostream &, const GQuadratureFormular<Rd> &);
-template <class Rd>
-std::ostream &operator<<(std::ostream &, GQuadraturePoint<Rd> &);
+template <class Rd> std::ostream &operator<<(std::ostream &, const GQuadratureFormular<Rd> &);
+template <class Rd> std::ostream &operator<<(std::ostream &, GQuadraturePoint<Rd> &);
 
 typedef GQuadratureFormular<R1> QuadratureFormular1d;
 typedef GQuadratureFormular<R2> QuadratureFormular2d;

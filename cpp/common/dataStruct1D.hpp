@@ -112,12 +112,12 @@ class Seg1 : public GenericElement<DataSeg1> {
     Seg1(){}; // constructor empty for array
 
     void Gradlambda(R1 *GradL) const {
-        GradL[1] = 1. / mesure();
+        GradL[1] = 1. / measure();
         GradL[0] = -GradL[1];
     }
 
     R1 toKref(const R1 &P) const {
-        
+
         const R &A = *vertices[0];
         const R &B = *vertices[1];
 

@@ -252,7 +252,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
 
     bfMat = 0;
 
-    R triMeas2 = 2 * K.mesure();
+    R triMeas2 = 2 * K.measure();
 
     R2 phi[3] = {X - Q[0], X - Q[1], X - Q[2]}; // phi * area *2
     R2 X_dx(1, 0);
@@ -276,7 +276,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
     int lI[8][3]; // store l_k
     R cI[8][3];   // store c_k
     int dof     = 0;
-    // double sb = sqrt(K.mesure());
+    // double sb = sqrt(K.measure());
     // double aa = K.measure();
     double s[4] = {1., 1., 1., 1.}; //{K.lenEdge(0)/aa, K.lenEdge(1)/aa, K.lenEdge(2)/aa, sb};
 
@@ -456,14 +456,14 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
 //    int arrEdgeOrient[] = {K.EdgeOrientation(0), K.EdgeOrientation(1),
 //                           K.EdgeOrientation(2)};
 
-//    R triMeas2 = 2 * K.mesure();
+//    R triMeas2 = 2 * K.measure();
 //    R2 phi[3]  = {X - Q[0], X - Q[1], X - Q[2]}; // phi * area *2
 
 //    int pI[8][3]; // store p_k
 //    int lI[8][3]; // store l_k
 //    R cI[8][3];   // store c_k
 //    int dof  = 0;
-//    double s = sqrt(K.mesure());
+//    double s = sqrt(K.measure());
 
 //    for (int e = 0; e < 3; ++e) {
 //       // int i = e;
@@ -529,7 +529,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
 //    R refBaryc[3]       = {l0, l1, l2};
 //    int arrEdgeOrient[] = {K.EdgeOrientation(0), K.EdgeOrientation(1),
 //                           K.EdgeOrientation(2)};
-//    R triMeas2          = 2 * K.mesure();
+//    R triMeas2          = 2 * K.measure();
 //    R2 phi[3]           = {X - Q[0], X - Q[1], X - Q[2]}; // phi * area *2
 
 //    R2 ddd[3] = {K.H(0), K.H(1), K.H(2)};
@@ -547,7 +547,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
 //    int lI[8][3]; // store l_k
 //    R cI[8][3];   // store c_k
 //    int dof  = 0;
-//    double s = sqrt(K.mesure());
+//    double s = sqrt(K.measure());
 
 //    for (int e = 0; e < 3; ++e) {
 //       // int i = e;
@@ -621,7 +621,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
 //    R refBaryc[3]       = {l0, l1, l2};
 //    int arrEdgeOrient[] = {K.EdgeOrientation(0), K.EdgeOrientation(1),
 //                           K.EdgeOrientation(2)};
-//    R triMeas2          = 2 * K.mesure();
+//    R triMeas2          = 2 * K.measure();
 //    R2 phi[3]           = {X - Q[0], X - Q[1], X - Q[2]}; // phi * area *2
 
 //    R2 ddd[3] = {K.H(0), K.H(1), K.H(2)};
@@ -647,7 +647,7 @@ void TypeOfFE_RT1_2d::FB_Freefem(const What_d whatd, const Element &K, const Rd 
 //    int lI[8][3]; // store l_k
 //    R cI[8][3];   // store c_k
 //    int dof  = 0;
-//    double s = sqrt(K.mesure());
+//    double s = sqrt(K.measure());
 
 //    for (int e = 0; e < 3; ++e) {
 //       // int i = e;
