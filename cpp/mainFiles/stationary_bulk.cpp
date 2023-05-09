@@ -53,13 +53,14 @@ double fun_one(double *P, const int i) { return 1.; }
 
 double fun_g_Neumann(double *P, int elementComp) {
     R x = P[0], y = P[1];
+    // Outward pointing w.r.t Omega1
     return (y * exp(-x * x - y * y + 1) *
             (6 * x * x * x * x + 4 * x * x * y * y - 9 * x * x - 2 * y * y * y * y + 3 * y * y)) /
            sqrt((x * x + y * y));
 }
 
 // Level-set function
-double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0) + Epsilon; }
+double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0); }
 
 template <int N> struct Levelset {
 
@@ -114,6 +115,7 @@ double fun_one(double *P, const int i) { return 1.; }
 
 double fun_g_Neumann(double *P, int elementComp) {
     R x = P[0], y = P[1];
+    // Omega1
     return (y * exp(-x * x - y * y + 1) * (6 * pow(x, 4) + 4 * x * x * y * y - 9 * x * x - 2 * pow(y, 4) + 3 * y * y)) /
            sqrt(x * x + y * y);
 }
@@ -158,13 +160,14 @@ namespace Diffusion {
 // RHS for variable in Omega 1
 double fun_rhsBulk(double *P, int elementComp) {
     double x = P[0], y = P[1];
-    return -4 * y * exp(-x * x - y * y + 1) *
+    
+    return -4 * y * std::exp(-x * x - y * y + 1) *
            (3 * x * x * x * x + 2 * x * x * y * y - 12 * x * x - y * y * y * y + 4 * y * y);
 }
 
 // Exact solution in the bulk
 double fun_uBulk(double *P, int elementComp, int domain) {
-    return exp(1.0 - P[0] * P[0] - P[1] * P[1]) * (3.0 * P[0] * P[0] * P[1] - pow(P[1], 3));
+    return std::exp(1.0 - P[0] * P[0] - P[1] * P[1]) * (3.0 * P[0] * P[0] * P[1] - std::pow(P[1], 3));
     // return 2.0*exp(1.0-P[0]*P[0]-P[1]*P[1])*( 3.0*P[0]*P[0]*P[1] - pow(P[1],3));
 }
 
@@ -172,8 +175,14 @@ double fun_one(double *P, const int i) { return 1.; }
 
 double fun_g_Neumann(double *P, int elementComp) {
     R x = P[0], y = P[1];
+    // on Omega2
+    // return -(y * exp(-x * x - y * y + 1) *
+    //          (6 * x * x * x * x + 4 * x * x * y * y - 9 * x * x - 2 * y * y * y * y + 3 * y * y)) /
+    //        std::sqrt(x * x + y * y);
+
+    // on Omega1
     return (y * exp(-x * x - y * y + 1) * (6 * pow(x, 4) + 4 * x * x * y * y - 9 * x * x - 2 * pow(y, 4) + 3 * y * y)) /
-           sqrt(x * x + y * y);
+           std::sqrt(x * x + y * y);
 }
 
 // Level-set function
@@ -242,7 +251,8 @@ template <int N> struct Levelset {
 
 } // namespace Poisson
 
-using namespace ConvectionDiffusionConstVel;
+
+using namespace ConvectionDiffusion;
 
 #define algoim         // options: "algoim", "quad", "triangle"
 #define neumann
@@ -271,8 +281,8 @@ int main(int argc, char **argv) {
     double h = 0.1;              // starting mesh size
 
     // Paths to store data
-    const std::string path_output_data    = "../output_files/bulk/algoim/poisson/data/";
-    const std::string path_output_figures = "../output_files/bulk/algoim/poisson/paraview/";
+    const std::string path_output_data    = "../output_files/bulk/algoim/statbulk/data/";
+    const std::string path_output_figures = "../output_files/bulk/algoim/statbulk/paraview/";
 
     // Create directory if not already existent
     if (MPIcf::IamMaster()) {
@@ -301,7 +311,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, -1.5+0.00003, -1.5+0.00003, lx, ly);
+        Mesh Th(nx, ny, -1.5-Epsilon, -1.5-Epsilon, lx, ly);
 
         hs.at(j)  = h;
         nxs.at(j) = nx;
@@ -320,11 +330,11 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
 
         // CG stabilization parameter
-        const double tau1 = 1.;
+        const double tau1 = .01;
 
-        const double D = 1., lambda = 10.;
+        const double D = 1., lambda = 1e1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+        FESpace Vh(Th, DataFE<Mesh>::P1);       // continuous basis functions
 
         // Velocity field
 #if defined(algoim) || defined(quad)
@@ -377,15 +387,20 @@ int main(int argc, char **argv) {
         Fun_h b0h(Wh, data_B0);
 
         // gnuplot::save(Th);
-        // gnuplot::save<Mesh, Levelset<2>>(Thi, *interface(0), phi, "interface.dat", current_time);
-        // gnuplot::save<Mesh>(*interface(0));
+        // gnuplot::save<Mesh, Levelset<2>>(Thi, interface, phi, 0, "interface.dat");
+        // gnuplot::save<Mesh>(interface);
         // getchar();
+        
 
-        //* Diffusion term
+    #if defined(algoim)
+        convdiff.addBilinearAlgoim(+innerProduct(D * grad(u), grad(v)), Thi);
+        convdiff.addBilinearAlgoim(innerProduct((vel.exprList() * grad(u)), v), Thi);
+        convdiff.addLinearAlgoim(+innerProduct(f.expr(), v), Thi);
+    #else
         convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi);
-
-        //* Convection term
         convdiff.addBilinear(innerProduct((vel.exprList() * grad(u)), v), Thi);
+        convdiff.addLinear(+innerProduct(f.expr(), v), Thi);
+    #endif
 
         //* Stabilization
         convdiff.addFaceStabilization(innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi);
@@ -394,7 +409,7 @@ int main(int argc, char **argv) {
 
         // Inner boundary
 
-        // Neumann
+        // Neumann (won't work if we solve on Omega2, since then the solution is not unique)
         convdiff.addLinear(innerProduct(g_Neumann.expr(), v), interface);
 
         // // Dirichlet
@@ -408,9 +423,9 @@ int main(int argc, char **argv) {
         // convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v),
         //                    interface);
 
-        // // Outer boundary
+        // Outer boundary
 
-        // //* Nitsche's method:
+        //* Nitsche's method:
 
         // LHS terms
         convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
@@ -423,11 +438,12 @@ int main(int argc, char **argv) {
         convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                            INTEGRAL_BOUNDARY);
 
-        // Add RHS in bulk
-        convdiff.addLinear(+innerProduct(f.expr(), v), Thi);
+
+
 
         matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" +
                                              std::to_string(j + 1) + ".dat");
+        //matlab::Export(convdiff.mat_[0], "mat_P1.dat");
 
         // Solve linear system
         convdiff.solve("mumps");
@@ -437,29 +453,24 @@ int main(int argc, char **argv) {
         // Compute area of domain in time quadrature point 0
         Fun_h funone(Wh, fun_one);
         double intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, interface, 0, phi);
-        //double intOmega = integral_algoim<Levelset<2>, Fun_h>(funone, Thi, phi, 0);
-        gamma.at(j)     = intGamma;
-        //omega.at(j) = intOmega;
+        double intOmega = integral_algoim<Levelset<2>, Fun_h>(funone, Thi, phi, 0);
 
         double errBulk = L2_norm_cut(b0h, fun_uBulk, phi, 0, 1);
 
         std::cout << "|| u-uex||_2 = " << errBulk << '\n';
 
-        errors.at(j) = errBulk;
-
 #elif defined(triangle) || defined(quad)
         Fun_h funone(Wh, fun_one);
         double intGamma = integral(funone, interface, 0);
-        double intOmega = integral(Thi, funone, 0, 0);
-        gamma.at(j)     = intGamma;
-        omega.at(j)     = intOmega;
-
+        double intOmega = integral(Thi, funone, 0);
+        
         double errBulk = L2normCut(b0h, fun_uBulk, 0, 1);
         std::cout << "|| u-uex||_2 = " << errBulk << '\n';
-
+#endif
         errors.at(j) = errBulk;
 
-#endif
+        gamma.at(j)     = std::fabs(intGamma - 2*pi);
+        omega.at(j)     = std::fabs(intOmega-(pi));
 
         if ((iterations == 1)) {
             Fun_h sol(Wh, data_u0);

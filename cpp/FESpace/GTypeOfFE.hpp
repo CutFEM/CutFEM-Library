@@ -62,6 +62,7 @@ enum class BasisFctType {
     RT2,
     BDM1,
     BDM2,
+    Ned0,
     UNDEFINED
 };
 
@@ -203,6 +204,7 @@ template <class mesh> struct DataFE {
     static GTypeOfFE<mesh> &RT2;
     static GTypeOfFE<mesh> &BDM1;
     static GTypeOfFE<mesh> &BDM2;
+    static GTypeOfFE<mesh> &Ned0;
     static GTypeOfFE<mesh> &P2BR;
 
     static GTypeOfFE<mesh> &P1dc;

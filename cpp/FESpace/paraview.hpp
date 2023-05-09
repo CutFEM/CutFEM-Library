@@ -193,9 +193,9 @@ template <class M> class Paraview {
                 int kb     = cutTh.idxElementInBackMesh(k);
                 // Sometimes the following three lines should be outcommented, to view the solution in all quadrature
                 // points
-                if (cutTh.isInactive(k, 0)) {
-                    continue;
-                }
+                // if (cutTh.isInactive(k, 0)) {
+                //     continue;
+                // }
                 if (cutTh.isCut(k, 0)) {
 
                     const Cut_Part<Element> cutK(cutTh.get_cut_part(k, 0));
@@ -1280,7 +1280,6 @@ template <class M> class Paraview {
             }
         }
 
-        //! runs but paraview crashes
         template <typename L>
         void buildAlgoimQuadrature(const ActiveMesh<M> &cutTh, L &phi, const TimeSlab &In,
                                    const QuadratureFormular1d &qTime, const int itq, const int algoim_domain) {
@@ -1314,7 +1313,9 @@ template <class M> class Paraview {
                 if (domain != cutTh.get_domain_element(k))
                     continue;
 
-                if (cutTh.isInactive(k, itq) || !cutTh.isCut(k, itq))
+                // if (cutTh.isInactive(k, itq) || !cutTh.isCut(k, itq))
+                //     continue;
+                if (cutTh.isInactive(k, itq))
                     continue;
 
                 int domain = cutTh.get_domain_element(k);
@@ -1358,13 +1359,14 @@ template <class M> class Paraview {
 
             assert(algoim_domain == -1 || algoim_domain == 2);
 
-            const int quadrature_order = 5;
+            const int quadrature_order = 5; 
             const int domain           = 0; // only for one subdomain
             ntCut_                     = 0;
             ntNotcut_                  = 0;
             nv_                        = 0;
 
-            clearAndResize(1000);
+
+            clearAndResize(quadrature_order*10*cutTh.NbElement());
 
             // std::vector<Rd> all_quadrature_nodes;
 
@@ -1373,8 +1375,8 @@ template <class M> class Paraview {
                 if (domain != cutTh.get_domain_element(k))
                     continue;
 
-                if (!cutTh.isCut(k, 0))
-                    continue;
+                // if (!cutTh.isCut(k, 0))
+                //     continue;
 
                 int domain = cutTh.get_domain_element(k);
                 int kb     = cutTh.idxElementInBackMesh(k);
@@ -1391,10 +1393,11 @@ template <class M> class Paraview {
                 algoim::QuadratureRule<2> q = algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax),
                                                                  algoim_domain, -1, quadrature_order);
 
+                assert(q.nodes.size() != 0);
                 for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-                    mesh_node[kk].push_back(R2(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1)));
-                    num_cell[kk]  = std::make_pair(1, 1);
-                    idx_in_Vh[kk] = std::make_pair(kb, domain);
+                    mesh_node.at(kk).push_back(R2(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1)));
+                    num_cell.at(kk)  = std::make_pair(1, 1);
+                    idx_in_Vh.at(kk) = std::make_pair(kb, domain);
                     kk++;
                     ntNotcut_++;
                 }

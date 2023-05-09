@@ -233,12 +233,14 @@ template <class Mesh, typename L> void save(const Interface<Mesh> &Gh, L &phi, s
 }
 
 template <class Mesh, typename L>
-void save(const ActiveMesh<Mesh> &Th, const Interface<Mesh> &Gh, L &phi, std::string filename, double t) {
+void save(const ActiveMesh<Mesh> &Th, const Interface<Mesh> &Gh, L &phi, double t, std::string filename) {
     using mesh_t    = Mesh;
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
     using Rd        = typename FElement::Rd;
     using Element   = typename mesh_t::Element;
+
+    int integration_order = 5;
 
     std::ofstream plot;
     plot.open(filename.c_str(), std::ofstream::out);
@@ -252,7 +254,7 @@ void save(const ActiveMesh<Mesh> &Th, const Interface<Mesh> &Gh, L &phi, std::st
     }
     plot.close();
 
-    plot.open("interface_algoim_.dat", std::ofstream::out);
+    plot.open("interface_quadrature_algoim.dat", std::ofstream::out);
     phi.t = t;
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         if (Th.isCut(k, 0)) {
@@ -264,7 +266,7 @@ void save(const ActiveMesh<Mesh> &Th, const Interface<Mesh> &Gh, L &phi, std::st
             algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
 
             algoim::QuadratureRule<2> q =
-                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, 5);
+                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, integration_order);
             assert(q.nodes.size() != 0);
             for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
@@ -272,6 +274,30 @@ void save(const ActiveMesh<Mesh> &Th, const Interface<Mesh> &Gh, L &phi, std::st
                 plot << mip << std::endl;
             }
         }
+    }
+
+    plot.close();
+
+    plot.open("bulk_quadrature_algoim.dat", std::ofstream::out);
+    phi.t = t;
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        // if (Th.isCut(k, 0)) {
+        const Element &K(Th[k]);
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2   diagonally opposed
+
+        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+        algoim::QuadratureRule<2> q =
+            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, integration_order);
+        assert(q.nodes.size() != 0);
+        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            plot << mip << std::endl;
+        }
+        //}
     }
 
     plot.close();

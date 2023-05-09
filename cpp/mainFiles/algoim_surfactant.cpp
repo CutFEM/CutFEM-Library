@@ -693,7 +693,7 @@ R fun_rhs(double *P, const int cc, const R t) {
 #define example1
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
-#define conservative
+#define classical
 
 #define levelsetexact
 
@@ -741,11 +741,11 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 5;               // number of mesh refinements   (set to 1 to
+    const size_t iterations = 1;               // number of mesh refinements   (set to 1 to
                                                // run only once and plot to paraview)
     int nx = 20, ny = 15;                      // starting mesh size (only apply if use_n is defined)
     //double h  = 0.1 * pow(0.5, 5) * sqrt(0.5); // starting mesh size
-    double h  = 0.1;             // starting mesh size
+    double h  = 0.0125;             // starting mesh size
     double dT = 0.0625;
 
     int total_number_iteration;
@@ -892,7 +892,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = .1, tau2 = .1;
+        double tau0 = 0, tau1 = .1, tau2 = 0.;
 
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
@@ -1107,14 +1107,14 @@ int main(int argc, char **argv) {
 
             // Stabilization
             double stab_surf_face      = tau1;
-            double stab_surf_interface = 0.; //h *tau2;
+            double stab_surf_interface = h * h * tau2;
             double stab_mass           = 0.; // tau1 * h;
             double stab_dt             = 0.; // tau1 *h;
 
             surfactant.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(u) * n), jump(grad(v) * n)),
                                             ThGamma, In);
       
-            //surfactant.addBilinear(+innerProduct(stab_surf_interface * grad(u) * n, grad(v) * n), interface, In);
+           surfactant.addBilinear(+innerProduct(stab_surf_interface * grad(u) * n, grad(v) * n), interface, In);
 
 
             Fun_h funrhs(Vh, In, fun_rhs);
@@ -1156,7 +1156,7 @@ int main(int argc, char **argv) {
 
             #if defined(algoim)
                 intF = integral_algoim<Mesh, Levelset<2>>(funrhs, In, interface, phi, 0);
-                intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi, tid);  //! why doesn't this give the right length now?
+                intGamma = integral_algoim<Levelset<2>, Fun_h>(funone, *interface(0), 0, phi, tid);  
                 // std::cout << std::setprecision(16);
                 std::cout << "intGamma = " << intGamma << "\n";
                 std::cout << "length error = " << fabs(intGamma - 2 * 0.17 * pi) << "\n";

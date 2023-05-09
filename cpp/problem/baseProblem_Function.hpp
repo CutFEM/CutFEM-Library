@@ -609,14 +609,18 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::li
                     if (id_item < K.nv) {
                         bool is_on_border = false;
                         for (int i = 0; i < Element::nva; ++i) {
+
                             int i_e = Element::nvedge.at(ifac).at(i);
                             if (i_e == id_item) {
                                 is_on_border = true;
                                 break;
                             }
                         }
-                        int df_glob = FK.loc2glb(df);
-                        dof2set.insert({df_glob, gh(df_glob)});
+                        if (is_on_border) {
+                            int df_glob = FK.loc2glb(df);
+                            dof2set.insert({df_glob, gh(df_glob)});
+                        }
+
                     } else if (id_item < K.nv + K.ne) {
                         // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
                         int id_face = id_item - K.nv;
