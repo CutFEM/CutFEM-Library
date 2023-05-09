@@ -134,7 +134,7 @@ template <typeMesh M> class Interface {
 
     virtual R measure(int i) const { return measure(faces_[i]); };
 
-    ~Interface() {}
+    virtual ~Interface() {}
 
   private:
     inline int CheckV(int i) const {
