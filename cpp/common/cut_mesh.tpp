@@ -131,8 +131,8 @@ template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
 
     interface_id_.resize(10);
 
-    nb_quadrature_time_ = 1;        // by default, the active mesh of the background mesh is stationary
-    
+    nb_quadrature_time_ = 1; // by default, the active mesh of the background mesh is stationary
+
     // set the active mesh indexing to the same as the background element indexing
     for (int k = 0; k < Th.nt; ++k) {
         idx_in_background_mesh_[0][k]   = k;
@@ -171,7 +171,6 @@ template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th, const Time
     this->init(interface);
 }
 
-
 template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &interface, int sign_domain_remove) {
 
     // Get number of subdomains of resulting mesh //?
@@ -194,8 +193,8 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &
     for (int d = 0; d < dom_size; ++d) {
         for (auto it_k = idx_from_background_mesh_[d].begin(); it_k != idx_from_background_mesh_[d].end();) {
 
-            int kb = it_k->first;   // background mesh element index
-            int k  = it_k->second;  // active mesh element index
+            int kb = it_k->first;  // background mesh element index
+            int k  = it_k->second; // active mesh element index
 
             // Get interface segment
             auto it_gamma                                               = interface_id_[0].find(std::make_pair(d, k));
@@ -210,7 +209,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &
                 continue;
             }
 
-            // Save and erase old interfaces 
+            // Save and erase old interfaces
             int nb_interface = (it_gamma == interface_id_[0].end()) ? 0 : it_gamma->second.size();
             std::vector<const Interface<Mesh> *> old_interface(nb_interface);
             std::vector<int> ss(nb_interface);
@@ -622,10 +621,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInte
     }
 }
 
-
-
 //* Private Members *//
-
 
 //  constructor for basic 2 subdomains problem {1, -1}
 template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &interface) {
@@ -693,9 +689,6 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &
     idx_element_domain.push_back(nt0);
     idx_element_domain.push_back(nt0 + nt1);
 }
-
-
-
 
 // Check if a given cell index exists in the active mesh
 template <typename Mesh> bool ActiveMesh<Mesh>::check_exist(int k, int dom) const {
@@ -1085,6 +1078,16 @@ template <typename Mesh> int ActiveMesh<Mesh>::ElementAdj(const int k, int &j) c
         return -1;
 
     return this->idxElementFromBackMesh(kbn, domain);
+}
+
+template <typename Mesh> std::tuple<int, int> ActiveMesh<Mesh>::elementAdjacent(const int k, const int i) const {
+    int j      = i;
+    int domain = get_domain_element(k);
+    int kb     = this->idxElementInBackMesh(k);
+    int kbn    = this->Th.ElementAdj(kb, j);
+    if (kbn == -1)
+        return {-1, -1};
+    return {this->idxElementFromBackMesh(kbn, domain), j};
 }
 
 /**

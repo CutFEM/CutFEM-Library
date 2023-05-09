@@ -52,17 +52,7 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
 
-    size_t size() const { return cut_elements.size(); }
-#ifdef USE_MPI
-    virtual int first_element() const override { return MPIcf::first_element(size()); }
-    virtual int next_element() const override { return MPIcf::next_element(size()); }
-    virtual int last_element() const override { return MPIcf::last_element(size()); }
-
-#else
-    virtual int first_element() const override { return 0; }
-    virtual int next_element() const override { return 1; }
-    virtual int last_element() const override { return faces_.size(); }
-#endif
+    size_t size() const override { return cut_elements.size(); }
 
   private:
     void make_algoim_patch(int label);
