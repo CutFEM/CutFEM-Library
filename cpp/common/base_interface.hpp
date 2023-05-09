@@ -121,18 +121,20 @@ template <typeMesh M> class Interface {
     const_vertex_iterator vertex_begin() const { return (vertices_.begin()).base(); }
     const_vertex_iterator vertex_end() const { return (vertices_.end()).base(); }
 
+    virtual size_t size() const = 0;
+
 #ifdef USE_MPI
-    virtual int first_element() const { return MPIcf::first_element(faces_.size()); }
-    virtual int next_element() const { return MPIcf::next_element(faces_.size()); }
-    virtual int last_element() const { return MPIcf::last_element(faces_.size()); }
+    size_t first_element() const { return MPIcf::first_element(size()); }
+    size_t next_element() const { return MPIcf::next_element(size()); }
+    size_t last_element() const { return MPIcf::last_element(size()); }
 
 #else
-    int first_element() const { return 0; }
-    int next_element() const { return 1; }
-    int last_element() const { return faces_.size(); }
+    size_t first_element() const { return 0; }
+    size_t next_element() const { return 1; }
+    size_t last_element() const { return size(); }
 #endif
 
-    virtual R measure(int i) const { return measure(faces_[i]); };
+    virtual R measure(int i) const = 0;
 
     virtual ~Interface() {}
 

@@ -61,6 +61,10 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
     // Rd get_intersection_node(int k, const Rd A, const Rd B) const;
 
     Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
+
+    size_t size() const override { return this->faces_.size(); }
+
+    R measure(int i) const override { return measure(this->faces_[i]); };
 };
 
 #include "interface_levelSet.tpp"

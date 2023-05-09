@@ -50,6 +50,8 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
 
+    size_t size() const override { return cut_elements.size(); }
+
   private:
     void make_algoim_patch(int label);
 };
