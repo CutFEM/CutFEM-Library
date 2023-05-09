@@ -11,6 +11,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/Mesh2dn.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/Mesh3dn.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/base_interface.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/interface_levelSet.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/AlgoimInterface.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/cut_mesh.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/cut_method.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/SparseMatMap.cpp
