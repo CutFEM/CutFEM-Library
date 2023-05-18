@@ -38,7 +38,9 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
     algoim::QuadratureRule<2> q =
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
 
-    assert(q.nodes.size() != 0); // assert quadrature rule is not empty
+    assert((q.nodes.size() == 1 * quadrature_order * quadrature_order) ||
+           (q.nodes.size() == 2 * quadrature_order * quadrature_order) ||
+           (q.nodes.size() == 3 * quadrature_order * quadrature_order)); // assert quadrature rule is not empty
 
     // Loop over the variational formulation items
     for (int l = 0; l < VF.size(); ++l) {
@@ -342,13 +344,23 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
     const auto &V0(K.at(0)); // vertex 0
     const auto &V2(K.at(2)); // vertex 2   diagonally opposed
 
+    // if (tid == 0.) {
+    //     R2 zero(0., 0.);
+    //     std::cout << "Algoim phi(0,0) = " << phi(zero) << "\n";
+    //     std::cout << "kb = " << kb << "\n";
+    //     std::cout << "V0 = " << V0 << ", V2 = " << V2 << "\n";
+    // }
+
     algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
     algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
 
     algoim::QuadratureRule<2> q =
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
 
-    assert(q.nodes.size() != 0); // assert quadrature rule not empty
+    // assert((q.nodes.size() == quadrature_order) ||
+    //        q.nodes.size() == 2 * quadrature_order); // assert quadrature rule not empty
+
+    assert((quadrature_order <= q.nodes.size()) || (q.nodes.size() <= 2 * quadrature_order));
 
     for (int l = 0; l < VF.size(); ++l) {
 
@@ -384,7 +396,6 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
         // double coef = VF[l].computeCoefFromNormal(normal);
 
         // LOOP OVER QUADRATURE IN SPACE
-
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
             // typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
@@ -464,6 +475,9 @@ void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, con
 
     algoim::QuadratureRule<2> q =
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
+
+    assert((q.nodes.size() == quadrature_order) ||
+           q.nodes.size() == 2 * quadrature_order); // assert quadrature rule not empty
 
     for (int l = 0; l < VF.size(); ++l) {
 
@@ -560,7 +574,7 @@ void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Inter
 template <typename M, typename L>
 void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<M, L> &gamma) {
     assert(!VF.isRHS());
-    
+
     progress bar(" Add Bilinear Interface", gamma.last_element(), globalVariable::verbose);
 
     for (const auto &[kb, quadrature_rule] : gamma.get_cut_elements()) {
@@ -618,9 +632,7 @@ void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const Alg
                 this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
             }
         }
-    
     }
-
 
     bar.end();
 }
@@ -628,7 +640,7 @@ void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const Alg
 template <typename M, typename L>
 void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<M, L> &gamma) {
     assert(VF.isRHS());
-    
+
     progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
 
     for (const auto &[kb, quadrature_rule] : gamma.get_cut_elements()) {
@@ -687,7 +699,6 @@ void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Algoi
             }
         }
     }
-
 
     bar.end();
 }

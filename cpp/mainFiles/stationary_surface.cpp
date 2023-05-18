@@ -318,22 +318,22 @@ int main(int argc, char **argv) {
         FunTest u(Wh, 1), v(Wh, 1);
 
         // Diffusion
-        surfactant.addBilinearAlgoim(+innerProduct(gradS(u), gradS(v)), interface);
+        surfactant.addBilinear(+innerProduct(gradS(u), gradS(v)), interface);
 
         // Convection
-        surfactant.addBilinearAlgoim(+innerProduct((vel.exprList() * gradS(u)), v), interface);
+        surfactant.addBilinear(+innerProduct((vel.exprList() * gradS(u)), v), interface);
 
         // Stabilization
         double stab_surf_face = tau1;
         surfactant.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(u) * n), jump(grad(v) * n)), ThGamma);
 
         // Add RHS on surface
-        surfactant.addLinearAlgoim(+innerProduct(funrhs.expr(), v), interface);
+        surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface);
         // surfactant.addLinear(fun_rhs, innerProduct(1., v), interface);
 
         surfactant.addLagrangeMultiplier(innerProduct(1., v), 0., interface);
 
-        matlab::Export(surfactant.mat_[0], "mat.dat");
+        matlab::Export(surfactant.mat_[0], path_output_data + "mat_" + std::to_string(j) + ".dat");
         // Solve linear system
         surfactant.solve("mumps");
 

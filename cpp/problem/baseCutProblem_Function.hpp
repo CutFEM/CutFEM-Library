@@ -1281,6 +1281,91 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     bar.end();
 }
 
+/**
+ * @brief This only stabilize in the faces corresponding to the active mesh in quadrature point itq.
+ * 
+ * @tparam M 
+ * @param VF 
+ * @param Th 
+ * @param itq 
+ * @param In 
+ */
+template <typename M>
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+    assert(!VF.isRHS());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time); // compute time basic funtions
+    //double cst_time   = tq.a * In.get_measure();
+    std::string title = " Add Face Stab, In(" + std::to_string(itq) + ")";
+    progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+        if (!(Th.isCut(k, itq)) && !Th.isInactive(k, itq))
+            continue;
+        // if (!Th.isStabilizeElement(k))
+        //     continue;
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if (kn < k)
+                continue;
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);
+            std::pair<int, int> e2 = std::make_pair(kn, jfac);
+            number_of_stabilized_edges += 1;
+            BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, 1.);
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+
+
+template <typename M>
+void BaseCutFEM<M>::addFaceStabilizationSpecial(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+    assert(!VF.isRHS());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time); // compute time basic funtions
+    //double cst_time   = tq.a * In.get_measure();
+    std::string title = " Add Face Stab, In(" + std::to_string(itq) + ")";
+    progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+        if (!(Th.isCut(k, itq)) && !Th.isInactive(k, itq))
+            continue;
+        // if (!Th.isStabilizeElement(k))
+        //     continue;
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if (kn < k)
+                continue;
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);
+            std::pair<int, int> e2 = std::make_pair(kn, jfac);
+            number_of_stabilized_edges += 1;
+            BaseFEM<M>::addFaceContributionSpecial(VF, e1, e2, &In, itq, 1.);
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+
+
 template <typename M>
 void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<M> &macro) {
 

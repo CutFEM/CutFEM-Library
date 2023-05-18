@@ -43,18 +43,26 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
 
         else {
             // K is cut
-            this->element_of_face_.push_back(k);
+            this->element_of_face_.push_back(k);    // add element to list of cut elements
             cut_elements.insert({k, q});
             number_of_cut_elements += 1;
         }
     }
 }
 
+/**
+ * @brief Finds the sign of the interface in the nodes of the element with index k
+ * 
+ * @tparam M Mesh type
+ * @tparam L Algoim level set type
+ * @param k index of element in background mesh
+ * @return SignElement<typename AlgoimInterface<M, L>::Element> Array of sign of level set in the nodes
+ */
 template <typeMesh M, typename L>
 SignElement<typename AlgoimInterface<M, L>::Element> AlgoimInterface<M, L>::get_SignElement(int k) const {
     using Element = typename AlgoimInterface<M, L>::Element;
 
-    double loc_ls[Element::nv];
+    double loc_ls[Element::nv]; // list with size = number of vertices on the element
     for (int i = 0; i < Element::nv; ++i) {
         loc_ls[i] = phi(this->backMesh->operator[](k).at(i));
     }
