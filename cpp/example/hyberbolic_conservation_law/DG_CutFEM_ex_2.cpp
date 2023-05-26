@@ -1,7 +1,17 @@
 
+#include "../tool.hpp"
+
+using mesh_t     = Mesh2;
+using funtest_t  = TestFunction<mesh_t>;
+using fct_t      = FunFEM<mesh_t>;
+using cutmesh_t  = ActiveMesh<mesh_t>;
+using space_t    = GFESpace<mesh_t>;
+using cutspace_t = CutFESpace<mesh_t>;
+using MatMap     = std::map<std::pair<int, int>, double>;
+
 double c0 = 0.25;
-R fun_levelSet(const R2 P, const int i) { return -P.x - P.y + c0; }
-R fun_initial(const R2 P, int elementComp, int domain) {
+double fun_levelSet(const R2 P, const int i) { return -P.x - P.y + c0; }
+double fun_initial(const R2 P, int elementComp, int domain) {
 
     if (domain == 1)
         return 0;
@@ -14,10 +24,10 @@ R fun_initial(const R2 P, int elementComp, int domain) {
         return 0;
 }
 
-void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, MatMap &Mh) {
+void assembly(const space_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah, MatMap &Mh) {
 
     double t0 = MPIcf::Wtime();
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const cutmesh_t &Khi(Wh.get_mesh());
     CutFEM<Mesh2> problem(Wh);
     CutFEM_R2 beta({R2(3, 1), R2(1, 2)});
     CutFEMParameter lambda(0, 1.);
@@ -30,7 +40,7 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
     double Cstabt  = 1e-2;
 
     Normal n;
-    FunTest u(Wh, 1), v(Wh, 1);
+    funtest_t u(Wh, 1), v(Wh, 1);
 
     // BUILDING A
     // =====================================================
@@ -48,12 +58,11 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
 
     // F(u)_e = {B.u} - lambda_e/2 [u]
     problem.addBilinear(-innerProduct(average(beta * u * n), jump(v)) - innerProduct(0.5 * lambdaE * jump(u), jump(v)),
-                        Khi, innerFacet);
+                        Khi, INTEGRAL_INNER_EDGE_2D);
 
-    problem.addBilinear(-innerProduct(beta * u * n, v), Khi, boundary, {2, 3} // label other boundary
-    );
-    problem.addBilinear(-innerProduct(u, beta * (0.5 * v) * n) - innerProduct(u, lambdaB * 0.5 * v), Khi, boundary,
-                        {1, 4} // label left boundary
+    problem.addBilinear(-innerProduct(beta * u * n, v), Khi, INTEGRAL_BOUNDARY, {2, 3});
+    problem.addBilinear(-innerProduct(u, beta * (0.5 * v) * n) - innerProduct(u, lambdaB * 0.5 * v), Khi,
+                        INTEGRAL_BOUNDARY, {1, 4} // label left boundary
     );
 
     // BUILDING (M + S)
@@ -68,12 +77,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
 
     std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
 }
-void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
-                   double tn) {
+void solve_problem(const space_t &Wh, const Interface<mesh_t> &interface, const std::span<double> u0,
+                   std::span<double> uh, MatMap &Ah, MatMap &Mh, double tn) {
 
     double t0 = MPIcf::Wtime();
 
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const cutmesh_t &Khi(Wh.get_mesh());
 
     ProblemOption optionProblem;
     optionProblem.solver_name_  = "umfpack";
@@ -84,25 +93,27 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Rn &
     double lambdaB = sqrt(10);
 
     Normal n;
-    FunTest u(Wh, 1), v(Wh, 1);
+    funtest_t u(Wh, 1), v(Wh, 1);
 
     // MULTIPLYING A * u_0  => rhs
     // =====================================================
     // MatriceMap<double> mAh(problem.nb_dof_, problem.nb_dof_, Ah);
     // mAh.addMatMul(u0, problem.rhs_);
     int N = problem.get_nb_dof();
-    multiply(N, N, Ah, u0, uh);
+    multiply(N, N, Ah, u0, problem.rhs_);
 
     // SOLVING  (M+S)E'(t) = rhs
     // =====================================================
-    problem.solve(Mh, uh); // problem.rhs_);
+    problem.solve(Mh, problem.rhs_);
 
-    // uh = problem.rhs_;
+    std::copy(problem.rhs_.begin(), problem.rhs_.end(), uh.begin());
 }
 
 int main(int argc, char **argv) {
 
+#ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
+#endif
     const double cpubegin = MPIcf::Wtime();
 
     // OUTPUT FILE
@@ -113,8 +124,8 @@ int main(int argc, char **argv) {
     // =====================================================
     int nx = 200;
     int ny = 200;
-    Mesh Th(nx, ny, -1., -1., 2., 2.); // [-1,1]*[-1,1]
-    Space Vh(Th, DataFE<Mesh2>::P1dc);
+    mesh_t Th(nx, ny, -1., -1., 2., 2.); // [-1,1]*[-1,1]
+    space_t Vh(Th, DataFE<Mesh2>::P1dc);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
@@ -125,31 +136,29 @@ int main(int argc, char **argv) {
     int niteration  = tend / dt;
     dt              = tend / niteration;
     double errSum   = 0;
-    double qu0      = 0;
-    std::cout << "Mesh size h = \t" << meshSize << std::endl;
+    std::cout << "mesh_t size h = \t" << meshSize << std::endl;
     std::cout << "Time step dt = \t" << dt << std::endl;
 
     // DEFINITION OF THE LEVELSET
     // =====================================================
-    Space Lh(Th, DataFE<Mesh2>::P1);
-    Fun_h levelSet(Lh, fun_levelSet);
+    space_t Lh(Th, DataFE<Mesh2>::P1);
+    fct_t levelSet(Lh, fun_levelSet);
 
     // CONSTRUCTION INTERFACE AND CUTSPACE
     // =====================================================
-    InterfaceLevelSet<Mesh> interface(Th, levelSet);
-    ActiveMesh<Mesh> Khi(Th, interface);
-    CutSpace Wh(Khi, Vh);
+    InterfaceLevelSet<mesh_t> interface(Th, levelSet);
+    cutmesh_t Khi(Th, interface);
+    cutspace_t Wh(Khi, Vh);
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
     // =====================================================
-    Rn u0(Wh.NbDoF(), 0.);
+    std::vector<double> u0(Wh.NbDoF(), 0.);
     interpolate(Wh, u0, fun_initial);
-    Fun_h Un(Wh, u0);
-    Rn uh(u0);
+    std::vector<double> uh(u0);
 
-    Fun_h fun_uh(Wh, uh);
-    // Expression2 femSol(femSolh, 0, op_id);
-    qu0 = integral(Khi, fun_uh, 0);
+    fct_t fun_u0(Wh, u0);
+    fct_t fun_uh(Wh, uh);
+    double qu0 = integral(Khi, fun_u0, 0);
 
     // ASSEMBLY THE CONSTANT PART
     // ==================================================
@@ -158,21 +167,26 @@ int main(int argc, char **argv) {
 
     // RESOLUTION OF THE PROBLEM_MIXED_DARCY
     // ==================================================
+    std::vector<double> u1(Wh.NbDoF(), 0.);
+
     int ifig = 1;
     for (int i = 0; i < niteration; ++i) {
 
-        Rn u1(u0);
-        Rn u2(Wh.NbDoF(), 0.);
+        std::fill(u1.begin(), u1.end(), 0.);
         // THIRD ORDER RK
         // =================================================
         solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
-        u1 += dt * uh;
-        u2 += 3. / 4 * u0 + 1. / 4 * u1;
+        Scheme::RK3::step1(u0.begin(), u0.end(), uh.begin(), dt, u1.begin());
+        // u1 += dt * uh;
+        // u2 += 3. / 4 * u0 + 1. / 4 * u1;
         solve_problem(Wh, interface, u1, uh, Ah, Mh, tid + dt);
-        u2 += 1. / 4 * dt * uh;
-        solve_problem(Wh, interface, u2, uh, Ah, Mh, tid + 0.5 * dt);
-        uh *= 2. / 3 * dt;
-        uh += 1. / 3 * u0 + 2. / 3 * u2;
+        Scheme::RK3::step2(u0.begin(), u0.end(), u1.begin(), uh.begin(), dt, u1.begin());
+
+        // u2 += 1. / 4 * dt * uh;
+        solve_problem(Wh, interface, u1, uh, Ah, Mh, tid + 0.5 * dt);
+        Scheme::RK3::step3(u0.begin(), u0.end(), u1.begin(), uh.begin(), dt, uh.begin());
+        // uh *= 2. / 3 * dt;
+        // uh += 1. / 3 * u0 + 2. / 3 * u2;
 
         u0 = uh;
         tid += dt;
@@ -186,21 +200,25 @@ int main(int argc, char **argv) {
         // PLOT THE SOLUTION
         // ==================================================
         // if(MPIcf::IamMaster() && i%5 == 0 || i+1 == niteration) {
-        //   // Fun2_h solex(Wh, fun_solution, tid);
-        //   for(int j=0;j<uh.size();++j) {
-        //     if(fabs(uh(j)) < 1e-16 ) uh(j) = 0.;
-        //   }
-        //   // Fun2_h sol(Wh, uh);
-        //   Paraview<Mesh> writer(Khi, "conservation_"+to_string(ifig++)+".vtk");
-        //   writer.add(fun_uh, "uh", 0, 1);
-        //   // writer.add(solex, "uex", 0, 1);
+        // Fun2_h solex(Wh, fun_solution, tid);
+        // for (int j = 0; j < uh.size(); ++j) {
+        //     if (fabs(uh(j)) < 1e-16)
+        //         uh(j) = 0.;
+        // }
+        // Fun2_h sol(Wh, uh);
+        Paraview<mesh_t> writer(Khi, "conservation_" + std::to_string(ifig++) + ".vtk");
+        writer.add(fun_uh, "uh", 0, 1);
+        // writer.add(solex, "uex", 0, 1);
         // }
         std::cout << "Iteration " << i + 1 << " / " << niteration << " \t time = " << tid << std::endl;
 
-        std::cout << setprecision(16) << "q(u) = " << qu << std::endl;
-        std::cout << setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0) << setprecision(6) << std::endl;
-        outputData << i << "\t" << tid << "\t" << setprecision(16) << qu << "\t" << setprecision(16) << fabs(qu - qu0)
-                   << "\t" << setprecision(5) << std::endl;
+        std::cout << std::setprecision(16) << "q(u) = " << qu << std::endl;
+        std::cout << std::setprecision(16) << "|q(u) - q(u0)| = " << fabs(qu - qu0) << std::setprecision(6)
+                  << std::endl;
+        outputData << i << "\t" << tid << "\t" << std::setprecision(16) << qu << "\t" << std::setprecision(16)
+                   << fabs(qu - qu0) << "\t" << std::setprecision(5) << std::endl;
+
+        return 0;
     }
 
     std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin << std::endl;
