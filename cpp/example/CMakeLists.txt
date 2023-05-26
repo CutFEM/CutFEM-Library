@@ -1,3 +1,8 @@
+add_executable(limiter_paper1_ex_2 hyberbolic_conservation_law/DG_CutFEM_ex_2.cpp)
+target_link_libraries( limiter_paper1_ex_2
+                        PRIVATE 
+                        ${EXTRA_LIBS} )
+
 
 add_executable(limiter_ex_1 hyberbolic_conservation_law/limiter_smooth_solution.cpp)
 target_link_libraries( limiter_ex_1
