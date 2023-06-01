@@ -15,16 +15,14 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 #include "limiter.hpp"
 
-void Limiter::check_maximum_principle(std::map<int, double> &u_mean,
-                                      double min_u, double max_u) {
+void Limiter::check_maximum_principle(std::map<int, double> &u_mean, double min_u, double max_u) {
 
-   for (auto &p : u_mean) {
-      double val = p.second;
-      if (min_u > val || max_u < val) {
-         std::cout << "element \t" << p.first << "\t" << min_u << "\t" << val
-                   << "\t" << max_u << std::endl;
-      }
-   }
+    for (auto &p : u_mean) {
+        double val = p.second;
+        if (min_u > val || max_u < val) {
+            std::cout << "element \t" << p.first << "\t" << min_u << "\t" << val << "\t" << max_u << std::endl;
+        }
+    }
 }
 
 // void Limiter::KXRCF_indicator(const Fun2_h& uh, const Fun2_h& flux){
