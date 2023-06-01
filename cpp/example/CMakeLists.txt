@@ -19,7 +19,7 @@ target_link_libraries( limiter_ex_3
                         PRIVATE 
                         ${EXTRA_LIBS} )
 
-add_executable(darcy_ex_1 darcy/darcy_example1.cpp)
+add_executable(darcy_ex_1 darcy_fictitious/darcy_example1.cpp)
 target_link_libraries( darcy_ex_1
                         PRIVATE 
                         ${EXTRA_LIBS} )
