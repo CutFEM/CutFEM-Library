@@ -52,7 +52,7 @@ class TypeOfFE_P2Polynomial1d : public GTypeOfFE<Mesh1> {
         GTypeOfFE<Mesh>::basisFctType    = BasisFctType::P2poly;
         GTypeOfFE<Mesh>::polynomialOrder = k;
 
-        static const R1 Pt[3] = {R1(0.), R1(1.), R1(1. / 2)};
+        static const R1 Pt[3] = {R1(0.), R1(1. / 2), R1(1.)};
 
         for (int i = 0; i < ndf; ++i) {
             Pt_Pi_h[i] = Pt[i];
