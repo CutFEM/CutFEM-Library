@@ -37,18 +37,8 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
 
     SignElement<Element> get_SignElement(int k) const override;
     Partition<Element> get_partition(int k) const override;
-    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const override;
-    // return Partition<Element>((*this->backMesh)[k], loc_ls);
-    // Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k, int ifac) const;
-    // {
-    //         double loc_ls[Element::Face::nv];
-    //         for (int i = 0; i < Element::Face::nv; ++i) {
-    //             int j     = Element::nvhyperFace[ifac][i];
-    //             int iglb  = this->backMesh->at(k, j);
-    //             loc_ls[i] = ls_[iglb];
-    //         }
-    //         return Partition<typename Element::Face>(face, loc_ls);
-    // }
+    Partition<typename Element::Face> get_partition_face(const typename Element::Face &face, int k,
+                                                         int ifac) const override;
     bool isCutFace(int k, int ifac) const override;
     bool isCut(int k) const override;
 
@@ -58,6 +48,12 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
     void cut_partition(Physical_Partition<Element> &local_partition, std::vector<ElementIdx> &new_element_idx,
                        std::list<int> &erased_element, int sign_part) const override;
 
+    Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
+
+    size_t size() const override { return this->faces_.size(); }
+
+    R measure(int i) const override { return measure(this->faces_[i]); };
+
   private:
     void make_patch(int label);
 
@@ -65,16 +61,7 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
                          const double lset[Element::nv], int label);
 
     Rd make_normal(const typename Mesh::Element &K, const double lset[Element::nv]);
-
-    // Rd get_intersection_node(int k, const Rd A, const Rd B) const;
-
-    Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const override;
-
-    size_t size() const override { return this->faces_.size(); }
-
-    R measure(int i) const override { return measure(this->faces_[i]); };
 };
-
 
 #include "interface_levelSet.tpp"
 

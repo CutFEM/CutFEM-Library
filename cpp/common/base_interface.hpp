@@ -94,21 +94,21 @@ template <typeMesh M> class Interface {
     virtual R measure(const Face &f) const                                            = 0;
     virtual Rd mapToPhysicalFace(int ifac, const typename Element::RdHatBord x) const = 0;
     virtual bool isCutFace(int k, int ifac) const                                     = 0;
-    virtual bool isCut(int k) const                                             = 0;
+    virtual bool isCut(int k) const                                                   = 0;
 
     Rd operator()(const int k, const int i) const { return vertices_[faces_[k][i]]; }
-    const Rd &operator()(const int i) const { return vertices_[CheckV(i)]; }
-    const Face &operator[](const int k) const { return faces_[CheckT(k)]; }
-    const Face &getFace(const int k) const { return faces_[CheckT(k)]; }
+    const Rd &operator()(const int i) const { return vertices_.at(i); }
+    const Face &operator[](const int k) const { return faces_.at(k); }
+    const Face &getFace(const int k) const { return faces_.at(k); }
 
-    Uint idxElementOfFace(const int k) const { return element_of_face_[k]; }
+    Uint idxElementOfFace(const int k) const { return element_of_face_.at(k); }
     Uint idxFaceOfElement(const int k) const {
         const auto it = face_of_element_.find(k);
         assert(it != face_of_element_.end());
         return it->second;
     }
 
-    Uint nbElement() const { return faces_.size(); }
+    Uint nbElement() const { return size(); }
 
     const Element &get_element(int k) const { return (*backMesh)[k]; }
     const Mesh &get_mesh() const {
@@ -139,15 +139,6 @@ template <typeMesh M> class Interface {
     virtual ~Interface() {}
 
   private:
-    inline int CheckV(int i) const {
-        assert(i >= 0 && i < vertices_.size());
-        return i;
-    }
-    inline int CheckT(int i) const {
-        assert(i >= 0 && i < size());
-        return i;
-    }
-
     Interface(const Interface &);      // pas de construction par copie
     void operator=(const Interface &); // pas affectation par copy
 };

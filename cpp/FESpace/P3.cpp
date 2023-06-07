@@ -34,7 +34,92 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "FESpace.hpp"
 
-// P3 Lagrange on triangles in 2D
+// P1 Polynomial basis {1, x}
+class TypeOfFE_P3Polynomial1d : public GTypeOfFE<Mesh1> {
+
+    typedef Mesh1 Mesh;
+    typedef typename Mesh::Element E;
+    static const int nbNodeOnItem[4];
+
+  public:
+    static const int k   = 2;
+    static const int ndf = (k + 1);
+    static int Data[];
+    static double alpha_Pi_h[];
+
+    // dof, dim Im, Data, coefInterp, nbPt, coeff
+    TypeOfFE_P3Polynomial1d() : GTypeOfFE<Mesh1>(4, 1, Data, 13, 4, alpha_Pi_h) {
+        GTypeOfFE<Mesh>::basisFctType    = BasisFctType::P3poly;
+        GTypeOfFE<Mesh>::polynomialOrder = k;
+
+        static const R1 Pt[4] = {R1(0.), R1(1. / 3), R1(2. / 3), R1(1.)};
+
+        for (int i = 0; i < ndf; ++i) {
+            Pt_Pi_h[i] = Pt[i];
+        }
+
+        ipj_Pi_h[0] = IPJ(0, 0, 0);
+        int j       = 1;
+        for (int i = 0; i < 4; ++i) {
+            ipj_Pi_h[j++] = IPJ(1, i, 0);
+        }
+        for (int i = 0; i < 4; ++i) {
+            ipj_Pi_h[j++] = IPJ(2, i, 0);
+        }
+        for (int i = 0; i < 4; ++i) {
+            ipj_Pi_h[j++] = IPJ(3, i, 0);
+        }
+    }
+
+    void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
+};
+
+const int TypeOfFE_P3Polynomial1d::nbNodeOnItem[4] = {1, 1, 0, 0};
+int TypeOfFE_P3Polynomial1d::Data[]                = {
+    0, 1, 2, 2, // the support number  of the node of the df
+    0, 0, 0, 1, // the number of the df on  the node
+    0, 1, 2, 2, // the node of the df
+    0, 1, 2, 3, // which are de df on sub FE
+    1, 1, 0, 0, // nb node on what
+    0,          // for each compontant $j=0,N-1$ it give the sub FE associated
+    0,          // begin_dfcomp
+    4           // end_dfcomp
+};
+
+double TypeOfFE_P3Polynomial1d::alpha_Pi_h[] = {1., -5.5, 9. - 4.5, 1., 9., -22.5, 18., -4.5, -4.5, 13.5, -13.5, 4.5};
+
+void TypeOfFE_P3Polynomial1d::FB(const What_d whatd, const Element &K, const R1 &P, RNMK_ &val) const {
+    assert(K[0].X() < K[1].X());
+    assert(0 <= P.X() && P.X() <= 1);
+    R l[] = {1, P.X(), P.X() * P.X(), P.X() * P.X() * P.X()};
+
+    assert(val.N() >= Element::nv);
+    assert(val.M() == 1);
+
+    val = 0;
+    RN_ f0(val('.', 0, op_id));
+
+    if (whatd & Fop_D0) {
+        f0[0] = l[0];
+        f0[1] = l[1];
+        f0[2] = l[2];
+        f0[3] = l[3];
+    }
+    if (whatd & Fop_D1) {
+        if (whatd & Fop_dx) {
+            RN_ f0x(val('.', 0, op_dx));
+            f0x[0] = 0;
+            f0x[1] = 1. / K.measure();
+            f0x[2] = 2 * l[1] * f0x[1];
+            f0x[3] = 3 * l[2] * f0x[1];
+        }
+    }
+}
+
+static TypeOfFE_P3Polynomial1d P3_Polynomial_1d;
+GTypeOfFE<Mesh1> &P3Polynomial1d(P3_Polynomial_1d);
+template <> GTypeOfFE<Mesh1> &DataFE<Mesh1>::P3Poly = P3_Polynomial_1d;
+
 class TypeOfFE_P3Lagrange2d : public GTypeOfFE<Mesh2> {
     typedef Mesh2 Mesh;
     typedef typename Mesh::Element Element;

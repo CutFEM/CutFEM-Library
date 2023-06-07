@@ -75,6 +75,58 @@ template <typename Mesh> void check_maximum_principle(std::map<int, double> &u_m
 
 namespace CutFEM {
 
+template <typename Mesh> double average(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
+    using QF      = typename GFElement<Mesh>::QF;
+    using CutMesh = ActiveMesh<Mesh>;
+
+    const QF &qf(*QF_Simplex<typename GFElement<Mesh>::RdHat>(2));
+    const CutMesh &Th(FK.Vh.get_mesh());
+
+    int k           = FK.index();
+    const auto cutK = Th.get_cut_part(k, 0);
+
+    double Uj     = 0.;
+    double meas_K = 0.;
+    for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+        double meas_cut = cutK.measure(it);
+        meas_K += meas_cut;
+        for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+            typename QF::QuadraturePoint ip(qf[ipq]); // integration point
+            auto mip = cutK.mapToPhysicalElement(it, ip);
+            Uj += meas_cut * ip.getWeight() * uh.eval(FK.index(), mip, 0, op_id);
+        }
+    }
+    return Uj / meas_K;
+}
+
+template <typename Mesh> double average(const MElement &MK, const FunFEM<Mesh> &uh) {
+    using QF      = typename GFElement<Mesh>::QF;
+    using CutMesh = ActiveMesh<Mesh>;
+
+    const QF &qf(*QF_Simplex<typename GFElement<Mesh>::RdHat>(2));
+    const GFESpace<Mesh> &Vh(*uh.Vh);
+    const CutMesh &Th(Vh.get_mesh());
+
+    double Uj     = 0.;
+    double meas_K = 0.;
+
+    // loop over elements in macro element
+    for (int k = 0; k < MK.size(); ++k) {
+        int ki          = MK.get_index_element(k);
+        const auto cutK = Th.get_cut_part(ki, 0);
+        for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+            double meas_cut = cutK.measure(it);
+            meas_K += meas_cut;
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+                auto ip(qf[ipq]); // integration point
+                auto mip = cutK.mapToPhysicalElement(it, ip);
+                Uj += meas_cut * ip.getWeight() * uh.eval(ki, mip, 0, op_id);
+            }
+        }
+    }
+    return Uj / meas_K;
+}
+
 // -------------------------------------------------------------------------
 // COMPUTE THE MIN AND THE MAX VALUE OF A FE FUNCTION ON A CUT MESH
 // DEPENDING OF THE POLYNOMIAL ORDER.
@@ -982,29 +1034,37 @@ std::tuple<double, double> minAndMaxAverageNeighbor(const GFElement<Mesh> &FK, c
     }
     return {m, M};
 }
-
-template <typename Mesh> double averageOnKj(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh) {
+template <typename Mesh>
+std::tuple<double, double> minAndMaxAverageNeighbor(const MElement &MK, const FunFEM<Mesh> &uh) {
     using QF      = typename GFElement<Mesh>::QF;
     using CutMesh = ActiveMesh<Mesh>;
 
     const QF &qf(*QF_Simplex<typename GFElement<Mesh>::RdHat>(2));
-    const CutMesh &Th(FK.Vh.get_mesh());
+    const GFESpace<Mesh> &Vh(*uh.Vh);
+    const CutMesh &cutTh(Vh.get_mesh());
+    const auto &macro = MK.getMacroSpace();
 
-    int k           = FK.index();
-    const auto cutK = Th.get_cut_part(k, 0);
+    double m = 1e300, M = -1e300;
 
-    double Uj     = 0.;
-    double meas_K = 0.;
-    for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
-        double meas_cut = cutK.measure(it);
-        meas_K += meas_cut;
-        for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
-            typename QF::QuadraturePoint ip(qf[ipq]); // integration point
-            auto mip = cutK.mapToPhysicalElement(it, ip);
-            Uj += meas_cut * ip.getWeight() * uh.eval(FK.index(), mip, 0, op_id);
+    //  loop over outter edges
+    for (auto [k, ifac] : MK.outter_edge) {
+        // get neighbor element index and face index
+        const auto [kn, jn] = cutTh.elementAdjacent(k, ifac);
+        double val          = 0.;
+        // belong to a macro element
+        if (macro.isInMacro(kn)) {
+            const MElement &MKn = macro.getMacroElementOfElement(kn);
+            val                 = average(MKn, uh);
         }
+        // is just a trivial element
+        else {
+            const auto FKn = Vh[kn];
+            val            = average(FKn, uh);
+        }
+        m = std::min(m, val);
+        M = std::max(M, val);
     }
-    return Uj / meas_K;
+    return {m, M};
 }
 
 template <typename Mesh>
@@ -1012,7 +1072,7 @@ double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj
     using QFB     = typename GFElement<Mesh>::QFB;
     using CutMesh = ActiveMesh<Mesh>;
 
-    const QFB &qfb(*QF_Simplex<typename GFElement<Mesh>::RdHatBord>(4));
+    const QFB &qfb(*QF_Simplex<typename GFElement<Mesh>::RdHatBord>(5));
     const CutMesh &Th(FK.Vh.get_mesh());
 
     int k           = FK.index();
@@ -1074,6 +1134,71 @@ double computeAlpha(const GFElement<Mesh> &FK, const FunFEM<Mesh> &uh, double Uj
 
     return min_alpha_i;
 }
+template <typename Mesh>
+double computeAlpha(const MElement &MK, const FunFEM<Mesh> &uh, double Uj, double m, double M) {
+    using QFB     = typename GFElement<Mesh>::QFB;
+    using CutMesh = ActiveMesh<Mesh>;
+
+    const QFB &qfb(*QF_Simplex<typename GFElement<Mesh>::RdHatBord>(5));
+    const GFESpace<Mesh> &Vh(*uh.Vh);
+    const CutMesh &cutTh(Vh.get_mesh());
+    const auto &macro = MK.getMacroSpace();
+
+    double min_alpha_i = 1e300;
+
+    //  loop over outter edges
+    for (auto [k, ifac] : MK.outter_edge) {
+        const auto FK       = Vh[k];
+        const auto [kn, jn] = cutTh.elementAdjacent(k, ifac);
+        double alpha_i      = 1.;
+
+        if (cutTh.isCutFace(k, ifac, 0)) {
+            typename Mesh::Element::Face face;
+            const Cut_Part<typename Mesh::Element::Face> cutFace(cutTh.get_cut_face(face, k, ifac, 0));
+            for (auto it = cutFace.element_begin(); it != cutFace.element_end(); ++it) {
+                for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+                    auto ip = qfb[ipq];
+
+                    const R2 mip = cutFace.mapToPhysicalElement(it, (R1)ip);
+                    // compute U_j(x_i^*)
+                    double ux    = uh.eval(k, mip, 0, op_id);
+
+                    if (ux - M > 0) {
+                        alpha_i = (M - Uj) / (ux - Uj);
+                    } else if (ux - m < 0) {
+                        alpha_i = (m - Uj) / (ux - Uj);
+                    } else {
+                        alpha_i = 1.;
+                    }
+
+                    alpha_i     = std::max(alpha_i, 0.);
+                    min_alpha_i = std::min(min_alpha_i, alpha_i);
+
+                    assert(min_alpha_i < 1e300);
+                }
+            }
+        } else {
+            for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+                auto ip      = qfb[ipq];
+                const R2 mip = FK.T(FK.T.toKref((R1)ip, ifac));
+                // compute U_j(x_i^*)
+                double ux    = uh.eval(k, mip, 0, op_id);
+                if (ux - M > 0) {
+                    alpha_i = (M - Uj) / (ux - Uj);
+                } else if (ux - m < 0) {
+                    alpha_i = (m - Uj) / (ux - Uj);
+                } else {
+                    alpha_i = 1.;
+                }
+                alpha_i     = std::max(alpha_i, 0.);
+                min_alpha_i = std::min(min_alpha_i, alpha_i);
+                assert(min_alpha_i < 1e300);
+            }
+        }
+    }
+
+    return min_alpha_i;
+}
 
 template <typename Mesh>
 std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<double> &cell_indicator,
@@ -1104,7 +1229,7 @@ std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<
         // compute m and M , min max average of neighbor
         auto [m, M] = minAndMaxAverageNeighbor(FK, uh);
         // compute solution average on K_j
-        double Uj   = averageOnKj(FK, uh);
+        double Uj   = average(FK, uh);
 
         double alpha = computeAlpha(FK, uh, Uj, m, M);
 
@@ -1126,6 +1251,59 @@ std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<
                 dof_Taylor(0) * B(i, 0) + alpha * (dof_Taylor(1) * B(i, 1) + dof_Taylor(2) * B(i, 2));
         }
     }
+    return u_new;
+}
+
+template <typename Mesh>
+std::vector<double> applySlopeLimiter(const FunFEM<Mesh> &uh, const std::vector<double> &cell_indicator,
+                                      const double tol, const MacroElement<Mesh> &macro) {
+
+    std::vector<double> u_new = applySlopeLimiter(uh, cell_indicator, tol);
+
+    const GFESpace<Mesh> &Vh(*uh.Vh);
+    KNM<double> B(3, 3), invB(3, 3);
+    KN<double> U_K(3);
+    KN<double> dof_Taylor(3);
+    const auto &bf_Taylor(DataFE<Mesh2>::P1dcTaylor);
+    std::vector<R2> xref_i = {R2(0., 0.), R2(1., 0.), R2(0., 1.)};
+    KNMK<double> phi(3, 1, 1);
+
+    // loop over macro element
+    for (const auto &[idx_root, MK] : macro) {
+
+        // compute m and M , min max average of neighbor (should be done one the macro element if the neighbor ibelong
+        // to a macro element??)
+        auto [m, M] = minAndMaxAverageNeighbor(MK, uh);
+        // compute solution average on K_j
+        double Uj   = average(MK, uh);
+
+        //  compute alpha
+        double alpha = computeAlpha(MK, uh, Uj, m, M);
+
+        // modifiy the dof of each element in the macro element with alpha ( they all have the same slope)
+        for (int km = 0; km < MK.size(); ++km) {
+            int k         = MK.get_index_element(km);
+            const auto FK = Vh[k];
+            const auto &T(FK.T);
+            // 1) Compute B and invB and U_K
+            for (int i = 0; i < T.nv; ++i) {
+                bf_Taylor.FB(Fop_D0, T, xref_i[i], phi);
+                B(i, '.') = phi('.', 0, op_id);
+                U_K(i)    = uh.eval(k, (R2)T[i], 0, op_id);
+            }
+            invB = inv(B);
+
+            // 2) Get the dof of the Taylor FE
+            dof_Taylor = invB * U_K;
+
+            // 3) Modify U_K
+            for (int i = 0; i < T.nv; ++i) {
+                u_new[FK.loc2glb(i)] =
+                    dof_Taylor(0) * B(i, 0) + alpha * (dof_Taylor(1) * B(i, 1) + dof_Taylor(2) * B(i, 2));
+            }
+        }
+    }
+    // getchar();
     return u_new;
 }
 

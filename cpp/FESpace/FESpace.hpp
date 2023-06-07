@@ -171,8 +171,8 @@ template <class MMesh> class GbaseFElement {
         return T(Phat);
     }
 
-    R getMeasure() const { return T.mesure(); }  // mesure felstavat (french spel ;-) )
-    R get_measure() const { return T.mesure(); } // mesure felstavat (french spel ;-) )
+    R getMeasure() const { return T.measure(); }  // mesure felstavat (french spel ;-) )
+    R get_measure() const { return T.measure(); } // mesure felstavat (french spel ;-) )
 
     Rd map(Rd ip) const { return T(ip); }
     Rd mapToPhysicalElement(Rd ip) const { return T(ip); }

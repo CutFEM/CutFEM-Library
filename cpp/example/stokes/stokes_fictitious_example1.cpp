@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 
     int nx              = 11;
     double penaltyParam = 4e3;
-    double sigma        = 1e-2;
+    double sigma        = 1e0;
     double uPenParam    = 6e0;
     double pPenParam    = 4e0;
     double mu           = 1.;
@@ -152,12 +152,12 @@ int main(int argc, char **argv) {
         ph.v += meanP / area;
 
         // Plotting
-        {
-            Paraview<mesh_t> writer(Khi, "stokes_" + std::to_string(i) + ".vtk");
-            writer.add(uh, "velocity", 0, 2);
-            writer.add(ph, "pressure", 0, 1);
-            writer.add(dx(uh.expr(0)) + dy(uh.expr(1)), "divergence");
-        }
+        // {
+        //     Paraview<mesh_t> writer(Khi, "stokes_" + std::to_string(i) + ".vtk");
+        //     writer.add(uh, "velocity", 0, 2);
+        //     writer.add(ph, "pressure", 0, 1);
+        //     writer.add(dx(uh.expr(0)) + dy(uh.expr(1)), "divergence");
+        // }
         auto uh_0dx = dx(uh.expr(0));
         auto uh_1dy = dy(uh.expr(1));
 

@@ -88,22 +88,13 @@ template <typename Data> class GenericElement : public Label {
 
   public:
     std::array<Vertex *, nv> vertices;
-    // Vertex *vertices[nv];
-    R mes;
+    double mes;
 
   public:
     GenericElement() {}
 
-    const Vertex &operator[](int i) const {
-        assert(i >= 0 && i < nv);
-        return *vertices[i];
-    }
-
-    Vertex &operator[](int i) {
-        assert(i >= 0 && i < nv);
-        return *vertices[i];
-    }
-
+    const Vertex &operator[](int i) const { return *vertices.at(i); }
+    Vertex &operator[](int i) { return *vertices.at(i); }
     const Vertex &at(int i) const { return *vertices.at(i); }
     Vertex &at(int i) { return *vertices.at(i); }
 
@@ -164,9 +155,9 @@ template <typename Data> class GenericElement : public Label {
         // at(nvedge[i][0]) = Rd coordinates of vertex 0 of edge i, (x_0^i, y_0^i)
         // at(nvedge[i][1]) = Rd coordinates of vertex 1 of edge i, (x_1^i, y_1^i)
 
-        return Rd(at(nvedge[i][0]),
-                  at(nvedge[i][1])); // (x_1^i-x_0^i, y_1^i-y_0^i) physical vector from vertex 0 to vertex 1 of edge i
-    }                                // opposite edge vertex i
+        return Rd(at(nvedge[i][0]), at(nvedge[i][1]));
+        // (x_1^i-x_0^i, y_1^i-y_0^i) physical vector from vertex 0 to vertex 1 of edge i
+    } // opposite edge vertex i
 
     Rd N(int i) const { return ExtNormal(vertices, nvhyperFace[i]) / (ExtNormal(vertices, nvhyperFace[i]).norm()); }
     Rd N_notNormalized(int i) const { return ExtNormal(vertices, nvhyperFace[i]); }
@@ -205,7 +196,6 @@ template <typename Data> class GenericElement : public Label {
             h = max(h, lenEdge(i));
         return h;
     }
-    R mesure() const { return mes; }
     R measure() const { return mes; }
     R get_h() const {
         double h = 0;
@@ -213,8 +203,12 @@ template <typename Data> class GenericElement : public Label {
             h += lenEdge(i);
         return h / ne;
     }
-    Rd map(const RdHat &Phat) const { return (*this)(Phat); }
     Rd mapToPhysicalElement(const RdHat &Phat) const { return (*this)(Phat); }
+
+    const auto begin() const { return vertices.begin(); }
+    const auto end() const { return vertices.end(); }
+    auto begin() { return vertices.begin(); }
+    auto end() { return vertices.end(); }
 
   private:
     // pas de copie

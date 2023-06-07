@@ -333,7 +333,7 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
         // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
             typename QF::QuadraturePoint ip(qf[ipq]);
-            const Rd mip = K.map(ip);
+            const Rd mip = K.mapToPhysicalElement(ip);
             double Cint  = meas * ip.getWeight() * cst_time;
 
             // EVALUATE THE BASIS FUNCTIONS
@@ -1413,7 +1413,7 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const int k, co
         // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
             typename QF::QuadraturePoint ip(qf[ipq]);
-            const Rd mip = K.map(ip);
+            const Rd mip = K.mapToPhysicalElement(ip);
             double Cint  = meas * ip.getWeight() * cst_time;
             // EVALUATE THE BASIS FUNCTIONS
             FKv.BF(Fop, ip, fv);

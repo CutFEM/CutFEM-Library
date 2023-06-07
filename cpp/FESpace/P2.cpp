@@ -104,7 +104,7 @@ void TypeOfFE_P2Polynomial1d::FB(const What_d whatd, const Element &K, const R1 
         if (whatd & Fop_dx) {
             RN_ f0x(val('.', 0, op_dx));
             f0x[0] = 0;
-            f0x[1] = 1. / K.mesure();
+            f0x[1] = 1. / K.measure();
             f0x[2] = 2 * l[1] * f0x[1];
         }
     }
