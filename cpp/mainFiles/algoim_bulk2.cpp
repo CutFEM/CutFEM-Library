@@ -667,6 +667,7 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 
 } // namespace Lehrenfeld2
 
+
 // The below parameters can be varied according to the options to use different methods,
 // different numerical examples, different subdomains and boundary conditions etc.
 
@@ -690,27 +691,22 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 // Set type of BCs on interface (options: "dirichlet", "neumann")
 #define neumann
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
 
-#define use_h    // to set mesh size using the h parameter. Write use_n to decide
-                 // using nx, ny.
+#define use_h // to set mesh size using the h parameter. Write use_n to decide
+              // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
-                 // proportional to h.
-
-// [0.00819470611389158, 0.00777779928730549, 0.007429149520395796]
+              // proportional to h.
 
 // Setup two-dimensional class types
 const int d = 2;
-#if defined(triangle)
-typedef Mesh2 Mesh;
-#else
+
 typedef MeshQuad2 Mesh;
-#endif
 typedef GFESpace<Mesh> FESpace;
 typedef CutFESpace<Mesh> CutSpace;
 typedef TestFunction<Mesh> FunTest;
@@ -736,8 +732,8 @@ int main(int argc, char **argv) {
     const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;             // starting mesh size
-    double dT = 0.25;
+    double h  = 0.1;            // starting mesh size
+    double dT = 0.1;
 
     int total_number_iteration;
     double time_step;
@@ -811,15 +807,15 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = .5; // Final time
+        const double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
         const int divisionMeshSize = 3;
 
-        double dT              = h / divisionMeshSize;
-        // double dT = 3*h;
+        double dT = h / divisionMeshSize;
+
         total_number_iteration = int(tfinal / dT);
 #endif
         dT        = tfinal / total_number_iteration;
@@ -852,18 +848,21 @@ int main(int argc, char **argv) {
         const double lambda = 1.; // Nitsche's method penalty parameter
 
         // CG stabilization parameter
-        const double tau1 = 0.1;
+        const double tau1 = .1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+        FESpace Vh(Th, DataFE<Mesh>::P2);   // Background FE Space
+        FESpace Vh2(Th, DataFE<Mesh>::P2);  // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);     // FE Space in time
+        FESpace1 Ih2(Qh, DataFE<Mesh1>::P2Poly);    // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(3)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(5)); // specify order of quadrature in time
+        // const QuadratureFormular1d &qTime(QF_Euler); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -892,6 +891,7 @@ int main(int argc, char **argv) {
             int current_iteration = iter;
             double current_time   = iter * time_step;
             const TimeSlab &In(Ih[iter]);
+            const TimeSlab &In2(Ih2[iter]);
 
             std::cout << " -------------------------------------------------------\n";
             std::cout << " -------------------------------------------------------\n";
@@ -900,6 +900,7 @@ int main(int argc, char **argv) {
             std::cout << "dT = " << dT << '\n';
 
             // computation of the interface in each of the three quadrature points
+
             for (int i = 0; i < nbTime; ++i) {
 
                 R tt  = In.Pt(R1(qTime(i).x));
@@ -912,7 +913,7 @@ int main(int argc, char **argv) {
 
             // #ifdef omega1
             Thi.truncate(interface, 1); // remove part with negative sign of level
-                                         // #elif defined(omega2)
+                                        // #elif defined(omega2)
             //             Thi.truncate(interface, 1); // remove part with positive sign of level
             //  set to get inner domain
             // #endif
@@ -936,10 +937,12 @@ int main(int argc, char **argv) {
             // getchar();
 
             // Right hand side functions
-            Fun_h f(Vh, In, fun_rhsBulk);
-            Fun_h g(Vh, In, fun_uBulk);                 // create an FE-function of the exact bulk
+            //Fun_h f(Vh, In, fun_rhsBulk);
+            Fun_h f(Vh2, In2, fun_rhsBulk);
+            Fun_h g(Vh2, In2, fun_uBulk);                 // create an FE-function of the exact bulk
                                                         // solution Omega2
-            Fun_h g_Neumann(Vh, In, fun_neumann_Gamma); // computer Neumann BC
+            //Fun_h g_Neumann(Vh, In, fun_neumann_Gamma); // computer Neumann BC
+            Fun_h g_Neumann(Vh2, In2, fun_neumann_Gamma); // computer Neumann BC
             // Fun_h g_Neumann_left(Wh, In, fun_neumann_left);     // label 1
             // Fun_h g_Neumann_bottom(Wh, In, fun_neumann_bottom); // label 4
             // Fun_h g_Neumann_right(Wh, In, fun_neumann_right);   // label 2
@@ -1009,8 +1012,8 @@ int main(int argc, char **argv) {
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
             convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
             convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)) -
-                                     innerProduct(u, (vel.exprList() * grad(v))),
-                                 Thi, In);
+                                             innerProduct(u, (vel.exprList() * grad(v))),
+                                         Thi, In);
 #endif
 
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
@@ -1019,14 +1022,24 @@ int main(int argc, char **argv) {
             double stab_bulk_faces = tau1 * h;
             double stab_mass       = 0.; // tau1 * h;
             double stab_dt         = 0.; // tau1 * h;
-            convdiff.addFaceStabilization(+innerProduct(stab_bulk_faces * jump(grad(u) * n), jump(grad(v) * n)), Thi,
-                                          In);
+            // convdiff.addFaceStabilization(+innerProduct(stab_bulk_faces * jump(grad(u) * n), jump(grad(v) * n))
+            //                               + innerProduct(tau1 * h*h*h*jump(grad(grad(u) * n)*n), jump(grad(grad(v) *
+            //                               n)*n))
+            // , Thi, In);
+            convdiff.addFaceStabilization(
+                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
+                    innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+                Thi, In);
+
+            // convdiff.addBilinear(+innerProduct(h * h * tau1 * grad(u) * n, grad(v) * n), interface, In);
 
             // double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
-            // convdiff.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)), Thi,
+            // convdiff.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)),
+            // Thi,
             //                               In, lastQuadTime);
 
-            // convdiff.addFaceStabilization(-innerProduct(stab_dt * jump(grad(u) * n), jump(grad(dt(v)) * n)), Thi, In);
+            // convdiff.addFaceStabilization(-innerProduct(stab_dt * jump(grad(u) * n), jump(grad(dt(v)) * n)), Thi,
+            // In);
 
             //* Boundary conditions
 // If Omega1
@@ -1165,7 +1178,7 @@ int main(int argc, char **argv) {
 #elif defined(USE_MPI)
             if (iter == total_number_iteration - 1) {
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) +
-                                                     "_" + std::to_string(j + 1) + ".dat");
+                                                             "_" + std::to_string(j + 1) + ".dat");
             }
 #endif
 
@@ -1227,10 +1240,13 @@ int main(int argc, char **argv) {
 
                 double errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1);
                 std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
-                sol += data_u0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+
+                for (int n = 1; n < ndfTime; n++) {
+                    sol += data_u0(SubArray(Wh.get_nb_dof(), n * Wh.get_nb_dof()));
+                }
+
                 errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1);
                 std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
-
                 errors.at(j) = errBulk;
 
                 // #ifdef USE_MPI
@@ -1239,7 +1255,7 @@ int main(int argc, char **argv) {
                 if ((iterations == 1)) {
                     Fun_h sol_h(Wh, sol);
                     Paraview<Mesh> writerTh(Th, path_output_figures + "Th.vtk");
-                    Paraview<Mesh> writer(Thi, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
+                    Paraview<Mesh> writer(Thi, path_output_figures + "bulk0_" + std::to_string(iter + 1) + ".vtk");
                     writer.add(b0h, "bulk", 0, 1);
                     writer.add(sol_h, "bulk_end", 0, 1);
 

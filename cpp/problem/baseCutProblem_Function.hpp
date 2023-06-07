@@ -2054,10 +2054,11 @@ void BaseCutFEM<M>::saveSolution(const V sol) {
                 for (int i = FK.dfcbegin(ic); i < FK.dfcend(ic); ++i) {
                     R val = 0.; // Initialize the coefficient value to 0.
 
-                    // Sum up the coefficients corresponding to the same global DOF in different time steps.
+                    // Sum up the coefficients corresponding to the same space DOF in different time DOFs.
                     for (int it = 0; it < nbTime; ++it) {
                         val += solS[FK.loc2glb(i, it)];
                     }
+
                     // Store the coefficient value in the DOF in the background FE space, to be able to retreive it in the next time slab
                     this->mapU0_[std::make_pair(id_domain, FKback(i))] = val;
                 }

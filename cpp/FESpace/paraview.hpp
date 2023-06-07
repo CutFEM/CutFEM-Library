@@ -1335,16 +1335,19 @@ template <class M> class Paraview {
                 algoim::QuadratureRule<2> q = algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax),
                                                                  algoim_domain, -1, quadrature_order);
 
-                // if (algoim_domain == 2)
-                //     assert((q.nodes.size() == quadrature_order) || (q.nodes.size()) == 0);
-                // else if (algoim_domain == -1)
-                //     assert((q.nodes.size() == quadrature_order * quadrature_order) ||
-                //            (q.nodes.size() == 2 * quadrature_order * quadrature_order));
-                if (q.nodes.size() == 75) {
-                    std::cout << "k = " << k << ", itq = " << itq << ", q size: " << q.nodes.size() << "\n";
-                    std::cout << "kb = " << kb << "\n";
-                    std::cout << "V0 = " << V0 << ", V2 = " << V2 << "\n";
-                }
+                if (algoim_domain == 2)
+                    assert((q.nodes.size() == quadrature_order) ||
+                    (q.nodes.size() == 2*quadrature_order) ||
+                    (q.nodes.size()) == 0);
+                else if (algoim_domain == -1)
+                    assert((q.nodes.size() == quadrature_order * quadrature_order) ||
+                           (q.nodes.size() == 2 * quadrature_order * quadrature_order)||
+                           (q.nodes.size() == 3 * quadrature_order * quadrature_order));
+                // if (q.nodes.size() == 75) {
+                //     std::cout << "k = " << k << ", itq = " << itq << ", q size: " << q.nodes.size() << "\n";
+                //     std::cout << "kb = " << kb << "\n";
+                //     std::cout << "V0 = " << V0 << ", V2 = " << V2 << "\n";
+                // }
                 for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
                     check_and_resize_array(kk);
                     mesh_node[kk].push_back(R2(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1)));

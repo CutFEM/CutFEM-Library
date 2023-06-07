@@ -900,7 +900,7 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 4; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
     // double h  = 0.1*pow(0.5, 5)*sqrt(0.5);             // starting mesh size
@@ -1006,7 +1006,8 @@ int main(int argc, char **argv) {
 // #endif
 
 //         Mesh Th(nx, ny, -2.4, -2.4, lx, ly);
-const double lx = 4.8123, ly = 4.8353;
+        //const double lx = 4.8123, ly = 4.8353;
+        const double lx = 4.8, ly = 4.8;
         // const double lx = 8., ly = 6.;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
@@ -1014,22 +1015,22 @@ const double lx = 4.8123, ly = 4.8353;
         h = lx / (nx - 1);
 #endif
 
-        Mesh Th(nx, ny, -2.435, -2.597, lx, ly);
+        Mesh Th(nx, ny, -2.4+Epsilon, -2.4 + Epsilon, lx, ly);
         // Mesh Th(nx, ny, -3, -3, lx, ly);
 #endif
 
         // Parameters
-        double tfinal = .5; // Final time
+        double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        int divisionMeshSize = 4;
+        int divisionMeshSize = 8;
 
         // int divisionMeshSize = 2*3*pi;
         // int divisionMeshSize = 18;
 
-        double dT = h / divisionMeshSize;
+        double dT = h * h / divisionMeshSize;
 
         total_number_iteration = int(tfinal / dT);
 #endif
@@ -1060,7 +1061,7 @@ const double lx = 4.8123, ly = 4.8353;
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = .01, tau2 = 1.;
+        double tau0 = 0, tau1 = 0.01, tau2 = 1.;
 
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace2 Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
@@ -1289,8 +1290,8 @@ const double lx = 4.8123, ly = 4.8353;
 #endif
 
             // Stabilization
-            double stab_surf_face      = tau1;
-            double stab_surf_interface = 0.; // h * h * tau2;
+            double stab_surf_face      = h * tau1;
+            double stab_surf_interface = h * tau2;
             double stab_mass           = 0.; // tau1 * h;
             double stab_dt             = 0.; // tau1 *h;
 

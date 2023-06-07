@@ -448,6 +448,22 @@ template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dt(const std::shared_
     return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, u->op, op_dx, u->domain);
 }
 
+/* Sebastian's implementation, is this correct? 
+It generates an assertion error */
+template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dxx(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+    return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dxx, u->opt, u->domain);
+}
+template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dyy(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+    return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dyy, u->opt, u->domain);
+}
+template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dzz(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+    return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dzz, u->opt, u->domain);
+}
+template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dxy(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
+    return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dxy, u->opt, u->domain);
+}
+
+
 template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dx(const ExpressionFunFEM<M> &u) {
     return std::make_shared<ExpressionFunFEM<M>>(u.fun, u.cu, op_dx, u.opt, u.domain);
 }

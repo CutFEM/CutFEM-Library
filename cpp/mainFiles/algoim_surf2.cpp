@@ -720,7 +720,7 @@ R fun_rhs(double *P, const int cc, const R t) {
 } // namespace Deckelnick2
 
 // Set numerical example (options: "example1", "shi1", "shi2", "deckelnick", "deckelnick2")
-#define deckelnick2
+#define example1
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
 #define conservative
@@ -767,8 +767,11 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+    ProblemOption option;
+    option.order_space_element_quadrature_ = 7;
+
     // Mesh settings and data objects
-    const size_t iterations = 4; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
     // double h  = 0.1 * pow(0.5, 5) * sqrt(0.5); // starting mesh size
@@ -882,9 +885,9 @@ int main(int argc, char **argv) {
         // Parameters
         double tfinal = .1; // Final time
 
-        int divisionMeshSize = 4;
+        int divisionMeshSize = 3;
 
-        double dT = h * h / divisionMeshSize;
+        double dT = h / divisionMeshSize;
         //double dT = h * h;
 
         total_number_iteration = int(tfinal / dT);
@@ -916,18 +919,23 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = .01, tau2 = 1.;
+        double tau0 = 0, tau1 = 0.1, tau2 = 0.1;
 
         // Background FE Space, Time FE Space & Space-Time Space
-        FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+        FESpace Vh(Th, DataFE<Mesh>::P3);       // Background FE space
+        FESpace Vh2(Th, DataFE<Mesh>::P2);      // For interpolating data
+        FESpace Vh3(Th, DataFE<Mesh>::P3);      // For interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P0Poly);     // Time FE space
+        FESpace1 Ih2(Qh, DataFE<Mesh1>::P2Poly);    // for interpolating data
+        FESpace1 Ih3(Qh, DataFE<Mesh1>::P3Poly);    // for interpolating data
+
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(3));
+        const QuadratureFormular1d &qTime(*Lobatto(9));
 
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
@@ -964,6 +972,8 @@ int main(int argc, char **argv) {
             double tid            = iter * time_step;
 
             const TimeSlab &In(Ih[iter]);
+            const TimeSlab &In2(Ih2[iter]);
+            const TimeSlab &In3(Ih3[iter]);
 
             std::cout << " ----------------------------------------------------"
                          "--------- "
@@ -993,13 +1003,16 @@ int main(int argc, char **argv) {
             surfactant.initSpace(Wh, In);
 
             // Interpolate data
+            Fun_h funrhs(Vh3, In3, fun_rhs);
+            
             Rn datau0(surfactant.get_nb_dof(), 0.);
             surfactant.initialSolution(datau0); 
             KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(), 0)));
             if (iter == 0)
                 interpolate(Wh, datas0, fun_init_surfactant);
-
+            
             Fun_h u0(Wh, datau0);
+
 
             if (iter == 0) {
                 Paraview<Mesh> writer(ThGamma, path_figures + "surfactant_initial" + ".vtk");
@@ -1047,12 +1060,13 @@ int main(int argc, char **argv) {
 #endif
 
             // Stabilization
-            double stab_surf_face      = tau1;
+            double stab_surf_face      = h * tau1;
             double stab_surf_interface = h * h * tau2;
             double stab_mass           = 0.;//tau1 * h;
             double stab_dt             = 0.;//tau1 * dT;
 
-            surfactant.addFaceStabilization(+innerProduct(stab_surf_face * jump(grad(u) * n), jump(grad(v) * n)),
+            surfactant.addFaceStabilization(+innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n))+
+                    innerProduct(h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
                                             ThGamma, In);
             
             // stabilize in last quadrature point
@@ -1082,9 +1096,8 @@ int main(int argc, char **argv) {
             // grad(v)))), ThGamma,
             //                                 In);
 
-            surfactant.addBilinear(+innerProduct(stab_surf_interface * grad(u) * n, grad(v) * n), interface, In);
-
-            Fun_h funrhs(Vh, In, fun_rhs);
+            surfactant.addBilinear(+ innerProduct(tau2 * h * h * grad(u) * n, grad(v) * n)
+                                   + innerProduct(tau2 * h * h * h * h * grad(grad(u) * n) * n, grad(grad(v) * n) * n), interface, In);
 
             // Add RHS on surface
             surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface, In);
@@ -1102,15 +1115,19 @@ int main(int argc, char **argv) {
                 // Solve linear system
                 surfactant.solve("mumps");
 
-                KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
-                datau0 = dw;
+                //KN_<double> dw(surfactant.rhs_(SubArray(surfactant.get_nb_dof(), 0)));
+                //datau0 = dw;
+                datau0 = surfactant.rhs_;
 
                 surfactant.saveSolution(datau0);
 
                 // Compute error
                 Rn sol(Wh.get_nb_dof(), 0.);
                 sol += datau0(SubArray(Wh.get_nb_dof(), 0));
-                sol += datau0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+                // sol += datau0(SubArray(Wh.get_nb_dof(), Wh.get_nb_dof()));
+                for (int n = 1; n < ndfTime; n++) {
+                    sol += datau0(SubArray(Wh.get_nb_dof(), n * Wh.get_nb_dof()));
+                }
 
                 Fun_h funuh_0(Wh, datau0);
                 Fun_h funuh(Wh, sol);
@@ -1127,6 +1144,7 @@ int main(int argc, char **argv) {
                 errL2 = L2_norm_surface(funuh_0.expr(), fun_sol_surfactant, *interface(0), In, qTime, 0, phi);
                 std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
                 //errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, phi, 0, 1);
+                
                 errL2 = L2_norm_surface(funuh.expr(), fun_sol_surfactant, *interface(lastQuadTime), In, qTime,
                 lastQuadTime, phi);
                 std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";

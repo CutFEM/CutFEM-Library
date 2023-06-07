@@ -34,8 +34,7 @@ R fun_levelSet(double *P, int i) {
     //             (P[2] - shift.z) * (P[2] - shift.z)) -
     //        0.35 + Epsilon;
     return (P[0] - shift.x) * (P[0] - shift.x) + (P[1] - shift.y) * (P[1] - shift.y) +
-                (P[2] - shift.z) * (P[2] - shift.z) -
-           0.35*0.35 + Epsilon;
+           (P[2] - shift.z) * (P[2] - shift.z) - 0.35 * 0.35 + Epsilon;
 }
 
 R fun_rhs(double *P, int i) {
@@ -105,14 +104,14 @@ int main(int argc, char **argv) {
 
     std::vector<double> ul2, pl2, divmax, divl2, h, convu, convp;
 
-    int iters = 4;
+    int iters = 10;
     for (int i = 0; i < iters; ++i) {
 
         Mesh3 Kh(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
 
         const R hi = 1. / (nx - 1); // 1./(nx-1)
 
-        //const R penaltyParam = 4e3; // 4e3, 8e2
+        // const R penaltyParam = 4e3; // 4e3, 8e2
 
         Space Uh_(Kh,
                   DataFE<Mesh>::Ned0); // Nedelec order 0 type 1
@@ -196,7 +195,9 @@ int main(int argc, char **argv) {
 
         // Eq 2
         maxwell3D.addBilinear( // mu Delta u + grad p
-            +innerProduct(curl(w), v) - innerProduct(k * k * eps_r * u, v) + innerProduct(p, div(v)), Khi);
+            + innerProduct(curl(w), v) 
+            - innerProduct(k * k * eps_r * u, v) 
+            + innerProduct(p, div(v)), Khi);
         maxwell3D.addLinear(+innerProduct(fh.exprList(), v), Khi);
 
         // Eq 3
@@ -262,9 +263,9 @@ int main(int argc, char **argv) {
 
         // [Stabilization]
 
-        double wPenParam = 1e0; // 1e1
-        double uPenParam = 1e-2; // 1e-1 ~ 1/penParam (2e0 for (0,lamm,0))
-        double pPenParam = 1e0;  // 1e0 (2e0 for (0,lamm,0))
+        double wPenParam = 1e1; // 1e1
+        double uPenParam = 2e0; // 1e-1 ~ 1/penParam (2e0 for (0,lamm,0))
+        double pPenParam = 2e0; // 1e0 (2e0 for (0,lamm,0))
 
         FunTest grad2un = grad(grad(u) * n) * n;
 
@@ -274,38 +275,69 @@ int main(int argc, char **argv) {
 
         // // FunTest grad2divun = grad(grad(div(u))*n)*n;
 
+        // maxwell3D.addFaceStabilization(
+
+        //     /* "Primal" stab: (lw,0,la) */
+
+        //     /* Mixed stab: (0,lm,0) */
+        //     // innerProduct(uPenParam*pow(hi,1)*jump(w), jump(tau)) // [w in P1, continuous]
+        //     // +innerProduct(wPenParam*pow(hi,3)*jump(grad(w)*n), jump(grad(tau)*n))
+        //     // +innerProduct(wPenParam*pow(hi,5)*jump(grad2wn), jump(grad2wn))
+
+        //     // // M blocks
+        //     // + innerProduct(uPenParam * pow(hi, 1) * jump(curl(w)), jump(v))                 // M block
+        //     // + innerProduct(uPenParam * pow(hi, 3) * jump(grad(curl(w))), jump(grad(v)))     // M block
+        //     // - innerProduct(uPenParam * pow(hi, 1) * jump(u), jump(curl(tau)))               // -M^T block
+        //     // - innerProduct(uPenParam * pow(hi, 3) * jump(grad(u)), jump(grad(curl(tau))))   // -M^T block
+        //     // // B blocks
+        //     // + innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v)))                  // -B^T block
+        //     // + innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v))))      // -B^T block
+        //     // - innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q))                  // B_0 block
+        //     // - innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(u))), jump(grad(q))),     // B_0 block
+        //     Khi
+        //     //, macro
+        // );
+
+        double tau_w = 1e-1;
+        double tau_m = 1e-1;
+        double tau_a = 1e-1;
+        double tau_b = 1e-1;
+
         maxwell3D.addFaceStabilization(
+            // WA
 
-            /* "Primal" stab: (lw,0,la) */
+            // W block
+            + innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau)) 
+            + innerProduct(tau_w * pow(hi, 3) * jump(grad(w)*n), jump(grad(tau)*n)) 
+            //+ innerProduct(tau_w * pow(hi, 5) * jump(grad(grad(w) * n)), jump(grad(grad(tau) * n)))
 
-            // innerProduct(uPenParam*pow(hi,1)*jump(w), jump(tau)) // [w in P1, continuous]
-            // +innerProduct(wPenParam*pow(hi,3)*jump(grad(w)*n), jump(grad(tau)*n))
-            // +innerProduct(uPenParam*pow(hi,5)*jump(grad2wn), jump(grad2wn))
-            // +innerProduct(uPenParam*pow(hi,1)*jump(u), jump(v))
-            // +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), jump(grad(v)*n))
-            // +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
-            // -innerProduct(pPenParam*pow(hi,1)*jump(p), jump(div(v)))
-            // +innerProduct(pPenParam*pow(hi,1)*jump(div(u)), jump(q))
-            // -innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(div(v))))
-            // +innerProduct(pPenParam*pow(hi,3)*jump(grad(div(u))) , jump(grad(q)))
+            // A block
+            + innerProduct(tau_a * pow(hi, 1) * jump(u), jump(v)) 
+            + innerProduct(tau_a * pow(hi, 3) * jump(grad(u)*n), jump(grad(v)*n)) 
+            //+ innerProduct(tau_a * pow(hi, 5) * jump(grad(grad(u) * n)), jump(grad(grad(v) * n)))
 
-            /* Mixed stab: (0,lm,0) */
-            // innerProduct(uPenParam*pow(hi,1)*jump(w), jump(tau)) // [w in P1, continuous]
-            // +innerProduct(wPenParam*pow(hi,3)*jump(grad(w)*n), jump(grad(tau)*n))
-            // +innerProduct(wPenParam*pow(hi,5)*jump(grad2wn), jump(grad2wn))
+            // B blocks
+            + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))              // -B^T block
+            + innerProduct(tau_b * pow(hi, 3) * jump(grad(p)*n), jump(grad(div(v))*n))  // -B^T block
+            - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))              // B_0 block
+            - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u))*n), jump(grad(q)*n)) // B_0 block
 
-            +innerProduct(uPenParam * pow(hi, 1) * jump(curl(w)), jump(v)) -
-            innerProduct(uPenParam * pow(hi, 1) * jump(u), jump(curl(tau))) +
-            innerProduct(uPenParam * pow(hi, 3) * jump(grad(curl(w))), jump(grad(v))) -
-            innerProduct(uPenParam * pow(hi, 3) * jump(grad(u)), jump(grad(curl(tau)))) +
-            innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) -
-            innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) +
-            innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) -
-            innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(u))), jump(grad(q))),
-            Khi
-            //, macro
+            // // WM
 
-        );
+            // // W block
+            // + innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau)) 
+            // + innerProduct(tau_w * pow(hi, 3) * jump(grad(w)*n), jump(grad(tau)*n))
+            // // M blocks
+            // + innerProduct(tau_m * pow(hi, 1) * jump(curl(w)), jump(v))               // M block
+            // + innerProduct(tau_m * pow(hi, 3) * jump(grad(curl(w))*n), jump(grad(v)*n))   // M block
+            // - innerProduct(tau_m * pow(hi, 1) * jump(u), jump(curl(tau)))             // -M^T block
+            // - innerProduct(tau_m * pow(hi, 3) * jump(grad(u)*n), jump(grad(curl(tau))*n)) // -M^T block
+            // // B blocks
+            // + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))              // -B^T block
+            // + innerProduct(tau_b * pow(hi, 3) * jump(grad(p)*n), jump(grad(div(v))*n))  // -B^T block
+            // - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))              // B_0 block
+            // - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u))*n), jump(grad(q)*n)) // B_0 block
+            , Khi);
 
         matlab::Export(maxwell3D.mat_[0], "mat" + std::to_string(i) + ".dat");
 
@@ -387,7 +419,7 @@ int main(int argc, char **argv) {
 
             writer.add(wh, "vorticity", 0, 1);
 
-            writer.add(uh, "velocity", 0, 2);
+            writer.add(uh, "velocity", 0, 3);
 
             writer.add(ph, "pressure", 0, 1);
 
@@ -419,12 +451,12 @@ int main(int argc, char **argv) {
                 convp.push_back(log(pl2[i] / pl2[i - 1]) / log(h[i] / h[i - 1]));
             }
 
-            if (i == 4) {
+            if (i == 10) {
                 assert(0);
             } else {
-                nx = 2 * nx - 1;
-                ny = 2 * ny - 1;
-                nz = 2 * nz - 1;
+                nx = (int)(std::sqrt(2) * nx - 1);
+                ny = (int)(std::sqrt(2) * ny - 1);
+                nz = (int)(std::sqrt(2) * nz - 1);
             }
         }
         std::cout << "\n"

@@ -103,11 +103,27 @@ const unsigned int Fop_dzx = 1 << op_dzx;
 const unsigned int Fop_dzy = 1 << op_dzy;
 const unsigned int Fop_dzz = 1 << op_dzz;
 
+const unsigned int Fop_dxxx = 1 << op_dxxx;
+const unsigned int Fop_dxxy = 1 << op_dxxy;
+const unsigned int Fop_dxxz = 1 << op_dxxz;
+
+const unsigned int Fop_dxyy = 1 << op_dxyy;
+const unsigned int Fop_dxyz = 1 << op_dxyz;
+const unsigned int Fop_dxzz = 1 << op_dxzz;
+
+const unsigned int Fop_dyyy = 1 << op_dyyy;
+const unsigned int Fop_dyyz = 1 << op_dyyz;
+const unsigned int Fop_dyzz = 1 << op_dyzz;
+
+const unsigned int Fop_dzzz = 1 << op_dzzz;
+
 const unsigned int Fop_D0 = Fop_id;
 const unsigned int Fop_D1 = Fop_dx | Fop_dy | Fop_dz;
-const unsigned int Fop_D2 =
-    Fop_dxx | Fop_dyy | Fop_dzz | Fop_dxy | Fop_dxz | Fop_dyz;
-const unsigned int Fop_Dall = Fop_D0 | Fop_D1 | Fop_D2;
+const unsigned int Fop_D2 = Fop_dxx | Fop_dyy | Fop_dzz | Fop_dxy | Fop_dxz | Fop_dyz;
+const unsigned int Fop_D3 =
+    Fop_dxxx | Fop_dxxy | Fop_dxxz | Fop_dxyy | Fop_dxyz | Fop_dxzz | Fop_dyyy | Fop_dyyz | Fop_dyzz | Fop_dzzz;
+
+const unsigned int Fop_Dall = Fop_D0 | Fop_D1 | Fop_D2 | Fop_D3;
 const unsigned int Fop_DAll = 20;
 
 inline What_d Fwhatd(const operatortype op) { return 1 << op; }
