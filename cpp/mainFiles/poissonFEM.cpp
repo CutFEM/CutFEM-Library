@@ -16,11 +16,11 @@ double fun_rhs(double *P, int elementComp) { return 40 * pow(pi, 2) * sin(2 * pi
 double fun_exact(double *P, int elementComp) { return 2 * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_zero(double *P, int elementComp) { return 0.; }
 
-#define triangle
+#define quad
 
 int main(int argc, char **argv) {
 
-    const size_t iterations = 5;
+    const size_t iterations = 4;
 
     // 2 DIMENSIONAL PROBLEM
     // =====================================================
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
         // CONSTRUCTION OF THE MESH AND FINITE ELEMENT SPACE
         // =====================================================
         Mesh Th(nx, ny, 0., 0., lx, ly);
-        FESpace Vh(Th, DataFE<Mesh>::P1);
+        FESpace Vh(Th, DataFE<Mesh>::P3);
 
         hs.at(j)      = h;
         double lambda = 100.;
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
                             ,
                             Th, INTEGRAL_BOUNDARY);
 
-        poisson.addLinear(- innerProduct(gh.expr(), grad(v) * n) + innerProduct(gh.expr(), lambda / h * v), Th,
+        poisson.addLinear(-innerProduct(gh.expr(), grad(v) * n) + innerProduct(gh.expr(), lambda / h * v), Th,
                           INTEGRAL_BOUNDARY);
 
         // RESOLUTION OF THE LINEAR SYSTEM

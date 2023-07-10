@@ -34,8 +34,7 @@ R fun_levelSet(double *P, int i) {
     //             (P[2] - shift.z) * (P[2] - shift.z)) -
     //        0.35 + Epsilon;
     return (P[0] - shift.x) * (P[0] - shift.x) + (P[1] - shift.y) * (P[1] - shift.y) +
-                (P[2] - shift.z) * (P[2] - shift.z) -
-           0.35*0.35 + Epsilon;
+           (P[2] - shift.z) * (P[2] - shift.z) - 0.35 * 0.35 + Epsilon;
 }
 
 R fun_rhs(double *P, int i) {
@@ -105,31 +104,20 @@ int main(int argc, char **argv) {
 
     std::vector<double> ul2, pl2, divmax, divl2, h, convu, convp;
 
-    int iters = 4;
+    int iters = 5;
     for (int i = 0; i < iters; ++i) {
 
         Mesh3 Kh(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
 
         const R hi = 1. / (nx - 1); // 1./(nx-1)
 
-        //const R penaltyParam = 4e3; // 4e3, 8e2
-
         Space Uh_(Kh,
                   DataFE<Mesh>::Ned0); // Nedelec order 0 type 1
-
         Space Vh_(Kh, DataFE<Mesh>::RT0);
         Space Wh_(Kh, DataFE<Mesh>::P0);
 
         Lagrange3 VelocitySpace(2);
         Space Vel_h(Kh, VelocitySpace);
-
-        // std::cout << fh0.v << std::endl;
-
-        // Paraview<Mesh> writer(Kh, "maxwell3D_" + std::to_string(0) + ".vtk");
-
-        // writer.add(fh0, "kkk", 0, 3);
-
-        // FEM<Mesh3> maxwell3D_({&Uh_, &Vh_, &Wh_}); std::getchar();
 
         Space Lh(Kh, DataFE<Mesh>::P1);
 
@@ -197,115 +185,55 @@ int main(int argc, char **argv) {
         // Eq 2
         maxwell3D.addBilinear( // mu Delta u + grad p
             +innerProduct(curl(w), v) - innerProduct(k * k * eps_r * u, v) + innerProduct(p, div(v)), Khi);
+
         maxwell3D.addLinear(+innerProduct(fh.exprList(), v), Khi);
 
         // Eq 3
         maxwell3D.addBilinear(-innerProduct(div(u), q), Khi);
 
-        // // [Dirichlet Velocity BC]
-
-        // const MeshParameter &itf_h(Parameter::measureIntegral);
-
-        // maxwell3D.addBilinear( // int_Omg grad(p)*v = int_itf p v*t - int_Omg p div(v)
-
-        // + innerProduct(p, v*n)
-
-        // + innerProduct(1./hi*penaltyParam*u*n, v*n)
-
-        // // - innerProduct(u*t, tau)
-
-        // // + innerProduct(w, v*t)
-
-        // // + innerProduct(1./hi*penaltyParam*u, v)
-
-        // , interface
-
-        // );
-
-        // // [Sets uniqueness of the pressure]
-
-        // // R meanP = integral(Khi,exactp,0);
-
-        // // maxwell3D.addLagrangeMultiplier(
-
-        // // innerProduct(1, p), 0
-
-        // // , Khi
-
-        // // );
-
-        // // [Sets uniqueness of the pressure in another way such that divu = 0]
-
-        // CutFEM<Mesh> lagr(Uh); lagr.add(Vh); lagr.add(Wh);
-
-        // Rn zero_vec = lagr.rhs_;
-
-        // lagr.addLinear(
-
-        // innerProduct(1, p)
-
-        // , Khi
-
-        // );
-
-        // Rn lag_row(lagr.rhs_); lagr.rhs_ = zero_vec;
-
-        // lagr.addLinear(
-
-        // innerProduct(1, v*n)
-
-        // , interface
-
-        // );
-
-        // maxwell3D.addLagrangeVecToRowAndCol(lag_row,lagr.rhs_,0);
-
         // [Stabilization]
 
-        double wPenParam = 1e0; // 1e1
-        double uPenParam = 1e-2; // 1e-1 ~ 1/penParam (2e0 for (0,lamm,0))
-        double pPenParam = 1e0;  // 1e0 (2e0 for (0,lamm,0))
-
-        FunTest grad2un = grad(grad(u) * n) * n;
-
-        FunTest grad2wn = grad(grad(w) * n) * n;
-
-        // // FunTest grad2pn = grad(grad(p)*n)*n;
-
-        // // FunTest grad2divun = grad(grad(div(u))*n)*n;
+        double tau_w = 1e-1;        // smaller tau_w seems to give larger condition number
+        double tau_m = 2e0;
+        double tau_a = 1e-1;
+        double tau_b = 15;
 
         maxwell3D.addFaceStabilization(
+            // WA
 
-            /* "Primal" stab: (lw,0,la) */
+            // // W block
+            // + innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau))
+            // + innerProduct(tau_w * pow(hi, 3) * jump(grad(w)*n), jump(grad(tau)*n))
+            // //+ innerProduct(tau_w * pow(hi, 5) * jump(grad(grad(w) * n)), jump(grad(grad(tau) * n)))
 
-            // innerProduct(uPenParam*pow(hi,1)*jump(w), jump(tau)) // [w in P1, continuous]
-            // +innerProduct(wPenParam*pow(hi,3)*jump(grad(w)*n), jump(grad(tau)*n))
-            // +innerProduct(uPenParam*pow(hi,5)*jump(grad2wn), jump(grad2wn))
-            // +innerProduct(uPenParam*pow(hi,1)*jump(u), jump(v))
-            // +innerProduct(uPenParam*pow(hi,3)*jump(grad(u)*n), jump(grad(v)*n))
-            // +innerProduct(uPenParam*pow(hi,5)*jump(grad2un), jump(grad2un))
-            // -innerProduct(pPenParam*pow(hi,1)*jump(p), jump(div(v)))
-            // +innerProduct(pPenParam*pow(hi,1)*jump(div(u)), jump(q))
-            // -innerProduct(pPenParam*pow(hi,3)*jump(grad(p)), jump(grad(div(v))))
-            // +innerProduct(pPenParam*pow(hi,3)*jump(grad(div(u))) , jump(grad(q)))
+            // // A block
+            // + innerProduct(tau_a * pow(hi, 1) * jump(u), jump(v))
+            // + innerProduct(tau_a * pow(hi, 3) * jump(grad(u)*n), jump(grad(v)*n))
+            // //+ innerProduct(tau_a * pow(hi, 5) * jump(grad(grad(u) * n)), jump(grad(grad(v) * n)))
 
-            /* Mixed stab: (0,lm,0) */
-            // innerProduct(uPenParam*pow(hi,1)*jump(w), jump(tau)) // [w in P1, continuous]
-            // +innerProduct(wPenParam*pow(hi,3)*jump(grad(w)*n), jump(grad(tau)*n))
-            // +innerProduct(wPenParam*pow(hi,5)*jump(grad2wn), jump(grad2wn))
+            // // B blocks
+            // + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))              // -B^T block
+            // + innerProduct(tau_b * pow(hi, 3) * jump(grad(p)*n), jump(grad(div(v))*n))  // -B^T block
+            // - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))              // B_0 block
+            // - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u))*n), jump(grad(q)*n)) // B_0 block
 
-            +innerProduct(uPenParam * pow(hi, 1) * jump(curl(w)), jump(v)) -
-            innerProduct(uPenParam * pow(hi, 1) * jump(u), jump(curl(tau))) +
-            innerProduct(uPenParam * pow(hi, 3) * jump(grad(curl(w))), jump(grad(v))) -
-            innerProduct(uPenParam * pow(hi, 3) * jump(grad(u)), jump(grad(curl(tau)))) +
-            innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) -
-            innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) +
-            innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) -
-            innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(u))), jump(grad(q))),
-            Khi
-            //, macro
+            // WM
 
-        );
+            // W block
+            + innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau)) 
+            + innerProduct(tau_w * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n))
+            // M blocks
+            + innerProduct(tau_m * pow(hi, 1) * jump(curl(w)), jump(v))                       // M block
+            + innerProduct(tau_m * pow(hi, 3) * jump(grad(curl(w)) * n), jump(grad(v) * n))   // M block
+            - innerProduct(tau_m * pow(hi, 1) * jump(u), jump(curl(tau)))                     // -M^T block
+            - innerProduct(tau_m * pow(hi, 3) * jump(grad(u) * n), jump(grad(curl(tau)) * n)) // -M^T block
+            // B blocks
+            + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))                     // -B^T block
+            + innerProduct(tau_b * pow(hi, 3) * jump(grad(p) * n), jump(grad(div(v)) * n)) // -B^T block
+            - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))                     // B_0 block
+            - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u)) * n), jump(grad(q) * n)) // B_0 block
+            ,
+            Khi);
 
         matlab::Export(maxwell3D.mat_[0], "mat" + std::to_string(i) + ".dat");
 
@@ -329,32 +257,6 @@ int main(int argc, char **argv) {
         Fun_h uh(Vh, data_uh);
 
         Fun_h ph(Wh, data_ph);
-
-        // // [Post process pressure]
-
-        // R meanP = integral(Khi,exactp,0);
-
-        // ExpressionFunFEM<Mesh> fem_p(ph,0,op_id);
-
-        // R meanPfem = integral(Khi,fem_p,0);
-
-        // // std::cout << meanP << std::endl;
-
-        // CutFEM<Mesh2> post(Wh);
-
-        // post.addLinear(
-
-        // innerProduct(1,q)
-
-        // , Khi
-
-        // );
-
-        // R area = post.rhs_.sum();
-
-        // ph.v -= meanPfem/area;
-
-        // ph.v += meanP/area;
 
         ExpressionFunFEM<Mesh> dx_uh0(uh, 0, op_dx);
         ExpressionFunFEM<Mesh> dy_uh1(uh, 1, op_dy);
@@ -387,7 +289,7 @@ int main(int argc, char **argv) {
 
             writer.add(wh, "vorticity", 0, 1);
 
-            writer.add(uh, "velocity", 0, 2);
+            writer.add(uh, "velocity", 0, 3);
 
             writer.add(ph, "pressure", 0, 1);
 
@@ -419,9 +321,12 @@ int main(int argc, char **argv) {
                 convp.push_back(log(pl2[i] / pl2[i - 1]) / log(h[i] / h[i - 1]));
             }
 
-            if (i == 4) {
+            if (i == 10) {
                 assert(0);
             } else {
+                // nx = (int)(std::sqrt(2) * nx - 1);
+                // ny = (int)(std::sqrt(2) * ny - 1);
+                // nz = (int)(std::sqrt(2) * nz - 1);
                 nx = 2 * nx - 1;
                 ny = 2 * ny - 1;
                 nz = 2 * nz - 1;

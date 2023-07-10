@@ -38,8 +38,8 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     // Integrals over interfaces
     void addBilinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
     void addLinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
-    void addBilinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<mesh_t, L> &gamma);
-    void addLinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<mesh_t, L> &gamma);
+    void addBilinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<mesh_t, L> &gamma);
+    void addLinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<mesh_t, L> &gamma);
     void addInterfaceContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, int ifac, double tid,
                                   const TimeSlab *In, double cst_time, int itq) override;
     void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface) override;

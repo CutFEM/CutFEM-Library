@@ -56,6 +56,7 @@ enum class BasisFctType {
     P0poly,
     P1poly,
     P2poly,
+    P3poly,
     P2BR,
     RT0,
     RT1,
