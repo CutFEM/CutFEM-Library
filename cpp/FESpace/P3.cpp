@@ -34,7 +34,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "FESpace.hpp"
 
-// P1 Polynomial basis {1, x}
+// P3 Polynomial basis {1, x, x^2, x^3}
 class TypeOfFE_P3Polynomial1d : public GTypeOfFE<Mesh1> {
 
     typedef Mesh1 Mesh;
@@ -145,7 +145,8 @@ class TypeOfFE_P3Lagrange2d : public GTypeOfFE<Mesh2> {
                                   R2(2 / 3., 0 / 3.), R2(1 / 3., 1 / 3.)};
 
         int other[10] = {-1, -1, -1, 4, 3, 6, 5, 8, 7, -1};
-        int kk        = 0;
+
+        int kk = 0;
 
         for (int i = 0; i < ndf; i++) {
             ipj_Pi_h[kk++] = IPJ(i, i, 0);
@@ -155,6 +156,14 @@ class TypeOfFE_P3Lagrange2d : public GTypeOfFE<Mesh2> {
 
             Pt_Pi_h[i] = Pt[i];
         }
+
+        // for (int i = 0; i < 16; i++) {
+        //     std::cout << "i = " << i << "\n";
+        //     std::cout << "ipj_Pi_h[i] triangle = (" << ipj_Pi_h[i].i << ", " << ipj_Pi_h[i].p << ", " <<
+        //     ipj_Pi_h[i].j << ")\n";
+        // }
+
+        // getchar();
     }
     void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
 
@@ -186,13 +195,15 @@ class TypeOfFE_P3Lagrange2d : public GTypeOfFE<Mesh2> {
 };
 
 // on what     nu df on node node of df
-int TypeOfFE_P3Lagrange2d::Data[] = {0, 1, 2, 3, 3, 4, 4, 5, 5, 6, // the support number  of the node of the df
-                                     0, 0, 0, 0, 1, 0, 1, 0, 1, 0, // the number of the df on  the node
-                                     0, 1, 2, 3, 3, 4, 4, 5, 5, 6, // the node of the df
-                                     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, // which are de df on sub FE
-                                     1, 1, 1, 0,                   // nb node on what
-                                     0, // for each compontant $j=0,N-1$ it give the sub FE associated
-                                     0, 10};
+int TypeOfFE_P3Lagrange2d::Data[] = {
+    0, 1, 2, 3, 3, 4, 4, 5, 5, 6, // the support number  of the node of the df
+    0, 0, 0, 0, 1, 0, 1, 0, 1, 0, // the number of the df on  the node
+    0, 1, 2, 3, 3, 4, 4, 5, 5, 6, // the node of the df
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, // which are de df on sub FE
+    1, 1, 1, 0,                   // nb node on what
+    0, // for each compontant $j=0,N-1$ it give the sub FE associated
+    0,
+    10};
 
 void TypeOfFE_P3Lagrange2d::FB(const What_d whatd, const Element &K, const Rd &PHat, RNMK_ &val) const {
 

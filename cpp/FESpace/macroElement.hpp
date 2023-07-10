@@ -615,6 +615,8 @@ template <typename Mesh> class MacroElementPartition : public GMacro {
         nb_element_1; // number of small elements in outer and inner domain respectively w.r.t level-set function
                       // sign
 
+    const int number_of_faces = Th[0].ne;  // number of faces of the mesh element
+
     MacroElementPartition(const ActiveMesh<Mesh> &, const double);
 
     double get_area(int k) const;
@@ -723,7 +725,7 @@ template <typename Mesh> void MacroElementPartition<Mesh>::createMacroElement() 
             SmallElement &Ks(small_element[idx_Ks]);
 
             // LOOP OVER FACES
-            for (int ifac = 0; ifac < 3; ++ifac) {
+            for (int ifac = 0; ifac < number_of_faces; ++ifac) {
 
                 int ifacn = ifac;
                 int kn    = Th.ElementAdj(k, ifacn);
@@ -1135,6 +1137,24 @@ template <typename Mesh> int TimeMacroElement2<Mesh>::number_of_inner_edges() {
     }
     return num_of_inner_edges;
 }
+
+
+
+
+
+
+
+
+
+// // Algoim Macro Element Partition
+
+// template <typename Mesh, typename L> class AlgoimMacroPartition
+
+
+
+
+
+
 
 #endif
 

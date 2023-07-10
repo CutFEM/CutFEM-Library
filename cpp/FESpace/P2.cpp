@@ -65,6 +65,7 @@ class TypeOfFE_P2Polynomial1d : public GTypeOfFE<Mesh1> {
         for (int i = 0; i < 3; ++i) {
             ipj_Pi_h[i + 4] = IPJ(2, i, 0);
         }
+
     }
 
     void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
