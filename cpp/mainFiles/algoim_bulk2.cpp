@@ -729,7 +729,7 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;            // starting mesh size
@@ -850,14 +850,14 @@ int main(int argc, char **argv) {
         // CG stabilization parameter
         const double tau1 = .1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1);   // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P2);   // Background FE Space
         FESpace Vh2(Th, DataFE<Mesh>::P2);  // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);     // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);     // FE Space in time
         FESpace1 Ih2(Qh, DataFE<Mesh1>::P2Poly);    // for interpolating data
 
         // Quadrature data
@@ -1026,7 +1026,7 @@ int main(int argc, char **argv) {
                 Thi, In);
 
 #elif defined(macro)
-            MacroElementPartition<Mesh> TimeMacro(Thi, 0.15);
+            MacroElementPartition<Mesh> TimeMacro(Thi, 0.45);
 
             if (iterations == 1 && h > 0.01) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
