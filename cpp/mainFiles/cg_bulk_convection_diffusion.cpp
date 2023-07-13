@@ -743,7 +743,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = .5; // Final time
+        const double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -783,7 +783,7 @@ int main(int argc, char **argv) {
         const double lambda = 1.; // Nitsche's method penalty parameter
 
         // CG stabilization parameter
-        const double tau1 = 0.001;
+        const double tau1 = 0.1;
 
         FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 
