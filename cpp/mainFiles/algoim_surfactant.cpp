@@ -1122,8 +1122,8 @@ int main(int argc, char **argv) {
                                             ThGamma, In);
 
             // stabilize in last quadrature point
-            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
-            double ccmid = 1. / In.T.mesure() * 1. / qTime[lastQuadTime - 1].a;
+            double ccend = 1. / In.T.measure() * 1. / qTime[lastQuadTime].a;
+            double ccmid = 1. / In.T.measure() * 1. / qTime[lastQuadTime - 1].a;
 
             // surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)),
             //                                 ThGamma, In, lastQuadTime);

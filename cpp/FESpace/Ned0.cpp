@@ -87,7 +87,8 @@ void TypeOfFE_Ned0_kind1::get_Coef_Pi_h(const GbaseFElement<Mesh> &K,
         R3 E = T.EdgeOrientation(e) * T.Edge(e); //  exterior and  ||N|| = 2* area f
         for (int q = 0; q < QFE.n; ++q, ++p) {
             for (int c = 0; c < 3; c++, i++) {
-                v[i] = E[c] * QFE[q].a;
+                // v[i] = E[c] * QFE[q].a;   //! Original
+                v[i] = E[c] * QFE[q].a / (T.N_notNormalized(0).norm() / 2);      //! Mine
             }
         }
         // ffassert(i==M.ncoef && M.np == p );
@@ -106,13 +107,10 @@ void TypeOfFE_Ned0_kind1::FB(const What_d whatd, const Element &K, const R3 &PHa
     //  i,j : l1 grad lj - lj grad lj
     // int_i^j  grad lj . t_ij = 1
 
-    // non-scaled (original) version
     int se[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2),
                 K.EdgeOrientation(3), K.EdgeOrientation(4), K.EdgeOrientation(5)};
 
-    // scaled version
-    R cc = 1.;
-   // / (d * K.mesure());
+    R cc = K.N_notNormalized(0).norm() / 2; // area of face 0
 
     if (whatd & Fop_D0) {
         R3 X = K(PHat);

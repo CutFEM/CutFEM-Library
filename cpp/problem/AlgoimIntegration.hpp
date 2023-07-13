@@ -870,7 +870,7 @@ double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M>
                 Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
                 const R weight = q.nodes.at(ipq).w;
                 // const R Cint = meas * ip.getWeight() * In.T.mesure() * tq.a;
-                const R Cint   = weight * In.T.mesure() * tq.a;
+                const R Cint   = weight * In.T.measure() * tq.a;
                 val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, cu, 0, 0);
             }
         }

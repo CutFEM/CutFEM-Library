@@ -281,7 +281,7 @@ int main(int argc, char **argv) {
     // option.order_space_element_quadrature_ = 7;
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h = 0.1;              // starting mesh size
@@ -336,14 +336,14 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
 
         // CG stabilization parameter
-        const double tau1 = .01;
+        const double tau1 = .1;
 
         const double D = 1., lambda = 1e1;
 
 #if defined(k1)
         FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 #elif defined(k2)
-        FESpace Vh(Th, DataFE<Mesh>::P2);
+        FESpace Vh(Th, DataFE<Mesh>::P3);
 #endif
 
         // Velocity field

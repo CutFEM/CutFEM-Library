@@ -1090,7 +1090,7 @@ int main(int argc, char **argv) {
             convdiff.addFaceStabilization(+innerProduct(stab_bulk_faces * jump(grad(u) * n), jump(grad(v) * n)), Thi,
                                           In);
 
-            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
+            double ccend = 1. / In.T.measure() * 1. / qTime[lastQuadTime].a;
             convdiff.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)), Thi,
                                           In, lastQuadTime);
 

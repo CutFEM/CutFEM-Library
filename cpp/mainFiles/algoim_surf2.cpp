@@ -923,19 +923,18 @@ int main(int argc, char **argv) {
 
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace Vh(Th, DataFE<Mesh>::P3);       // Background FE space
-        FESpace Vh2(Th, DataFE<Mesh>::P2);      // For interpolating data
-        FESpace Vh3(Th, DataFE<Mesh>::P3);      // For interpolating data
+        FESpace Vh_interpolation(Th, DataFE<Mesh>::P2);      // For interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P0Poly);     // Time FE space
-        FESpace1 Ih2(Qh, DataFE<Mesh1>::P2Poly);    // for interpolating data
-        FESpace1 Ih3(Qh, DataFE<Mesh1>::P3Poly);    // for interpolating data
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);     // Time FE space
+        FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P2Poly);    // for interpolating data
+        
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(9));
+        const QuadratureFormular1d &qTime(*Lobatto(5));
 
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
@@ -952,7 +951,8 @@ int main(int argc, char **argv) {
 
         // Convection-Diffusion Problem Object
         Levelset<2> phi;    
-        AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi);
+        AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi, option);
+        //AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi);
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << "\n";
 
@@ -972,8 +972,8 @@ int main(int argc, char **argv) {
             double tid            = iter * time_step;
 
             const TimeSlab &In(Ih[iter]);
-            const TimeSlab &In2(Ih2[iter]);
-            const TimeSlab &In3(Ih3[iter]);
+            const TimeSlab &In_interpolation(Ih_interpolation[iter]);
+            
 
             std::cout << " ----------------------------------------------------"
                          "--------- "
@@ -994,7 +994,7 @@ int main(int argc, char **argv) {
 
             // Create active meshes
             ActiveMesh<Mesh> ThGamma(Th);
-            // ThGamma.createSurfaceMesh(interface);
+            
             ThGamma.createSurfaceMesh(interface);
 
             CutSpace Wh(ThGamma, Vh);
@@ -1003,7 +1003,8 @@ int main(int argc, char **argv) {
             surfactant.initSpace(Wh, In);
 
             // Interpolate data
-            Fun_h funrhs(Vh3, In3, fun_rhs);
+            //Fun_h funrhs(Vh2, In2, fun_rhs);
+            Fun_h funrhs(Vh_interpolation, In_interpolation, fun_rhs);
             
             Rn datau0(surfactant.get_nb_dof(), 0.);
             surfactant.initialSolution(datau0); 
@@ -1070,8 +1071,8 @@ int main(int argc, char **argv) {
                                             ThGamma, In);
             
             // stabilize in last quadrature point
-            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
-            double ccmid = 1. / In.T.mesure() * 1. / qTime[lastQuadTime - 1].a;
+            double ccend = 1. / In.T.measure() * 1. / qTime[lastQuadTime].a;
+            double ccmid = 1. / In.T.measure() * 1. / qTime[lastQuadTime - 1].a;
             
             surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)),
                                             ThGamma, In, lastQuadTime);

@@ -15,7 +15,7 @@ double fun_boundary(double *P, int elementComp) { return 2 * sin(2 * pi * P[0]) 
 double fun_rhs(double *P, int elementComp) { return 40 * pow(pi, 2) * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_exact(double *P, int elementComp) { return 2 * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_zero(double *P, int elementComp) { return 0.; }
-double fun_test(double *P) { return 2 * P[0] * P[0] + P[1]*P[1]; }
+double fun_test(double *P, int elementComp) { return P[0] * P[1]; }
 
 #define quad
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         // CONSTRUCTION OF THE MESH AND FINITE ELEMENT SPACE
         // =====================================================
         Mesh Th(nx, ny, 0., 0., lx, ly);
-        FESpace Vh(Th, DataFE<Mesh>::P2);
+        FESpace Vh(Th, DataFE<Mesh>::P3);
 
         hs.at(j)      = h;
         double lambda = 100.;
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
         writer.add(femSolh, "poisson", 0, 1);
         Fun_h uBex(Vh, fun_exact);
         Fun_h fB(Vh, fun_rhs);
-        auto test_dx(dx(funTest.expr()));
+        auto test_dx(dx(funTest.expr()));    
         auto test_dy(dy(funTest.expr()));
         writer.add(uBex, "bulk_exact", 0, 1);
         writer.add(fabs(femSolh.expr() - uBex.expr()), "bulk_error");
