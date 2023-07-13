@@ -572,7 +572,7 @@ void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Inter
 }
 
 template <typename M, typename L>
-void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<M, L> &gamma) {
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<M, L> &gamma) {
     assert(!VF.isRHS());
 
     progress bar(" Add Bilinear Interface", gamma.last_element(), globalVariable::verbose);
@@ -638,7 +638,7 @@ void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const Alg
 }
 
 template <typename M, typename L>
-void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const AlgoimInterface<M, L> &gamma) {
+void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<M, L> &gamma) {
     assert(VF.isRHS());
 
     progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
