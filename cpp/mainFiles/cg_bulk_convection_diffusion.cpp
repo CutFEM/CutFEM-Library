@@ -71,14 +71,14 @@ namespace Example1 {
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17);
-    //return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17) - Epsilon;   //! PUT BACK
+    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17);
+    // return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17) - Epsilon;   //! PUT BACK
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17);
-    //return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17) - Epsilon; //! PUT BACK
+    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17 * 0.17);
+    // return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17) - Epsilon; //! PUT BACK
 }
 
 // The rhs Neumann boundary condition
@@ -240,96 +240,96 @@ R fun_neumann_top(double *P, const int i, const R t) {
 namespace Example1_Omega1 {
 /* This works for running Test – i.e. a pure bulk problem on Omega_2. */
 
-    // Level-set function
-    double fun_levelSet(double *P, const int i, const R t) {
-        R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-        return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 - Epsilon;
-        // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
-    }
+// Level-set function
+double fun_levelSet(double *P, const int i, const R t) {
+    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+    return sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17 - Epsilon;
+    // return -sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.22)*(P[1]-0.22)) - 0.17;
+}
 
-    // Level-set function initial
-    double fun_levelSet(double *P, const int i) {
-        return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
-    }
+// Level-set function initial
+double fun_levelSet(double *P, const int i) {
+    return sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17 - Epsilon;
+}
 
-    // The rhs Neumann boundary condition
-    R fun_neumann_Gamma(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        // Wrong sign of normal vector at interface
-        return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2 - 0.28 * sin(pi * t))) /
-                (250 * sqrt((pow(x - 1. / 2 - 0.28 * sin(pi * t), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2)))) -
-            (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 0.5 + 0.28 * cos(pi * t))) /
-                (250 * sqrt((pow((x - 1. / 2 - 0.28 * sin(pi * t)), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2))));
-    }
+    // Wrong sign of normal vector at interface
+    return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x) * (x - 1. / 2 - 0.28 * sin(pi * t))) /
+               (250 * sqrt((pow(x - 1. / 2 - 0.28 * sin(pi * t), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2)))) -
+           (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y) * (y - 0.5 + 0.28 * cos(pi * t))) /
+               (250 * sqrt((pow((x - 1. / 2 - 0.28 * sin(pi * t)), 2) + pow(y - 0.5 + 0.28 * cos(pi * t), 2))));
+}
 
-    // Velocity field
-    R fun_velocity(double *P, const int i) {
-        if (i == 0)
-            return M_PI * (0.5 - P[1]);
-        else
-            return M_PI * (P[0] - 0.5);
-    }
+// Velocity field
+R fun_velocity(double *P, const int i) {
+    if (i == 0)
+        return M_PI * (0.5 - P[1]);
+    else
+        return M_PI * (P[0] - 0.5);
+}
 
-    // // Normal x-direction
-    // R n1(double *P, const R t) {
-    //    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    //    return (P[0] - xc) /
-    //           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-    // }
+// // Normal x-direction
+// R n1(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[0] - xc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
 
-    // // Normal y-direction
-    // R n2(double *P, const R t) {
-    //    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    //    return (P[1] - yc) /
-    //           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-    // }
+// // Normal y-direction
+// R n2(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[1] - yc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
 
-    // Initial solution bulk
-    R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) { return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]); }
 
-    // Exact solution bulk
-    R fun_uBulk(double *P, const int i, const R t) {
-        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
-    }
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
 
-    R fun_uBulkD(double *P, const int i, const int d, const R t) {
-        return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
-    }
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    return 0.5 + 0.4 * cos(M_PI * P[0]) * cos(M_PI * P[1]) * cos(2 * M_PI * t);
+}
 
-    // RHS fB bulk
-    R fun_rhsBulk(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+// RHS fB bulk
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        return (M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * cos(M_PI * y)) / 125 -
-            (4 * M_PI * cos(M_PI * x) * cos(M_PI * y) * sin(2 * M_PI * t)) / 5 -
-            (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * sin(M_PI * y) * (x - 0.5)) / 5 +
-            (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * y) * sin(M_PI * x) * (y - 0.5)) / 5;
-    }
+    return (M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * cos(M_PI * y)) / 125 -
+           (4 * M_PI * cos(M_PI * x) * cos(M_PI * y) * sin(2 * M_PI * t)) / 5 -
+           (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * x) * sin(M_PI * y) * (x - 0.5)) / 5 +
+           (2 * M_PI * M_PI * cos(2 * M_PI * t) * cos(M_PI * y) * sin(M_PI * x) * (y - 0.5)) / 5;
+}
 
-    R fun_neumann_left(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+R fun_neumann_left(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        return (pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
-    }
+    return (pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+}
 
-    R fun_neumann_bottom(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+R fun_neumann_bottom(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        return (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
-    }
+    return (pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+}
 
-    R fun_neumann_right(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+R fun_neumann_right(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
-    }
+    return -(pi * cos(2 * pi * t) * cos(pi * y) * sin(pi * x)) / 250;
+}
 
-    R fun_neumann_top(double *P, const int i, const R t) {
-        R x = P[0], y = P[1];
+R fun_neumann_top(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-        return -(pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
-    }
+    return -(pi * cos(2 * pi * t) * cos(pi * x) * sin(pi * y)) / 250;
+}
 
 } // namespace Example1_Omega1
 
@@ -486,7 +486,7 @@ double fun_levelSet(double *P, const int i, const R t) {
     double r0 = .5 + Epsilon;
     double x = P[0], y = P[1];
 
-    return -(sqrt((x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y) - r0);
+    return -(sqrt((x - (1. / 6 - 5. / 3 * y * y) * t) * (x - (1. / 6 - 5. / 3 * y * y) * t) + y * y) - r0);
 }
 
 // Level-set function initial
@@ -510,15 +510,15 @@ R fun_neumann_Gamma(double *P, const int i, const R t) {
 // Velocity field
 R fun_velocity(double *P, const int i) {
     if (i == 0)
-        return 1./6 - 5./3 * P[1] * P[1];
+        return 1. / 6 - 5. / 3 * P[1] * P[1];
     else
         return 0.;
 }
 
 // Initial solution bulk
-R fun_uBulkInit(double *P, const int i) { 
+R fun_uBulkInit(double *P, const int i) {
     double r0 = .5, x = P[0], y = P[1];
-    return cos(M_PI/r0 * (x * x + y * y));
+    return cos(M_PI / r0 * (x * x + y * y));
 }
 
 // Exact solution bulk
@@ -527,7 +527,7 @@ R fun_uBulk(double *P, const int i, const R t) {
     // return cos(M_PI*sqrt((x - (1-y*y)*t)*(x - (1-y*y)*t) +
     // y*y)/r0)*sin(M_PI*t);
 
-    double r = (x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y;
+    double r = (x - (1. / 6 - 5. / 3 * y * y) * t) * (x - (1. / 6 - 5. / 3 * y * y) * t) + y * y;
     return cos(M_PI * r / (r0 * r0));
 
     // double r = sqrt((x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y);
@@ -536,8 +536,8 @@ R fun_uBulk(double *P, const int i, const R t) {
 
 R fun_uBulkD(double *P, const int i, const int d, const R t) {
     double r0 = .5, x = P[0], y = P[1];
-    double r = (x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y;
-    return cos(M_PI*r/(r0*r0));
+    double r = (x - (1. / 6 - 5. / 3 * y * y) * t) * (x - (1. / 6 - 5. / 3 * y * y) * t) + y * y;
+    return cos(M_PI * r / (r0 * r0));
 
     // double r = sqrt((x - (1./6 - 5./3 * y * y) * t) * (x - (1./6 - 5./3 * y * y) * t) + y * y);
     // return cos(M_PI*r/r0);
@@ -546,7 +546,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 // RHS fB bulk
 R fun_rhsBulk(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
-    
+
     // squared
     return 8 * pi * sin(4 * pi * (pow((x + t * ((5 * y * y) / 3 - 1. / 6)), 2) + y * y)) +
            16 * pi * pi * cos(4 * pi * (pow((x + t * ((5 * y * y) / 3 - 1. / 6)), 2) + y * y)) *
@@ -622,7 +622,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // different numerical examples, different subdomains and boundary conditions etc.
 
 //* Set numerical example (options: "example1", "lehrenfeld")
-#define example1
+#define lehrenfeld
 //* Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
 #define convection_dominated
 
@@ -638,25 +638,25 @@ typedef FunFEM<Mesh2> Fun_h;
 // Set type of BCs on interface (options: "dirichlet", "neumann")
 #define neumann
 //* Set scheme for the method (options: "classical", "conservative")
-#define conservative
+#define classical
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
 
-#define use_h // to set mesh size using the h parameter. Write use_n to decide
-              // using nx, ny.
+#define use_h    // to set mesh size using the h parameter. Write use_n to decide
+                 // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
-              // proportional to h.
+                 // proportional to h.
 
 // Do not touch
 #ifdef example1
-    #ifdef omega1
-        using namespace Example1_Omega1;
-    #elif defined(omega2)
-        using namespace Example1;
-    #endif
+#ifdef omega1
+using namespace Example1_Omega1;
+#elif defined(omega2)
+using namespace Example1;
+#endif
 #elif defined(lehrenfeld)
 using namespace Lehrenfeld_Convection_Dominated;
 #elif defined(lehrenfeld2)
@@ -664,13 +664,13 @@ using namespace Lehrenfeld2;
 #endif
 
 int main(int argc, char **argv) {
-    MPIcf cfMPI(argc, argv);
-    
+    //MPIcf cfMPI(argc, argv);
+
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;           // starting mesh size
+    double h  = 0.1;             // starting mesh size
     double dT = 0.25;
 
     int total_number_iteration;
@@ -691,15 +691,15 @@ int main(int argc, char **argv) {
     const std::string path_output_figures = "../output_files/bulk/lehrenfeld/paraview/";
 #elif defined(lehrenfeld2)
     // Paths to store data
-    const std::string path_output_data    = "../output_files/bulk/lehrenfeld2/data/";
-    const std::string path_output_figures = "../output_files/bulk/lehrenfeld2/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/bulk/lehrenfeld2/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/bulk/lehrenfeld2/";
 #endif
 
     // Create directory if not already existent
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_output_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    //     std::filesystem::create_directories(path_output_data);
+    //     std::filesystem::create_directories(path_output_figures);
+    // }
 
     // Data file to hold problem data
     std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
@@ -707,8 +707,8 @@ int main(int argc, char **argv) {
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
     std::array<double, iterations> hs;     // array to hold mesh sizes
-    std::array<double, iterations> nxs;                      // array to hold mesh sizes
-    std::array<double, iterations> nys;                      // array to hold mesh sizes
+    std::array<double, iterations> nxs;    // array to hold mesh sizes
+    std::array<double, iterations> nys;    // array to hold mesh sizes
     std::array<double, iterations> dts;
 
     // Iterate over mesh sizes
@@ -722,7 +722,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, 0.-Epsilon, 0.-Epsilon, lx, ly);
+        Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
 #elif defined(lehrenfeld)
         const double lx = 7., ly = 3.;
 #ifdef use_h
@@ -743,7 +743,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = .1; // Final time
+        const double tfinal = 1.5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -758,8 +758,8 @@ int main(int argc, char **argv) {
         time_step = dT;
 
         hs.at(j)  = h;
-        nxs.at(j)  = nx;
-        nys.at(j)  = ny;
+        nxs.at(j) = nx;
+        nys.at(j) = ny;
         dts.at(j) = dT;
 
         if (iterations > 1) {
@@ -775,11 +775,11 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
         std::cout << "dT = " << dT << '\n';
 
-    #if defined(convection_dominated)
+#if defined(convection_dominated)
         const double D = 0.01;
-    #else
-        const double D = 1;
-    #endif
+#else
+        const double D         = 1;
+#endif
         const double lambda = 1.; // Nitsche's method penalty parameter
 
         // CG stabilization parameter
@@ -878,26 +878,23 @@ int main(int argc, char **argv) {
             // Create active meshes
             ActiveMesh<Mesh> Thi(Th);
 
-//#ifdef omega1
+            // #ifdef omega1
             Thi.truncate(interface, 1); // remove part with negative sign of level
-//#elif defined(omega2)
-//            Thi.truncate(interface, 1); // remove part with positive sign of level
-                                        // set to get inner domain
-//#endif
-            // Cut FE space
+                                        // #elif defined(omega2)
+            //             Thi.truncate(interface, 1); // remove part with positive sign of level
+            //  set to get inner domain
+            // #endif
+            //  Cut FE space
             CutSpace Wh(Thi, Vh);
 
             // Initialize the convection-diffusion problem
             convdiff.initSpace(Wh, In);
 
-        
             // Objects needed for the weak form
             Normal n;
             Tangent t;
-            
+
             // Left hand side functions
-            
-        
 
             // Right hand side functions
             Fun_h f(Vh, In, fun_rhsBulk);
@@ -913,7 +910,7 @@ int main(int argc, char **argv) {
             FunTest u(Wh, 1), v(Wh, 1);
 
             // Data for initial solution
-            Rn data_u0(convdiff.get_nb_dof()); // initial data total
+            Rn data_u0(convdiff.get_nb_dof());                // initial data total
             convdiff.initialSolution(data_u0);
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0))); // initial data bulk
 
@@ -1085,7 +1082,7 @@ int main(int argc, char **argv) {
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface,
                                In); // note the negative sign because of the changed interface normal
 
-//* Neumann on outer and Dirichlet on inner
+                                    //* Neumann on outer and Dirichlet on inner
 #elif defined(neumann1) && defined(dirichlet2)
             // Neumann outer
 
@@ -1155,17 +1152,12 @@ int main(int argc, char **argv) {
             // Add RHS in bulk
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
 
-#ifndef USE_MPI
-            if ((iter == total_number_iteration - 1) && MPIcf::IamMaster()) {
+            if ((iter == total_number_iteration - 1)) {
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
-#elif defined(USE_MPI)
-            if (iter == total_number_iteration - 1) {
-                matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" + std::to_string(j + 1) + ".dat");
             }
-#endif
 
             // Solve linear system
-            convdiff.solve("mumps");
+            convdiff.solve("umfpack");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -1256,7 +1248,7 @@ int main(int argc, char **argv) {
         dT *= 0.5;
 #elif defined(use_h)
         h *= 0.5;
-        //h *= sqrt(0.5);
+        // h *= sqrt(0.5);
 #endif
     }
 

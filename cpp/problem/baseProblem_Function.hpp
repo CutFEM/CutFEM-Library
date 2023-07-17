@@ -78,7 +78,7 @@ void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FEle
 
             // Get the value of the time basis function at the time integration points
             const R tval = bf_time(it, 0, VFi.dtv) * bf_time(jt, 0, VFi.dtu);
-            
+
             // Loop over the spatial basis functions
             for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
                 for (int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
@@ -92,11 +92,10 @@ void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FEle
     }
 }
 
-
-
 template <typename M>
 void BaseFEM<M>::addToMatrixSpecial(const itemVF_t &VFi, const TimeSlab &In, const FElement &FKu, const FElement &FKv,
-                             const RNMK_ &fu, const RNMK_ &fv, double Cint, int from_time_dof_u, int from_time_dof_v) {
+                                    const RNMK_ &fu, const RNMK_ &fv, double Cint, int from_time_dof_u,
+                                    int from_time_dof_v) {
     // Get the thread id
 #ifdef USE_OMP
     int thread_id = omp_get_thread_num();
@@ -129,10 +128,6 @@ void BaseFEM<M>::addToMatrixSpecial(const itemVF_t &VFi, const TimeSlab &In, con
         }
     }
 }
-
-
-
-
 
 /**
  * @brief Adds the contribution to the global matrix from the current cell, using the test function and
@@ -182,7 +177,7 @@ void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FEle
 
     // Step 2: Loop over the time degrees of freedom.
     for (int it = In.dfcbegin(0); it < In.dfcend(0); ++it) {
-        
+
         // Step 3: Loop over the spatial degrees of freedom.
         for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
 
@@ -456,7 +451,7 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
         // BF MEMORY MANAGEMENT -
         bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
         int lastop = getLastop(VF[l].du, VF[l].dv);
-        
+
         RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
         RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
         What_d Fop = Fwhatd(lastop);
@@ -498,7 +493,8 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
 
 template <typename M>
 void BaseFEM<M>::addFaceContributionSpecial(const itemVFlist_t &VF, const std::pair<int, int> &e1,
-                                     const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
+                                            const std::pair<int, int> &e2, const TimeSlab *In, int itq,
+                                            double cst_time) {
 
     typedef typename FElement::RdHatBord RdHatBord;
 
@@ -547,7 +543,7 @@ void BaseFEM<M>::addFaceContributionSpecial(const itemVFlist_t &VF, const std::p
         // BF MEMORY MANAGEMENT -
         bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
         int lastop = getLastop(VF[l].du, VF[l].dv);
-        
+
         RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
         RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
         What_d Fop = Fwhatd(lastop);
@@ -583,7 +579,6 @@ void BaseFEM<M>::addFaceContributionSpecial(const itemVFlist_t &VF, const std::p
         }
     }
 }
-
 
 // INTEGRATION ON BOUNDARY
 template <typename Mesh>
@@ -871,6 +866,7 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, st
         bar += gamma.next_element();
 
         const typename Interface<M>::Face &face = gamma[iface]; // the face
+
         if (util::contain(label, face.lab) || all_label) {
 
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
@@ -951,10 +947,11 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma
     for (int iface = gamma[itq]->first_element(); iface < gamma[itq]->last_element();
          iface += gamma[itq]->next_element()) {
         const typename Interface<M>::Face &face = (*gamma[itq])[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        // below gives segmentation fault using ubuntu g++/gcc 10
+        // if (util::contain(label, face.lab) || all_label) {
 
-            addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
-        }
+        addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
+        //}
     }
 }
 
@@ -1057,7 +1054,7 @@ void BaseFEM<M>::addInterfaceContribution(const itemVFlist_t &VF, const Interfac
 
         // // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
-            
+
             typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
             const Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
             const Rd face_ip = K.mapToReferenceElement(mip);

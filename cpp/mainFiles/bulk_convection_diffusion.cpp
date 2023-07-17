@@ -17,7 +17,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 /**
  * @brief Time-dependent convection diffusion equation.
  * @note We consider a time-dependent bulk problem on Omega2.
-   
+
  *  Problem:
     Find u in Omega_2(t) such that
 
@@ -28,7 +28,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
     A space-time Cutfem, using the level-set method,
     which allows for both dg and cg.
 
- *  Classical scheme: Integration by parts on convection term if dg, 
+ *  Classical scheme: Integration by parts on convection term if dg,
     otherwise just integration by parts on diffusion term.
  *  Conservative scheme: Reynold's transport theorem is used to make
     the bilinear form fulfill a conservation law.
@@ -54,7 +54,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/redirectOutput.hpp"
 #include "paraview.hpp"
 
-using namespace globalVariable;     // to access some globally defined constants
+using namespace globalVariable; // to access some globally defined constants
 
 // Numerical examples
 namespace Example1 {
@@ -372,8 +372,8 @@ typedef FunFEM<Mesh2> Fun_h;
 // "dirichlet1" or "neumann1")
 #define dirichlet1
 
-#define use_h       // to set mesh size using the h parameter. Write use_n to decide using nx, ny.
-#define use_tnot    // write use_t to control dT manually. Otherwise it is set proportional to h.
+#define use_h    // to set mesh size using the h parameter. Write use_n to decide using nx, ny.
+#define use_tnot // write use_t to control dT manually. Otherwise it is set proportional to h.
 
 #ifdef example1
 #ifdef omega1
@@ -389,10 +389,10 @@ using namespace Lehrenfeld_Convection_Dominated;
 int main(int argc, char **argv) {
 
     // Mesh settings and data objects
-    const std::size_t iterations = 5;    // number of mesh refinements   (set to 1 to run
-                                    // only once and plot to paraview)
-    int nx = 15, ny = 15;           // starting mesh size
-    double h  = 0.1; // starting mesh size
+    const std::size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+                                      // only once and plot to paraview)
+    int nx = 15, ny = 15;             // starting mesh size
+    double h  = 0.1;                  // starting mesh size
     double dT = 0.125;
 
     int total_number_iteration;
@@ -430,7 +430,7 @@ int main(int argc, char **argv) {
     // Arrays to hold data
     std::array<double, iterations> errors;                  // array to hold bulk errors
     std::array<int, iterations> number_of_stabilized_edges; // array to count stabilized edges
-    std::array<double, iterations> reynold_error; // array to count stabilized edges
+    std::array<double, iterations> reynold_error;           // array to count stabilized edges
     std::array<double, iterations> hs;                      // array to hold mesh sizes
     std::array<double, iterations> dts;
 
@@ -462,7 +462,7 @@ int main(int argc, char **argv) {
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        const int divisionMeshSize = 1;        
+        const int divisionMeshSize = 1;
 
         double dT              = h / divisionMeshSize;
         // double dT = 3*h;
@@ -490,10 +490,10 @@ int main(int argc, char **argv) {
 #ifdef convection_dominated
         const double A2 = 0.01;
 #else
-        const double A2 = 1;
+        const double A2        = 1;
 #endif
 
-#ifdef dg    
+#ifdef dg
         // Constants for penalty terms
         const double tau_a2 = 500; // diffusion penalty scaling
         const double tau_b2 = 10;  // convection penalty scaling
@@ -526,7 +526,7 @@ int main(int argc, char **argv) {
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(3));     // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(3)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -562,8 +562,8 @@ int main(int argc, char **argv) {
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
         int iter = 0;
-        double q0_0, q0_1, qp_0, qp_1;  // integral values to be computed
-        double intF = 0, intG = 0;      // hold integrals of rhs and Neumann bcs
+        double q0_0, q0_1, qp_0, qp_1; // integral values to be computed
+        double intF = 0, intG = 0;     // hold integrals of rhs and Neumann bcs
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -599,7 +599,7 @@ int main(int argc, char **argv) {
 
             // Create active meshes
             ActiveMesh<Mesh> Kh2(Th);
-            Kh2.truncate(interface, 1);     // remove part with positive sign of level set to get inner domain
+            Kh2.truncate(interface, 1); // remove part with positive sign of level set to get inner domain
 
             // Cut FE space
             CutSpace Wh(Kh2, Vh);
@@ -613,13 +613,13 @@ int main(int argc, char **argv) {
             // Right hand side functions
             Fun_h f(Vh, In, fun_rhsBulk);
             Fun_h g(Vh, In, fun_uBulk); // create an FE-function of the exact bulk
-                                         // solution Omega2
+                                        // solution Omega2
 
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1);
 
             // Data for initial solution
-            Rn data_u0; // initial data total
+            Rn data_u0(convdiff.get_nb_dof(),0.);                                       // initial data total
             convdiff.initialSolution(data_u0);
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0))); // initial data bulk
 
@@ -694,7 +694,7 @@ int main(int argc, char **argv) {
                                      + innerProduct(0.5 * fabs(vel * n) * jump(u), jump(v)),
                                  Kh2, INTEGRAL_INNER_EDGE_2D, In);
 
-#elif defined(cg) && defined(classical) // classic CG scheme
+#elif defined(cg) && defined(classical)    // classic CG scheme
             convdiff.addBilinear(+innerProduct((vel.exprList() * grad(u)), v), Kh2, In);
 
 #elif defined(cg) && defined(conservative) // classic CG scheme
@@ -741,13 +741,12 @@ int main(int argc, char **argv) {
 #elif defined(fullstab)
 
             convdiff.addFaceStabilization(+innerProduct(1. / h * tau20 * jump(u), jump(v)) +
-                                              innerProduct(h * tau21 * jump(grad(u)), jump(grad(v)))
-                                          ,
+                                              innerProduct(h * tau21 * jump(grad(u)), jump(grad(v))),
                                           Kh2, In);
 
 #endif
             number_of_stabilized_edges.at(j) = convdiff.get_number_of_stabilized_edges();
-            
+
             // Boundary conditions on interface
 #ifdef neumann
             Fun_h g_Neumann(Wh, In, fun_neumann_Gamma);
@@ -859,9 +858,9 @@ int main(int argc, char **argv) {
 
                 reynold.addBilinear(innerProduct(u, v), Kh2, (int)lastQuadTime, In);
                 reynold.addLinear(innerProduct(b0h.expr(), v), Kh2, 0, In);
-                reynold.addBilinear(-innerProduct(dt(u), v) - innerProduct(u, dt(v))
-                                        - innerProduct((vel.exprList() * grad(u)), v)
-                                        - innerProduct(u, (vel.exprList() * grad(v))),
+                reynold.addBilinear(-innerProduct(dt(u), v) - innerProduct(u, dt(v)) -
+                                        innerProduct((vel.exprList() * grad(u)), v) -
+                                        innerProduct(u, (vel.exprList() * grad(v))),
                                     Kh2, In);
 
                 int N = Wh.NbDoF();
@@ -901,6 +900,8 @@ int main(int argc, char **argv) {
                            << intGrad << "," << intVel << "," << lambda * (intu - intg) << ","
                            << h * ((q_1 - qp_1) - intF - intGrad + intVel) + lambda * (intu - intg) << '\n';
 #endif
+
+                std::cout << "e_c = " << (q_1 - qp_1) - intF - intG << "\n";
                 qp_1 = q_1;
             }
 
@@ -930,7 +931,7 @@ int main(int argc, char **argv) {
                 Expression2 uuex(uBex, 0, op_id);
                 writer.add(uBex, "bulk_exact", 0, 1);
                 writer.add(fB, "bulk_rhs", 0, 1);
-                //writer.add(fabs(uuh - uuex), "bulk_error");
+                // writer.add(fabs(uuh - uuex), "bulk_error");
                 writer.add(ls[0], "levelSet0", 0, 1);
                 writer.add(ls[1], "levelSet1", 0, 1);
                 // writer.add(ls[2], "levelSet2", 0, 1);

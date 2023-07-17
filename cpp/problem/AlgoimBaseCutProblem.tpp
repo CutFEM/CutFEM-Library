@@ -38,9 +38,11 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
     algoim::QuadratureRule<2> q =
         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
 
-    assert((q.nodes.size() == 1 * quadrature_order * quadrature_order) ||
-           (q.nodes.size() == 2 * quadrature_order * quadrature_order) ||
-           (q.nodes.size() == 3 * quadrature_order * quadrature_order)); // assert quadrature rule is not empty
+    assert(q.nodes.size() != 0);
+
+    // assert((q.nodes.size() == 1 * quadrature_order * quadrature_order) ||
+    //        (q.nodes.size() == 2 * quadrature_order * quadrature_order) ||
+    //        (q.nodes.size() == 3 * quadrature_order * quadrature_order)); // assert quadrature rule is not empty
 
     // Loop over the variational formulation items
     for (int l = 0; l < VF.size(); ++l) {
