@@ -615,7 +615,7 @@ template <typename Mesh> class MacroElementPartition : public GMacro {
         nb_element_1; // number of small elements in outer and inner domain respectively w.r.t level-set function
                       // sign
 
-    const int number_of_faces = Th[0].ne;  // number of faces of the mesh element
+    const int number_of_faces = Th[0].ne; // number of faces of the mesh element
 
     MacroElementPartition(const ActiveMesh<Mesh> &, const double);
 
@@ -644,7 +644,7 @@ MacroElementPartition<Mesh>::MacroElementPartition(const ActiveMesh<Mesh> &Th_, 
 
     nb_element_0 = 0;
     nb_element_1 = 0;
-    tol          = 2 * C_ * measure;
+    tol          = C_ * measure;
 
     std::cout << "tolerance \t" << tol << std::endl;
     findSmallElement();
@@ -678,8 +678,12 @@ template <typename Mesh> void MacroElementPartition<Mesh>::findSmallElement() {
             Cut_Part<typename Mesh::Element> cutK(Th.get_cut_part(k, itq));
             double areaCut = cutK.measure();
 
-            if ((areaCut > tol) && (!Th.isInactive(k, itq)))
-                is_large = true;
+            if ((areaCut > tol) && (!Th.isInactive(k, itq))) {
+                //double part = areaCut / K.measure();
+                is_large    = true;
+                //std::cout << "cut part %: " << part << "\n";
+            }
+
             if (Th.isInactive(k, itq))
                 is_inactive = true;
             // if (Th.isInactive(k, itq))
@@ -839,7 +843,7 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
         bool is_small     = true;  // is element small in any quadrature point?
         bool is_inactive  = false; // is element inactive in any quadrature point?
         bool is_never_cut = true;
-        int times_small   = 0; // how many times the element is small
+        int times_small   = 0;     // how many times the element is small
 
         for (int itq = 0; itq < qTime.n; ++itq) {
 
@@ -1138,23 +1142,9 @@ template <typename Mesh> int TimeMacroElement2<Mesh>::number_of_inner_edges() {
     return num_of_inner_edges;
 }
 
-
-
-
-
-
-
-
-
 // // Algoim Macro Element Partition
 
 // template <typename Mesh, typename L> class AlgoimMacroPartition
-
-
-
-
-
-
 
 #endif
 

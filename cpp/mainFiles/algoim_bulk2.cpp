@@ -567,7 +567,6 @@ R fun_neumann_Gamma(double *P, const int i, const R t) {
            (pi * sin((pi * (pow((x - t * (-C * y * y + W)), 2) + y * y)) / (R0 * R0)) * sin(pi * t) *
             pow((2 * x - 2 * t * (-C * y * y + W)), 2)) /
                (200 * (R0 * R0) * sqrt((pow((x - t * (-C * y * y + W)), 2) + y * y)));
-
 }
 
 // Velocity field
@@ -628,7 +627,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define fullstab
+#define macro
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
@@ -669,7 +668,7 @@ int main(int argc, char **argv) {
     const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;             // starting mesh size
+    double h  = 0.05;            // starting mesh size
     double dT = 0.1;
 
     int total_number_iteration;
@@ -724,6 +723,7 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
         Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
+        // Mesh Th(12, 11, 0.249, 0. - Epsilon, 0.55, 0.45);
 #elif defined(lehrenfeld)
         const double lx = 7., ly = 3.;
 #ifdef use_h
@@ -754,7 +754,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = 1.; // Final time
+        const double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -834,8 +834,7 @@ int main(int argc, char **argv) {
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
         int iter = 0;
-        // double q0_0, q0_1, qp_0, qp_1;              // integral values to be computed
-        double q_init0, q_init1, qp1;
+        double mass_last_previous;
         double intF = 0, int_outflow = 0, intG = 0; // hold integrals of rhs and Neumann bcs
         double errBulk = 0.;
 
@@ -853,7 +852,7 @@ int main(int argc, char **argv) {
             std::cout << " Time      \t : \t" << current_iteration * time_step << '\n';
             std::cout << "dT = " << dT << '\n';
 
-            // computation of the interface in each of the three quadrature points
+            // initialization of the interface in each quadrature point
 
             for (int i = 0; i < nbTime; ++i) {
 
@@ -876,9 +875,9 @@ int main(int argc, char **argv) {
             //  Cut FE space
             CutSpace Wh(Thi, Vh);
 
-            AlgoimCutFEM<Mesh, Levelset<2>> initial_condition(Wh, phi);
+            // AlgoimCutFEM<Mesh, Levelset<2>> initial_condition(Wh, phi);
 
-            initial_condition.initSpace(Wh, In);
+            // initial_condition.initSpace(Wh, In);
 
             // Initialize the convection-diffusion problem
             convdiff.initSpace(Wh, In);
@@ -893,7 +892,6 @@ int main(int argc, char **argv) {
             // getchar();
 
             // Right hand side functions
-            // Fun_h f(Vh, In, fun_rhsBulk);
             Fun_h f(Vh_interpolation, In_interpolation, fun_rhsBulk);
             Fun_h g(Vh_interpolation, In_interpolation, fun_uBulk); // create an FE-function of the exact bulk
                                                                     // solution Omega2
@@ -910,7 +908,7 @@ int main(int argc, char **argv) {
             // Data for initial solution
             Rn data_u0(convdiff.get_nb_dof(), 0.); // initial data total
             convdiff.initialSolution(data_u0);
-            initial_condition.initialSolution(data_u0);
+            // initial_condition.initialSolution(data_u0);
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0))); // initial data bulk
 
             if (iter == 0)
@@ -918,8 +916,6 @@ int main(int argc, char **argv) {
 
             // Make function objects to use in innerProducts
             Fun_h b0h(Wh, data_B0);
-
-            std::cout << "Initial mass: " << integral_algoim(b0h, Thi, phi, In, qTime, 0) << "\n";
 
             // // Solve for initial condition
             // FunTest s(Wh, 1), r(Wh, 1);
@@ -929,8 +925,6 @@ int main(int argc, char **argv) {
             // initial_condition.addLinearAlgoim(+innerProduct(b0h.expr(), r), Thi, 0, In);
             // initial_condition.solve("mumps");
             // data_u0 = initial_condition.rhs_;
-
-            // convdiff.cleanBuildInMatrix();
 
             // Plot initial solution in paraview
             // #ifdef USE_MPI
@@ -950,11 +944,6 @@ int main(int argc, char **argv) {
             //     writerInitial.add(uRhs, "bulk_rhs", 0, 1);
             //     // writerInitial.add(ls[0], "levelSet", 0, 1);
             // }
-
-            // gnuplot::save(Th);
-            // gnuplot::save<Mesh, Levelset<2>>(Thi, *interface(0), phi, "interface.dat", current_time);
-            // gnuplot::save<Mesh>(*interface(0));
-            // getchar();
 
             //** Assembling linear and bilinear forms
 
@@ -988,8 +977,8 @@ int main(int argc, char **argv) {
             //                               n)*n))
             // , Thi, In);
             convdiff.addFaceStabilization(
-                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) 
-                + innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
+                    innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
                 Thi, In);
 
             // convdiff.addBilinear(+innerProduct(h * h * tau1 * grad(u) * n, grad(v) * n), interface, In);
@@ -1173,8 +1162,6 @@ int main(int argc, char **argv) {
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
 
-            //// Compute errors
-
             // Compute area of domain in time quadrature point 0
             Fun_h funone(Wh, fun_one);
 
@@ -1183,58 +1170,38 @@ int main(int argc, char **argv) {
             gamma.at(j)     = intGamma;
             omega.at(j)     = intOmega;
 
-            // Error of numerical solution
+            // Compute error of numerical solution
             Rn sol(Wh.get_nb_dof(), 0.);
+            Fun_h funuh(Wh, sol);
             sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
+
+            errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1);
+            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
 
             for (int n = 1; n < ndfTime; n++) {
                 sol += data_u0(SubArray(Wh.get_nb_dof(), n * Wh.get_nb_dof()));
             }
 
-            Fun_h funuh_0(Wh, data_u0);
-            Fun_h funuh(Wh, sol);
-
-            errBulk = L2_norm_cut(funuh_0, fun_uBulkD, In, qTime, 0, phi, 0, 1);
-            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
             errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1);
             std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
             errors.at(j) = errBulk;
 
             // Compute conservation error
             if (iterations == 1) {
+                intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
+                intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
 
-                double q0 = integral_algoim(funuh_0, Thi, phi, In, qTime, 0);
-                double q1 = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime);
-                intF = integral_algoim(f, Thi, phi, In, qTime);
-                intG = integral_algoim(g_Neumann, In, interface, phi, 0);
-                std::cout << "q0: " << q0 << "\n";
-                std::cout << "q1: " << q1 << "\n";
-                std::cout << "intF: " << intF << "\n";
-                std::cout << "intG: " << intG << "\n";
-                std::cout << "e_c = " << q1 - q0 - intF - intG << "\n";
-#if defined(conservative) && defined(omega1) && defined(neumann1) && defined(neumann2)
-                auto outflow = (vel * n) * funuh.expr();
-                int_outflow  = integral(Thi, In, (vel * n) * b0h.expr(), INTEGRAL_BOUNDARY,
-                                        qTime); // integral(outflow, In, interface, 0);
-
-#endif
+                double mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime); // mass in last quad point
 
                 if (iter == 0) {
-
-                    q_init0 = q0;
-                    qp1     = q1;
+                    mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
                 }
 
                 outputData << std::setprecision(10);
-                outputData << current_time << "," << (q1 - qp1) << "," << intF << "," << intG << ","
-#if defined(omega1) && defined(dirichlet2)
-                    ;
-#elif defined(omega2) && defined(neumann)
-                           << ((q1 - qp1) - intF - intG/dT) << '\n';
-#elif defined(omega1) && defined(neumann1)
-                           << ((q1 - qp_1) - intF - intG + int_outflow) << '\n';
-#endif
-                qp1 = q1;
+                outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG
+                           << "," << ((mass_last - mass_last_previous) - intF - intG) << '\n';
+
+                mass_last_previous = mass_last; // set current last to previous last for next time slab
             }
 
             // #ifdef USE_MPI
