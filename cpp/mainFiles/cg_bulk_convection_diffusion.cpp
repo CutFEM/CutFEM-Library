@@ -622,7 +622,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // different numerical examples, different subdomains and boundary conditions etc.
 
 //* Set numerical example (options: "example1", "lehrenfeld")
-#define lehrenfeld
+#define example1
 //* Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
 #define convection_dominated
 
@@ -638,7 +638,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Set type of BCs on interface (options: "dirichlet", "neumann")
 #define neumann
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
@@ -670,8 +670,8 @@ int main(int argc, char **argv) {
     const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;             // starting mesh size
-    double dT = 0.25;
+    double h  = 0.01;             // starting mesh size
+    double dT = 0.125;
 
     int total_number_iteration;
     double time_step;
@@ -722,7 +722,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
+        Mesh Th(nx, ny, 0., 0., lx, ly);
 #elif defined(lehrenfeld)
         const double lx = 7., ly = 3.;
 #ifdef use_h
@@ -743,7 +743,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = 1.5; // Final time
+        const double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -910,7 +910,7 @@ int main(int argc, char **argv) {
             FunTest u(Wh, 1), v(Wh, 1);
 
             // Data for initial solution
-            Rn data_u0(convdiff.get_nb_dof());                // initial data total
+            Rn data_u0(convdiff.get_nb_dof(), 0.);                // initial data total
             convdiff.initialSolution(data_u0);
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0))); // initial data bulk
 
@@ -1152,7 +1152,7 @@ int main(int argc, char **argv) {
             // Add RHS in bulk
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
 
-            if ((iter == total_number_iteration - 1)) {
+            if (iter == total_number_iteration - 1) {
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
             }
 
@@ -1167,11 +1167,13 @@ int main(int argc, char **argv) {
                 Fun_h funuh(Wh, data_u0);
 
                 intF = integral(Thi, In, f, 0, qTime);
+                intG         = integral(g_Neumann, In, interface, 0);
+
 #if defined(conservative) && defined(omega1) && defined(neumann1) && defined(neumann2)
                 auto outflow = (vel * n) * funuh.expr();
                 int_outflow  = integral(Thi, In, (vel * n) * b0h.expr(), INTEGRAL_BOUNDARY,
                                         qTime); // integral(outflow, In, interface, 0);
-                intG         = -integral(g_Neumann, In, interface, 0);
+                
 #endif
 
                 Rn sol2(Wh.NbDoF(), 0.);
