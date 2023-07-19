@@ -641,22 +641,30 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c
  * @brief Integrate function over time-dependent cut domain over In
  */
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
+double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
                        const QuadratureFormular1d &qTime) {
 
-    assert(Th.get_nb_domain() == 1);
+    const int number_of_domains = Th.get_nb_domain();
+    double val                  = 0.;
 
-    using mesh_t        = MeshQuad2;
-    using fespace_t     = GFESpace<mesh_t>;
-    using itemVFlist_t  = ListItemVF<mesh_t>;
-    using FElement      = typename fespace_t::FElement;
-    using Rd            = typename FElement::Rd;
-    using Element       = typename mesh_t::Element;
-    using BorderElement = typename mesh_t::BorderElement;
+    for (int i = 0; i < number_of_domains; ++i) {
+        val += integral_algoim(fh, cu, Th, i, phi, In, qTime);
+    }
 
-    double val       = 0.;
-    const int domain = 0;
-    const int cu     = 1; // number of components
+    return val;
+}
+
+template <typename L, typename fct_t>
+double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi, const TimeSlab &In,
+                       const QuadratureFormular1d &qTime) {
+
+    using mesh_t    = MeshQuad2;
+    using fespace_t = GFESpace<mesh_t>;
+    using FElement  = typename fespace_t::FElement;
+    using Rd        = typename FElement::Rd;
+    using Element   = typename mesh_t::Element;
+
+    double val = 0.;
 
     for (int itq = 0; itq < qTime.n; ++itq) {
 
@@ -694,9 +702,9 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
 
                 const R Cint = weight * In.T.measure() * tq.a;
                 if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
-                    val += Cint * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
+                    val += Cint * fh.evalOnBackMesh(kb, domain, mip, t, cu, 0, 0);
                 } else {
-                    val += Cint * fh->evalOnBackMesh(kb, domain, mip);
+                    val += Cint * fh->evalOnBackMesh(kb, domain, mip, t);
                 }
             }
         }
@@ -712,7 +720,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
 }
 
 /**
- * @brief Integrate function over time-dependent cut domain in specific quadrature point
+ * @brief Integrate function over time-dependent cut domains in specific quadrature point
  *
  * @tparam L Algoim level set function struct
  * @tparam fct_t Integrand type
@@ -724,27 +732,37 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
  * @param itq Time quadrature point
  * @return double Integral of the integrand over the geometry in time quadrature point itq of the time slab In
  *
- * @note This integral does NOT scale with dT.
+ * @note This integral does NOT scale with dT. It loops over all defined subdomains in the active mesh.
  */
 template <typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
                        const QuadratureFormular1d &qTime, const int itq) {
 
-    assert(Th.get_nb_domain() == 1);
+    const int number_of_domains = Th.get_nb_domain();
+    double val                  = 0.;
+    for (int i = 0; i < number_of_domains; ++i) {
+        val += integral_algoim(fh, Th, i, phi, In, qTime, itq);
+    }
 
-    using mesh_t        = MeshQuad2;
-    using fespace_t     = GFESpace<mesh_t>;
-    using itemVFlist_t  = ListItemVF<mesh_t>;
-    using FElement      = typename fespace_t::FElement;
-    using Rd            = typename FElement::Rd;
-    using QF            = typename FElement::QF;
-    using QFB           = typename FElement::QFB;
-    using Element       = typename mesh_t::Element;
-    using BorderElement = typename mesh_t::BorderElement;
+    return val;
+}
+/**
+ * @brief Integrate function over time-dependent cut domain in specific quadrature point.
+ * @note For specific subdomain, or if the active mesh only contains one subdomain.
+ * @param domain Domain index
+ *
+ */
+template <typename L, typename fct_t>
+double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi, const TimeSlab &In,
+                       const QuadratureFormular1d &qTime, const int itq) {
 
-    double val       = 0.;
-    const int domain = 0;
-    const int cu     = 1; // number of components
+    using mesh_t    = MeshQuad2;
+    using fespace_t = GFESpace<mesh_t>;
+    using FElement  = typename fespace_t::FElement;
+    using Rd        = typename FElement::Rd;
+    using Element   = typename mesh_t::Element;
+
+    double val = 0.;
 
     GQuadraturePoint<R1> tq((qTime)[itq]);
     const double t = In.mapToPhysicalElement(tq);
@@ -756,7 +774,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
             continue;
 
         if (Th.isInactive(k, itq))
-            continue; //! SHOULD REMOVE THIS?
+            continue;
 
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
@@ -779,11 +797,10 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
             Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             const R weight = q.nodes.at(ipq).w;
 
-            const R Cint = weight;
             if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
-                val += Cint * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
+                val += weight * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
             } else {
-                val += Cint * fh->evalOnBackMesh(kb, domain, mip);
+                val += weight * fh->evalOnBackMesh(kb, domain, mip);
             }
         }
     }
@@ -799,7 +816,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
 }
 
 /**
- * @brief Integrate FunFEM over interface and over In
+ * @brief Integrate FunFEM function over interface and over In
  *
  * @tparam M Mesh
  * @tparam L Algoim level set struct
@@ -814,20 +831,20 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
 template <typename M, typename L>
 double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M> &gamma, L &phi, int cu) {
 
-    typedef M Mesh;
-    typedef GFESpace<Mesh> FESpace;
-    typedef typename FESpace::FElement FElement;
-    typedef typename FElement::Rd Rd;
+    using mesh_t    = MeshQuad2;
+    using fespace_t = GFESpace<mesh_t>;
+    using FElement  = typename fespace_t::FElement;
+    using Rd        = typename FElement::Rd;
+    using Element   = typename mesh_t::Element;
 
     double val = 0.;
 
     // Loop over time quadrature points
     for (int it = 0; it < gamma.size(); ++it) {
-        const Interface<M> &interface(*gamma(it));
+        const Interface<mesh_t> &interface(*gamma(it));
         const QuadratureFormular1d *qTime(gamma.get_quadrature_time());
         GQuadraturePoint<R1> tq((*qTime)[it]);
         const double t = In.mapToPhysicalElement(tq);
-
         phi.t = t;
 
         for (int iface = interface.first_element(); iface < interface.last_element();
@@ -853,7 +870,8 @@ double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M>
                 const R weight = q.nodes.at(ipq).w;
                 // const R Cint = meas * ip.getWeight() * In.T.mesure() * tq.a;
                 const R Cint   = weight * In.T.measure() * tq.a;
-                val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, cu, 0, 0);
+                const int domain_interface = 0;
+                val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
             }
         }
     }
