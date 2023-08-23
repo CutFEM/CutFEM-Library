@@ -670,6 +670,7 @@ template <typename Mesh> void MacroElementPartition<Mesh>::findSmallElement() {
         // Iterate over the quadrature points in the time-slab In
 
         bool is_large           = false; // is element large in any quadrature point?
+        bool is_small           = false; // is element large in any quadrature point?
         bool is_inactive        = false; // is element inactive in any quadrature point?
         int numb_times_inactive = 0;
 
@@ -679,18 +680,24 @@ template <typename Mesh> void MacroElementPartition<Mesh>::findSmallElement() {
             double areaCut = cutK.measure();
 
             if ((areaCut > tol) && (!Th.isInactive(k, itq))) {
+                is_large = true;
+            } else if ((areaCut <= tol) && (!Th.isInactive(k, itq))) {
                 //double part = areaCut / K.measure();
-                is_large    = true;
-                //std::cout << "cut part %: " << part << "\n";
+                is_small = true;
+                //std::cout << "kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: " << k << ", area_cut: " << areaCut << ", |K|: " << K.measure() << ", cut part %: " << part << "\n";
             }
-
-            if (Th.isInactive(k, itq))
+                
+            if (Th.isInactive(k, itq)) {
                 is_inactive = true;
+                //std::cout << "INACTIVE. kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: " << k << "\n";
+            }
+                
             // if (Th.isInactive(k, itq))
             //     ++numb_times_inactive;
         }
 
-        if (!is_large || is_inactive) {
+        //if (!is_large || is_inactive) { // method 1
+        if (is_small || is_inactive) {  // method 2    
             // if (!is_large || numb_times_inactive >= 2) {
             small_element[k] = SmallElement(k);
             // small_element[k].area = areaCut;
@@ -843,7 +850,7 @@ template <typename Mesh> void TimeMacroElement<Mesh>::findSmallElement() {
         bool is_small     = true;  // is element small in any quadrature point?
         bool is_inactive  = false; // is element inactive in any quadrature point?
         bool is_never_cut = true;
-        int times_small   = 0;     // how many times the element is small
+        int times_small   = 0; // how many times the element is small
 
         for (int itq = 0; itq < qTime.n; ++itq) {
 

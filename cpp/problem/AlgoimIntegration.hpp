@@ -31,8 +31,8 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
         const Element &K(interface.get_element(kb));
         // const R meas = interface.measure(iface);
 
-        const auto &V0(K.at(0));                        // vertex 0
-        const auto &V2(K.at(2));                        // vertex 2   diagonally opposed
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2   diagonally opposed
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -42,6 +42,7 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
 
         // assert((q.nodes.size() == 1 * quadrature_order) ||
         //    (q.nodes.size() == 2 * quadrature_order));
+        assert(q.nodes.size() != 0);
         assert((quadrature_order <= q.nodes.size()) || (q.nodes.size() <= 2 * quadrature_order));
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
@@ -88,8 +89,8 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
         const Element &K(interface.get_element(kb));
         // const R meas = interface.measure(iface);
 
-        const auto &V0(K.at(0));                        // vertex 0
-        const auto &V2(K.at(2));                        // vertex 2   diagonally opposed
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2   diagonally opposed
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -145,8 +146,8 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(do
         const Element &K(interface.get_element(kb));
         // const R meas = interface.measure(iface);
 
-        const auto &V0(K.at(0));                        // vertex 0
-        const auto &V2(K.at(2));                        // vertex 2   diagonally opposed
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2   diagonally opposed
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -252,7 +253,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
     GQuadraturePoint<R1> tq((qTime)[itq]);
     const double t = In.mapToPhysicalElement(tq);
     phi.t          = t;
-
+    //std::cout << "t = " << t << "\n";
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
@@ -262,26 +263,23 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
         if (Th.isInactive(k, itq))
             continue;
 
-        // const Cut_Part<Element> cutK(Th.get_cut_part(k, 0));
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
 
         int kk = k;
-        // if(macro){
-        //   if(!macro->isRootFat(k)) {
-        //     kk = macro->getIndexRootElement(k);
-        //   }
-        // }
 
         // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0));                        // vertex 0
-        const auto &V2(K.at(2));                        // vertex 2 (diagonally opposed)
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
 
         algoim::QuadratureRule<2> q =
             algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
+
+        // std::cout << "K = [" << V0[0] << ", " << V2[0] << "] x [" << V0[1] << ", " << V2[1] << "]\n";
+        // std::cout << phi(xymin) << "\n";
 
         // Loop over quadrature in space
         assert(q.nodes.size() != 0);
@@ -356,8 +354,8 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
         // }
 
         // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0));                        // vertex 0
-        const auto &V2(K.at(2));                        // vertex 2 (diagonally opposed)
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -406,8 +404,8 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const auto &T(interface.get_element(kb));
-        const auto &V0(T.at(0));                        // vertex 0
-        const auto &V2(T.at(2));                        // vertex 2   diagonally opposed
+        const auto &V0(T.at(0)); // vertex 0
+        const auto &V2(T.at(2)); // vertex 2   diagonally opposed
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -462,8 +460,8 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const auto &T(interface.get_element(kb));
-        const auto &V0(T.at(0));                        // vertex 0
-        const auto &V2(T.at(2));                        // vertex 2   diagonally opposed
+        const auto &V0(T.at(0)); // vertex 0
+        const auto &V2(T.at(2)); // vertex 2   diagonally opposed
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -521,8 +519,8 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const auto &T(interface.get_element(kb));
-        const auto &V0(T.at(0));                        // vertex 0
-        const auto &V2(T.at(2));                        // vertex 2   diagonally opposed
+        const auto &V0(T.at(0)); // vertex 0
+        const auto &V2(T.at(2)); // vertex 2   diagonally opposed
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -593,8 +591,8 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c
         int kb = Th.idxElementInBackMesh(k);
 
         // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0));                        // vertex 0
-        const auto &V2(K.at(2));                        // vertex 2 (diagonally opposed)
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -655,8 +653,8 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
 }
 
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime) {
+double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi,
+                       const TimeSlab &In, const QuadratureFormular1d &qTime) {
 
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
@@ -683,8 +681,8 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
             int kb = Th.idxElementInBackMesh(k);
 
             // Get coordinates of current quadrilateral
-            const auto &V0(K.at(0));                        // vertex 0
-            const auto &V2(K.at(2));                        // vertex 2 (diagonally opposed)
+            const auto &V0(K.at(0)); // vertex 0
+            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
 
             algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
             algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -780,8 +778,8 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int dom
         int kb = Th.idxElementInBackMesh(k);
 
         // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0));                        // vertex 0
-        const auto &V2(K.at(2));                        // vertex 2 (diagonally opposed)
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
 
         algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
         algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -845,7 +843,7 @@ double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M>
         const QuadratureFormular1d *qTime(gamma.get_quadrature_time());
         GQuadraturePoint<R1> tq((*qTime)[it]);
         const double t = In.mapToPhysicalElement(tq);
-        phi.t = t;
+        phi.t          = t;
 
         for (int iface = interface.first_element(); iface < interface.last_element();
              iface += interface.next_element()) {
@@ -854,8 +852,8 @@ double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M>
             // const R meas = interface.measure(iface);
 
             const auto &T(interface.get_element(kb));
-            const auto &V0(T.at(0));                        // vertex 0
-            const auto &V2(T.at(2));                        // vertex 2   diagonally opposed
+            const auto &V0(T.at(0)); // vertex 0
+            const auto &V2(T.at(2)); // vertex 2   diagonally opposed
 
             algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
             algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
@@ -867,9 +865,9 @@ double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M>
             for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
                 Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-                const R weight = q.nodes.at(ipq).w;
+                const R weight             = q.nodes.at(ipq).w;
                 // const R Cint = meas * ip.getWeight() * In.T.mesure() * tq.a;
-                const R Cint   = weight * In.T.measure() * tq.a;
+                const R Cint               = weight * In.T.measure() * tq.a;
                 const int domain_interface = 0;
                 val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
             }
