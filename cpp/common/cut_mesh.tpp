@@ -305,7 +305,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mes
                 // Check if the element is cut in either t or t+1 or if the sign of the element changes
                 // -> that means it's active
 
-                //if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
+                // if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
                 if (Ki_cut || Kii_cut || signKi.sign() * signKii.sign() <= 0) {
                     active_element = true;
                     break;
@@ -340,8 +340,8 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mes
                 // IS CUT SO NEED TO ADD INTERFACE AND SIGN
                 const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
                 bool K_is_cut                                               = interface(it)->isCut(kb);
-                
-                //if (signK.cut()) {
+
+                // if (signK.cut()) {
                 if (K_is_cut) {
                     interface_id_[it][std::make_pair(d, nt[d])].push_back(
                         std::make_pair(interface[it], -sign_domain_remove));
@@ -613,10 +613,10 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInte
                     interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
                 }
                 // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-                //const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
-                bool K_is_cut                                               = interface(it)->isCut(kb);
+                // const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
+                bool K_is_cut = interface(it)->isCut(kb);
 
-                //if (signK.cut()) {
+                // if (signK.cut()) {
                 if (K_is_cut) {
                     interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(interface[it], 0));
                 } else {

@@ -86,7 +86,8 @@
 //     4           // end_dfcomp
 // };
 
-// double TypeOfFE_P3Polynomial1d::alpha_Pi_h[] = {1., -5.5, 9. - 4.5, 1., 9., -22.5, 18., -4.5, -4.5, 13.5, -13.5, 4.5};
+// double TypeOfFE_P3Polynomial1d::alpha_Pi_h[] = {1., -5.5, 9. - 4.5, 1., 9., -22.5, 18., -4.5, -4.5, 13.5,
+// -13.5, 4.5};
 
 // void TypeOfFE_P3Polynomial1d::FB(const What_d whatd, const Element &K, const R1 &P, RNMK_ &val) const {
 //     assert(K[0].X() < K[1].X());
@@ -388,7 +389,8 @@
 //         }
 //         // for (int i = 0; i < 28; i++) {
 //         //     std::cout << "i = " << i << "\n";
-//         //     std::cout << "ipj_Pi_h[i] quad = (" << ipj_Pi_h[i].i << ", " << ipj_Pi_h[i].p << ", " << ipj_Pi_h[i].j <<
+//         //     std::cout << "ipj_Pi_h[i] quad = (" << ipj_Pi_h[i].i << ", " << ipj_Pi_h[i].p << ", " << ipj_Pi_h[i].j
+//         <<
 //         //     ")\n";
 //         // }
 
@@ -406,9 +408,8 @@
 //     0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8,       // the node of the df
 //     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, // which are de df on sub FE
 //     1, 1, 1, 0,                                           // nb node on what
-//     0,                                                    // for each compontant $j=0,N-1$ it give the sub FE associated
-//     0,                                                    // begin_dfcomp
-//     16                                                    // end_dfcomp
+//     0,                                                    // for each compontant $j=0,N-1$ it give the sub FE
+//     associated 0,                                                    // begin_dfcomp 16 // end_dfcomp
 // };
 
 // double TypeOfFE_P3QLagrange2d::alpha_Pi_h[] = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.};
@@ -467,10 +468,12 @@
 
 //         // dpsi/dx
 //         std::array<double, 4> d_psi_x{(-13.5 * x * x + 18. * x - 5.5) / hx, 0.5 * (27. * x * x - 18. * x + 2.) / hx,
-//                                       4.5 * (9. * x * x - 10. * x + 2.) / hx, 4.5 * (-9. * x * x + 8. * x - 1.) / hx};
+//                                       4.5 * (9. * x * x - 10. * x + 2.) / hx, 4.5 * (-9. * x * x + 8. * x - 1.) /
+//                                       hx};
 //         // dpsi/dy
 //         std::array<double, 4> d_psi_y{(-13.5 * y * y + 18. * y - 5.5) / hy, 0.5 * (27. * y * y - 18. * y + 2.) / hy,
-//                                       4.5 * (9. * y * y - 10. * y + 2.) / hy, 4.5 * (-9. * y * y + 8. * y - 1.) / hy};
+//                                       4.5 * (9. * y * y - 10. * y + 2.) / hy, 4.5 * (-9. * y * y + 8. * y - 1.) /
+//                                       hy};
 
 //         // dx
 //         f0x[0]  = d_psi_x.at(0) * psi_y.at(0);
@@ -524,9 +527,11 @@
 //         // R dd_psi_yy[] = {(-27. * y + 18.) / (hy * hy), (27. * y - 9.) / (hy * hy), (81. * y - 45.) / (hy * hy),
 //         //                  (-81. * y + 36.) / (hy * hy)};
 
-//         // R ddd_psi_xxx[] = {-27. / (hx * hx * hx), 27. / (hx * hx * hx), 81. / (hx * hx * hx), -81. / (hx * hx * hx)};
+//         // R ddd_psi_xxx[] = {-27. / (hx * hx * hx), 27. / (hx * hx * hx), 81. / (hx * hx * hx), -81. / (hx * hx *
+//         hx)};
 
-//         // R ddd_psi_yyy[] = {-27. / (hy * hy * hy), 27. / (hy * hy * hy), 81. / (hy * hy * hy), -81. / (hy * hy * hy)};
+//         // R ddd_psi_yyy[] = {-27. / (hy * hy * hy), 27. / (hy * hy * hy), 81. / (hy * hy * hy), -81. / (hy * hy *
+//         hy)};
 
 //         // std::cout << "x = " << x << "\n";
 //         // std::cout << "psi_0(x) = " << psi_x[0] << "\n";
@@ -700,8 +705,6 @@
 // GTypeOfFE<MeshQuad2> &P3QLagrange2d(P3Q_2d);
 // template <> GTypeOfFE<MeshQuad2> &DataFE<MeshQuad2>::P3 = P3Q_2d;
 
-
-
 // OLD
 
 /*
@@ -748,7 +751,7 @@ class TypeOfFE_P3Polynomial1d : public GTypeOfFE<Mesh1> {
     static const int nbNodeOnItem[4];
 
   public:
-    static const int k   = 2;
+    static const int k   = 3;
     static const int ndf = (k + 1);
     static int Data[];
     static double alpha_Pi_h[];
@@ -1011,10 +1014,11 @@ class TypeOfFE_P3QLagrange2d : public GTypeOfFE<MeshQuad2> {
     static const int k   = 3;
     static const int ndf = (k + 1) * (k + 1);
     static int Data[];
-    static double alpha_Pi_h[];
+    //    static double alpha_Pi_h[];
 
     //! Unsure if the initialization list below is correct
-    TypeOfFE_P3QLagrange2d() : GTypeOfFE<MeshQuad2>(16, 1, Data, 16, 16, alpha_Pi_h) {
+    // TypeOfFE_P3QLagrange2d() : GTypeOfFE<MeshQuad2>(16, 1, Data, 20, 16, alpha_Pi_h) {
+    TypeOfFE_P3QLagrange2d() : GTypeOfFE<MeshQuad2>(16, 1, Data, 24, 16, 0) {
         GTypeOfFE<Mesh>::basisFctType    = BasisFctType::P3;
         GTypeOfFE<Mesh>::polynomialOrder = k;
 
@@ -1023,16 +1027,55 @@ class TypeOfFE_P3QLagrange2d : public GTypeOfFE<MeshQuad2> {
                                   R2(2. / 3, 1.),     R2(1. / 3, 1.),     R2(0., 2. / 3),     R2(0., 1. / 3),
                                   R2(1. / 3, 1. / 3), R2(2. / 3, 1. / 3), R2(2. / 3, 2. / 3), R2(1. / 3, 2. / 3)};
 
-        for (int i = 0; i < ndf; ++i) {
-            Pt_Pi_h[i]  = Pt[i];
-            ipj_Pi_h[i] = IPJ(i, i, 0);
+        int other[16] = {-1, -1, -1, -1, 5, 4, 7, 6, 9, 8, 11, 10, -1, -1, -1, -1};
+        int kk        = 0;
+
+        for (int i = 0; i < ndf; i++) {
+            ipj_Pi_h[kk++] = IPJ(i, i, 0);
+            if (other[i] >= 0) {
+                ipj_Pi_h[kk++] = IPJ(i, other[i], 0);
+            }
+
+            Pt_Pi_h[i] = Pt[i];
         }
+
+        // for (int i = 0; i < ndf; ++i) {
+        //     Pt_Pi_h[i]  = Pt[i];
+        //     ipj_Pi_h[i] = IPJ(i, i, 0);
+        // }
     }
 
     void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
+
+    void get_Coef_Pi_h(const GbaseFElement<MeshQuad2> &K, KN_<double> &v) const override {
+        for (int i = 0; i < 24; ++i) {
+            v[i] = 1;
+        }
+
+        int e0     = K.EdgeOrientation(0);
+        int e1     = K.EdgeOrientation(1);
+        int e2     = K.EdgeOrientation(2);
+        int e3     = K.EdgeOrientation(3);
+        int ooo[8] = {e0, e0, e1, e1, e2, e2, e3, e3};
+        int iii[8] = {};
+        int jjj[8] = {};
+
+        for (int i = 0; i < 8; ++i) {
+            iii[i] = 4 + 2 * i; // si  orient = 1
+            jjj[i] = 5 + 2 * i; // si orient = -1
+        }
+
+        for (int i = 0; i < 8; ++i) {
+            if (ooo[i] == 1) {
+                v[jjj[i]] = 0;
+            } else {
+                v[iii[i]] = 0;
+            }
+        }
+    }
 };
 
-const int TypeOfFE_P3QLagrange2d::nbNodeOnItem[4] = {1, 1, 0, 0};
+const int TypeOfFE_P3QLagrange2d::nbNodeOnItem[4] = {1, 1, 1, 0};
 
 int TypeOfFE_P3QLagrange2d::Data[] = {
     0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8, // the support number  of the node of the df
@@ -1045,9 +1088,32 @@ int TypeOfFE_P3QLagrange2d::Data[] = {
     16                                              // end_dfcomp
 };
 
-double TypeOfFE_P3QLagrange2d::alpha_Pi_h[] = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.};
+// double TypeOfFE_P3QLagrange2d::alpha_Pi_h[] = {1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.};
 
 void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &P, RNMK_ &val) const {
+        int p[16] = {};
+
+    for (int i = 0; i < 16; ++i) {
+        p[i] = i;
+    }
+
+    if (K.EdgeOrientation(0) < 0) {
+        std::swap(p[4], p[5]); // 3,4
+    }
+
+    if (K.EdgeOrientation(1) < 0) {
+        std::swap(p[6], p[7]); // 5,6
+    }
+
+    if (K.EdgeOrientation(2) < 0) {
+        std::swap(p[8], p[9]); // 7,8
+    }
+
+
+    if (K.EdgeOrientation(3) < 0) {
+        std::swap(p[10], p[11]); // 7,8
+    }
+    
     R x = P.x, y = P.y;
 
     std::array<double, 4> psi_x{-4.5 * x * x * x + 9 * x * x - 5.5 * x + 1, 0.5 * x * (9 * x * x - 9 * x + 2),
@@ -1076,14 +1142,14 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         f0[1]  = psi_x.at(1) * psi_y.at(0);
         f0[2]  = psi_x.at(1) * psi_y.at(1);
         f0[3]  = psi_x.at(0) * psi_y.at(1);
-        f0[4]  = psi_x.at(2) * psi_y.at(0);
-        f0[5]  = psi_x.at(3) * psi_y.at(0);
-        f0[6]  = psi_x.at(1) * psi_y.at(2);
-        f0[7]  = psi_x.at(1) * psi_y.at(3);
-        f0[8]  = psi_x.at(3) * psi_y.at(1);
-        f0[9]  = psi_x.at(2) * psi_y.at(1);
-        f0[10] = psi_x.at(0) * psi_y.at(3);
-        f0[11] = psi_x.at(0) * psi_y.at(2);
+        f0[p[4]]  = psi_x.at(2) * psi_y.at(0);
+        f0[p[5]]  = psi_x.at(3) * psi_y.at(0);
+        f0[p[6]]  = psi_x.at(1) * psi_y.at(2);
+        f0[p[7]]  = psi_x.at(1) * psi_y.at(3);
+        f0[p[8]]  = psi_x.at(3) * psi_y.at(1);
+        f0[p[9]]  = psi_x.at(2) * psi_y.at(1);
+        f0[p[10]] = psi_x.at(0) * psi_y.at(3);
+        f0[p[11]] = psi_x.at(0) * psi_y.at(2);
         f0[12] = psi_x.at(2) * psi_y.at(2);
         f0[13] = psi_x.at(3) * psi_y.at(2);
         f0[14] = psi_x.at(3) * psi_y.at(3);
@@ -1111,14 +1177,14 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         f0x[1]  = d_psi_x.at(1) * psi_y.at(0);
         f0x[2]  = d_psi_x.at(1) * psi_y.at(1);
         f0x[3]  = d_psi_x.at(0) * psi_y.at(1);
-        f0x[4]  = d_psi_x.at(2) * psi_y.at(0);
-        f0x[5]  = d_psi_x.at(3) * psi_y.at(0);
-        f0x[6]  = d_psi_x.at(1) * psi_y.at(2);
-        f0x[7]  = d_psi_x.at(1) * psi_y.at(3);
-        f0x[8]  = d_psi_x.at(3) * psi_y.at(1);
-        f0x[9]  = d_psi_x.at(2) * psi_y.at(1);
-        f0x[10] = d_psi_x.at(0) * psi_y.at(3);
-        f0x[11] = d_psi_x.at(0) * psi_y.at(2);
+        f0x[p[4]]  = d_psi_x.at(2) * psi_y.at(0);
+        f0x[p[5]]  = d_psi_x.at(3) * psi_y.at(0);
+        f0x[p[6]]  = d_psi_x.at(1) * psi_y.at(2);
+        f0x[p[7]]  = d_psi_x.at(1) * psi_y.at(3);
+        f0x[p[8]]  = d_psi_x.at(3) * psi_y.at(1);
+        f0x[p[9]]  = d_psi_x.at(2) * psi_y.at(1);
+        f0x[p[10]] = d_psi_x.at(0) * psi_y.at(3);
+        f0x[p[11]] = d_psi_x.at(0) * psi_y.at(2);
         f0x[12] = d_psi_x.at(2) * psi_y.at(2);
         f0x[13] = d_psi_x.at(3) * psi_y.at(2);
         f0x[14] = d_psi_x.at(3) * psi_y.at(3);
@@ -1129,14 +1195,14 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         f0y[1]  = psi_x.at(1) * d_psi_y.at(0);
         f0y[2]  = psi_x.at(1) * d_psi_y.at(1);
         f0y[3]  = psi_x.at(0) * d_psi_y.at(1);
-        f0y[4]  = psi_x.at(2) * d_psi_y.at(0);
-        f0y[5]  = psi_x.at(3) * d_psi_y.at(0);
-        f0y[6]  = psi_x.at(1) * d_psi_y.at(2);
-        f0y[7]  = psi_x.at(1) * d_psi_y.at(3);
-        f0y[8]  = psi_x.at(3) * d_psi_y.at(1);
-        f0y[9]  = psi_x.at(2) * d_psi_y.at(1);
-        f0y[10] = psi_x.at(0) * d_psi_y.at(3);
-        f0y[11] = psi_x.at(0) * d_psi_y.at(2);
+        f0y[p[4]]  = psi_x.at(2) * d_psi_y.at(0);
+        f0y[p[5]]  = psi_x.at(3) * d_psi_y.at(0);
+        f0y[p[6]]  = psi_x.at(1) * d_psi_y.at(2);
+        f0y[p[7]]  = psi_x.at(1) * d_psi_y.at(3);
+        f0y[p[8]]  = psi_x.at(3) * d_psi_y.at(1);
+        f0y[p[9]]  = psi_x.at(2) * d_psi_y.at(1);
+        f0y[p[10]] = psi_x.at(0) * d_psi_y.at(3);
+        f0y[p[11]] = psi_x.at(0) * d_psi_y.at(2);
         f0y[12] = psi_x.at(2) * d_psi_y.at(2);
         f0y[13] = psi_x.at(3) * d_psi_y.at(2);
         f0y[14] = psi_x.at(3) * d_psi_y.at(3);
@@ -1150,17 +1216,17 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         // std::cout << "f0y[11] = " << f0y[14]*hy << "\n";
         // getchar();
 
-        // // ddpsi/dxx
-        // R dd_psi_xx[] = {(-27. * x + 18.) / (hx * hx), (27. * x - 9.) / (hx * hx), (81. * x - 45.) / (hx * hx),
-        //                  (-81 * x + 36.) / (hx * hx)};
+        // ddpsi/dxx
+        R dd_psi_xx[] = {(-27. * x + 18.) / (hx * hx), (27. * x - 9.) / (hx * hx), (81. * x - 45.) / (hx * hx),
+                         (-81 * x + 36.) / (hx * hx)};
 
-        // // ddpsi/dyy
-        // R dd_psi_yy[] = {(-27. * y + 18.) / (hy * hy), (27. * y - 9.) / (hy * hy), (81. * y - 45.) / (hy * hy),
-        //                  (-81. * y + 36.) / (hy * hy)};
+        // ddpsi/dyy
+        R dd_psi_yy[] = {(-27. * y + 18.) / (hy * hy), (27. * y - 9.) / (hy * hy), (81. * y - 45.) / (hy * hy),
+                         (-81. * y + 36.) / (hy * hy)};
 
-        // R ddd_psi_xxx[] = {-27. / (hx * hx * hx), 27. / (hx * hx * hx), 81. / (hx * hx * hx), -81. / (hx * hx * hx)};
+        R ddd_psi_xxx[] = {-27. / (hx * hx * hx), 27. / (hx * hx * hx), 81. / (hx * hx * hx), -81. / (hx * hx * hx)};
 
-        // R ddd_psi_yyy[] = {-27. / (hy * hy * hy), 27. / (hy * hy * hy), 81. / (hy * hy * hy), -81. / (hy * hy * hy)};
+        R ddd_psi_yyy[] = {-27. / (hy * hy * hy), 27. / (hy * hy * hy), 81. / (hy * hy * hy), -81. / (hy * hy * hy)};
 
         // std::cout << "x = " << x << "\n";
         // std::cout << "psi_0(x) = " << psi_x[0] << "\n";
@@ -1185,7 +1251,7 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
 
         // getchar();
 
-        // // dxx, dyy and dxy
+        // dxx, dyy and dxy
         // if (whatd & Fop_D2) {
 
         //     RN_ f0xx(val('.', 0, op_dxx));
