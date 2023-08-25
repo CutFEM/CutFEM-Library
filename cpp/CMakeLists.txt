@@ -2,7 +2,7 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++2a -fPIC -O3")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++20 -fPIC -O3")
 
 
 if(USE_MPI)
@@ -46,6 +46,22 @@ endif()
 
 if(${CUTFEM_BUILD_MAIN})
 
+set(EX_NAME maxwell3d)
+add_executable(${EX_NAME}  mainFiles/maxwell3D.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME statbulk)
+add_executable(${EX_NAME}  mainFiles/stationary_bulk.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME paper)
+add_executable(${EX_NAME}  mainFiles/paper.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME poisson)
+add_executable(${EX_NAME}  mainFiles/poissonFEM.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
 set(EX_NAME darcy)
 add_executable(${EX_NAME}  mainFiles/darcy.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
@@ -54,21 +70,24 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 # add_executable(${EX_NAME}  mainFiles/stokes_fictitious_example1.cpp )
 # target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
+set(EX_NAME algoimbulk2)
+add_executable(${EX_NAME}  mainFiles/algoim_bulk2.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-# set(EX_NAME bulkCD)
-# add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
-# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
-# set(EX_NAME dgbulkCD)
-# add_executable(${EX_NAME}  mainFiles/dg_bulk_convection_diffusion.cpp )
-# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+set(EX_NAME bulkCD)
+add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+set(EX_NAME dgbulkCD)
+add_executable(${EX_NAME}  mainFiles/dg_bulk_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-# set(EX_NAME cgbulkCD)
-# add_executable(${EX_NAME}  mainFiles/cg_bulk_convection_diffusion.cpp )
-# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+set(EX_NAME cgbulkCD)
+add_executable(${EX_NAME}  mainFiles/cg_bulk_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-# set(EX_NAME cgcoupledCD)
-# add_executable(${EX_NAME}  mainFiles/cg_coupled_convection_diffusion.cpp )
-# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+set(EX_NAME cgcoupledCD)
+add_executable(${EX_NAME}  mainFiles/cg_coupled_convection_diffusion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 # #                        
 set(EX_NAME limiter)
 add_executable(${EX_NAME}  mainFiles/limiter_example.cpp )

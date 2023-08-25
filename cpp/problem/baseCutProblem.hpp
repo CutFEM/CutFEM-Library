@@ -122,6 +122,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const MacroElementPartition<Mesh> &);
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
+                              const AlgoimBaseMacro<Mesh> &);
+    void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const TimeMacroElementSurface<Mesh> &);
     void addFaceStabilizationRHS(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<Mesh> &macro);
 

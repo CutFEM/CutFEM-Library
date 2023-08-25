@@ -21,7 +21,7 @@ double fun_test(double *P, int elementComp) { return P[0] * P[1]; }
 
 int main(int argc, char **argv) {
 
-    const size_t iterations = 4;
+    const size_t iterations = 6;
 
     // 2 DIMENSIONAL PROBLEM
     // =====================================================
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 
     // INITIALIZE MPI
     // =====================================================
-    MPIcf cfMPI(argc, argv);
+    // MPIcf cfMPI(argc, argv);
 
     // MESH AND PROBLEM PARAMETERS
     // =====================================================
@@ -67,7 +67,11 @@ int main(int argc, char **argv) {
 
         // OBJECTS NEEDED FOR THE PROBLEM
         // =====================================================
-        FEM<Mesh> poisson(Vh);
+
+        ProblemOption option;
+        option.order_space_element_quadrature_ = 6;
+        FEM<Mesh> poisson(Vh, option);
+
         Fun_h fh(Vh, fun_rhs);
         Fun_h gh(Vh, fun_exact);
         Fun_h funTest(Vh, fun_test); // computer Neumann BC
@@ -78,6 +82,7 @@ int main(int argc, char **argv) {
         // ASSEMBLY OF THE LINEAR SYSTEM
         // =====================================================
         poisson.addBilinear(innerProduct(grad(u), grad(v)), Th);
+        // poisson.addBilinear(innerProduct(u, v), Th);
         poisson.addLinear(innerProduct(fh.expr(), v), Th);
 
         poisson.setDirichlet(gh_zero, Th);
@@ -92,31 +97,33 @@ int main(int argc, char **argv) {
 
         // RESOLUTION OF THE LINEAR SYSTEM
         // =====================================================
-        poisson.solve("mumps");
+        poisson.solve("umfpack");
 
         // COMPUTE THE L2 ERROR
         // =====================================================
         Fun_h femSolh(Vh, poisson.rhs_);
-        
+
         R errU = L2norm(femSolh, fun_exact, 0, 1);
+        // R errU = L2norm(femSolh, fun_rhs, 0, 1);
         std::cout << "errU = " << errU << "\n";
 
         errors.at(j) = errU;
 
         // PRINT THE SOLUTION TO PARAVIEW
         // =====================================================
-        Paraview<Mesh> writer(Th, "poisson.vtk");
-        writer.add(femSolh, "poisson", 0, 1);
-        Fun_h uBex(Vh, fun_exact);
-        Fun_h fB(Vh, fun_rhs);
-        auto test_dx(dx(funTest.expr()));    
-        auto test_dy(dy(funTest.expr()));
-        writer.add(uBex, "bulk_exact", 0, 1);
-        writer.add(fabs(femSolh.expr() - uBex.expr()), "bulk_error");
-        writer.add(fB, "bulk_rhs", 0, 1);
-        writer.add(funTest, "test", 0, 1);
-        writer.add(test_dx, "test_dx");
-        writer.add(test_dy, "test_dy");
+        // Paraview<Mesh> writer(Th, "poisson" + std::to_string(j) + ".vtk");
+        // writer.add(femSolh, "poisson", 0, 1);
+        // Fun_h uBex(Vh, fun_exact);
+        // Fun_h fB(Vh, fun_rhs);
+        // auto test_dx(dx(funTest.expr()));
+        // auto test_dy(dy(funTest.expr()));
+        // writer.add(uBex, "bulk_exact", 0, 1);
+        // // writer.add(fabs(femSolh.expr() - uBex.expr()), "bulk_error");
+        // writer.add(fabs(femSolh.expr() - fB.expr()), "bulk_error");
+        // writer.add(fB, "bulk_rhs", 0, 1);
+        // writer.add(funTest, "test", 0, 1);
+        // writer.add(test_dx, "test_dx");
+        // writer.add(test_dy, "test_dy");
 
         h *= 0.5;
     }

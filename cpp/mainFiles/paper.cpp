@@ -16,17 +16,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 /**
  * @brief Time-dependent convection diffusion equation.
- * @note We consider a time-dependent bulk problem on Omega1 or Omega2.
+ * @note We consider a time-dependent bulk problem in a fictitious domain called Omega(t).
 
- *  Problems:
-
-    * Omega_1(t):
-    Find u in Omega_1(t) such that
-
-    dt(u) + beta*grad(u) - D*laplace(u) = f,    in Omega_1(t).
-                                        BC1,  on Gamma(t),
-                                        BC2,  on \partial\Omega (outer boundary).
-
+ *  Problem:
 
     * Omega_2(t):
     Find u in Omega_2(t) such that
@@ -69,7 +61,7 @@ using namespace globalVariable; // to access some globally defined constants
 
 // Numerical examples
 namespace Example1 {
-/* This works for running Test – i.e. a pure bulk problem on Omega_2. */
+// A circle moving in a circular trajectory
 const double D        = 0.01;
 const double R0       = 0.17;
 const double beta_max = M_PI * 0.5;
@@ -195,7 +187,8 @@ R fun_neumann_top(double *P, const int i, const R t) {
 
 } // namespace Example1
 
-namespace Kite {
+namespace Example2 {
+// Kite shape
 const double R0       = .5;
 const double C        = 5. / 3;
 const double W        = 1. / 6;
@@ -304,9 +297,10 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
     // double r = std::sqrt((x - (W - C * y * y) * t) * (x - (W - C * y * y) * t) + y * y);
     // return cos(M_PI * (r + Epsilon) / (R0));
 }
-} // namespace Kite
+} // namespace Example2
 
-namespace N_sphere {
+namespace Example3 {
+// N-sphere
 const double R0       = .5;
 const double D        = .01;
 const double beta_max = 2.;
@@ -405,7 +399,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
     double r   = (x - rho) * (x - rho) + y * y;
     return cos(M_PI * (r) / (R0 * R0)) * sin(M_PI * t);
 }
-} // namespace N_sphere
+} // namespace Example3
 
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
 #define ex2
@@ -432,19 +426,19 @@ typedef FunFEM<Mesh> Fun_h;
 #if defined(ex1)
 using namespace Example1;
 #elif defined(ex2)
-using namespace Kite;
+using namespace Example2;
 #elif defined(ex3)
-using namespace N_sphere;
+using namespace Example3;
 #endif
 
 int main(int argc, char **argv) {
-    MPIcf cfMPI(argc, argv);
+    // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
     const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;         // starting mesh size
+    double h  = 0.1;             // starting mesh size
     double dT = 0.1;
 
     int total_number_iteration;
@@ -453,22 +447,22 @@ int main(int argc, char **argv) {
 
 #ifdef ex1
     // Paths to store data
-    const std::string path_output_data    = "../output_files/paper/example1/data/";
-    const std::string path_output_figures = "../output_files/paper/example1/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example1/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example1/paraview/";
 #elif defined(ex2)
-    const std::string path_output_data    = "../output_files/paper/example2/data/";
-    const std::string path_output_figures = "../output_files/paper/example2/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example2/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example2/paraview/";
 #elif defined(ex3)
-    const std::string path_output_data    = "../output_files/paper/example3/data/";
-    const std::string path_output_figures = "../output_files/paper/example3/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example3/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example3/paraview/";
 
 #endif
 
     // Create directory if not already existent
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_output_figures);
-    }
+    // // if (MPIcf::IamMaster()) {
+    // std::filesystem::create_directories(path_output_data);
+    // std::filesystem::create_directories(path_output_figures);
+    //}
 
     // Data file to hold problem data
     std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
@@ -496,36 +490,37 @@ int main(int argc, char **argv) {
 #endif
         Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
 #elif defined(ex2)
-        const double lx = 6. * Kite::R0, ly = 6. * Kite::R0;
+        const double lx = 6. * Example2::R0, ly = 6. * Example2::R0;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        //Mesh Th(nx, ny, -3.01 * Kite::R0, -3.01 * Kite::R0, lx, ly);
+        //Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
         Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
 #elif defined(ex3)
-        const double lx = 4. * N_sphere::R0, ly = 3. * N_sphere::R0;
+        const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
         // const double lx = 2., ly = 1.1;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, -2.01 * N_sphere::R0, -1.5 * N_sphere::R0, lx, ly);
+        Mesh Th(nx, ny, -2.01 * Example3::R0, -1.5 * Example3::R0, lx, ly);
         // Mesh Th(nx, ny, -1., -0.6, lx, ly);
 #endif
 
         // Parameters
         const double tfinal = 2.; // Final time
+        //const double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
         const int divisionMeshSize = 3;
 
-        // double dT = h / divisionMeshSize;
-        double dT = tfinal;
+        //double dT = h / divisionMeshSize;
+        double dT = tfinal / 6;
 
         total_number_iteration = int(tfinal / dT);
 #endif
@@ -586,7 +581,9 @@ int main(int argc, char **argv) {
         std::vector<Fun_h> ls(nbTime);
 
         Levelset<2> phi;
-        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi);
+        ProblemOption option;
+        option.order_space_element_quadrature_ = 5;
+        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
@@ -691,17 +688,24 @@ int main(int argc, char **argv) {
 #if defined(fullstab)
 
             convdiff.addFaceStabilization(
-                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
-                    innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
+                //+innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+                ,
                 Thi, In);
 
 #elif defined(macro)
             MacroElementPartition<Mesh> TimeMacro(Thi, 0.5);
+            //std::cout << TimeMacro.number_of_stabilized_edges << "\n";
+            //std::cout << "number of stabilized edges: " << convdiff.get_number_of_stabilized_edges() << "\n";
+            
+            //AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
+            
             convdiff.addFaceStabilization(
                 +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
                     innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
                 Thi, In, TimeMacro);
 
+            
             if (iterations == 1 && h > 0.0001) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
@@ -730,7 +734,7 @@ int main(int argc, char **argv) {
             }
 
             // Solve linear system
-            convdiff.solve("mumps");
+            convdiff.solve("umfpack");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);

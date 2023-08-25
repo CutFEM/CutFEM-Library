@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
     const double cpubegin = CPUtime();
 
-    MPIcf cfMPI(argc, argv);
+    //MPIcf cfMPI(argc, argv);
 
     const int d = 3;
 
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
 
         matlab::Export(maxwell3D.mat_[0], "mat" + std::to_string(i) + ".dat");
 
-        maxwell3D.solve("mumps");
+        maxwell3D.solve("umfpack");
 
         // EXTRACT SOLUTION
 

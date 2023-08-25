@@ -18,12 +18,11 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     using Element       = typename mesh_t::Element;
     using BorderElement = typename mesh_t::BorderElement;
 
-    int quadrature_order = 5;
+    int quadrature_order;
 
     L &phi;
 
   public:
-    
     // Integrals over cut domains
     void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
     void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
@@ -51,10 +50,10 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     //                               double tid, const TimeSlab *In, double cst_time, int itq) override;
 
     AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option, int np)
-        : BaseCutFEM<mesh_t>(qt, option, np), phi(phi_) {}
+        : BaseCutFEM<mesh_t>(qt, option, np), phi(phi_), quadrature_order(option.order_space_element_quadrature_) {}
 
     AlgoimBaseCutFEM(const fespace_t &vh, L &phi_, const ProblemOption &option, int np)
-        : BaseCutFEM<mesh_t>(vh, option, np), phi(phi_) {}
+        : BaseCutFEM<mesh_t>(vh, option, np), phi(phi_), quadrature_order(option.order_space_element_quadrature_) {}
 };
 
 template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBaseCutFEM<M, L>, public Solver {

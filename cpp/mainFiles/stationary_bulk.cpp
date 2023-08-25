@@ -171,7 +171,7 @@ double fun_uBulk(double *P, int elementComp, int domain) {
     // return 2.0*exp(1.0-P[0]*P[0]-P[1]*P[1])*( 3.0*P[0]*P[0]*P[1] - pow(P[1],3));
 }
 
-double fun_test(double *P) { return 2 * P[0] * P[0] + P[1]*P[1]; }
+double fun_test(double *P) { return 2 * P[0] * P[0] + P[1] * P[1]; }
 
 double fun_one(double *P, const int i) { return 1.; }
 
@@ -275,29 +275,29 @@ typedef FunFEM<Mesh> Fun_h;
 typedef ExpressionFunFEM<Mesh> Expression;
 
 int main(int argc, char **argv) {
-    MPIcf cfMPI(argc, argv);
+    // MPIcf cfMPI(argc, argv);
 
-    // ProblemOption option;
-    // option.order_space_element_quadrature_ = 7;
+    ProblemOption option;
+    option.order_space_element_quadrature_ = 6;
 
     // Mesh settings and data objects
-    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h = 0.1;              // starting mesh size
 
     // Paths to store data
-    const std::string path_output_data    = "../output_files/bulk/algoim/statbulk/data/";
-    const std::string path_output_figures = "../output_files/bulk/algoim/statbulk/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/bulk/stationary_bulk/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/bulk/stationary_bulk/";
 
     // Create directory if not already existent
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_output_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    //     std::filesystem::create_directories(path_output_data);
+    //     std::filesystem::create_directories(path_output_figures);
+    // }
 
     // Data file to hold problem data
-    std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
+    // std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
@@ -377,8 +377,8 @@ int main(int argc, char **argv) {
         CutSpace Wh(Thi, Vh);
 
 #if defined(algoim)
-        // AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi, option);
-        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi);
+        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi, option);
+        //AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi);
 #elif defined(triangle) || defined(quad)
         CutFEM<Mesh> convdiff(Wh);
 #endif
@@ -392,7 +392,7 @@ int main(int argc, char **argv) {
         Fun_h g(Vh, fun_uBulk); // create an FE-function of the exact solution
 
         Fun_h g_Neumann(Vh, fun_g_Neumann); // computer Neumann BC
-        //Fun_h funTest(Vh, fun_test); // computer Neumann BC
+        // Fun_h funTest(Vh, fun_test); // computer Neumann BC
 
         // Test and Trial functions
         FunTest u(Wh, 1), v(Wh, 1);
@@ -407,7 +407,6 @@ int main(int argc, char **argv) {
         // gnuplot::save(Th);
         // gnuplot::save<Mesh, Levelset<2>>(Thi, interface, phi, 0, "interface.dat");
         // gnuplot::save<Mesh>(interface);
-        // getchar();
 
 #if defined(algoim)
         convdiff.addBilinear(+innerProduct(D * grad(u), grad(v)), Thi);
@@ -420,12 +419,15 @@ int main(int argc, char **argv) {
 #endif
 
         //* Stabilization
-    #if defined(k1)
+#if defined(k1)
         convdiff.addFaceStabilization(innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi);
-    #elif defined(k2)
-        convdiff.addFaceStabilization(innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
-        + innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n)*n), jump(grad(grad(v) * n)*n)), Thi);
-    #endif
+#elif defined(k2)
+        convdiff.addFaceStabilization(
+            innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
+             + innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)) 
+                //+ innerProduct(h * h * h * h * h * tau1 * jump(grad(grad(grad(u) * n) * n) * n), jump(grad(grad(grad(v) * n) * n) * n))
+                , Thi);
+#endif
 
         //* Boundary conditions
 
@@ -433,7 +435,7 @@ int main(int argc, char **argv) {
 
         // Neumann (won't work if we solve on Omega2, since then the solution is not unique)
         convdiff.addLinear(innerProduct(g_Neumann.expr(), v), interface);
-
+        
         // // Dirichlet
         // convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
         //                          - innerProduct(u, D * grad(v) * n) // added to make symmetric
@@ -460,12 +462,12 @@ int main(int argc, char **argv) {
         convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                            INTEGRAL_BOUNDARY);
 
-        matlab::Export(convdiff.mat_[0], path_output_data + "mat_rank_" + std::to_string(MPIcf::my_rank()) + "_" +
+        matlab::Export(convdiff.mat_[0], path_output_data + "mat_" +
                                              std::to_string(j + 1) + ".dat");
         // matlab::Export(convdiff.mat_[0], "mat_P1.dat");
 
         // Solve linear system
-        convdiff.solve("mumps");
+        convdiff.solve("umfpack");
 
 #if defined(algoim)
 
@@ -491,40 +493,40 @@ int main(int argc, char **argv) {
         gamma.at(j) = std::fabs(intGamma - 2 * pi);
         omega.at(j) = std::fabs(intOmega - (pi));
 
-        if ((iterations == 1)) {
-            Fun_h sol(Wh, data_u0);
-            Paraview<Mesh> background_mesh(Th, path_output_figures + "Th.vtk");
-            ExpressionFunFEM<Mesh> vx(vel, 0, op_id);
-            ExpressionFunFEM<Mesh> vy(vel, 1, op_id);
+//         if ((iterations == 1)) {
+//             Fun_h sol(Wh, data_u0);
+//             Paraview<Mesh> background_mesh(Th, path_output_figures + "Th.vtk");
+//             ExpressionFunFEM<Mesh> vx(vel, 0, op_id);
+//             ExpressionFunFEM<Mesh> vy(vel, 1, op_id);
 
-            background_mesh.add(vx, "velx");
-            background_mesh.add(vy, "vely");
+//             background_mesh.add(vx, "velx");
+//             background_mesh.add(vy, "vely");
 
-            Paraview<Mesh> writer(Thi, path_output_figures + "bulk.vtk");
-            writer.add(b0h, "bulk", 0, 1);
-            Fun_h uBex(Wh, fun_uBulk);
-            Fun_h fB(Wh, fun_rhsBulk);
-            Expression uuh(sol, 0, op_id);
-            Expression uuex(uBex, 0, op_id);
-            writer.add(uBex, "bulk_exact", 0, 1);
-            writer.add(fB, "bulk_rhs", 0, 1);
-            writer.add(g_Neumann, "neumann", 0, 1);
+//             Paraview<Mesh> writer(Thi, path_output_figures + "bulk.vtk");
+//             writer.add(b0h, "bulk", 0, 1);
+//             Fun_h uBex(Wh, fun_uBulk);
+//             Fun_h fB(Wh, fun_rhsBulk);
+//             Expression uuh(sol, 0, op_id);
+//             Expression uuex(uBex, 0, op_id);
+//             writer.add(uBex, "bulk_exact", 0, 1);
+//             writer.add(fB, "bulk_rhs", 0, 1);
+//             writer.add(g_Neumann, "neumann", 0, 1);
 
-            writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
-            writer.add(levelSet, "levelSet", 0, 1);
-            writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh.vtk");
-            writer.writeFaceStab(Thi, 0, path_output_figures + "Faces.vtk");
-#if defined(algoim)
-            // const auto &qf1 = *QF_Simplex<R1>(7);
-            // std::cout << qf1 << std::endl;
-            const auto &qf(*QF_Quad(5));
-            // std::cout << qf << std::endl;
+//             writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
+//             writer.add(levelSet, "levelSet", 0, 1);
+//             writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh.vtk");
+//             writer.writeFaceStab(Thi, 0, path_output_figures + "Faces.vtk");
+// #if defined(algoim)
+//             // const auto &qf1 = *QF_Simplex<R1>(7);
+//             // std::cout << qf1 << std::endl;
+//             const auto &qf(*QF_Quad(5));
+//             // std::cout << qf << std::endl;
 
-            writer.writeAlgoimQuadrature(Thi, phi, -1, path_output_figures + "AlgoimQuadrature.vtk");
-            writer.writeAlgoimQuadrature(Thi, qf, path_output_figures + "Quadrature.vtk");
-            writer.writeAlgoimQuadrature(Thi, phi, 2, path_output_figures + "AlgoimQuadratureSurface.vtk");
-#endif
-        }
+//             writer.writeAlgoimQuadrature(Thi, phi, -1, path_output_figures + "AlgoimQuadrature.vtk");
+//             writer.writeAlgoimQuadrature(Thi, qf, path_output_figures + "Quadrature.vtk");
+//             writer.writeAlgoimQuadrature(Thi, phi, 2, path_output_figures + "AlgoimQuadratureSurface.vtk");
+// #endif
+//         }
 
 // Refine mesh
 #ifdef use_n
