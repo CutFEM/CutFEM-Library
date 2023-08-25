@@ -13,7 +13,7 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
     using mesh_t  = M;
     using Element = typename AlgoimInterface<M, L>::Element;
     assert(this->backMesh);
-    this->faces_.resize(0); // reinitialize arrays
+    this->faces_.resize(1); // reinitialize arrays
     this->vertices_.resize(0);
     this->element_of_face_.resize(0);
     // this->outward_normal_.resize(0);
