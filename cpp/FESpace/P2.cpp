@@ -247,7 +247,7 @@ class TypeOfFE_P2QLagrange2d : public GTypeOfFE<MeshQuad2> {
     void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
 };
 
-const int TypeOfFE_P2QLagrange2d::nbNodeOnItem[4] = {1, 1, 0, 0};
+const int TypeOfFE_P2QLagrange2d::nbNodeOnItem[4] = {1, 1, 1, 0};
 
 int TypeOfFE_P2QLagrange2d::Data[] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, // the support number  of the node of the df

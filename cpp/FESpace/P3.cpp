@@ -1252,66 +1252,66 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         // getchar();
 
         // dxx, dyy and dxy
-        // if (whatd & Fop_D2) {
+        if (whatd & Fop_D2) {
 
-        //     RN_ f0xx(val('.', 0, op_dxx));
-        //     RN_ f0yy(val('.', 0, op_dyy));
-        //     RN_ f0xy(val('.', 0, op_dxy));
+            RN_ f0xx(val('.', 0, op_dxx));
+            RN_ f0yy(val('.', 0, op_dyy));
+            RN_ f0xy(val('.', 0, op_dxy));
 
-        //     // dxx
-        //     f0xx[0]  = dd_psi_xx[0] * psi_y[0];
-        //     f0xx[1]  = dd_psi_xx[1] * psi_y[0];
-        //     f0xx[2]  = dd_psi_xx[1] * psi_y[1];
-        //     f0xx[3]  = dd_psi_xx[0] * psi_y[1];
-        //     f0xx[4]  = dd_psi_xx[2] * psi_y[0];
-        //     f0xx[5]  = dd_psi_xx[3] * psi_y[0];
-        //     f0xx[6]  = dd_psi_xx[1] * psi_y[2];
-        //     f0xx[7]  = dd_psi_xx[1] * psi_y[3];
-        //     f0xx[8]  = dd_psi_xx[3] * psi_y[1];
-        //     f0xx[9]  = dd_psi_xx[2] * psi_y[1];
-        //     f0xx[10] = dd_psi_xx[0] * psi_y[3];
-        //     f0xx[11] = dd_psi_xx[0] * psi_y[2];
-        //     f0xx[12] = dd_psi_xx[2] * psi_y[2];
-        //     f0xx[13] = dd_psi_xx[3] * psi_y[2];
-        //     f0xx[14] = dd_psi_xx[3] * psi_y[3];
-        //     f0xx[15] = dd_psi_xx[2] * psi_y[3];
+            // dxx
+            f0xx[0]  = dd_psi_xx[0] * psi_y[0];
+            f0xx[1]  = dd_psi_xx[1] * psi_y[0];
+            f0xx[2]  = dd_psi_xx[1] * psi_y[1];
+            f0xx[3]  = dd_psi_xx[0] * psi_y[1];
+            f0xx[p[4]]  = dd_psi_xx[2] * psi_y[0];
+            f0xx[p[5]]  = dd_psi_xx[3] * psi_y[0];
+            f0xx[p[6]]  = dd_psi_xx[1] * psi_y[2];
+            f0xx[p[7]]  = dd_psi_xx[1] * psi_y[3];
+            f0xx[p[8]]  = dd_psi_xx[3] * psi_y[1];
+            f0xx[p[9]]  = dd_psi_xx[2] * psi_y[1];
+            f0xx[p[10]] = dd_psi_xx[0] * psi_y[3];
+            f0xx[p[11]] = dd_psi_xx[0] * psi_y[2];
+            f0xx[12] = dd_psi_xx[2] * psi_y[2];
+            f0xx[13] = dd_psi_xx[3] * psi_y[2];
+            f0xx[14] = dd_psi_xx[3] * psi_y[3];
+            f0xx[15] = dd_psi_xx[2] * psi_y[3];
 
-        //     // dyy
-        //     f0yy[0]  = psi_x[0] * dd_psi_yy[0];
-        //     f0yy[1]  = psi_x[1] * dd_psi_yy[0];
-        //     f0yy[2]  = psi_x[1] * dd_psi_yy[1];
-        //     f0yy[3]  = psi_x[0] * dd_psi_yy[1];
-        //     f0yy[4]  = psi_x[2] * dd_psi_yy[0];
-        //     f0yy[5]  = psi_x[3] * dd_psi_yy[0];
-        //     f0yy[6]  = psi_x[1] * dd_psi_yy[2];
-        //     f0yy[7]  = psi_x[1] * dd_psi_yy[3];
-        //     f0yy[8]  = psi_x[3] * dd_psi_yy[1];
-        //     f0yy[9]  = psi_x[2] * dd_psi_yy[1];
-        //     f0yy[10] = psi_x[0] * dd_psi_yy[3];
-        //     f0yy[11] = psi_x[0] * dd_psi_yy[2];
-        //     f0yy[12] = psi_x[2] * dd_psi_yy[2];
-        //     f0yy[13] = psi_x[3] * dd_psi_yy[2];
-        //     f0yy[14] = psi_x[3] * dd_psi_yy[3];
-        //     f0yy[15] = psi_x[2] * dd_psi_yy[3];
+            // dyy
+            f0yy[0]  = psi_x[0] * dd_psi_yy[0];
+            f0yy[1]  = psi_x[1] * dd_psi_yy[0];
+            f0yy[2]  = psi_x[1] * dd_psi_yy[1];
+            f0yy[3]  = psi_x[0] * dd_psi_yy[1];
+            f0yy[p[4]]  = psi_x[2] * dd_psi_yy[0];
+            f0yy[p[5]]  = psi_x[3] * dd_psi_yy[0];
+            f0yy[p[6]]  = psi_x[1] * dd_psi_yy[2];
+            f0yy[p[7]]  = psi_x[1] * dd_psi_yy[3];
+            f0yy[p[8]]  = psi_x[3] * dd_psi_yy[1];
+            f0yy[p[9]]  = psi_x[2] * dd_psi_yy[1];
+            f0yy[p[10]] = psi_x[0] * dd_psi_yy[3];
+            f0yy[p[11]] = psi_x[0] * dd_psi_yy[2];
+            f0yy[12] = psi_x[2] * dd_psi_yy[2];
+            f0yy[13] = psi_x[3] * dd_psi_yy[2];
+            f0yy[14] = psi_x[3] * dd_psi_yy[3];
+            f0yy[15] = psi_x[2] * dd_psi_yy[3];
 
-        //     // dxy
-        //     f0xy[0]  = d_psi_x[0] * d_psi_y[0];
-        //     f0xy[1]  = d_psi_x[1] * d_psi_y[0];
-        //     f0xy[2]  = d_psi_x[1] * d_psi_y[1];
-        //     f0xy[3]  = d_psi_x[0] * d_psi_y[1];
-        //     f0xy[4]  = d_psi_x[2] * d_psi_y[0];
-        //     f0xy[5]  = d_psi_x[3] * d_psi_y[0];
-        //     f0xy[6]  = d_psi_x[1] * d_psi_y[2];
-        //     f0xy[7]  = d_psi_x[1] * d_psi_y[3];
-        //     f0xy[8]  = d_psi_x[3] * d_psi_y[1];
-        //     f0xy[9]  = d_psi_x[2] * d_psi_y[1];
-        //     f0xy[10] = d_psi_x[0] * d_psi_y[3];
-        //     f0xy[11] = d_psi_x[0] * d_psi_y[2];
-        //     f0xy[12] = d_psi_x[2] * d_psi_y[2];
-        //     f0xy[13] = d_psi_x[3] * d_psi_y[2];
-        //     f0xy[14] = d_psi_x[3] * d_psi_y[3];
-        //     f0xy[15] = d_psi_x[2] * d_psi_y[3];
-        // }
+            // dxy
+            f0xy[0]  = d_psi_x[0] * d_psi_y[0];
+            f0xy[1]  = d_psi_x[1] * d_psi_y[0];
+            f0xy[2]  = d_psi_x[1] * d_psi_y[1];
+            f0xy[3]  = d_psi_x[0] * d_psi_y[1];
+            f0xy[p[4]]  = d_psi_x[2] * d_psi_y[0];
+            f0xy[p[5]]  = d_psi_x[3] * d_psi_y[0];
+            f0xy[p[6]]  = d_psi_x[1] * d_psi_y[2];
+            f0xy[p[7]]  = d_psi_x[1] * d_psi_y[3];
+            f0xy[p[8]]  = d_psi_x[3] * d_psi_y[1];
+            f0xy[p[9]]  = d_psi_x[2] * d_psi_y[1];
+            f0xy[p[10]] = d_psi_x[0] * d_psi_y[3];
+            f0xy[p[11]] = d_psi_x[0] * d_psi_y[2];
+            f0xy[12] = d_psi_x[2] * d_psi_y[2];
+            f0xy[13] = d_psi_x[3] * d_psi_y[2];
+            f0xy[14] = d_psi_x[3] * d_psi_y[3];
+            f0xy[15] = d_psi_x[2] * d_psi_y[3];
+        }
 
         // // dxxx, dxxy, dxyy, dyyy
         // if (whatd & Fop_D3) {
@@ -1326,14 +1326,14 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         //     f0xxx[1]  = ddd_psi_xxx[1] * psi_y[0];
         //     f0xxx[2]  = ddd_psi_xxx[1] * psi_y[1];
         //     f0xxx[3]  = ddd_psi_xxx[0] * psi_y[1];
-        //     f0xxx[4]  = ddd_psi_xxx[2] * psi_y[0];
-        //     f0xxx[5]  = ddd_psi_xxx[3] * psi_y[0];
-        //     f0xxx[6]  = ddd_psi_xxx[1] * psi_y[2];
-        //     f0xxx[7]  = ddd_psi_xxx[1] * psi_y[3];
-        //     f0xxx[8]  = ddd_psi_xxx[3] * psi_y[1];
-        //     f0xxx[9]  = ddd_psi_xxx[2] * psi_y[1];
-        //     f0xxx[10] = ddd_psi_xxx[0] * psi_y[3];
-        //     f0xxx[11] = ddd_psi_xxx[0] * psi_y[2];
+        //     f0xxx[p[4]]  = ddd_psi_xxx[2] * psi_y[0];
+        //     f0xxx[p[5]]  = ddd_psi_xxx[3] * psi_y[0];
+        //     f0xxx[p[6]]  = ddd_psi_xxx[1] * psi_y[2];
+        //     f0xxx[p[7]]  = ddd_psi_xxx[1] * psi_y[3];
+        //     f0xxx[p[8]]  = ddd_psi_xxx[3] * psi_y[1];
+        //     f0xxx[p[9]]  = ddd_psi_xxx[2] * psi_y[1];
+        //     f0xxx[p[10]] = ddd_psi_xxx[0] * psi_y[3];
+        //     f0xxx[p[11]] = ddd_psi_xxx[0] * psi_y[2];
         //     f0xxx[12] = ddd_psi_xxx[2] * psi_y[2];
         //     f0xxx[13] = ddd_psi_xxx[3] * psi_y[2];
         //     f0xxx[14] = ddd_psi_xxx[3] * psi_y[3];
@@ -1344,14 +1344,14 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         //     f0xxy[1]  = dd_psi_xx[1] * d_psi_y[0];
         //     f0xxy[2]  = dd_psi_xx[1] * d_psi_y[1];
         //     f0xxy[3]  = dd_psi_xx[0] * d_psi_y[1];
-        //     f0xxy[4]  = dd_psi_xx[2] * d_psi_y[0];
-        //     f0xxy[5]  = dd_psi_xx[3] * d_psi_y[0];
-        //     f0xxy[6]  = dd_psi_xx[1] * d_psi_y[2];
-        //     f0xxy[7]  = dd_psi_xx[1] * d_psi_y[3];
-        //     f0xxy[8]  = dd_psi_xx[3] * d_psi_y[1];
-        //     f0xxy[9]  = dd_psi_xx[2] * d_psi_y[1];
-        //     f0xxy[10] = dd_psi_xx[0] * d_psi_y[3];
-        //     f0xxy[11] = dd_psi_xx[0] * d_psi_y[2];
+        //     f0xxy[p[4]]  = dd_psi_xx[2] * d_psi_y[0];
+        //     f0xxy[p[5]]  = dd_psi_xx[3] * d_psi_y[0];
+        //     f0xxy[p[6]]  = dd_psi_xx[1] * d_psi_y[2];
+        //     f0xxy[p[7]]  = dd_psi_xx[1] * d_psi_y[3];
+        //     f0xxy[p[8]]  = dd_psi_xx[3] * d_psi_y[1];
+        //     f0xxy[p[9]]  = dd_psi_xx[2] * d_psi_y[1];
+        //     f0xxy[p[10]] = dd_psi_xx[0] * d_psi_y[3];
+        //     f0xxy[p[11]] = dd_psi_xx[0] * d_psi_y[2];
         //     f0xxy[12] = dd_psi_xx[2] * d_psi_y[2];
         //     f0xxy[13] = dd_psi_xx[3] * d_psi_y[2];
         //     f0xxy[14] = dd_psi_xx[3] * d_psi_y[3];
@@ -1362,14 +1362,14 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         //     f0xyy[1]  = d_psi_x[1] * dd_psi_yy[0];
         //     f0xyy[2]  = d_psi_x[1] * dd_psi_yy[1];
         //     f0xyy[3]  = d_psi_x[0] * dd_psi_yy[1];
-        //     f0xyy[4]  = d_psi_x[2] * dd_psi_yy[0];
-        //     f0xyy[5]  = d_psi_x[3] * dd_psi_yy[0];
-        //     f0xyy[6]  = d_psi_x[1] * dd_psi_yy[2];
-        //     f0xyy[7]  = d_psi_x[1] * dd_psi_yy[3];
-        //     f0xyy[8]  = d_psi_x[3] * dd_psi_yy[1];
-        //     f0xyy[9]  = d_psi_x[2] * dd_psi_yy[1];
-        //     f0xyy[10] = d_psi_x[0] * dd_psi_yy[3];
-        //     f0xyy[11] = d_psi_x[0] * dd_psi_yy[2];
+        //     f0xyy[p[4]]  = d_psi_x[2] * dd_psi_yy[0];
+        //     f0xyy[p[5]]  = d_psi_x[3] * dd_psi_yy[0];
+        //     f0xyy[p[6]]  = d_psi_x[1] * dd_psi_yy[2];
+        //     f0xyy[p[7]]  = d_psi_x[1] * dd_psi_yy[3];
+        //     f0xyy[p[8]]  = d_psi_x[3] * dd_psi_yy[1];
+        //     f0xyy[p[9]]  = d_psi_x[2] * dd_psi_yy[1];
+        //     f0xyy[p[10]] = d_psi_x[0] * dd_psi_yy[3];
+        //     f0xyy[p[11]] = d_psi_x[0] * dd_psi_yy[2];
         //     f0xyy[12] = d_psi_x[2] * dd_psi_yy[2];
         //     f0xyy[13] = d_psi_x[3] * dd_psi_yy[2];
         //     f0xyy[14] = d_psi_x[3] * dd_psi_yy[3];
@@ -1380,19 +1380,20 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         //     f0yyy[1]  = psi_x[1] * ddd_psi_yyy[0];
         //     f0yyy[2]  = psi_x[1] * ddd_psi_yyy[1];
         //     f0yyy[3]  = psi_x[0] * ddd_psi_yyy[1];
-        //     f0yyy[4]  = psi_x[2] * ddd_psi_yyy[0];
-        //     f0yyy[5]  = psi_x[3] * ddd_psi_yyy[0];
-        //     f0yyy[6]  = psi_x[1] * ddd_psi_yyy[2];
-        //     f0yyy[7]  = psi_x[1] * ddd_psi_yyy[3];
-        //     f0yyy[8]  = psi_x[3] * ddd_psi_yyy[1];
-        //     f0yyy[9]  = psi_x[2] * ddd_psi_yyy[1];
-        //     f0yyy[10] = psi_x[0] * ddd_psi_yyy[3];
-        //     f0yyy[11] = psi_x[0] * ddd_psi_yyy[2];
+        //     f0yyy[p[4]]  = psi_x[2] * ddd_psi_yyy[0];
+        //     f0yyy[p[5]]  = psi_x[3] * ddd_psi_yyy[0];
+        //     f0yyy[p[6]]  = psi_x[1] * ddd_psi_yyy[2];
+        //     f0yyy[p[7]]  = psi_x[1] * ddd_psi_yyy[3];
+        //     f0yyy[p[8]]  = psi_x[3] * ddd_psi_yyy[1];
+        //     f0yyy[p[9]]  = psi_x[2] * ddd_psi_yyy[1];
+        //     f0yyy[p[10]] = psi_x[0] * ddd_psi_yyy[3];
+        //     f0yyy[p[11]] = psi_x[0] * ddd_psi_yyy[2];
         //     f0yyy[12] = psi_x[2] * ddd_psi_yyy[2];
         //     f0yyy[13] = psi_x[3] * ddd_psi_yyy[2];
         //     f0yyy[14] = psi_x[3] * ddd_psi_yyy[3];
         //     f0yyy[15] = psi_x[2] * ddd_psi_yyy[3];
         // }
+
     }
 }
 
