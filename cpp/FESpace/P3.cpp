@@ -1045,7 +1045,7 @@ class TypeOfFE_P3QLagrange2d : public GTypeOfFE<MeshQuad2> {
         // }
     }
 
-    void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
+    void FB(const What_d, const Element &, const Rd &, RNMK_ &) const override;
 
     void get_Coef_Pi_h(const GbaseFElement<MeshQuad2> &K, KN_<double> &v) const override {
         for (int i = 0; i < 24; ++i) {
