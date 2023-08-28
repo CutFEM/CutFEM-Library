@@ -402,11 +402,11 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 } // namespace Example3
 
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
-#define ex2
+#define ex1
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 
 #define use_h    // to set mesh size using the h parameter. Write use_n to decide
                  // using nx, ny.
@@ -438,7 +438,7 @@ int main(int argc, char **argv) {
     const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;             // starting mesh size
+    double h  = 0.0125;             // starting mesh size
     double dT = 0.1;
 
     int total_number_iteration;
@@ -496,8 +496,8 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        //Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
-        Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
+        Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
+        //Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
 #elif defined(ex3)
         const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
         // const double lx = 2., ly = 1.1;
@@ -511,16 +511,16 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        const double tfinal = 2.; // Final time
-        //const double tfinal = .1; // Final time
+        //const double tfinal = 2.; // Final time
+        const double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
         const int divisionMeshSize = 3;
 
-        //double dT = h / divisionMeshSize;
-        double dT = tfinal / 6;
+        double dT = h / divisionMeshSize;
+        //double dT = tfinal / 6;
 
         total_number_iteration = int(tfinal / dT);
 #endif
@@ -549,7 +549,7 @@ int main(int argc, char **argv) {
 
         // CG stabilization parameter
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
-        const double tau1 = 0.1, tau2 = 0.1;
+        const double tau1 = 1e8, tau2 = 0.1;
 
         FESpace Vh(Th, DataFE<Mesh>::P1);               // Background FE Space
         FESpace Vh_interpolation(Th, DataFE<Mesh>::P2); // for interpolating data
@@ -694,11 +694,11 @@ int main(int argc, char **argv) {
                 Thi, In);
 
 #elif defined(macro)
-            MacroElementPartition<Mesh> TimeMacro(Thi, 0.5);
+            //MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
             //std::cout << TimeMacro.number_of_stabilized_edges << "\n";
             //std::cout << "number of stabilized edges: " << convdiff.get_number_of_stabilized_edges() << "\n";
             
-            //AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
+            AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
             
             convdiff.addFaceStabilization(
                 +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
@@ -706,7 +706,7 @@ int main(int argc, char **argv) {
                 Thi, In, TimeMacro);
 
             
-            if (iterations == 1 && h > 0.0001) {
+            if (iterations == 1 && h > 0.1) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
                 writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);

@@ -1466,10 +1466,11 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
 
 
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In,
-                                         const AlgoimBaseMacro<M> &macro) {
+template <typename L>
+void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In,
+                                         const AlgoimMacro<M, L> &macro) {
 
-    number_of_stabilized_edges      = 0;
+    //number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();
     for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
 
@@ -1493,13 +1494,13 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
                 std::pair<int, int> e1 = std::make_pair(k, ifac);
                 std::pair<int, int> e2 = std::make_pair(kn, jfac);
 
-                number_of_stabilized_edges += 1;
+                //number_of_stabilized_edges += 1;
                 BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
             }
             this->addLocalContribution();
         }
     }
-    number_of_stabilized_edges /= number_of_quadrature_points;
+    //number_of_stabilized_edges /= number_of_quadrature_points;
 }
 
 
