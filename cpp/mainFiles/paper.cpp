@@ -435,10 +435,10 @@ int main(int argc, char **argv) {
     // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.0125;             // starting mesh size
+    double h  = 0.1;             // starting mesh size
     double dT = 0.1;
 
     int total_number_iteration;
@@ -475,6 +475,7 @@ int main(int argc, char **argv) {
     std::array<double, iterations> dts;
     std::array<double, iterations> omega;
     std::array<double, iterations> gamma;
+    std::array<double, iterations> global_conservation_errors;
 
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
@@ -497,7 +498,7 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
         Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
-        //Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
+        // Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
 #elif defined(ex3)
         const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
         // const double lx = 2., ly = 1.1;
@@ -511,7 +512,7 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        //const double tfinal = 2.; // Final time
+        // const double tfinal = 2.; // Final time
         const double tfinal = .1; // Final time
 
 #ifdef use_t
@@ -520,7 +521,7 @@ int main(int argc, char **argv) {
         const int divisionMeshSize = 3;
 
         double dT = h / divisionMeshSize;
-        //double dT = tfinal / 6;
+        // double dT = tfinal / 6;
 
         total_number_iteration = int(tfinal / dT);
 #endif
@@ -549,20 +550,20 @@ int main(int argc, char **argv) {
 
         // CG stabilization parameter
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
-        const double tau1 = 1e8, tau2 = 0.1;
+        const double tau1 = 0.1, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1);               // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P2);               // Background FE Space
         FESpace Vh_interpolation(Th, DataFE<Mesh>::P2); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);               // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);               // FE Space in time
         FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P2Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(3)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -590,7 +591,8 @@ int main(int argc, char **argv) {
         int iter = 0;
         double mass_last_previous;
         double intF = 0, int_outflow = 0, intG = 0; // hold integrals of rhs and Neumann bcs
-        double errBulk = 0.;
+        double global_conservation_error = 0;
+        double errBulk                   = 0.;
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -688,24 +690,22 @@ int main(int argc, char **argv) {
 #if defined(fullstab)
 
             convdiff.addFaceStabilization(
-                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
-                //+innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
-                ,
+                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
+                    innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
                 Thi, In);
 
 #elif defined(macro)
-            //MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
-            //std::cout << TimeMacro.number_of_stabilized_edges << "\n";
-            //std::cout << "number of stabilized edges: " << convdiff.get_number_of_stabilized_edges() << "\n";
-            
+            // MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
+            // std::cout << TimeMacro.number_of_stabilized_edges << "\n";
+            // std::cout << "number of stabilized edges: " << convdiff.get_number_of_stabilized_edges() << "\n";
+
             AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
-            
+
             convdiff.addFaceStabilization(
                 +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
                     innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
                 Thi, In, TimeMacro);
 
-            
             if (iterations == 1 && h > 0.1) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
                 writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
@@ -744,8 +744,8 @@ int main(int argc, char **argv) {
 
             double intGamma = integral_algoim(funone, In, interface, phi, 0) / dT;
             double intOmega = integral_algoim(funone, Thi, phi, In, qTime, lastQuadTime);
-            gamma.at(j)     = intGamma;
-            omega.at(j)     = intOmega;
+            gamma[j]        = intGamma;
+            omega[j]        = intOmega;
 
             // Compute error of numerical solution
             Rn sol(Wh.get_nb_dof(), 0.);
@@ -761,25 +761,28 @@ int main(int argc, char **argv) {
 
             errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1);
             std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
-            errors.at(j) = errBulk;
+            errors[j] = errBulk;
 
             // Compute conservation error
-            if (iterations == 1 && h > 0.01) {
-                intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
-                intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
+            // if (iterations == 1 && h > 0.01) {
+            intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
+            intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
 
-                double mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime); // mass in last quad point
+            double mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime); // mass in last quad point
 
-                if (iter == 0) {
-                    mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
-                }
-
-                outputData << std::setprecision(10);
-                outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG
-                           << "," << ((mass_last - mass_last_previous) - intF - intG) << '\n';
-
-                mass_last_previous = mass_last; // set current last to previous last for next time slab
+            if (iter == 0) {
+                mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
+            } else {
+                global_conservation_error += ((mass_last - mass_last_previous) - intF - intG);
             }
+            std::cout << "global_conservation_error: " << global_conservation_error << "\n";
+
+            outputData << std::setprecision(10);
+            outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG << ","
+                       << ((mass_last - mass_last_previous) - intF - intG) << '\n';
+
+            mass_last_previous = mass_last; // set current last to previous last for next time slab
+            //}
 
             if ((iterations == 1) && (h > 0.01)) {
                 Fun_h sol_h(Wh, sol);
@@ -815,6 +818,8 @@ int main(int argc, char **argv) {
             if (iterations > 1 && iter == total_number_iteration - 1)
                 outputData << h << "," << dT << "," << errBulk << '\n';
 
+            global_conservation_errors[j] = std::fabs(global_conservation_error);
+
             iter++;
         }
 
@@ -836,6 +841,18 @@ int main(int argc, char **argv) {
     for (int i = 0; i < iterations; i++) {
 
         std::cout << errors.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    std::cout << '\n';
+
+    std::cout << '\n';
+    std::cout << "Global Conservation Errors = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << global_conservation_errors.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }

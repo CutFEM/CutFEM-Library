@@ -1138,10 +1138,10 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
 
         // phi_l = psi_i^x * psi_j^y
 
-        f0[0]  = psi_x.at(0) * psi_y.at(0);
-        f0[1]  = psi_x.at(1) * psi_y.at(0);
-        f0[2]  = psi_x.at(1) * psi_y.at(1);
-        f0[3]  = psi_x.at(0) * psi_y.at(1);
+        f0[0]  = psi_x[0] * psi_y[0];
+        f0[1]  = psi_x[1] * psi_y[0];
+        f0[2]  = psi_x[1] * psi_y[1];
+        f0[3]  = psi_x[0] * psi_y[1];
         f0[p[4]]  = psi_x.at(2) * psi_y.at(0);
         f0[p[5]]  = psi_x.at(3) * psi_y.at(0);
         f0[p[6]]  = psi_x.at(1) * psi_y.at(2);
@@ -1150,10 +1150,10 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         f0[p[9]]  = psi_x.at(2) * psi_y.at(1);
         f0[p[10]] = psi_x.at(0) * psi_y.at(3);
         f0[p[11]] = psi_x.at(0) * psi_y.at(2);
-        f0[12] = psi_x.at(2) * psi_y.at(2);
-        f0[13] = psi_x.at(3) * psi_y.at(2);
-        f0[14] = psi_x.at(3) * psi_y.at(3);
-        f0[15] = psi_x.at(2) * psi_y.at(3);
+        f0[12] = psi_x[2] * psi_y[2];
+        f0[13] = psi_x[3] * psi_y[2];
+        f0[14] = psi_x[3] * psi_y[3];
+        f0[15] = psi_x[2] * psi_y[3];
     }
 
     // if (whatd & (Fop_D1 | Fop_D2 | Fop_D3)) {
@@ -1173,40 +1173,40 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
                                       4.5 * (9. * y * y - 10. * y + 2.) / hy, 4.5 * (-9. * y * y + 8. * y - 1.) / hy};
 
         // dx
-        f0x[0]  = d_psi_x.at(0) * psi_y.at(0);
-        f0x[1]  = d_psi_x.at(1) * psi_y.at(0);
-        f0x[2]  = d_psi_x.at(1) * psi_y.at(1);
-        f0x[3]  = d_psi_x.at(0) * psi_y.at(1);
-        f0x[p[4]]  = d_psi_x.at(2) * psi_y.at(0);
-        f0x[p[5]]  = d_psi_x.at(3) * psi_y.at(0);
-        f0x[p[6]]  = d_psi_x.at(1) * psi_y.at(2);
-        f0x[p[7]]  = d_psi_x.at(1) * psi_y.at(3);
-        f0x[p[8]]  = d_psi_x.at(3) * psi_y.at(1);
-        f0x[p[9]]  = d_psi_x.at(2) * psi_y.at(1);
-        f0x[p[10]] = d_psi_x.at(0) * psi_y.at(3);
-        f0x[p[11]] = d_psi_x.at(0) * psi_y.at(2);
-        f0x[12] = d_psi_x.at(2) * psi_y.at(2);
-        f0x[13] = d_psi_x.at(3) * psi_y.at(2);
-        f0x[14] = d_psi_x.at(3) * psi_y.at(3);
-        f0x[15] = d_psi_x.at(2) * psi_y.at(3);
+        f0x[0]  = d_psi_x[0] * psi_y[0];
+        f0x[1]  = d_psi_x[1] * psi_y[0];
+        f0x[2]  = d_psi_x[1] * psi_y[1];
+        f0x[3]  = d_psi_x[0] * psi_y[1];
+        f0x[p[4]]  = d_psi_x[2] * psi_y[0];
+        f0x[p[5]]  = d_psi_x[3] * psi_y[0];
+        f0x[p[6]]  = d_psi_x[1] * psi_y[2];
+        f0x[p[7]]  = d_psi_x[1] * psi_y[3];
+        f0x[p[8]]  = d_psi_x[3] * psi_y[1];
+        f0x[p[9]]  = d_psi_x[2] * psi_y[1];
+        f0x[p[10]] = d_psi_x[0] * psi_y[3];
+        f0x[p[11]] = d_psi_x[0] * psi_y[2];
+        f0x[12] = d_psi_x[2] * psi_y[2];
+        f0x[13] = d_psi_x[3] * psi_y[2];
+        f0x[14] = d_psi_x[3] * psi_y[3];
+        f0x[15] = d_psi_x[2] * psi_y[3];
 
         // dy
-        f0y[0]  = psi_x.at(0) * d_psi_y.at(0);
-        f0y[1]  = psi_x.at(1) * d_psi_y.at(0);
-        f0y[2]  = psi_x.at(1) * d_psi_y.at(1);
-        f0y[3]  = psi_x.at(0) * d_psi_y.at(1);
-        f0y[p[4]]  = psi_x.at(2) * d_psi_y.at(0);
-        f0y[p[5]]  = psi_x.at(3) * d_psi_y.at(0);
-        f0y[p[6]]  = psi_x.at(1) * d_psi_y.at(2);
-        f0y[p[7]]  = psi_x.at(1) * d_psi_y.at(3);
-        f0y[p[8]]  = psi_x.at(3) * d_psi_y.at(1);
-        f0y[p[9]]  = psi_x.at(2) * d_psi_y.at(1);
-        f0y[p[10]] = psi_x.at(0) * d_psi_y.at(3);
-        f0y[p[11]] = psi_x.at(0) * d_psi_y.at(2);
-        f0y[12] = psi_x.at(2) * d_psi_y.at(2);
-        f0y[13] = psi_x.at(3) * d_psi_y.at(2);
-        f0y[14] = psi_x.at(3) * d_psi_y.at(3);
-        f0y[15] = psi_x.at(2) * d_psi_y.at(3);
+        f0y[0]  = psi_x[0] * d_psi_y[0];
+        f0y[1]  = psi_x[1] * d_psi_y[0];
+        f0y[2]  = psi_x[1] * d_psi_y[1];
+        f0y[3]  = psi_x[0] * d_psi_y[1];
+        f0y[p[4]]  = psi_x[2] * d_psi_y[0];
+        f0y[p[5]]  = psi_x[3] * d_psi_y[0];
+        f0y[p[6]]  = psi_x[1] * d_psi_y[2];
+        f0y[p[7]]  = psi_x[1] * d_psi_y[3];
+        f0y[p[8]]  = psi_x[3] * d_psi_y[1];
+        f0y[p[9]]  = psi_x[2] * d_psi_y[1];
+        f0y[p[10]] = psi_x[0] * d_psi_y[3];
+        f0y[p[11]] = psi_x[0] * d_psi_y[2];
+        f0y[12] = psi_x[2] * d_psi_y[2];
+        f0y[13] = psi_x[3] * d_psi_y[2];
+        f0y[14] = psi_x[3] * d_psi_y[3];
+        f0y[15] = psi_x[2] * d_psi_y[3];
 
         // std::cout << "x = " << x << "\n";
         // std::cout << "y = " << y << "\n";
