@@ -1414,8 +1414,8 @@ template <typename Mesh> int TimeMacroElement2<Mesh>::number_of_inner_edges() {
 
 template <typename Mesh, typename L> class AlgoimMacro : public GMacro {
   public:
-    AlgoimMacro(const ActiveMesh<Mesh> &, const double, L &, const TimeSlab & = nullptr,
-                const QuadratureFormular1d & = nullptr);
+    AlgoimMacro(const ActiveMesh<Mesh> &, const double, L &, const TimeSlab &,
+                const QuadratureFormular1d &);
 
     const int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 
@@ -1429,7 +1429,7 @@ template <typename Mesh, typename L> class AlgoimMacro : public GMacro {
     const int number_of_stabilized_edges;
     const int number_of_faces; // number of faces of the mesh element
 
-    void findSmallElement(const TimeSlab * = nullptr, const QuadratureFormular1d * = nullptr);
+    void findSmallElement(const TimeSlab *, const QuadratureFormular1d *);
     void createMacroElement();
     void setInnerEdges();
 };
@@ -1500,23 +1500,26 @@ void AlgoimMacro<Mesh, L>::findSmallElement(const TimeSlab *In, const Quadrature
             double part = cut_area / measure_K;
 
             if ((cut_area > tol) && (!Th.isInactive(k, itq))) {
-                // assert(std::fabs(cut_area - measure_K) >
-                //        1e-10); // make sure cut area is not equal to element area if cut
-                is_large = true;
                 // std::cout << "LARGE: kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: " << k
-                //           << ", area_cut: " << cut_area << ", |K|: " << K.measure() << ", cut part %: " << part <<
+                //           << ", area_cut: " << cut_area << ", |K|: " << measure_K << ", cut part %: " << part <<
                 //           "\n";
+
+                assert(0 < cut_area/measure_K && cut_area/measure_K <= 1+1e-10); // make sure cut area is not equal to element area if cut
+                is_large = true;
+                
             } else if ((cut_area <= tol) && (!Th.isInactive(k, itq))) {
                 // assert(std::fabs(cut_area - measure_K) >
                 //        1e-10); // make sure cut area is not equal to element area if cut
+                assert(0 <= cut_area/measure_K && cut_area/measure_K < 1); // make sure cut area is not equal to element area if cut
                 is_small = true;
                 // std::cout << "SMALL: kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: " << k
-                //           << ", area_cut: " << cut_area << ", |K|: " << K.measure() << ", cut part %: " << part <<
+                //           << ", area_cut: " << cut_area << ", |K|: " << measure_K << ", cut part %: " << part <<
                 //           "\n";
             }
 
             if (Th.isInactive(k, itq)) {
-                //assert(std::fabs(cut_area - measure_K) < 1e-10); // make sure element is not cut
+                
+                assert(cut_area == 0); // make sure element is not cut
                 is_inactive = true;
                 // std::cout << "INACTIVE. kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: "
                 //<< k
