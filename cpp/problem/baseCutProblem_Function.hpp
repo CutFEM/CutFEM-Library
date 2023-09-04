@@ -1606,8 +1606,8 @@ void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const ActiveMe
                 int jfac = ifac;
                 int kn   = Th.ElementAdj(k, jfac);
 
-                std::pair<int, int> e1 = std::make_pair(k, ifac);
-                std::pair<int, int> e2 = std::make_pair(kn, jfac);
+                // std::pair<int, int> e1 = std::make_pair(k, ifac);
+                // std::pair<int, int> e2 = std::make_pair(kn, jfac);
 
                 // number_of_stabilized_edges += 1;
                 BaseFEM<M>::addPatchContribution(VF, k, kn, &In, itq, cst_time);

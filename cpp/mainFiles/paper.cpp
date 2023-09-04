@@ -406,7 +406,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define fullstab
+#define macro
 
 #define use_h    // to set mesh size using the h parameter. Write use_n to decide
                  // using nx, ny.
@@ -553,14 +553,14 @@ int main(int argc, char **argv) {
         const double tau1 = 0.1, tau2 = 0.1;
 
         FESpace Vh(Th, DataFE<Mesh>::P2);               // Background FE Space
-        FESpace Vh_interpolation(Th, DataFE<Mesh>::P2); // for interpolating data
+        FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);               // FE Space in time
-        FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P2Poly); // for interpolating data
+        FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
         const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
@@ -689,10 +689,14 @@ int main(int argc, char **argv) {
 
 #if defined(fullstab)
 
-            convdiff.addFaceStabilization(
-                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
-                    innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
-                Thi, In);
+            // convdiff.addFaceStabilization(
+            //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
+            //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+            //     Thi, In);
+            
+            convdiff.addPatchStabilization(
+                +innerProduct(tau1/h/h * jump(u), jump(v))
+                , Thi, In);
 
 #elif defined(macro)
             // MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
@@ -701,10 +705,14 @@ int main(int argc, char **argv) {
 
             AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
 
-            convdiff.addFaceStabilization(
-                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
-                    innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
-                Thi, In, TimeMacro);
+            // convdiff.addFaceStabilization(
+            //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
+            //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+            //     Thi, In, TimeMacro);
+
+            convdiff.addPatchStabilization(
+                +innerProduct(tau1/h/h * jump(u), jump(v))
+                , Thi, In, TimeMacro);
 
             if (iterations == 1 && h > 0.1) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");

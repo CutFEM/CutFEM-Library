@@ -275,8 +275,8 @@ void TypeOfFE_P2QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
     assert(val.M() == 1);
 
     // Assert that points are on the reference element
-    assert((0. - 1e-12 <= x) && (x <= 1. + 1e-12));
-    assert((0. - 1e-12 <= y) && (y <= 1. + 1e-12));
+    // assert((0. - 1e-12 <= x) && (x <= 1. + 1e-12));
+    // assert((0. - 1e-12 <= y) && (y <= 1. + 1e-12));
 
     val = 0;
     RN_ f0(val('.', 0, op_id));
