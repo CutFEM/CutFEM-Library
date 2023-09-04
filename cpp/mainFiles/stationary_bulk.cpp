@@ -422,11 +422,17 @@ int main(int argc, char **argv) {
 #if defined(k1)
         convdiff.addFaceStabilization(innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi);
 #elif defined(k2)
-        convdiff.addFaceStabilization(
-            innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
-             + innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)) 
-                //+ innerProduct(h * h * h * h * h * tau1 * jump(grad(grad(grad(u) * n) * n) * n), jump(grad(grad(grad(v) * n) * n) * n))
-                , Thi);
+        // convdiff.addFaceStabilization(
+        //     innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
+        //      + innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)) 
+        //         //+ innerProduct(h * h * h * h * h * tau1 * jump(grad(grad(grad(u) * n) * n) * n), jump(grad(grad(grad(v) * n) * n) * n))
+        //         , Thi);
+
+        const double tau = 0.1; 
+        
+        convdiff.addPatchStabilization(
+            innerProduct(tau/h/h*jump(u), jump(v))
+            , Thi);
 #endif
 
         //* Boundary conditions

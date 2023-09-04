@@ -34,7 +34,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "FESpace.hpp"
 
-// P1 Polynomial basis {1, x}
+// P2 Polynomial basis {1, x, x^2}
 class TypeOfFE_P2Polynomial1d : public GTypeOfFE<Mesh1> {
 
     typedef Mesh1 Mesh;

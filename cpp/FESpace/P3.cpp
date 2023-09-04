@@ -743,7 +743,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "FESpace.hpp"
 
-// P1 Polynomial basis {1, x}
+// P3 Polynomial basis {1, x, x^2, x^3}
 class TypeOfFE_P3Polynomial1d : public GTypeOfFE<Mesh1> {
 
     typedef Mesh1 Mesh;
@@ -1128,8 +1128,8 @@ void TypeOfFE_P3QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
     assert(val.M() == 1);
 
     // Assert that points are on the reference element
-    assert((0. - 1e-12 <= x) && (x <= 1. + 1e-12));
-    assert((0. - 1e-12 <= y) && (y <= 1. + 1e-12));
+    // assert((0. - 1e-12 <= x) && (x <= 1. + 1e-12));
+    // assert((0. - 1e-12 <= y) && (y <= 1. + 1e-12));
 
     val = 0;
     RN_ f0(val('.', 0, op_id));

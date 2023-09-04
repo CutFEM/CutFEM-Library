@@ -1281,6 +1281,34 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     bar.end();
 }
 
+
+template <typename M>
+void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(!VF.isRHS());
+    progress bar("Add Patch Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+
+        if (!Th.isCut(k, 0) && !Th.isInactive(k, 0))
+            continue;
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if (kn < k)
+                continue;
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);
+            std::pair<int, int> e2 = std::make_pair(kn, jfac);
+            BaseFEM<M>::addPatchContribution(VF, k, kn, nullptr, 0, 1.);
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+
 template <typename M>
 void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
 
