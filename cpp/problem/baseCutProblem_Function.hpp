@@ -1215,8 +1215,8 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
-        
-        if (!Th.isCut(k, 0) && !Th.isInactive(k, 0)) 
+
+        if (!Th.isCut(k, 0) && !Th.isInactive(k, 0))
             continue;
         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
 
@@ -1281,14 +1281,65 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     bar.end();
 }
 
+template <typename M>
+void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
+
+    int number_of_quadrature_points = this->get_nb_quad_point_time();
+    
+    // Loop through time quadrature points
+    for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
+        assert(!VF.isRHS());
+
+        // Compute contribution from time basis functions
+        auto tq    = this->get_quadrature_time(itq);
+        double tid = In.map(tq);
+        KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+        In.BF(tq.x, bf_time); // compute time basic funtions
+        double cst_time   = tq.a * In.get_measure();
+        
+        std::string title = " Add Patch Stab, In(" + std::to_string(itq) + ")";
+        progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+
+        // Loop through active mesh elements
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+            bar += Th.next_element();
+            
+            // Exclude elements whose edges do not need stabilization
+            if (!Th.isStabilizeElement(k))
+                continue;
+
+            // Loop through the element's edges
+            for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+                int jfac = ifac;
+                int kn   = Th.ElementAdj(k, jfac);      // get neighbor element's index
+
+                // By skipping neighbors with smaller indices, we avoid adding contribution to the same edge twice
+                if (kn < k)
+                    continue;
+
+                std::pair<int, int> e1 = std::make_pair(k, ifac);   // (element index, edge index) current element
+                std::pair<int, int> e2 = std::make_pair(kn, jfac);  // (element index, edge index) neighbor element
+
+                // Add patch contribution
+                //BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+                BaseFEM<M>::addPatchContribution(VF, k, kn, &In, itq, cst_time);
+            }
+            this->addLocalContribution();
+        }
+        bar.end();
+    }
+}
+
 /**
  * @brief This only stabilize in the faces corresponding to the active mesh in quadrature point itq.
- * 
- * @tparam M 
- * @param VF 
- * @param Th 
- * @param itq 
- * @param In 
+ *
+ * @tparam M
+ * @param VF
+ * @param Th
+ * @param itq
+ * @param In
  */
 template <typename M>
 void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
@@ -1299,7 +1350,7 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
     In.BF(tq.x, bf_time); // compute time basic funtions
-    //double cst_time   = tq.a * In.get_measure();
+    // double cst_time   = tq.a * In.get_measure();
     std::string title = " Add Face Stab, In(" + std::to_string(itq) + ")";
     progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
 
@@ -1327,9 +1378,9 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     bar.end();
 }
 
-
 template <typename M>
-void BaseCutFEM<M>::addFaceStabilizationSpecial(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+void BaseCutFEM<M>::addFaceStabilizationSpecial(const itemVFlist_t &VF, const CutMesh &Th, int itq,
+                                                const TimeSlab &In) {
     assert(!VF.isRHS());
     auto tq    = this->get_quadrature_time(itq);
     double tid = In.map(tq);
@@ -1337,7 +1388,7 @@ void BaseCutFEM<M>::addFaceStabilizationSpecial(const itemVFlist_t &VF, const Cu
     KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
     In.BF(tq.x, bf_time); // compute time basic funtions
-    //double cst_time   = tq.a * In.get_measure();
+    // double cst_time   = tq.a * In.get_measure();
     std::string title = " Add Face Stab, In(" + std::to_string(itq) + ")";
     progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
 
@@ -1364,7 +1415,6 @@ void BaseCutFEM<M>::addFaceStabilizationSpecial(const itemVFlist_t &VF, const Cu
     }
     bar.end();
 }
-
 
 template <typename M>
 void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<M> &macro) {
@@ -1464,13 +1514,12 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     number_of_stabilized_edges /= number_of_quadrature_points;
 }
 
-
 template <typename M>
 template <typename L>
 void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In,
                                          const AlgoimMacro<M, L> &macro) {
 
-    //number_of_stabilized_edges      = 0;
+    // number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();
     for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
 
@@ -1494,15 +1543,14 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const ActiveMes
                 std::pair<int, int> e1 = std::make_pair(k, ifac);
                 std::pair<int, int> e2 = std::make_pair(kn, jfac);
 
-                //number_of_stabilized_edges += 1;
+                // number_of_stabilized_edges += 1;
                 BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
             }
             this->addLocalContribution();
         }
     }
-    //number_of_stabilized_edges /= number_of_quadrature_points;
+    // number_of_stabilized_edges /= number_of_quadrature_points;
 }
-
 
 template <typename M>
 void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In,
@@ -2003,9 +2051,9 @@ void BaseCutFEM<M>::initialSolution(V &u0) {
         for (int k = 0; k < Th.get_nb_element(); ++k) {
 
             // Only interested in elements that have intersection with the domain
-            // in the first time quadrature point 
-            if (Th.isInactive(k, 0))    
-                continue;   // has no intersection with domain at itq = 0
+            // in the first time quadrature point
+            if (Th.isInactive(k, 0))
+                continue; // has no intersection with domain at itq = 0
 
             // Get the FElement object for the current element
             const FElement &FK(Wh[k]);
@@ -2025,12 +2073,12 @@ void BaseCutFEM<M>::initialSolution(V &u0) {
 
             // Loop over the components of the FE space (1 for scalar problems)
             for (int ic = 0; ic < Wh.N; ++ic) { // ESSAYER VH->N
-            
+
                 // Loop through all the degrees of freedom of the element
                 for (int i = FK.dfcbegin(ic); i < FK.dfcend(ic); ++i) {
                     // Get the value from the map of initial conditions, with the key of the current domain and node in
                     // the back mesh.
-                    // 
+                    //
                     u0S[FK(i)] = this->mapU0_[std::make_pair(id_domain, FKback(i))];
                 }
             }
@@ -2038,7 +2086,6 @@ void BaseCutFEM<M>::initialSolution(V &u0) {
 
         // Set id_domain_0 to the number of subdomains
         id_domain_0 += Th.get_nb_domain();
-
     }
 
     // Clear the map of initial conditions.
@@ -2099,7 +2146,8 @@ void BaseCutFEM<M>::saveSolution(const V sol) {
                         val += solS[FK.loc2glb(i, it)];
                     }
 
-                    // Store the coefficient value in the DOF in the background FE space, to be able to retreive it in the next time slab
+                    // Store the coefficient value in the DOF in the background FE space, to be able to retreive it in
+                    // the next time slab
                     this->mapU0_[std::make_pair(id_domain, FKback(i))] = val;
                 }
             }

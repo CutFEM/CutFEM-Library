@@ -128,6 +128,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                               const TimeMacroElementSurface<Mesh> &);
     void addFaceStabilizationRHS(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<Mesh> &macro);
 
+    void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In);
+
     // Lagrange multiplier
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &, const int k);
