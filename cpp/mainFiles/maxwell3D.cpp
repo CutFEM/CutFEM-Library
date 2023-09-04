@@ -258,9 +258,9 @@ int main(int argc, char **argv) {
 
         Fun_h ph(Wh, data_ph);
 
-        ExpressionFunFEM<Mesh> dx_uh0(uh, 0, op_dx);
-        ExpressionFunFEM<Mesh> dy_uh1(uh, 1, op_dy);
-        ExpressionFunFEM<Mesh> dz_uh2(uh, 2, op_dz);
+        // ExpressionFunFEM<Mesh> dx_uh0(uh, 0, op_dx);
+        // ExpressionFunFEM<Mesh> dy_uh1(uh, 1, op_dy);
+        // ExpressionFunFEM<Mesh> dz_uh2(uh, 2, op_dz);
 
         auto uh_0dx = dx(uh.expr(0));
         auto uh_1dy = dy(uh.expr(1));
@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
 
             Paraview<Mesh> writer(Khi, "maxwell_" + std::to_string(i) + ".vtk");
 
-            writer.add(wh, "vorticity", 0, 1);
+            writer.add(wh, "vorticity", 0, 3);
 
             writer.add(uh, "velocity", 0, 3);
 
