@@ -795,7 +795,7 @@ int TypeOfFE_P3Polynomial1d::Data[]                = {
     4           // end_dfcomp
 };
 
-double TypeOfFE_P3Polynomial1d::alpha_Pi_h[] = {1., -5.5, 9. - 4.5, 1., 9., -22.5, 18., -4.5, -4.5, 13.5, -13.5, 4.5};
+double TypeOfFE_P3Polynomial1d::alpha_Pi_h[] = {1., -5.5, 9., - 4.5, 1., 9., -22.5, 18., -4.5, -4.5, 13.5, -13.5, 4.5};
 
 void TypeOfFE_P3Polynomial1d::FB(const What_d whatd, const Element &K, const R1 &P, RNMK_ &val) const {
     assert(K[0].X() < K[1].X());
