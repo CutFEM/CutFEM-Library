@@ -24,30 +24,47 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
 
   public:
     // Integrals over cut domains
-    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
-    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
-    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
-    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
-    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
-    void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
+
+    // void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+    // void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+    // void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+    // void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+    // void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
+    // void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
 
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                 double cst_time) override;
 
+    template <typename Fct>
+    void addElementContributionExact(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
+                                     double cst_time);
+
+    template <typename Fct>
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+
+    template <typename Fct>
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq,
+                        const TimeSlab &In, const double scaling_time = 1.);
+
     // Integrals over interfaces
-    void addBilinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
-    void addLinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
-    void addBilinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<mesh_t, L> &gamma);
-    void addLinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<mesh_t, L> &gamma);
+
+    // void addBilinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
+    // void addLinearAlgoim(const itemVFlist_t &VF, const Interface<mesh_t> &gamma, std::list<int> label = {});
+    // void addBilinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<mesh_t, L> &gamma);
+    // void addLinearAlgoim(const itemVFlist_t &VF, AlgoimInterface<mesh_t, L> &gamma);
     void addInterfaceContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, int ifac, double tid,
                                   const TimeSlab *In, double cst_time, int itq) override;
+
+    template <typename Fct>
+    void addInterfaceContributionExact(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,
+                                       double tid, const TimeSlab *In, double cst_time, int itq);
+
     void addLagrangeContribution(const itemVFlist_t &VF, const Interface<mesh_t> &interface, const int iface) override;
 
+    template <typename Fct>
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In);
 
-
-    // template <typename Fct>
-    // void addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,
-    //                               double tid, const TimeSlab *In, double cst_time, int itq) override;
+    // Constructors
 
     AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option, int np)
         : BaseCutFEM<mesh_t>(qt, option, np), phi(phi_), quadrature_order(option.order_space_element_quadrature_) {}

@@ -406,12 +406,13 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 
 #define use_h    // to set mesh size using the h parameter. Write use_n to decide
                  // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
                  // proportional to h.
+#define conservationnot
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -550,20 +551,20 @@ int main(int argc, char **argv) {
 
         // CG stabilization parameter
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
-        const double tau1 = 0.1, tau2 = 0.1;
+        const double tau1 = 10., tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P2);               // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P3);               // Background FE Space
         FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);               // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P3Poly);               // FE Space in time
         FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(14)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -583,7 +584,7 @@ int main(int argc, char **argv) {
 
         Levelset<2> phi;
         ProblemOption option;
-        option.order_space_element_quadrature_ = 5;
+        option.order_space_element_quadrature_ = 7;
         AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
@@ -659,7 +660,12 @@ int main(int argc, char **argv) {
             // Variational formulation
 #if defined(classical)
             convdiff.addBilinear(+innerProduct(u, v), Thi, 0, In);
-            convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
+            // Impose initial condition
+            if (iter == 0) {
+                convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+            } else {
+                convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
+            }
             convdiff.addBilinear(+innerProduct(dt(u), v) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
             for (int i = 0; i < nbTime; ++i) {
@@ -668,7 +674,14 @@ int main(int argc, char **argv) {
 
 #elif defined(conservative)
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
-            convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
+            
+            // Impose initial condition
+            if (iter == 0) {
+                convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+            } else {
+                convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
+            }
+
             convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
             for (int i = 0; i < nbTime; ++i) {
@@ -677,10 +690,11 @@ int main(int argc, char **argv) {
 #endif
 
             // Source function
-            convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
+            //convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
+            convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
 
             // Neumann boundary condition
-            convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
+            convdiff.addLinearExact(fun_neumann_Gamma, +innerProduct(1, v), interface, In);
 
             // Stabilization
             double stab_bulk_faces = 0.;
@@ -693,10 +707,8 @@ int main(int argc, char **argv) {
             //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
             //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
             //     Thi, In);
-            
-            convdiff.addPatchStabilization(
-                +innerProduct(tau1/h/h * jump(u), jump(v))
-                , Thi, In);
+
+            convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In);
 
 #elif defined(macro)
             // MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
@@ -710,9 +722,7 @@ int main(int argc, char **argv) {
             //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
             //     Thi, In, TimeMacro);
 
-            convdiff.addPatchStabilization(
-                +innerProduct(tau1/h/h * jump(u), jump(v))
-                , Thi, In, TimeMacro);
+            convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
 
             if (iterations == 1 && h > 0.1) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
@@ -771,18 +781,28 @@ int main(int argc, char **argv) {
             std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
             errors[j] = errBulk;
 
-            // Compute conservation error
-            // if (iterations == 1 && h > 0.01) {
+// Compute conservation error
+// if (iterations == 1 && h > 0.01) {
+#if defined(conservation)
             intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
             intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
 
             double mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime); // mass in last quad point
 
+            // if (iter == 0) {
+            //     //mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
+            // } else {
+            //     global_conservation_error += ((mass_last - mass_last_previous) - intF - intG);
+            // }
+
             if (iter == 0) {
-                mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
-            } else {
-                global_conservation_error += ((mass_last - mass_last_previous) - intF - intG);
+                mass_last_previous = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
+                //mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
             }
+
+            global_conservation_error += ((mass_last - mass_last_previous) - intF - intG);
+            
+
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
 
             outputData << std::setprecision(10);
@@ -790,7 +810,11 @@ int main(int argc, char **argv) {
                        << ((mass_last - mass_last_previous) - intF - intG) << '\n';
 
             mass_last_previous = mass_last; // set current last to previous last for next time slab
-            //}
+                                            //}
+
+            global_conservation_errors[j] = std::fabs(global_conservation_error);
+
+#endif
 
             if ((iterations == 1) && (h > 0.01)) {
                 Fun_h sol_h(Wh, sol);
@@ -825,8 +849,6 @@ int main(int argc, char **argv) {
 
             if (iterations > 1 && iter == total_number_iteration - 1)
                 outputData << h << "," << dT << "," << errBulk << '\n';
-
-            global_conservation_errors[j] = std::fabs(global_conservation_error);
 
             iter++;
         }

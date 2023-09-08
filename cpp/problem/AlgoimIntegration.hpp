@@ -797,8 +797,10 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int dom
 
             if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
                 val += weight * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
-            } else {
+            } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
                 val += weight * fh->evalOnBackMesh(kb, domain, mip);
+            } else {
+                val += weight * fh(mip, domain, t);
             }
         }
     }
