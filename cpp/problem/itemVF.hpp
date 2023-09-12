@@ -649,12 +649,13 @@ ListItemVF<mesh_t> operator,(const std::list<std::shared_ptr<Expr>> &fh, const T
                 item(k).face_sideU_ = v.face_side_;
                 item(k).face_sideV_ = v.face_side_;
                 item(k).domainU_id_ = v.domain_id_;
-                item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-                item(k).dtu      = 0;
-                item(k).dtv      = v.dtu;
-                item(k).expru    = *it;
-                item(k).exprv    = v.expru;
-                item(k).fespaceV = v.fespace;
+                item(k).domainV_id_ = v.domain_id_;
+                item(k).coefv       = v.coefu;
+                item(k).dtu         = 0;
+                item(k).dtv         = v.dtu;
+                item(k).expru       = *it;
+                item(k).exprv       = v.expru;
+                item(k).fespaceV    = v.fespace;
 
                 k++;
             }
