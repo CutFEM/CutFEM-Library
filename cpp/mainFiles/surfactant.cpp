@@ -743,9 +743,9 @@ R fun_velocity(double *P, const int i) { return (i == 0) ? 2. : 0.; }
 
 //! NOTE: USUALLY I USE THE ABOVE DEFINITION OF THE LEVEL SET
 R fun_levelSet(double *P, const int i, const R t) {
-    return (P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1] - 1 - Epsilon;
+    return (P[0] + 0.5 - 2 * t) * (P[0] + 0.5 - 2 * t) + P[1] * P[1] - 1;
 }
-R fun_levelSet(double *P, const int i) { return (P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1] - 1 - Epsilon; }
+R fun_levelSet(double *P, const int i) { return (P[0] + 0.5) * (P[0] + 0.5) + P[1] * P[1] - 1; }
 
 R fun_one(double *P, const int cc, const R t) { return 1.; }
 
@@ -857,10 +857,10 @@ typedef FunFEM<Mesh2> Fun_h;
 // Choose Discontinuous or Continuous Galerkin method (options: "dg", "cg")
 #define cg
 // Set numerical example (options: "example1", "shi1", "shi2", "deckelnick", "deckelnick2")
-#define example1
+#define deckelnick2
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
-#define classical
+#define conservative
 // Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 // Decide whether to solve for level set function, or to use exact (options:
@@ -900,7 +900,7 @@ int main(int argc, char **argv) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to
                                  // run only once and plot to paraview)
     int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
     // double h  = 0.1*pow(0.5, 5)*sqrt(0.5);             // starting mesh size
@@ -997,6 +997,16 @@ int main(int argc, char **argv) {
         // std::string f = "../mesh/square_seb_"+std::to_string(j+1)+".msh";
         // Mesh Th(f.c_str());
 #elif defined(deckelnick) || defined(deckelnick2)
+//         const double lx = 4.8, ly = 4.8;
+//         // const double lx = 8., ly = 6.;
+// #ifdef use_h
+//         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
+// #elif defined(use_n)
+//         h = lx / (nx - 1);
+// #endif
+
+//         Mesh Th(nx, ny, -2.4, -2.4, lx, ly);
+        //const double lx = 4.8123, ly = 4.8353;
         const double lx = 4.8, ly = 4.8;
         // const double lx = 8., ly = 6.;
 #ifdef use_h
@@ -1005,22 +1015,22 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
 
-        Mesh Th(nx, ny, -2.4, -2.4, lx, ly);
+        Mesh Th(nx, ny, -2.4+Epsilon, -2.4 + Epsilon, lx, ly);
         // Mesh Th(nx, ny, -3, -3, lx, ly);
 #endif
 
         // Parameters
-        double tfinal = .5; // Final time
+        double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        int divisionMeshSize = 4;
+        int divisionMeshSize = 8;
 
         // int divisionMeshSize = 2*3*pi;
         // int divisionMeshSize = 18;
 
-        double dT = h / divisionMeshSize;
+        double dT = h * h / divisionMeshSize;
 
         total_number_iteration = int(tfinal / dT);
 #endif
@@ -1051,7 +1061,7 @@ int main(int argc, char **argv) {
         double D = 1.;
 
         // CG stabilization parameters
-        double tau0 = 0, tau1 = .1, tau2 = 5.;
+        double tau0 = 0, tau1 = 0.01, tau2 = 1.;
 
         // Background FE Space, Time FE Space & Space-Time Space
         FESpace2 Vh(Th, DataFE<Mesh>::P1);  // continuous basis functions
@@ -1174,16 +1184,16 @@ int main(int argc, char **argv) {
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1);
 
-            // Solve for initial condition
-            FunTest s(Wh, 1), r(Wh, 1);
-            initial_condition.addBilinear(+innerProduct(s, r), *interface(0));
-            initial_condition.addFaceStabilization(+innerProduct(0.01 * h * jump(grad(s) * n), jump(grad(r) * n)),
-                                                   ThGamma);
-            initial_condition.addLinear(+innerProduct(u0.expr(), r), *interface(0));
-            initial_condition.solve("mumps");
-            datas0 = initial_condition.rhs_;
+            // // Solve for initial condition
+            // FunTest s(Wh, 1), r(Wh, 1);
+            // initial_condition.addBilinear(+innerProduct(s, r), *interface(0));
+            // initial_condition.addFaceStabilization(+innerProduct(0.01 * h * jump(grad(s) * n), jump(grad(r) * n)),
+            //                                        ThGamma);
+            // initial_condition.addLinear(+innerProduct(u0.expr(), r), *interface(0));
+            // initial_condition.solve("mumps");
+            // datas0 = initial_condition.rhs_;
             
-            Fun_h u0new(Wh, datas0);
+            // Fun_h u0new(Wh, datas0);
 
             // std::cout << "datas0 = " << datas0 << "\n";
             // std::cout << "datas0_new = " << datas0_new << "\n";
@@ -1280,8 +1290,8 @@ int main(int argc, char **argv) {
 #endif
 
             // Stabilization
-            double stab_surf_face      = tau1;
-            double stab_surf_interface = 0.; // h * h * tau2;
+            double stab_surf_face      = h * tau1;
+            double stab_surf_interface = h * tau2;
             double stab_mass           = 0.; // tau1 * h;
             double stab_dt             = 0.; // tau1 *h;
 
@@ -1291,8 +1301,8 @@ int main(int argc, char **argv) {
                                             ThGamma, In);
 
             // stabilize in last quadrature point
-            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
-            double ccmid = 1. / In.T.mesure() * 1. / qTime[lastQuadTime - 1].a;
+            double ccend = 1. / In.T.measure() * 1. / qTime[lastQuadTime].a;
+            double ccmid = 1. / In.T.measure() * 1. / qTime[lastQuadTime - 1].a;
             surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)),
                                             ThGamma, In, lastQuadTime); //! note: which quadrature point?
 

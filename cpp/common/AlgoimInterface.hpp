@@ -56,6 +56,8 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     size_t size() const override { return cut_elements.size(); }
 
+    double get_t() { return phi.t; }
+
   private:
     void make_algoim_patch(int label);
 };

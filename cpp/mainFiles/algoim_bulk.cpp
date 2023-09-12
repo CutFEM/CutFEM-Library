@@ -733,7 +733,7 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;             // starting mesh size
@@ -1090,7 +1090,7 @@ int main(int argc, char **argv) {
             convdiff.addFaceStabilization(+innerProduct(stab_bulk_faces * jump(grad(u) * n), jump(grad(v) * n)), Thi,
                                           In);
 
-            double ccend = 1. / In.T.mesure() * 1. / qTime[lastQuadTime].a;
+            double ccend = 1. / In.T.measure() * 1. / qTime[lastQuadTime].a;
             convdiff.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)), Thi,
                                           In, lastQuadTime);
 
@@ -1324,6 +1324,7 @@ int main(int argc, char **argv) {
                 // #else
                 if ((iterations == 1)) {
                     Fun_h sol_h(Wh, sol);
+                    Paraview<Mesh> writerTh(Th, path_output_figures + "Th.vtk");
                     Paraview<Mesh> writer(Thi, path_output_figures + "bulk" + std::to_string(iter + 1) + ".vtk");
                     writer.add(b0h, "bulk", 0, 1);
                     writer.add(sol_h, "bulk_end", 0, 1);
@@ -1344,13 +1345,13 @@ int main(int argc, char **argv) {
 
 #if defined(algoim)
                     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, -1,
-                                                 path_output_figures + "AlgoimQuadrature_0" + std::to_string(iter + 1) +
+                                                 path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
                                                      ".vtk");
                     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, -1,
-                                                 path_output_figures + "AlgoimQuadrature_1" + std::to_string(iter + 1) +
+                                                 path_output_figures + "AlgoimQuadrature_1_" + std::to_string(iter + 1) +
                                                      ".vtk");
                     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 2, -1,
-                                                 path_output_figures + "AlgoimQuadrature_2" + std::to_string(iter + 1) +
+                                                 path_output_figures + "AlgoimQuadrature_2_" + std::to_string(iter + 1) +
                                                      ".vtk");
 #endif
                 }

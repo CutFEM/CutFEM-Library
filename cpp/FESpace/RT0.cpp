@@ -308,20 +308,14 @@ class TypeOfFE_RT0_3d : public GTypeOfFE<Mesh3> {
 int TypeOfFE_RT0_3d::dfon[] = {0, 0, 1, 0};
 int TypeOfFE_RT0_3d::Data[]{
     // geometry=vertex,edge,face,volume; 0,1,2 vertices, 3,4,5 edges, 6 face
-    10, 11, 12,
-    13, // on what hard coded geometry the dofs are located
-    0, 0, 0,
-    0, // the (number of the dof - 1) on corresponding geometry/node (here each
-    // edge has 1 dof)
-    0, 1, 2,
-    3, // the geometry(vertex) of the basis fcn corresponding to the dof
-    0, 1, 2,
-    3, // the dof of the sub FE (default 0,1,2) [???]
-    0, 0, 1,
-    0, // which geometry=vertex,edge,face,volume contains dofs
-    0, // for each component $j=0,N-1$ it give the sub FE associated [???]
-    0, // begin_dfcomp
-    4  // end_dfcomp (=total number of dof in one element)
+    10, 11, 12, 13, // on what hard coded geometry the dofs are located
+    0,  0,  0,  0,  // the (number of the dof - 1) on corresponding geometry/node (here each edge has 1 dof)
+    0,  1,  2,  3,  // the geometry(vertex) of the basis fcn corresponding to the dof
+    0,  1,  2,  3,  // the dof of the sub FE (default 0,1,2) [???]
+    0,  0,  1,  0,  // which geometry=vertex,edge,face,volume contains dofs
+    0,              // for each component $j=0,N-1$ it give the sub FE associated [???]
+    0,              // begin_dfcomp
+    4               // end_dfcomp (=total number of dof in one element)
 };
 
 TypeOfFE_RT0_3d::TypeOfFE_RT0_3d() : GTypeOfFE<Mesh3>(4, 3, Data, 12, 4) {
@@ -350,7 +344,7 @@ void TypeOfFE_RT0_3d::get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v
     for (int f = 0, k = 0; f < 4; f++) {
         R3 N = T.N_notNormalized(f); //  exterior and  ||N|| = 2* area f
         N *= T.faceOrient(f) / 2.;
-
+        N *= 1. / (d * T.measure());
         v[k++] = N.x;
         v[k++] = N.y;
         v[k++] = N.z;
@@ -364,8 +358,12 @@ void TypeOfFE_RT0_3d::FB(const What_d whatd, const Element &K, const R3 &PHat, R
     // cout << " TypeOfFE_RT0_3d "<< Th(K) << " " << Th.nt << " /
     // "<<K.faceOrient(0)<< " " << K.faceOrient(1) << " " << K.faceOrient(2) << "
     // " << K.faceOrient(3) <<endl;
-    R cc    = 1. / (d * K.measure());
-    R ci[4] = {cc * K.faceOrient(0), cc * K.faceOrient(1), cc * K.faceOrient(2), cc * K.faceOrient(3)};
+    R cc    = 1. / (d * K.measure()); //! Original
+    R cc2   = (d * K.measure());      //! Mine
+    // R ci[4] = {cc * K.faceOrient(0), cc * K.faceOrient(1), cc * K.faceOrient(2), cc * K.faceOrient(3)};   //!
+    // Original
+    R ci[4] = {cc * cc2 * K.faceOrient(0), cc * cc2 * K.faceOrient(1), cc * cc2 * K.faceOrient(2),
+               cc * cc2 * K.faceOrient(3)}; //! Mine
 
     if (whatd & Fop_D0) {
         R3 X  = K(PHat);

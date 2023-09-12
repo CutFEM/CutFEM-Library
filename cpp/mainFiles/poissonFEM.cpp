@@ -15,12 +15,13 @@ double fun_boundary(double *P, int elementComp) { return 2 * sin(2 * pi * P[0]) 
 double fun_rhs(double *P, int elementComp) { return 40 * pow(pi, 2) * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_exact(double *P, int elementComp) { return 2 * sin(2 * pi * P[0]) * sin(4 * pi * P[1]); }
 double fun_zero(double *P, int elementComp) { return 0.; }
+double fun_test(double *P, int elementComp) { return P[0] * P[1]; }
 
-#define triangle
+#define quad
 
 int main(int argc, char **argv) {
 
-    const size_t iterations = 5;
+    const size_t iterations = 4;
 
     // 2 DIMENSIONAL PROBLEM
     // =====================================================
@@ -54,7 +55,7 @@ int main(int argc, char **argv) {
         // CONSTRUCTION OF THE MESH AND FINITE ELEMENT SPACE
         // =====================================================
         Mesh Th(nx, ny, 0., 0., lx, ly);
-        FESpace Vh(Th, DataFE<Mesh>::P1);
+        FESpace Vh(Th, DataFE<Mesh>::P3);
 
         hs.at(j)      = h;
         double lambda = 100.;
@@ -69,6 +70,7 @@ int main(int argc, char **argv) {
         FEM<Mesh> poisson(Vh);
         Fun_h fh(Vh, fun_rhs);
         Fun_h gh(Vh, fun_exact);
+        Fun_h funTest(Vh, fun_test); // computer Neumann BC
         Fun_h gh_zero(Vh, fun_zero);
         FunTest u(Vh, 1), v(Vh, 1);
         Normal n;
@@ -78,15 +80,15 @@ int main(int argc, char **argv) {
         poisson.addBilinear(innerProduct(grad(u), grad(v)), Th);
         poisson.addLinear(innerProduct(fh.expr(), v), Th);
 
-        // poisson.setDirichlet(gh_zero, Th);
+        poisson.setDirichlet(gh_zero, Th);
 
-        poisson.addBilinear(-innerProduct(grad(u) * n, v) - innerProduct(u, grad(v) * n) +
-                                innerProduct(u, lambda / h * v) // added penalty
-                            ,
-                            Th, INTEGRAL_BOUNDARY);
+        // poisson.addBilinear(-innerProduct(grad(u) * n, v) - innerProduct(u, grad(v) * n) +
+        //                         innerProduct(u, lambda / h * v) // added penalty
+        //                     ,
+        //                     Th, INTEGRAL_BOUNDARY);
 
-        poisson.addLinear(- innerProduct(gh.expr(), grad(v) * n) + innerProduct(gh.expr(), lambda / h * v), Th,
-                          INTEGRAL_BOUNDARY);
+        // poisson.addLinear(- innerProduct(gh.expr(), grad(v) * n) + innerProduct(gh.expr(), lambda / h * v), Th,
+        //                   INTEGRAL_BOUNDARY);
 
         // RESOLUTION OF THE LINEAR SYSTEM
         // =====================================================
@@ -95,6 +97,7 @@ int main(int argc, char **argv) {
         // COMPUTE THE L2 ERROR
         // =====================================================
         Fun_h femSolh(Vh, poisson.rhs_);
+        
         R errU = L2norm(femSolh, fun_exact, 0, 1);
         std::cout << "errU = " << errU << "\n";
 
@@ -106,8 +109,14 @@ int main(int argc, char **argv) {
         writer.add(femSolh, "poisson", 0, 1);
         Fun_h uBex(Vh, fun_exact);
         Fun_h fB(Vh, fun_rhs);
+        auto test_dx(dx(funTest.expr()));    
+        auto test_dy(dy(funTest.expr()));
         writer.add(uBex, "bulk_exact", 0, 1);
+        writer.add(fabs(femSolh.expr() - uBex.expr()), "bulk_error");
         writer.add(fB, "bulk_rhs", 0, 1);
+        writer.add(funTest, "test", 0, 1);
+        writer.add(test_dx, "test_dx");
+        writer.add(test_dy, "test_dy");
 
         h *= 0.5;
     }

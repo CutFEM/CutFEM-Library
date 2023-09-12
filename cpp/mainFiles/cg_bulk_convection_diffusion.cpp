@@ -71,13 +71,13 @@ namespace Example1 {
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17) - Epsilon;
+    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17*0.17);
     //return -(sqrt((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc)) - 0.17) - Epsilon;   //! PUT BACK
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return -((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17) - Epsilon;
+    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17*0.17);
     //return -(sqrt((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22)) - 0.17) - Epsilon; //! PUT BACK
 }
 
@@ -638,7 +638,7 @@ typedef FunFEM<Mesh2> Fun_h;
 // Set type of BCs on interface (options: "dirichlet", "neumann")
 #define neumann
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
@@ -722,7 +722,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, 0., 0., lx, ly);
+        Mesh Th(nx, ny, 0.-Epsilon, 0.-Epsilon, lx, ly);
 #elif defined(lehrenfeld)
         const double lx = 7., ly = 3.;
 #ifdef use_h
@@ -783,7 +783,7 @@ int main(int argc, char **argv) {
         const double lambda = 1.; // Nitsche's method penalty parameter
 
         // CG stabilization parameter
-        const double tau1 = 5e-3;
+        const double tau1 = 0.001;
 
         FESpace2 Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
 
@@ -879,7 +879,7 @@ int main(int argc, char **argv) {
             ActiveMesh<Mesh> Thi(Th);
 
 //#ifdef omega1
-            Thi.truncate(interface, -1); // remove part with negative sign of level
+            Thi.truncate(interface, 1); // remove part with negative sign of level
 //#elif defined(omega2)
 //            Thi.truncate(interface, 1); // remove part with positive sign of level
                                         // set to get inner domain
@@ -900,10 +900,10 @@ int main(int argc, char **argv) {
         
 
             // Right hand side functions
-            Fun_h f(Vh3, In, fun_rhsBulk);
-            Fun_h g(Vh2, In, fun_uBulk);                 // create an FE-function of the exact bulk
+            Fun_h f(Vh, In, fun_rhsBulk);
+            Fun_h g(Vh, In, fun_uBulk);                 // create an FE-function of the exact bulk
                                                         // solution Omega2
-            Fun_h g_Neumann(Vh2, In, fun_neumann_Gamma); // computer Neumann BC
+            Fun_h g_Neumann(Vh, In, fun_neumann_Gamma); // computer Neumann BC
             // Fun_h g_Neumann_left(Wh, In, fun_neumann_left);     // label 1
             // Fun_h g_Neumann_bottom(Wh, In, fun_neumann_bottom); // label 4
             // Fun_h g_Neumann_right(Wh, In, fun_neumann_right);   // label 2

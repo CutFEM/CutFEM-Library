@@ -60,15 +60,15 @@ double fun_g_Neumann(double *P, int elementComp) {
 }
 
 // Level-set function
-double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0); }
+double fun_levelSet(double *P, const int i) { return -((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0); }
 
 template <int N> struct Levelset {
 
     double t;
 
     // level set function
-    template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
-        return -(x(0) * x(0) + x(1) * x(1) - 1.);
+    template <typename V> typename V::value_type operator()(const V &P) const {
+        return -(P[0] * P[0] + P[1] * P[1] - 1.);
     }
 
     // gradient of level set function
@@ -78,7 +78,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) const {
+    R2 normal(std::span<double> P) const {
         R norm = sqrt(4.0 * P[0] * P[0] + 4.0 * P[1] * P[1]);
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
         return R2(-2.0 * P[0] / norm, -2.0 * P[1] / norm);
@@ -171,6 +171,8 @@ double fun_uBulk(double *P, int elementComp, int domain) {
     // return 2.0*exp(1.0-P[0]*P[0]-P[1]*P[1])*( 3.0*P[0]*P[0]*P[1] - pow(P[1],3));
 }
 
+double fun_test(double *P) { return 2 * P[0] * P[0] + P[1]*P[1]; }
+
 double fun_one(double *P, const int i) { return 1.; }
 
 double fun_g_Neumann(double *P, int elementComp) {
@@ -186,15 +188,15 @@ double fun_g_Neumann(double *P, int elementComp) {
 }
 
 // Level-set function
-double fun_levelSet(double *P, const int i) { return +((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0); }
+double fun_levelSet(double *P, const int i) { return -((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0); }
 
 template <int N> struct Levelset {
 
     double t;
 
     // level set function
-    template <typename T> T operator()(const algoim::uvector<T, N> &x) const {
-        return -(x(0) * x(0) + x(1) * x(1) - 1.);
+    template <typename V> typename V::value_type operator()(const V &P) const {
+        return -((P[0]) * (P[0]) + (P[1]) * (P[1]) - 1.0);
     }
 
     // gradient of level set function
@@ -204,7 +206,7 @@ template <int N> struct Levelset {
     }
 
     // normal = grad(phi)/norm(grad(phi))
-    R2 normal(double *P) const {
+    R2 normal(std::span<double> P) const {
         R norm = sqrt(4.0 * P[0] * P[0] + 4.0 * P[1] * P[1]);
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
         return R2(-2.0 * P[0] / norm, -2.0 * P[1] / norm);
@@ -256,9 +258,11 @@ using namespace ConvectionDiffusion;
 #define algoim // options: "algoim", "quad", "triangle"
 #define neumann
 #define use_h
+#define k2
 
 // Setup two-dimensional class types
 const int d = 2;
+
 #if defined(algoim) || defined(quad)
 typedef MeshQuad2 Mesh;
 #else
@@ -273,11 +277,11 @@ typedef ExpressionFunFEM<Mesh> Expression;
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
-    ProblemOption option;
-    option.order_space_element_quadrature_ = 7;
+    // ProblemOption option;
+    // option.order_space_element_quadrature_ = 7;
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 3; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h = 0.1;              // starting mesh size
@@ -332,11 +336,15 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
 
         // CG stabilization parameter
-        const double tau1 = .01;
+        const double tau1 = .1;
 
         const double D = 1., lambda = 1e1;
 
+#if defined(k1)
         FESpace Vh(Th, DataFE<Mesh>::P1); // continuous basis functions
+#elif defined(k2)
+        FESpace Vh(Th, DataFE<Mesh>::P3);
+#endif
 
         // Velocity field
 #if defined(algoim) || defined(quad)
@@ -350,20 +358,27 @@ int main(int argc, char **argv) {
         // Set up level-set function
         FESpace Lh(Th, DataFE<Mesh>::P1);
         Fun_h levelSet(Lh, fun_levelSet);
+
+#if defined(algoim)
+        // Declare algoim interface
+        Levelset<2> phi;
+        AlgoimInterface<Mesh, Levelset<2>> interface(Th, phi);
+        // InterfaceLevelSet<Mesh> interface(Th, levelSet);
+#else
         InterfaceLevelSet<Mesh> interface(Th, levelSet);
+#endif
 
         // Create active meshes
         ActiveMesh<Mesh> Thi(Th);
 
-        Thi.truncate(interface, -1); // remove part with negative sign of level
+        Thi.truncate(interface, 1);
 
         // Cut FE space
         CutSpace Wh(Thi, Vh);
 
 #if defined(algoim)
-        // Declare algoim interface
-        Levelset<2> phi;
-        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi, option);
+        // AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi, option);
+        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi);
 #elif defined(triangle) || defined(quad)
         CutFEM<Mesh> convdiff(Wh);
 #endif
@@ -377,6 +392,7 @@ int main(int argc, char **argv) {
         Fun_h g(Vh, fun_uBulk); // create an FE-function of the exact solution
 
         Fun_h g_Neumann(Vh, fun_g_Neumann); // computer Neumann BC
+        //Fun_h funTest(Vh, fun_test); // computer Neumann BC
 
         // Test and Trial functions
         FunTest u(Wh, 1), v(Wh, 1);
@@ -404,7 +420,12 @@ int main(int argc, char **argv) {
 #endif
 
         //* Stabilization
+    #if defined(k1)
         convdiff.addFaceStabilization(innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)), Thi);
+    #elif defined(k2)
+        convdiff.addFaceStabilization(innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
+        + innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n)*n), jump(grad(grad(v) * n)*n)), Thi);
+    #endif
 
         //* Boundary conditions
 
@@ -475,6 +496,7 @@ int main(int argc, char **argv) {
             Paraview<Mesh> background_mesh(Th, path_output_figures + "Th.vtk");
             ExpressionFunFEM<Mesh> vx(vel, 0, op_id);
             ExpressionFunFEM<Mesh> vy(vel, 1, op_id);
+
             background_mesh.add(vx, "velx");
             background_mesh.add(vy, "vely");
 
@@ -495,11 +517,12 @@ int main(int argc, char **argv) {
 #if defined(algoim)
             // const auto &qf1 = *QF_Simplex<R1>(7);
             // std::cout << qf1 << std::endl;
-            const auto &qf(*QF_Quad(9));
+            const auto &qf(*QF_Quad(5));
             // std::cout << qf << std::endl;
 
             writer.writeAlgoimQuadrature(Thi, phi, -1, path_output_figures + "AlgoimQuadrature.vtk");
             writer.writeAlgoimQuadrature(Thi, qf, path_output_figures + "Quadrature.vtk");
+            writer.writeAlgoimQuadrature(Thi, phi, 2, path_output_figures + "AlgoimQuadratureSurface.vtk");
 #endif
         }
 

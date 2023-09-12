@@ -78,6 +78,44 @@ void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FEle
 
             // Get the value of the time basis function at the time integration points
             const R tval = bf_time(it, 0, VFi.dtv) * bf_time(jt, 0, VFi.dtu);
+            
+            // Loop over the spatial basis functions
+            for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
+                for (int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
+
+                    // Add the contribution to the local matrix
+                    this->addToLocalContribution(FKv.loc2glb(i, it), FKu.loc2glb(j, jt), thread_id) +=
+                        Cint * tval * fv(i, VFi.cv, VFi.dv) * fu(j, VFi.cu, VFi.du);
+                }
+            }
+        }
+    }
+}
+
+
+
+template <typename M>
+void BaseFEM<M>::addToMatrixSpecial(const itemVF_t &VFi, const TimeSlab &In, const FElement &FKu, const FElement &FKv,
+                             const RNMK_ &fu, const RNMK_ &fv, double Cint, int from_time_dof_u, int from_time_dof_v) {
+    // Get the thread id
+#ifdef USE_OMP
+    int thread_id = omp_get_thread_num();
+#else
+    int thread_id = 0;
+#endif
+
+    // Get the offset
+    long offset = thread_id * this->offset_bf_time;
+
+    // Get the time basis function
+    RNMK_ bf_time(this->databf_time_ + offset, In.NbDoF(), 1, op_dz);
+
+    // Loop over the time integration points
+    for (int it = from_time_dof_v; it < In.dfcend(0); ++it) {
+        for (int jt = from_time_dof_u; jt < In.dfcend(0); ++jt) {
+
+            // Get the value of the time basis function at the time integration points
+            const R tval = bf_time(it, 0, VFi.dtv) * bf_time(jt, 0, VFi.dtu);
 
             // Loop over the spatial basis functions
             for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
@@ -91,6 +129,10 @@ void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FEle
         }
     }
 }
+
+
+
+
 
 /**
  * @brief Adds the contribution to the global matrix from the current cell, using the test function and
@@ -140,7 +182,7 @@ void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FEle
 
     // Step 2: Loop over the time degrees of freedom.
     for (int it = In.dfcbegin(0); it < In.dfcend(0); ++it) {
-
+        
         // Step 3: Loop over the spatial degrees of freedom.
         for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
 
@@ -414,6 +456,7 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
         // BF MEMORY MANAGEMENT -
         bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
         int lastop = getLastop(VF[l].du, VF[l].dv);
+        
         RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
         RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
         What_d Fop = Fwhatd(lastop);
@@ -452,6 +495,95 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
         }
     }
 }
+
+template <typename M>
+void BaseFEM<M>::addFaceContributionSpecial(const itemVFlist_t &VF, const std::pair<int, int> &e1,
+                                     const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
+
+    typedef typename FElement::RdHatBord RdHatBord;
+
+    // CHECK IF IT IS FOR RHS OR MATRIX
+    // CONVENTION ki < kj
+    bool to_rhs = VF.isRHS();
+    int ki = e1.first, ifac = e1.second;
+    int kj = e2.first, jfac = e2.second;
+    // Compute parameter coonected to the mesh.
+    // on can take the one from the first test function
+    const FESpace &Vh(*VF[0].fespaceV);
+    const FElement &FKi(Vh[ki]);
+    const FElement &FKj(Vh[kj]);
+    const Element &Ki(FKi.T);
+    const Element &Kj(FKj.T);
+    double measK = Ki.measure() + Kj.measure();
+    double meas  = Ki.mesureBord(ifac);
+    double h     = 0.5 * (Ki.get_h() + Kj.get_h());
+    int domain   = FKi.get_domain();
+    Rd normal    = Ki.N(ifac);
+
+    // GET THE QUADRATURE RULE
+    const QFB &qfb(this->get_quadrature_formular_dK());
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for (int l = 0; l < VF.size(); ++l) {
+        // if(!VF[l].on(domain)) continue;
+
+        // FINTE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+        assert(Vhv.get_nb_element() == Vhu.get_nb_element());
+        const int kv = VF[l].onWhatElementIsTestFunction(ki, kj);
+        const int ku = VF[l].onWhatElementIsTrialFunction(ki, kj);
+
+        int kbv = Vhv.idxElementInBackMesh(kv);
+        int kbu = Vhu.idxElementInBackMesh(ku);
+
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
+        this->initIndex(FKu, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+        
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT
+        double coef = VF[l].computeCoefElement(h, meas, measK, measK, domain);
+        coef *= VF[l].computeCoefFromNormal(normal);
+
+        // LOOP OVER QUADRATURE IN SPACE
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+            typename QFB::QuadraturePoint ip(qfb[ipq]);
+            const Rd ip_edge = Ki.mapToReferenceElement((RdHatBord)ip, ifac);
+            const Rd mip     = Ki.mapToPhysicalElement(ip_edge);
+            double Cint      = meas * ip.getWeight() * cst_time;
+
+            // EVALUATE THE BASIS FUNCTIONS
+            FKv.BF(Fop, FKv.T.mapToReferenceElement(mip), fv);
+            if (!same)
+                FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
+
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu, kbv), std::make_pair(domain, domain),
+                                                           mip, tid, normal);
+            Cint *= coef * VF[l].c;
+
+            if (In) {
+                if (VF.isRHS())
+                    assert(0);
+                else
+                    this->addToMatrixSpecial(VF[l], *In, FKu, FKv, fu, fv, Cint, 1, 0);
+            } else {
+                assert(0);
+            }
+        }
+    }
+}
+
 
 // INTEGRATION ON BOUNDARY
 template <typename Mesh>
@@ -925,7 +1057,7 @@ void BaseFEM<M>::addInterfaceContribution(const itemVFlist_t &VF, const Interfac
 
         // // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
-
+            
             typename QFB::QuadraturePoint ip(qfb[ipq]); // integration point
             const Rd mip     = interface.mapToPhysicalFace(ifac, (RdHatBord)ip);
             const Rd face_ip = K.mapToReferenceElement(mip);

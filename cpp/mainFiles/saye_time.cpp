@@ -959,7 +959,7 @@ double integral_saye(fct_t &fh, const TimeSlab &In,
 					const Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
 					const R weight = q.nodes.at(ipq).w;
 
-					const R Cint = weight * In.T.mesure() * tq.a;
+					const R Cint = weight * In.T.measure() * tq.a;
 					if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>){
 					val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, cu, 0, 0);
 					}

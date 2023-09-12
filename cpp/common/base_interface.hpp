@@ -97,9 +97,12 @@ template <typeMesh M> class Interface {
     virtual bool isCut(int k) const                                                   = 0;
 
     Rd operator()(const int k, const int i) const { return vertices_[faces_[k][i]]; }
-    const Rd &operator()(const int i) const { return vertices_.at(i); }
-    const Face &operator[](const int k) const { return faces_.at(k); }
-    const Face &getFace(const int k) const { return faces_.at(k); }
+    // const Rd &operator()(const int i) const { return vertices_.at(i); }
+    // const Face &operator[](const int k) const { return faces_.at(k); }
+    // const Face &getFace(const int k) const { return faces_.at(k); }
+    const Rd &operator()(const int i) const { return vertices_[CheckV(i)]; }
+    const Face &operator[](const int k) const { return faces_[CheckT(k)]; }
+    const Face &getFace(const int k) const { return faces_[CheckT(k)]; }
 
     Uint idxElementOfFace(const int k) const { return element_of_face_.at(k); }
     Uint idxFaceOfElement(const int k) const {
@@ -139,8 +142,19 @@ template <typeMesh M> class Interface {
     virtual ~Interface() {}
 
   private:
+    inline int CheckV(int i) const {
+        assert(i >= 0 && i < vertices_.size());
+        return i;
+    }
+
+    inline int CheckT(int i) const {
+        assert(i >= 0 && i < size());
+        return i;
+    }
+    
     Interface(const Interface &);      // pas de construction par copie
     void operator=(const Interface &); // pas affectation par copy
+
 };
 
 #endif
