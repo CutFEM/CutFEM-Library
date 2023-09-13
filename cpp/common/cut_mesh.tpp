@@ -123,13 +123,13 @@ template <typename E> typename Cut_Part<E>::const_element_iterator Cut_Part<E>::
 //* Public Members *//
 
 template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
-    idx_in_background_mesh_.reserve(15);
-    idx_from_background_mesh_.reserve(15);
+    idx_in_background_mesh_.reserve(21);
+    idx_from_background_mesh_.reserve(21);
     idx_in_background_mesh_.resize(1);
     idx_from_background_mesh_.resize(1);
     idx_in_background_mesh_[0].resize(Th.nt);
 
-    interface_id_.resize(15);
+    interface_id_.resize(21);
 
     nb_quadrature_time_ = 1; // by default, the active mesh of the background mesh is stationary
 
@@ -141,8 +141,8 @@ template <typename Mesh> ActiveMesh<Mesh>::ActiveMesh(const Mesh &th) : Th(th) {
 
     idx_element_domain.push_back(0);
     idx_element_domain.push_back(Th.nt);
-    in_active_mesh_.resize(15);
-    for (int i = 0; i < 15; ++i)
+    in_active_mesh_.resize(21);
+    for (int i = 0; i < 21; ++i)
         in_active_mesh_[i].resize(nb_quadrature_time_);
 }
 
@@ -258,8 +258,8 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const TimeInterface<Mes
     int n_tid = interface.size();
     assert(n_tid < interface_id_.size());
     nb_quadrature_time_ = n_tid;
-    in_active_mesh_.resize(15);
-    for (int i = 0; i < 15; ++i)
+    in_active_mesh_.resize(21);
+    for (int i = 0; i < 21; ++i)
         in_active_mesh_[i].resize(nb_quadrature_time_);
 
     int dom_size = this->get_nb_domain();

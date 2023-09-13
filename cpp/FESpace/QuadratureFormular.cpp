@@ -384,7 +384,7 @@ static GQuadraturePoint<R1> P_QF_Lobatto14[14] = {
     QuadratureFormular1d::QP(0.08001092588147607121, R1(0.86443429954566307029)), 
     QuadratureFormular1d::QP(0.05829332794935582577, R1(0.93390052691517362550)),
     QuadratureFormular1d::QP(0.03341864224884064232, R1(0.97996752263363045068)), 
-    QuadratureFormular1d::QP(0.00549450549450549451, R1(1.)),};
+    QuadratureFormular1d::QP(0.00549450549450549451, R1(1.))};
 const QuadratureFormular1d QF_Lobatto14(14, 14, P_QF_Lobatto14);
 
 static GQuadraturePoint<R1> P_QF_Lobatto15[9] = {QuadratureFormular1d::QP(0.013888888888889, R1(0.)),
@@ -397,6 +397,31 @@ static GQuadraturePoint<R1> P_QF_Lobatto15[9] = {QuadratureFormular1d::QP(0.0138
                                                  QuadratureFormular1d::QP(0.082747680780403, R1(0.949878997705730)),
                                                  QuadratureFormular1d::QP(0.013888888888889, R1(1.))};
 const QuadratureFormular1d QF_Lobatto15(15, 9, P_QF_Lobatto15);
+
+
+static GQuadraturePoint<R1> P_QF_Lobatto20[20] = {
+    QuadratureFormular1d::QP(0.00263157894736842, R1(0.)),
+    QuadratureFormular1d::QP(0.0161185615942445, R1(0.00962814755304292)), 
+    QuadratureFormular1d::QP(0.0285909010637834, R1(0.0320327505936673)),
+    QuadratureFormular1d::QP(0.0403158819980598, R1(0.0665610109550249)), 
+    QuadratureFormular1d::QP(0.0509957498497254, R1(0.112315869523972)), 
+    QuadratureFormular1d::QP(0.0603546138143374, R1(0.168111798854844)),
+    QuadratureFormular1d::QP(0.0681502411793621, R1(0.232503567984057)), 
+    QuadratureFormular1d::QP(0.0741807770354584, R1(0.303823408143045)), 
+    QuadratureFormular1d::QP(0.0782900513237377, R1(0.380224147038507)),
+    QuadratureFormular1d::QP(0.0803716431939229, R1(0.459727031380589)), 
+    QuadratureFormular1d::QP(0.0803716431939229, R1(0.540272968619411)), 
+    QuadratureFormular1d::QP(0.0782900513237377, R1(0.619775852961493)),
+    QuadratureFormular1d::QP(0.0741807770354584, R1(0.696176591856955)), 
+    QuadratureFormular1d::QP(0.0681502411793621, R1(0.767496432015943)),
+    QuadratureFormular1d::QP(0.0603546138143374, R1(0.831888201145156)),
+    QuadratureFormular1d::QP(0.0509957498497254, R1(0.887684130476028)),
+    QuadratureFormular1d::QP(0.0403158819980598, R1(0.933438989044975)),
+    QuadratureFormular1d::QP(0.0285909010637834, R1(0.967967249406333)),
+    QuadratureFormular1d::QP(0.0161185615942445, R1(0.990371852446957)),
+    QuadratureFormular1d::QP(0.00263157894736842, R1(1.))};
+const QuadratureFormular1d QF_Lobatto20(20, 20, P_QF_Lobatto20);
+
 
 // explict instantiation
 int exactLobatto_nPt(int n) {
@@ -452,6 +477,8 @@ const QuadratureFormular1d *Lobatto(int exact) {
         return &QF_Lobatto10;
     case 14:
         return &QF_Lobatto14;
+    case 20:
+        return &QF_Lobatto20;
     // case 15:
     //    return &QF_Lobatto15;
     default:
