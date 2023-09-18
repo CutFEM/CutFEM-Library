@@ -712,13 +712,6 @@ R fun_solution(double *P, int elementComp, int domain, double t) {
     R2 Q(r * cos(theta - 2 * pi * t), r * sin(theta - 2 * pi * t));
     return fun_initial(Q, 0, 0);
 }
-
-// R fun_initial(double *P, int elementComp, int domain) {
-//     double r0 = 0.4;
-//     double a  = 0.2;
-//     return 0.5 * (1 - tanh(((P[0] - r0) * (P[0] - r0) + P[1] * P[1]) / (a * a) - 1));
-//     // return fun_solution(P, elementComp, domain, 0);
-// }
 R fun_boundary(double *P, int elementComp, double t) { return 0.; }
 R fun_velocity(double *P, int elementComp, int domain) { return (elementComp == 0) ? -2 * pi * P[1] : 2 * pi * P[0]; }
 
@@ -1068,39 +1061,6 @@ int main(int argc, char **argv) {
 #define fluxFctN(I) burgerFlux(I, N)
 
 R fun_initial(double *P, int elementComp) { return 1 + 0.5 * sin(pi * (P[0] + P[1])); }
-// R fun_solution(double* P, int elementComp, int domain, double t) {
-//   double C = P[0]+P[1];
-//   double x1 = 0;
-//   double x2 = 4;
-//   double x0 = 0.5*(x1+x2);
-//   double f1 = x1 + 2.*sin(pi*x1)*t - C;
-//   if(fabs(f1) < 1e-10) {
-//     return sin(pi*x1);
-//   }
-//   double f2 = x2 + 2.*sin(pi*x2)*t - C;
-//   if(fabs(f2) < 1e-10) {
-//     return sin(pi*x2);
-//   }
-//
-//   for(int i=0;i<=50;++i) {
-//     double fa = x1 + 2.*sin(pi*x1)*t - C;
-//     double fm = x0 + 2.*sin(pi*x0)*t - C;
-//
-//     if(fa*fm < 0) x2 = x0;
-//     else          x1 = x0;
-//
-//     if(fabs(fm) < 1e-12) break;
-//     x0 = 0.5*(x1+x2);
-//
-//     if(i == 50) {
-//       std::cout << " f(x0) = " << fm << std::endl;
-//       // assert(0);
-//       std::cout << " Burger Newton not converged" << std::endl;
-//       getchar();
-//     }
-//   }
-//   return sin(pi*x0);
-// }
 R fun_scalar(double x) { return 1 + 0.5 * sin(pi * x); }
 R fun_solution(double *P, int elementComp, int domain, double t) {
     double x0 = P[0] + P[1];
@@ -2100,13 +2060,13 @@ int main(int argc, char **argv) {
 double c0 = 0.77; // 0.25;
 R fun_levelSet(double *P, const int i) { return -(P[1] + 0.5 * P[0] - 1.73); }
 R fun_initial(double *P, int elementComp, int domain) {
-    double xs = 0.9, ys = 0.9;
-    double r = 0.3;
+    double xs = 0.99, ys = 0.99;
+    double r = 0.05; // 0.3;
     double v = (P[0] - xs) * (P[0] - xs) + (P[1] - ys) * (P[1] - ys);
-    if (v < r * r)
-        return 1; // exp(-pow(P[0] - xs,2)/r - pow(P[1] - ys,2)/r);
-    else
-        return 0.;
+    // if (v < r * r)
+    return exp(-pow(P[0] - xs, 2) / r - pow(P[1] - ys, 2) / r);
+    // else
+    //     return 0.;
 }
 R fun_boundary(double *P, int elementComp, int domain, double t) {
     return 0.;
@@ -2219,12 +2179,12 @@ int main(int argc, char **argv) {
 
     // DEFINITION OF THE MESH and SPACE
     // =====================================================
-    int nx = 20;
-    int ny = 20;
+    int nx = 40;
+    int ny = 40;
     // mesh_t Th(nx, ny, -1., -1., 2., 2.);   // [-1,1]*[-1,1]
     Mesh2 Th(nx, ny, 0., 0., 2., 2.);
 
-    fespace_t Vh(Th, DataFE<Mesh2>::P0);
+    fespace_t Vh(Th, DataFE<Mesh2>::P1dc);
     fespace_t Eh0(Th, DataFE<Mesh2>::P0);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
@@ -2297,7 +2257,6 @@ int main(int argc, char **argv) {
         // THIRD ORDER RK
         // =================================================
         {
-
             Rn u1(u0);
             Rn u2(Wh.NbDoF(), 0.);
 
@@ -2343,6 +2302,7 @@ int main(int argc, char **argv) {
 
                 // Try
                 // 1) compute the mean of the macro element (extension)
+                // 3) reconstruction on the macro elements (should be there or???)
                 // 2) compute indicator
                 // 3) reconstruction on the macro elements
                 // 4) do the slope limiter
@@ -2350,13 +2310,21 @@ int main(int argc, char **argv) {
                 // 6) boundary preserving
 
                 std::map<int, double> u_mean = limiter::CutFEM::computeMeanValue(fun_u1, macro);
+                // std::cout << u_mean << std::endl;
 
-                std::vector<double> indicator = limiter::CutFEM::computeTroubleCellIndicator(fun_u1);
+                // std::vector<double> indicator = limiter::CutFEM::computeTroubleCellIndicator(fun_u1);
 
-                std::vector<double> u1_slope = limiter::CutFEM::applySlopeLimiter(fun_u1, indicator, 0.01);
-                Fun_h fun_u1_slope(Wh, u1_slope);
+                // std::vector<double> u1_M0 = limiter::CutFEM::extendToMacro(fun_u1, u_mean, macro);
+                // Fun_h fun_u1_macro0(Wh, u1_M0);
 
-                std::vector<double> u1_M = limiter::CutFEM::extendToMacro(fun_u1_slope, u_mean, macro);
+                // std::vector<double> u1_tild0 =
+                //     limiter::CutFEM::applyBoundPreservingLimiter(fun_u1_macro0, min_u0, max_u0, u_mean, macro);
+                // Fun_h fun_u1_tild0(Wh, u1_tild0);
+
+                // std::vector<double> u1_slope = limiter::CutFEM::applySlopeLimiter(fun_u1_tild0, indicator, 0.01,
+                // macro); Fun_h fun_u1_slope(Wh, u1_slope);
+
+                std::vector<double> u1_M = limiter::CutFEM::extendToMacro(fun_u1, u_mean, macro);
                 Fun_h fun_u1_macro(Wh, u1_M);
 
                 std::vector<double> u1_tild =
@@ -2367,17 +2335,19 @@ int main(int argc, char **argv) {
                 // uh_tild               = u1_tild;
                 auto [min_uh, max_uh]     = limiter::CutFEM::findMinAndMaxValue(fun_u0);
                 auto [min_u1, max_u1]     = limiter::CutFEM::findMinAndMaxValue(fun_u1);
-                auto [min_u1_s, max_u1_s] = limiter::CutFEM::findMinAndMaxValue(fun_u1_slope);
+                // auto [min_u1_M0, max_u1_M0] = limiter::CutFEM::findMinAndMaxValue(fun_u1_macro0);
+                // auto [min_u1_s, max_u1_s]   = limiter::CutFEM::findMinAndMaxValue(fun_u1_slope);
                 auto [min_u1_M, max_u1_M] = limiter::CutFEM::findMinAndMaxValue(fun_u1_macro);
                 auto [min_u1_t, max_u1_t] = limiter::CutFEM::findMinAndMaxValue(fun_u1_tild);
 
                 std::cout << "[m, M] = [ " << min_u0 << " , " << max_u0 << " ]" << std::endl;
                 std::cout << min_uh << " < u_0  < " << max_uh << std::endl;
                 std::cout << min_u1 << " < u1_{h,1} < " << max_u1 << std::endl;
-                std::cout << min_u1_s << " < u1_{h,1,s} < " << max_u1_s << std::endl;
+                // std::cout << min_u1_M0 << " < u1_{h,1,M0} < " << max_u1_M0 << std::endl;
+                // std::cout << min_u1_s << " < u1_{h,1,s} < " << max_u1_s << std::endl;
                 std::cout << min_u1_M << " < u1_{h,1,M} < " << max_u1_M << std::endl;
                 std::cout << min_u1_t << " < u1_{h,1,t} < " << max_u1_t << std::endl;
-                Fun_h fun_indicator(Eh, indicator);
+                // Fun_h fun_indicator(Eh, indicator);
 
 #ifdef USE_MPI
                 if (MPIcf::IamMaster())
@@ -2385,10 +2355,11 @@ int main(int argc, char **argv) {
                 {
                     Paraview<mesh_t> writer(Khi, "checkErrorDiscontinuous.vtk");
                     writer.add(fun_u1, "uh", 0, 1);
-                    writer.add(fun_u1_slope, "uh_slope", 0, 1);
-                    writer.add(fun_u1_macro, "uh_extend", 0, 1);
+                    // writer.add(fun_u1_macro0, "uh_extend0", 0, 1);
+                    // writer.add(fun_u1_slope, "uh_slope", 0, 1);
+                    writer.add(fun_u1_macro, "uh_extend1", 0, 1);
                     writer.add(fun_u1_tild, "uh_tild", 0, 1);
-                    writer.add(fun_indicator, "indicator", 0, 1);
+                    // writer.add(fun_indicator, "indicator", 0, 1);
                 }
                 return 0;
 

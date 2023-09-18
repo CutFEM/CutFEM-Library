@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
     int ny = 40;
     mesh_t Th(nx, ny, 0., 0., 2., 2.);
 
-    space_t Vh(Th, DataFE<mesh_t>::P0);
+    space_t Vh(Th, DataFE<mesh_t>::P1dc);
     space_t Eh0(Th, DataFE<Mesh2>::P0);
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
@@ -226,19 +226,19 @@ int main(int argc, char **argv) {
             std::map<int, double> u_mean = limiter::CutFEM::computeMeanValue(fun_u1, macro);
             // std::cout << u_mean << std::endl;
 
-            // std::vector<double> indicator = limiter::CutFEM::computeTroubleCellIndicator(fun_u1);
+            std::vector<double> indicator = limiter::CutFEM::computeTroubleCellIndicator(fun_u1);
 
-            // std::vector<double> u1_M0 = limiter::CutFEM::extendToMacro(fun_u1, u_mean, macro);
-            // fct_t fun_u1_macro0(Wh, u1_M0);
+            std::vector<double> u1_M0 = limiter::CutFEM::extendToMacro(fun_u1, u_mean, macro);
+            fct_t fun_u1_macro0(Wh, u1_M0);
 
-            // std::vector<double> u1_tild0 =
-            //     limiter::CutFEM::applyBoundPreservingLimiter(fun_u1_macro0, min_u0, max_u0, u_mean, macro);
-            // fct_t fun_u1_tild0(Wh, u1_tild0);
+            std::vector<double> u1_tild0 =
+                limiter::CutFEM::applyBoundPreservingLimiter(fun_u1_macro0, min_u0, max_u0, u_mean, macro);
+            fct_t fun_u1_tild0(Wh, u1_tild0);
 
-            // std::vector<double> u1_slope = limiter::CutFEM::applySlopeLimiter(fun_u1_tild0, indicator, 0.01,
-            // macro); fct_t fun_u1_slope(Wh, u1_slope);
+            std::vector<double> u1_slope = limiter::CutFEM::applySlopeLimiter(fun_u1_tild0, indicator, 0.01, macro);
 
-            std::vector<double> u1_M = limiter::CutFEM::extendToMacro(fun_u1, u_mean, macro);
+            fct_t fun_u1_slope(Wh, u1_slope);
+            std::vector<double> u1_M = limiter::CutFEM::extendToMacro(fun_u1_slope, u_mean, macro);
             fct_t fun_u1_macro(Wh, u1_M);
 
             std::vector<double> u1_tild =
@@ -247,18 +247,18 @@ int main(int argc, char **argv) {
 
             // uh                    = u1;
             // uh_tild               = u1_tild;
-            auto [min_uh, max_uh]     = limiter::CutFEM::findMinAndMaxValue(fun_u0);
-            auto [min_u1, max_u1]     = limiter::CutFEM::findMinAndMaxValue(fun_u1);
-            // auto [min_u1_M0, max_u1_M0] = limiter::CutFEM::findMinAndMaxValue(fun_u1_macro0);
-            // auto [min_u1_s, max_u1_s]   = limiter::CutFEM::findMinAndMaxValue(fun_u1_slope);
-            auto [min_u1_M, max_u1_M] = limiter::CutFEM::findMinAndMaxValue(fun_u1_macro);
-            auto [min_u1_t, max_u1_t] = limiter::CutFEM::findMinAndMaxValue(fun_u1_tild);
+            auto [min_uh, max_uh]       = limiter::CutFEM::findMinAndMaxValue(fun_u0);
+            auto [min_u1, max_u1]       = limiter::CutFEM::findMinAndMaxValue(fun_u1);
+            auto [min_u1_M0, max_u1_M0] = limiter::CutFEM::findMinAndMaxValue(fun_u1_macro0);
+            auto [min_u1_s, max_u1_s]   = limiter::CutFEM::findMinAndMaxValue(fun_u1_slope);
+            auto [min_u1_M, max_u1_M]   = limiter::CutFEM::findMinAndMaxValue(fun_u1_macro);
+            auto [min_u1_t, max_u1_t]   = limiter::CutFEM::findMinAndMaxValue(fun_u1_tild);
 
             std::cout << "[m, M] = [ " << min_u0 << " , " << max_u0 << " ]" << std::endl;
             std::cout << min_uh << " < u_0  < " << max_uh << std::endl;
             std::cout << min_u1 << " < u1_{h,1} < " << max_u1 << std::endl;
-            // std::cout << min_u1_M0 << " < u1_{h,1,M0} < " << max_u1_M0 << std::endl;
-            // std::cout << min_u1_s << " < u1_{h,1,s} < " << max_u1_s << std::endl;
+            std::cout << min_u1_M0 << " < u1_{h,1,M0} < " << max_u1_M0 << std::endl;
+            std::cout << min_u1_s << " < u1_{h,1,s} < " << max_u1_s << std::endl;
             std::cout << min_u1_M << " < u1_{h,1,M} < " << max_u1_M << std::endl;
             std::cout << min_u1_t << " < u1_{h,1,t} < " << max_u1_t << std::endl;
             // fct_t fun_indicator(Eh, indicator);
