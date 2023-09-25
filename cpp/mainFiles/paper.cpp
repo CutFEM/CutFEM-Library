@@ -412,7 +412,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
                  // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
                  // proportional to h.
-#define conservationnot
+#define conservation
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -436,7 +436,7 @@ int main(int argc, char **argv) {
     // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;             // starting mesh size
@@ -477,7 +477,7 @@ int main(int argc, char **argv) {
     std::array<double, iterations> omega;
     std::array<double, iterations> gamma;
     std::array<double, iterations> global_conservation_errors;
-
+    std::array<double, iterations> reynold_error;
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
 
@@ -514,7 +514,7 @@ int main(int argc, char **argv) {
 
         // Parameters
         // const double tfinal = 2.; // Final time
-        const double tfinal = .1; // Final time
+        const double tfinal = 1.; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -551,20 +551,20 @@ int main(int argc, char **argv) {
 
         // CG stabilization parameter
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
-        const double tau1 = 10., tau2 = 0.1;
+        const double tau1 = 0.1, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P3);               // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P1);               // Background FE Space
         FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P3Poly);               // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);               // FE Space in time
         FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(14)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -584,7 +584,7 @@ int main(int argc, char **argv) {
 
         Levelset<2> phi;
         ProblemOption option;
-        option.order_space_element_quadrature_ = 7;
+        option.order_space_element_quadrature_ = 5;
         AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
@@ -593,7 +593,9 @@ int main(int argc, char **argv) {
         double mass_last_previous;
         double intF = 0, int_outflow = 0, intG = 0; // hold integrals of rhs and Neumann bcs
         double global_conservation_error = 0;
+        double local_conservation_error  = 0;
         double errBulk                   = 0.;
+        std::vector<double> local_conservation_errors;
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -674,13 +676,20 @@ int main(int argc, char **argv) {
 
 #elif defined(conservative)
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
-            
+            // convdiff.addBilinear(-innerProduct(3.*u, v)-innerProduct(5.*dt(u), v), Thi, 0, In);
+
+            // auto dtu0 = dt(b0h.expr());
+
             // Impose initial condition
             if (iter == 0) {
                 convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+                // convdiff.addLinearExact(fun_uBulk, -innerProduct(3., v), Thi, 0, In);
+                // convdiff.addLinear(-innerProduct(5.*dtu0, v), Thi, 0, In);
             } else {
                 convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
+                // convdiff.addLinear(-innerProduct(3.*b0h.expr(), v)-innerProduct(5.*dtu0, v), Thi, 0, In);
             }
+            // convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
 
             convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
@@ -690,11 +699,12 @@ int main(int argc, char **argv) {
 #endif
 
             // Source function
-            //convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
-            convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
+            convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
+            // convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
 
             // Neumann boundary condition
-            convdiff.addLinearExact(fun_neumann_Gamma, +innerProduct(1, v), interface, In);
+            convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
+            //convdiff.addLinearExact(fun_neumann_Gamma, +innerProduct(1, v), interface, In);
 
             // Stabilization
             double stab_bulk_faces = 0.;
@@ -757,6 +767,37 @@ int main(int argc, char **argv) {
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
 
+            // Compute error in Reynold relation
+            {
+
+                AlgoimCutFEM<Mesh, Levelset<2>> reynold(qTime, phi);
+
+                reynold.initSpace(Wh, In);
+
+                reynold.addBilinear(innerProduct(u, v), Thi, (int)lastQuadTime, In);
+                if (iter == 0)
+                    reynold.addLinearExact(fun_uBulk, innerProduct(1, v), Thi, 0, In);
+                else
+                    reynold.addLinear(innerProduct(b0h.expr(), v), Thi, 0, In);
+
+                reynold.addBilinear(-innerProduct(dt(u), v) - innerProduct(u, dt(v)), Thi, In);
+
+                for (int i = 0; i < nbTime; ++i) {
+                    reynold.addBilinear(-innerProduct((vel[i].exprList() * grad(u)), v) -
+                                            innerProduct(u, (vel[i].exprList() * grad(v))),
+                                        Thi, In, i);
+                }
+
+                int N = Wh.NbDoF();
+                Rn lhs(ndfTime * N);
+                multiply(ndfTime * N, ndfTime * N, reynold.mat_, data_u0, lhs);
+
+                lhs -= reynold.rhs_;
+
+                reynold_error.at(j) = lhs.linfty();
+                std::cout << " e_r^n = " << reynold_error.at(j) << '\n';
+            }
+
             // Compute area of domain in time quadrature point 0
             Fun_h funone(Wh, fun_one);
 
@@ -784,6 +825,10 @@ int main(int argc, char **argv) {
 // Compute conservation error
 // if (iterations == 1 && h > 0.01) {
 #if defined(conservation)
+            // intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime);      // integrate source over In
+            // intG = integral_algoim(fun_neumann_Gamma, In, interface, phi, 0); // integrate flux across boundary over
+            // In
+
             intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
             intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
 
@@ -797,22 +842,24 @@ int main(int argc, char **argv) {
 
             if (iter == 0) {
                 mass_last_previous = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
-                //mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
+                // mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
             }
 
-            global_conservation_error += ((mass_last - mass_last_previous) - intF - intG);
-            
+            local_conservation_error = ((mass_last - mass_last_previous) - intF - intG);
+            global_conservation_error += local_conservation_error;
 
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
+            std::cout << "local_conservation_error: " << local_conservation_error << "\n";
 
             outputData << std::setprecision(10);
             outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG << ","
-                       << ((mass_last - mass_last_previous) - intF - intG) << '\n';
+                       << local_conservation_error << '\n';
 
             mass_last_previous = mass_last; // set current last to previous last for next time slab
                                             //}
 
             global_conservation_errors[j] = std::fabs(global_conservation_error);
+            local_conservation_errors.push_back(std::fabs(local_conservation_error));
 
 #endif
 
@@ -853,6 +900,16 @@ int main(int argc, char **argv) {
             iter++;
         }
 
+        std::cout << "\n";
+        std::cout << "Local conservation error = [";
+        for (auto &err : local_conservation_errors) {
+
+            std::cout << err;
+
+            std::cout << ", ";
+        }
+        std::cout << "]\n";
+
 // Refine mesh
 #ifdef use_n
         nx *= 2;
@@ -883,6 +940,17 @@ int main(int argc, char **argv) {
     for (int i = 0; i < iterations; i++) {
 
         std::cout << global_conservation_errors.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    std::cout << '\n';
+
+    std::cout << '\n';
+    std::cout << "Reynold error = [";
+    for (int i = 0; i < iterations; i++) {
+        std::cout << reynold_error.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }
