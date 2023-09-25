@@ -466,7 +466,7 @@ int main(int argc, char **argv) {
     //}
 
     // Data file to hold problem data
-    std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
+    //std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
@@ -590,8 +590,8 @@ int main(int argc, char **argv) {
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
         int iter = 0;
-        double mass_last_previous;
-        double intF = 0, int_outflow = 0, intG = 0; // hold integrals of rhs and Neumann bcs
+        double mass_last_previous, mass_initial;
+        double intF = 0, int_outflow = 0, intG = 0, intF_total = 0, intG_total = 0; // hold integrals of rhs and Neumann bcs
         double global_conservation_error = 0;
         double local_conservation_error  = 0;
         double errBulk                   = 0.;
@@ -689,7 +689,6 @@ int main(int argc, char **argv) {
                 convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
                 // convdiff.addLinear(-innerProduct(3.*b0h.expr(), v)-innerProduct(5.*dtu0, v), Thi, 0, In);
             }
-            // convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
 
             convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
@@ -699,12 +698,12 @@ int main(int argc, char **argv) {
 #endif
 
             // Source function
-            convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
-            // convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
+            // convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
+            convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
 
             // Neumann boundary condition
-            convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
-            //convdiff.addLinearExact(fun_neumann_Gamma, +innerProduct(1, v), interface, In);
+            // convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
+            convdiff.addLinearExact(fun_neumann_Gamma, +innerProduct(1, v), interface, In);
 
             // Stabilization
             double stab_bulk_faces = 0.;
@@ -825,35 +824,33 @@ int main(int argc, char **argv) {
 // Compute conservation error
 // if (iterations == 1 && h > 0.01) {
 #if defined(conservation)
-            // intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime);      // integrate source over In
-            // intG = integral_algoim(fun_neumann_Gamma, In, interface, phi, 0); // integrate flux across boundary over
-            // In
+            intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime);      // integrate source over In
+            intG = integral_algoim(fun_neumann_Gamma, In, interface, phi, 0); // integrate flux boundary over In
 
-            intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
-            intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
+            intF_total += intF;
+            intG_total += intG;
+
+            // intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
+            // intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
 
             double mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime); // mass in last quad point
 
-            // if (iter == 0) {
-            //     //mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
-            // } else {
-            //     global_conservation_error += ((mass_last - mass_last_previous) - intF - intG);
-            // }
-
             if (iter == 0) {
-                mass_last_previous = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
+                mass_initial =  integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
+                mass_last_previous = mass_initial;
                 // mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
             }
 
             local_conservation_error = ((mass_last - mass_last_previous) - intF - intG);
-            global_conservation_error += local_conservation_error;
+            //global_conservation_error += local_conservation_error;
+            global_conservation_error = (mass_last - mass_initial - intF_total - intG_total);
 
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
             std::cout << "local_conservation_error: " << local_conservation_error << "\n";
 
-            outputData << std::setprecision(10);
-            outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG << ","
-                       << local_conservation_error << '\n';
+            // outputData << std::setprecision(10);
+            // outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG << ","
+            //            << local_conservation_error << '\n';
 
             mass_last_previous = mass_last; // set current last to previous last for next time slab
                                             //}
@@ -894,8 +891,8 @@ int main(int argc, char **argv) {
                                                  ".vtk");
             }
 
-            if (iterations > 1 && iter == total_number_iteration - 1)
-                outputData << h << "," << dT << "," << errBulk << '\n';
+            // if (iterations > 1 && iter == total_number_iteration - 1)
+            //     outputData << h << "," << dT << "," << errBulk << '\n';
 
             iter++;
         }
