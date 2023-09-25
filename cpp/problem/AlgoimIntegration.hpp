@@ -703,10 +703,9 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
                     val += Cint * fh.evalOnBackMesh(kb, domain, mip, t, cu, 0, 0);
 
                 } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
-                    val += weight * fh->evalOnBackMesh(kb, domain, mip, t);
+                    val += Cint * fh->evalOnBackMesh(kb, domain, mip, t);
                 } else {
-                    //std::cout << fh(mip, domain, t) << " yeah\n";
-                    val += weight * fh(mip, domain, t);
+                    val += Cint * fh(mip, domain, t);
                 }
             }
         }
