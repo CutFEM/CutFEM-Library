@@ -46,6 +46,11 @@ endif()
 
 if(${CUTFEM_BUILD_MAIN})
 
+
+set(EX_NAME bulkCD2)
+add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion2.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
 set(EX_NAME maxwell3d)
 add_executable(${EX_NAME}  mainFiles/maxwell3D.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )

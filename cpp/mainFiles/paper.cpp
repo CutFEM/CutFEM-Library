@@ -401,8 +401,535 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 }
 } // namespace Example3
 
+namespace Preuss {
+const double R0       = .5;
+const double D        = 1.;
+const double beta_max = 2.;
+
+/* This works for running Test – i.e. a pure bulk problem on Omega_2. */
+
+double fun_one(double *P, const int i) { return 1.; }
+
+double rho(double *P, const double t) { return 1. / pi * std::sin(2 * pi * t); }
+
+double fun_levelSet(double *P, const int i, const double t) {
+    return P[0] * P[0] + (P[1] - rho(P, t)) * (P[1] - rho(P, t)) - R0 * R0;
+}
+
+template <int N> struct Levelset {
+
+    double t;
+
+    // level set function
+    template <typename V> typename V::value_type operator()(const V &P) const {
+
+        return P[0] * P[0] + (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi * t)) - R0 * R0;
+    }
+
+    // gradient of level set function
+    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+
+        return algoim::uvector<T, N>(2. * x(0), 2. * (x(1) - 1. / pi * sin(2 * pi * t)));
+    }
+
+    // normal = grad(phi)/norm(grad(phi))
+    R2 normal(std::span<double> P) const {
+        // R norm = sqrt(4. * (P[0] - 1. / pi * sin(2 * pi * t)) * (P[0] - 1. / pi * sin(2 * pi * t)) + 4. * P[1] *
+        // P[1]);
+        R norm = sqrt(4. * P[0] * P[0] + 4. * (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi * t)));
+        // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
+        return R2(2. * P[0] / norm, 2. * (P[1] - 1. / pi * sin(2 * pi * t)) / norm);
+    }
+};
+
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) { return 0.; }
+
+// Velocity field
+R fun_velocity(double *P, const int i, const double t) {
+    if (i == 0)
+        return 0.;
+    else
+        return 2 * std::cos(2 * pi * t);
+}
+
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) {
+    return std::pow(std::cos(pi * std::sqrt(P[0] * P[0] + P[1] * P[1]) / (2 * R0)), 2);
+}
+
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    double x = P[0], y = P[1];
+
+    double rho = 1. / pi * std::sin(2 * pi * t);
+    double r   = std::sqrt(x * x + (y - rho) * (y - rho));
+    return std::pow(std::cos(pi * r / (2 * R0)), 2);
+}
+
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    double x = P[0], y = P[1];
+
+    double rho = 1. / pi * std::sin(2 * pi * t);
+    double r   = std::sqrt(x * x + (y - rho) * (y - rho));
+    return std::pow(std::cos(pi * r / (2 * R0)), 2);
+}
+
+// RHS fB bulk
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    // with eps
+    return -D * ((1.0 / (R0 * R0) * (x * x) * (3.141592653589793 * 3.141592653589793) *
+                  pow(cos((3.141592653589793 *
+                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x +
+                                1.0E-16)) /
+                          (R0 * 2.0)),
+                      2.0) *
+                  (-1.0 / 2.0)) /
+                     (pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16) +
+                 (1.0 / (R0 * R0) * (x * x) * (3.141592653589793 * 3.141592653589793) *
+                  pow(sin((3.141592653589793 *
+                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x +
+                                1.0E-16)) /
+                          (R0 * 2.0)),
+                      2.0)) /
+                     (pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) * 2.0 + (x * x) * 2.0 +
+                      2.0E-16) -
+                 (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) *
+                  pow(cos((3.141592653589793 *
+                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x +
+                                1.0E-16)) /
+                          (R0 * 2.0)),
+                      2.0) *
+                  pow(y * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1, 2.0)) /
+                     (pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) * 8.0 + (x * x) * 8.0 +
+                      8.0E-16) +
+                 (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) *
+                  pow(sin((3.141592653589793 *
+                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x +
+                                1.0E-16)) /
+                          (R0 * 2.0)),
+                      2.0) *
+                  pow(y * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1, 2.0)) /
+                     (pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) * 8.0 + (x * x) * 8.0 +
+                      8.0E-16) -
+                 (3.141592653589793 *
+                  cos((3.141592653589793 *
+                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                      (R0 * 2.0)) *
+                  sin((3.141592653589793 *
+                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                      (R0 * 2.0)) *
+                  1.0 / sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16) *
+                  2.0) /
+                     R0 +
+                 ((x * x) * 3.141592653589793 *
+                  cos((3.141592653589793 *
+                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                      (R0 * 2.0)) *
+                  sin((3.141592653589793 *
+                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                      (R0 * 2.0)) *
+                  1.0 /
+                  pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16,
+                      3.0 / 2.0)) /
+                     R0 +
+                 (3.141592653589793 *
+                  cos((3.141592653589793 *
+                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                      (R0 * 2.0)) *
+                  sin((3.141592653589793 *
+                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                      (R0 * 2.0)) *
+                  pow(y * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1, 2.0) * 1.0 /
+                  pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16,
+                      3.0 / 2.0)) /
+                     (R0 * 4.0)) -
+           (3.141592653589793 *
+            cos((3.141592653589793 *
+                 sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                (R0 * 2.0)) *
+            sin((3.141592653589793 *
+                 sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                (R0 * 2.0)) *
+            cos(t * 3.141592653589793 * 2.0) * (y * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1) *
+            1.0 / sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+               R0 +
+           ((3.141592653589793 * 3.141592653589793) *
+            cos((3.141592653589793 *
+                 sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                (R0 * 2.0)) *
+            sin((3.141592653589793 *
+                 sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16)) /
+                (R0 * 2.0)) *
+            cos(t * 3.141592653589793 * 2.0) * (y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1) * 1.0 /
+            sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x + 1.0E-16) *
+            6.366197723675814E-1) /
+               R0;
+
+    // without eps
+    return (D * 1.0 / (R0 * R0) * 3.141592653589793 * 1.0 /
+            std::pow(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x,
+                     3.0 / 2.0) *
+            (3.141592653589793 *
+                 std::pow(std::cos((3.141592653589793 *
+                                    std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1,
+                                                       2.0) +
+                                              x * x)) /
+                                   (R0 * 2.0)),
+                          2.0) *
+                 std::pow(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x,
+                          3.0 / 2.0) *
+                 1.622592768292134E+32 -
+             3.141592653589793 *
+                 std::pow(std::sin((3.141592653589793 *
+                                    std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1,
+                                                       2.0) +
+                                              x * x)) /
+                                   (R0 * 2.0)),
+                          2.0) *
+                 std::pow(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x,
+                          3.0 / 2.0) *
+                 1.622592768292134E+32 +
+             R0 * (x * x) *
+                 std::sin((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 std::cos((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 3.245185536584267E+32 +
+             R0 * (y * y) *
+                 std::sin((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 std::cos((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 3.245185536584267E+32 +
+             R0 *
+                 std::sin((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 std::pow(std::sin(t * 3.141592653589793 * 2.0), 2.0) *
+                 std::cos((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 3.28806039705713E+31 -
+             R0 * y *
+                 std::sin((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 std::sin(t * 3.141592653589793 * 2.0) *
+                 std::cos((3.141592653589793 *
+                           std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) +
+                                     x * x)) /
+                          (R0 * 2.0)) *
+                 2.065949277590844E+32)) /
+               3.245185536584267E+32 -
+           (3.141592653589793 *
+            std::sin(
+                (3.141592653589793 *
+                 std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+                (R0 * 2.0)) *
+            std::cos(t * 3.141592653589793 * 2.0) *
+            std::cos(
+                (3.141592653589793 *
+                 std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+                (R0 * 2.0)) *
+            (y * 2.0 - std::sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1) * 1.0 /
+            std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+               R0 +
+           ((3.141592653589793 * 3.141592653589793) *
+            std::sin(
+                (3.141592653589793 *
+                 std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+                (R0 * 2.0)) *
+            std::cos(t * 3.141592653589793 * 2.0) *
+            std::cos(
+                (3.141592653589793 *
+                 std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+                (R0 * 2.0)) *
+            (y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1) * 1.0 /
+            std::sqrt(std::pow(y - std::sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x) *
+            6.366197723675814E-1) /
+               R0;
+}
+
+} // namespace Preuss
+
+// namespace Preuss {
+
+// // N-sphere
+// const double R0       = .5;
+// const double D        = 1.;
+// const double beta_max = 2.;
+
+// double fun_one(double *P, const int i) { return 1.; }
+
+// double rho(double *P, const double t) { return 1. / pi * sin(2 * pi * t); }
+
+// double fun_levelSet(double *P, const int i, const double t) {
+//     return P[0] * P[0] + (P[1] - rho(P, t)) * (P[1] - rho(P, t)) - R0 * R0;
+// }
+
+// template <int N> struct Levelset {
+
+//     double t;
+
+//     // level set function
+//     template <typename V> typename V::value_type operator()(const V &P) const {
+
+//         return P[0] * P[0] + (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi * t)) - R0 * R0;
+//     }
+
+//     // gradient of level set function
+//     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+
+//         return algoim::uvector<T, N>(2. * x(0), 2. * (x(1) - 1. / pi * sin(2 * pi * t)));
+//     }
+
+//     // normal = grad(phi)/norm(grad(phi))
+//     R2 normal(std::span<double> P) const {
+//         // R norm = sqrt(4. * (P[0] - 1. / pi * sin(2 * pi * t)) * (P[0] - 1. / pi * sin(2 * pi * t)) + 4. * P[1] *
+//         // P[1]);
+//         R norm = sqrt(4. * P[0] * P[0] + 4. * (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi * t)));
+//         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
+//         return R2(2. * P[0] / norm, 2. * (P[1] - 1. / pi * sin(2 * pi * t)) / norm);
+//     }
+// };
+
+// R fun_rhsBulk(double *P, const int i, const R t) {
+//     R x = P[0], y = P[1];
+
+//     // manual
+//     return (D * pi *
+//             (1622592768292133 * pi *
+//                  pow(cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                              y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                          2) +
+//                                      x * x))) /
+//                          (2 * R0)),
+//                      2) *
+//                  pow((pow((y - (5734161139222659 * sin(2 * pi * t)) /
+//                                    18014398509481984)(y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                           2) +
+//                       x * x),
+//                      1.5) -
+//              16225927682921336 * pi *
+//                  pow(sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                              y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                          2) +
+//                                      x * x))) /
+//                          (2 * R0)),
+//                      2) *
+//                  pow((pow((y - (5734161139222659 * sin(2 * pi * t)) /
+//                                    18014398509481984)(y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                           2) +
+//                       x * x),
+//                      1.5) +
+//              324518553658426 * R0 * x * x *
+//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)) *
+//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)) +
+//              324518553658426 * R0 * y * y *
+//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)) *
+//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)) +
+//              328806039705713 * R0 *
+//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)) *
+//                  pow(sin(2 * pi * t), 2) *
+//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)) -
+//              206594927759084 * R0 * y *
+//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)) *
+//                  sin(2 * pi * t) *
+//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                      2) +
+//                                  x * x))) /
+//                      (2 * R0)))) /
+//                (32451855365842672 * (R0 * R0) *
+//                 pow((pow((y - (5734161139222659 * sin(2 * t * pi)) / 18014398509481984), 2) + x * x), 1.5)) -
+//            (pi *
+//             sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                 2) +
+//                             x * x))) /
+//                 (2 * R0)) *
+//             cos(2 * pi * t) *
+//             cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                 2) +
+//                             x * x))) /
+//                 (2 * R0)) *
+//             (2 * y - (5734161139222659 * sin(2 * pi * t)) / 9007199254740992)) /
+//                (R0 * sqrt((pow((y - (5734161139222659 * sin(2 * t * pi)) / 18014398509481984), 2) + x * x))) +
+//            (5734161139222659 * pi * pi *
+//             sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                 2) +
+//                             x * x))) /
+//                 (2 * R0)) *
+//             cos(2 * pi * t) *
+//             cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
+//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
+//                                 2) +
+//                             x * x))) /
+//                 (2 * R0)) *
+//             (y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)) /
+//                (9007199254740992 * R0 *
+//                 sqrt((pow((y - (5734161139222659 * sin(2 * t * pi)) / 18014398509481984), 2) + x * x)));
+
+//     // automatic
+//     return (D * 1.0 / (R0 * R0) * 3.141592653589793 * 1.0 /
+//             pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x, 3.0 / 2.0) *
+//             (3.141592653589793 *
+//                  pow(cos((3.141592653589793 *
+//                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                          (R0 * 2.0)),
+//                      2.0) *
+//                  pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x, 3.0 / 2.0) *
+//                  1.622592768292134E+32 -
+//              3.141592653589793 *
+//                  pow(sin((3.141592653589793 *
+//                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                          (R0 * 2.0)),
+//                      2.0) *
+//                  pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x, 3.0 / 2.0) *
+//                  1.622592768292134E+32 +
+//              R0 * (x * x) *
+//                  sin((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  cos((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  3.245185536584267E+32 +
+//              R0 * (y * y) *
+//                  sin((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  cos((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  3.245185536584267E+32 +
+//              R0 *
+//                  sin((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  pow(sin(t * 3.141592653589793 * 2.0), 2.0) *
+//                  cos((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  3.28806039705713E+31 -
+//              R0 * y *
+//                  sin((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  sin(t * 3.141592653589793 * 2.0) *
+//                  cos((3.141592653589793 *
+//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                      (R0 * 2.0)) *
+//                  2.065949277590844E+32)) /
+//                3.245185536584267E+32 -
+//            (3.141592653589793 *
+//             sin((3.141592653589793 *
+//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                 (R0 * 2.0)) *
+//             cos(t * 3.141592653589793 * 2.0) *
+//             cos((3.141592653589793 *
+//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                 (R0 * 2.0)) *
+//             (y * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1) * 1.0 /
+//             sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                R0 +
+//            ((3.141592653589793 * 3.141592653589793) *
+//             sin((3.141592653589793 *
+//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                 (R0 * 2.0)) *
+//             cos(t * 3.141592653589793 * 2.0) *
+//             cos((3.141592653589793 *
+//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
+//                 (R0 * 2.0)) *
+//             (y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1) * 1.0 /
+//             sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x) *
+//             6.366197723675814E-1) /
+//                R0;
+// }
+
+// // The rhs Neumann boundary condition
+// R fun_neumann_Gamma(double *P, const int i, const R t) {
+//     R x = P[0], y = P[1];
+
+//     return 0.;
+// }
+
+// // Velocity field
+// R fun_velocity(double *P, const int i, const double t) {
+//     if (i == 0)
+//         return 0.;
+//     else
+//         return 2 * cos(2 * pi * t);
+// }
+
+// // Initial solution bulk
+// R fun_uBulkInit(double *P, const int i) { return pow(cos(pi * sqrt(P[0] * P[0] + P[1] * P[1]) / (2 * R0)), 2); }
+
+// // Exact solution bulk
+// R fun_uBulk(double *P, const int i, const R t) {
+//     double x = P[0], y = P[1];
+
+//     double rho = 1. / pi * sin(2 * pi * t);
+//     double r   = sqrt(x * x + (y - rho) * (y - rho));
+//     return pow(cos(pi * r / (2 * R0)), 2);
+// }
+
+// R fun_uBulkD(double *P, const int i, const int d, const R t) {
+//     double x = P[0], y = P[1];
+
+//     double rho = 1. / pi * sin(2 * pi * t);
+//     double r   = sqrt(x * x + (y - rho) * (y - rho));
+//     return pow(cos(pi * r / (2 * R0)), 2);
+// }
+
+// } // namespace Preuss
+
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
-#define ex1
+#define preuss
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
@@ -412,7 +939,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
                  // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
                  // proportional to h.
-#define conservation
+#define conservationnot
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -430,17 +957,19 @@ using namespace Example1;
 using namespace Example2;
 #elif defined(ex3)
 using namespace Example3;
+#elif defined(preuss)
+using namespace Preuss;
 #endif
 
 int main(int argc, char **argv) {
     // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 4; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;             // starting mesh size
-    double dT = 0.1;
+    double dT = 0.5;
 
     int total_number_iteration;
     double time_step;
@@ -456,6 +985,9 @@ int main(int argc, char **argv) {
 #elif defined(ex3)
     const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example3/data/";
     const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example3/paraview/";
+#elif defined(preuss)
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/preuss/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/preuss/paraview/";
 
 #endif
 
@@ -466,7 +998,7 @@ int main(int argc, char **argv) {
     //}
 
     // Data file to hold problem data
-    //std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
+    // std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
     std::array<double, iterations> errors; // array to hold bulk errors
@@ -510,11 +1042,20 @@ int main(int argc, char **argv) {
 #endif
         Mesh Th(nx, ny, -2.01 * Example3::R0, -1.5 * Example3::R0, lx, ly);
         // Mesh Th(nx, ny, -1., -0.6, lx, ly);
+#elif defined(preuss)
+        const double lx = 3. * Preuss::R0, ly = 4. * Preuss::R0;
+        // const double lx = 2., ly = 1.1;
+#ifdef use_h
+        nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
+#elif defined(use_n)
+        h = lx / (nx - 1);
+#endif
+        Mesh Th(nx, ny, -1.51 * Preuss::R0, -1.5 * Preuss::R0, lx, ly);
 #endif
 
         // Parameters
-        // const double tfinal = 2.; // Final time
-        const double tfinal = 1.; // Final time
+        // const double tfinal = .1; // Final time
+        const double tfinal = .5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
@@ -522,7 +1063,7 @@ int main(int argc, char **argv) {
         const int divisionMeshSize = 3;
 
         double dT = h / divisionMeshSize;
-        // double dT = tfinal / 6;
+        // double dT = tfinal / (j + 1);
 
         total_number_iteration = int(tfinal / dT);
 #endif
@@ -551,17 +1092,17 @@ int main(int argc, char **argv) {
 
         // CG stabilization parameter
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
-        const double tau1 = 0.1, tau2 = 0.1;
+        const double tau1 = 5e-2, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1);               // Background FE Space
-        FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
+        FESpace Vh(Th, DataFE<Mesh>::P1); // Background FE Space
+        // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);               // FE Space in time
-        FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly); // FE Space in time
+        // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
         const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
@@ -591,7 +1132,8 @@ int main(int argc, char **argv) {
 
         int iter = 0;
         double mass_last_previous, mass_initial;
-        double intF = 0, int_outflow = 0, intG = 0, intF_total = 0, intG_total = 0; // hold integrals of rhs and Neumann bcs
+        double intF = 0, int_outflow = 0, intG = 0, intF_total = 0,
+               intG_total                = 0; // hold integrals of rhs and Neumann bcs
         double global_conservation_error = 0;
         double local_conservation_error  = 0;
         double errBulk                   = 0.;
@@ -603,7 +1145,7 @@ int main(int argc, char **argv) {
             int current_iteration = iter;
             double current_time   = iter * time_step;
             const TimeSlab &In(Ih[iter]);
-            const TimeSlab &In_interpolation(Ih_interpolation[iter]);
+            // const TimeSlab &In_interpolation(Ih_interpolation[iter]);
 
             std::cout << " -------------------------------------------------------\n";
             std::cout << " -------------------------------------------------------\n";
@@ -641,8 +1183,8 @@ int main(int argc, char **argv) {
             Tangent t;
 
             // Right hand side functions
-            Fun_h f(Vh_interpolation, In_interpolation, fun_rhsBulk);
-            Fun_h g_Neumann(Vh_interpolation, In_interpolation, fun_neumann_Gamma); // computer Neumann BC
+            // Fun_h f(Vh_interpolation, In_interpolation, fun_rhsBulk);
+            // Fun_h g_Neumann(Vh_interpolation, In_interpolation, fun_neumann_Gamma); // computer Neumann BC
 
             // Test and Trial functions
             FunTest u(Wh, 1), v(Wh, 1);
@@ -794,6 +1336,7 @@ int main(int argc, char **argv) {
                 lhs -= reynold.rhs_;
 
                 reynold_error.at(j) = lhs.linfty();
+
                 std::cout << " e_r^n = " << reynold_error.at(j) << '\n';
             }
 
@@ -836,20 +1379,21 @@ int main(int argc, char **argv) {
             double mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime); // mass in last quad point
 
             if (iter == 0) {
-                mass_initial =  integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
+                mass_initial       = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
                 mass_last_previous = mass_initial;
                 // mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
             }
 
-            local_conservation_error = ((mass_last - mass_last_previous) - intF - intG);
-            //global_conservation_error += local_conservation_error;
+            local_conservation_error  = ((mass_last - mass_last_previous) - intF - intG);
+            // global_conservation_error += local_conservation_error;
             global_conservation_error = (mass_last - mass_initial - intF_total - intG_total);
 
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
             std::cout << "local_conservation_error: " << local_conservation_error << "\n";
 
             // outputData << std::setprecision(10);
-            // outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG << ","
+            // outputData << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG <<
+            // ","
             //            << local_conservation_error << '\n';
 
             mass_last_previous = mass_last; // set current last to previous last for next time slab
@@ -872,7 +1416,7 @@ int main(int argc, char **argv) {
 
                 writer.add(uBex, "bulk_exact", 0, 1);
                 writer.add(fB, "bulk_rhs", 0, 1);
-                writer.add(g_Neumann, "neumann", 0, 1);
+                // writer.add(g_Neumann, "neumann", 0, 1);
                 writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
                 writer.add(ls[0], "levelSet0", 0, 1);
                 writer.add(ls[1], "levelSet1", 0, 1);
