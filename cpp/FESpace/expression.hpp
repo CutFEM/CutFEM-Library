@@ -173,7 +173,13 @@ template <typename M> class FunFEM : public FunFEMVirtual {
         interpolate(*Vh, this->v, f, tid);
     }
     
-    //template <typename fun_t>
+    // template <typename fun_t>
+    // FunFEM(const FESpace &vh, const TimeSlab &in, fun_t f)
+    // // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
+    //     : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), alloc(true), Vh(&vh), In(&in),
+    //       databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
+    //     interpolate(*Vh, *In, this->v, f);
+    // }
     template <typename fct_t>
         requires FunctionLevelSetTime<fct_t> || FunctionDomainTime<fct_t> || FunctionScalar<fct_t>
     FunFEM(const FESpace &vh, const TimeSlab &in, fct_t f)

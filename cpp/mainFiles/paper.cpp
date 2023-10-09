@@ -668,271 +668,142 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 
 } // namespace Preuss
 
-// namespace Preuss {
+namespace Kite {
 
-// // N-sphere
-// const double R0       = .5;
-// const double D        = 1.;
-// const double beta_max = 2.;
+const double R0       = 1.;
+const double C        = 1.;
+const double W        = 1.;
+const double D        = 1.;
+const double beta_max = W;
 
-// double fun_one(double *P, const int i) { return 1.; }
+double fun_one(double *P, const int i) { return 1.; }
 
-// double rho(double *P, const double t) { return 1. / pi * sin(2 * pi * t); }
+double rho(double *P, const double t) { return (W - C * P[1] * P[1]) * t; }
 
-// double fun_levelSet(double *P, const int i, const double t) {
-//     return P[0] * P[0] + (P[1] - rho(P, t)) * (P[1] - rho(P, t)) - R0 * R0;
-// }
+double fun_levelSet(double *P, const int i, const double t) {
+    return (P[0] - rho(P, t)) * (P[0] - rho(P, t)) + P[1] * P[1] - R0 * R0;
+}
 
-// template <int N> struct Levelset {
+template <int N> struct Levelset {
 
-//     double t;
+    double t;
 
-//     // level set function
-//     template <typename V> typename V::value_type operator()(const V &P) const {
+    // level set function
+    template <typename V> typename V::value_type operator()(const V &P) const {
+        return (P[0] - (W - C * P[1] * P[1]) * t) * (P[0] - (W - C * P[1] * P[1]) * t) + P[1] * P[1] - R0 * R0;
+    }
 
-//         return P[0] * P[0] + (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi * t)) - R0 * R0;
-//     }
+    // gradient of level set function
+    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
 
-//     // gradient of level set function
-//     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+        return algoim::uvector<T, N>(2. * (x(0) - (W - C * x(1) * x(1)) * t),
+                                     4. * C * t * x(1) * (x(0) - t * (W - C * x(1) * x(1))) + 2. * x(1));
+    }
 
-//         return algoim::uvector<T, N>(2. * x(0), 2. * (x(1) - 1. / pi * sin(2 * pi * t)));
-//     }
+    // normal = grad(phi)/norm(grad(phi))
+    R2 normal(std::span<double> P) const {
+        R norm = sqrt(pow(2. * (P[0] - (W - C * P[1] * P[1]) * t), 2) +
+                      pow(4. * C * t * P[1] * (P[0] - t * (W - C * P[1] * P[1])) + 2. * P[1], 2));
+        // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
+        return R2(2. * (P[0] - (W - C * P[1] * P[1]) * t) / norm,
+                  (4. * C * t * P[1] * (P[0] - t * (W - C * P[1] * P[1])) + 2. * P[1]) / norm);
+    }
+};
 
-//     // normal = grad(phi)/norm(grad(phi))
-//     R2 normal(std::span<double> P) const {
-//         // R norm = sqrt(4. * (P[0] - 1. / pi * sin(2 * pi * t)) * (P[0] - 1. / pi * sin(2 * pi * t)) + 4. * P[1] *
-//         // P[1]);
-//         R norm = sqrt(4. * P[0] * P[0] + 4. * (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi *
-//         t)));
-//         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
-//         return R2(2. * P[0] / norm, 2. * (P[1] - 1. / pi * sin(2 * pi * t)) / norm);
-//     }
-// };
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-// R fun_rhsBulk(double *P, const int i, const R t) {
-//     R x = P[0], y = P[1];
+    return D * ((3.141592653589793 *
+                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * 3.141592653589793) * 1.0 / sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) /
+                    R0 +
+                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) *
+                 cos((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * 3.141592653589793) * pow(x * 2.0 - t * (W - C * (y * y)) * 2.0, 2.0)) /
+                    (pow(x - t * (W - C * (y * y)), 2.0) * 4.0 + (y * y) * 4.0 + 4.0E-16) +
+                (3.141592653589793 *
+                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * 3.141592653589793) * 1.0 / sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16) *
+                 ((C * C) * (t * t) * (y * y) * 8.0 + C * t * (x - t * (W - C * (y * y))) * 4.0 + 2.0)) /
+                    (R0 * 2.0) -
+                (3.141592653589793 *
+                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * 3.141592653589793) * pow(y * 2.0 + C * t * y * (x - t * (W - C * (y * y))) * 4.0, 2.0) * 1.0 /
+                 pow(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16, 3.0 / 2.0)) /
+                    (R0 * 4.0) +
+                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) *
+                 cos((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * 3.141592653589793) * pow(y * 2.0 + C * t * y * (x - t * (W - C * (y * y))) * 4.0, 2.0)) /
+                    (pow(x - t * (W - C * (y * y)), 2.0) * 4.0 + (y * y) * 4.0 + 4.0E-16) -
+                (3.141592653589793 *
+                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * 3.141592653589793) * pow(x * 2.0 - t * (W - C * (y * y)) * 2.0, 2.0) * 1.0 /
+                 pow(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16, 3.0 / 2.0)) /
+                    (R0 * 4.0)) +
+           3.141592653589793 *
+               cos((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+               cos(t * 3.141592653589793) +
+           (3.141592653589793 *
+            sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+            sin(t * 3.141592653589793) * (W - C * (y * y)) * (x - t * (W - C * (y * y))) * 1.0 /
+            sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) /
+               R0 -
+           (3.141592653589793 *
+            sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+            sin(t * 3.141592653589793) * (W - C * (y * y)) * (x * 2.0 - t * (W - C * (y * y)) * 2.0) * 1.0 /
+            sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) /
+               (R0 * 2.0);
+}
 
-//     // manual
-//     return (D * pi *
-//             (1622592768292133 * pi *
-//                  pow(cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                              y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                          2) +
-//                                      x * x))) /
-//                          (2 * R0)),
-//                      2) *
-//                  pow((pow((y - (5734161139222659 * sin(2 * pi * t)) /
-//                                    18014398509481984)(y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                           2) +
-//                       x * x),
-//                      1.5) -
-//              16225927682921336 * pi *
-//                  pow(sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                              y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                          2) +
-//                                      x * x))) /
-//                          (2 * R0)),
-//                      2) *
-//                  pow((pow((y - (5734161139222659 * sin(2 * pi * t)) /
-//                                    18014398509481984)(y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                           2) +
-//                       x * x),
-//                      1.5) +
-//              324518553658426 * R0 * x * x *
-//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)) *
-//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)) +
-//              324518553658426 * R0 * y * y *
-//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)) *
-//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)) +
-//              328806039705713 * R0 *
-//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)) *
-//                  pow(sin(2 * pi * t), 2) *
-//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)) -
-//              206594927759084 * R0 * y *
-//                  sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)) *
-//                  sin(2 * pi * t) *
-//                  cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                          y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                      2) +
-//                                  x * x))) /
-//                      (2 * R0)))) /
-//                (32451855365842672 * (R0 * R0) *
-//                 pow((pow((y - (5734161139222659 * sin(2 * t * pi)) / 18014398509481984), 2) + x * x), 1.5)) -
-//            (pi *
-//             sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                 2) +
-//                             x * x))) /
-//                 (2 * R0)) *
-//             cos(2 * pi * t) *
-//             cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                 2) +
-//                             x * x))) /
-//                 (2 * R0)) *
-//             (2 * y - (5734161139222659 * sin(2 * pi * t)) / 9007199254740992)) /
-//                (R0 * sqrt((pow((y - (5734161139222659 * sin(2 * t * pi)) / 18014398509481984), 2) + x * x))) +
-//            (5734161139222659 * pi * pi *
-//             sin((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                 2) +
-//                             x * x))) /
-//                 (2 * R0)) *
-//             cos(2 * pi * t) *
-//             cos((pi * sqrt((pow((y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)(
-//                                     y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984),
-//                                 2) +
-//                             x * x))) /
-//                 (2 * R0)) *
-//             (y - (5734161139222659 * sin(2 * pi * t)) / 18014398509481984)) /
-//                (9007199254740992 * R0 *
-//                 sqrt((pow((y - (5734161139222659 * sin(2 * t * pi)) / 18014398509481984), 2) + x * x)));
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
 
-//     // automatic
-//     return (D * 1.0 / (R0 * R0) * 3.141592653589793 * 1.0 /
-//             pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x, 3.0 / 2.0) *
-//             (3.141592653589793 *
-//                  pow(cos((3.141592653589793 *
-//                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                          (R0 * 2.0)),
-//                      2.0) *
-//                  pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x, 3.0 / 2.0) *
-//                  1.622592768292134E+32 -
-//              3.141592653589793 *
-//                  pow(sin((3.141592653589793 *
-//                           sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                          (R0 * 2.0)),
-//                      2.0) *
-//                  pow(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x, 3.0 / 2.0) *
-//                  1.622592768292134E+32 +
-//              R0 * (x * x) *
-//                  sin((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  cos((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  3.245185536584267E+32 +
-//              R0 * (y * y) *
-//                  sin((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  cos((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  3.245185536584267E+32 +
-//              R0 *
-//                  sin((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  pow(sin(t * 3.141592653589793 * 2.0), 2.0) *
-//                  cos((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  3.28806039705713E+31 -
-//              R0 * y *
-//                  sin((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  sin(t * 3.141592653589793 * 2.0) *
-//                  cos((3.141592653589793 *
-//                       sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                      (R0 * 2.0)) *
-//                  2.065949277590844E+32)) /
-//                3.245185536584267E+32 -
-//            (3.141592653589793 *
-//             sin((3.141592653589793 *
-//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                 (R0 * 2.0)) *
-//             cos(t * 3.141592653589793 * 2.0) *
-//             cos((3.141592653589793 *
-//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                 (R0 * 2.0)) *
-//             (y * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1) * 1.0 /
-//             sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                R0 +
-//            ((3.141592653589793 * 3.141592653589793) *
-//             sin((3.141592653589793 *
-//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                 (R0 * 2.0)) *
-//             cos(t * 3.141592653589793 * 2.0) *
-//             cos((3.141592653589793 *
-//                  sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x)) /
-//                 (R0 * 2.0)) *
-//             (y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1) * 1.0 /
-//             sqrt(pow(y - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + x * x) *
-//             6.366197723675814E-1) /
-//                R0;
-// }
+    return 0.;
 
-// // The rhs Neumann boundary condition
-// R fun_neumann_Gamma(double *P, const int i, const R t) {
-//     R x = P[0], y = P[1];
+    return -(pi * sin((pi * (pow((x - t * (-C * y * y + W)), 2) + y * y)) / (R0 * R0)) * sin(pi * t) *
+             pow((2 * y + 4 * C * t * y * (x - t * (-C * y * y + W))), 2)) /
+               (200 * (R0 * R0) * sqrt((pow((x - t * (-C * y * y + W)), 2) + y * y))) -
+           (pi * sin((pi * (pow((x - t * (-C * y * y + W)), 2) + y * y)) / (R0 * R0)) * sin(pi * t) *
+            pow((2 * x - 2 * t * (-C * y * y + W)), 2)) /
+               (200 * (R0 * R0) * sqrt((pow((x - t * (-C * y * y + W)), 2) + y * y)));
+}
 
-//     return 0.;
-// }
+// Velocity field
+R fun_velocity(double *P, const int i, const double t) {
+    if (i == 0)
+        return W - C * P[1] * P[1];
+    else
+        return 0.;
+}
 
-// // Velocity field
-// R fun_velocity(double *P, const int i, const double t) {
-//     if (i == 0)
-//         return 0.;
-//     else
-//         return 2 * cos(2 * pi * t);
-// }
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) { return 0.; }
 
-// // Initial solution bulk
-// R fun_uBulkInit(double *P, const int i) { return pow(cos(pi * sqrt(P[0] * P[0] + P[1] * P[1]) / (2 * R0)), 2); }
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    double x = P[0], y = P[1];
 
-// // Exact solution bulk
-// R fun_uBulk(double *P, const int i, const R t) {
-//     double x = P[0], y = P[1];
+    double r = std::sqrt((x - (W - C * y * y) * t) * (x - (W - C * y * y) * t) + y * y);
+    return cos(M_PI * r / R0) * sin(M_PI * t);
 
-//     double rho = 1. / pi * sin(2 * pi * t);
-//     double r   = sqrt(x * x + (y - rho) * (y - rho));
-//     return pow(cos(pi * r / (2 * R0)), 2);
-// }
+    // double r = std::sqrt((x - (W - C * y * y) * t) * (x - (W - C * y * y) * t) + y * y);
+    // return cos(M_PI * (r + Epsilon) / (R0));
+}
 
-// R fun_uBulkD(double *P, const int i, const int d, const R t) {
-//     double x = P[0], y = P[1];
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    double x = P[0], y = P[1];
 
-//     double rho = 1. / pi * sin(2 * pi * t);
-//     double r   = sqrt(x * x + (y - rho) * (y - rho));
-//     return pow(cos(pi * r / (2 * R0)), 2);
-// }
+    double r = std::sqrt((x - (W - C * y * y) * t) * (x - (W - C * y * y) * t) + y * y);
+    return cos(M_PI * r / R0) * sin(M_PI * t);
 
-// } // namespace Preuss
+    // double r = std::sqrt((x - (W - C * y * y) * t) * (x - (W - C * y * y) * t) + y * y);
+    // return cos(M_PI * (r + Epsilon) / (R0));
+}
+} // namespace Kite
 
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
-#define preuss
+#define ex2
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
@@ -957,7 +828,8 @@ typedef FunFEM<Mesh> Fun_h;
 #if defined(ex1)
 using namespace Example1;
 #elif defined(ex2)
-using namespace Example2;
+//using namespace Example2;
+using namespace Kite;
 #elif defined(ex3)
 using namespace Example3;
 #elif defined(preuss)
@@ -968,10 +840,10 @@ int main(int argc, char **argv) {
     // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 6; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 8; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.2;             // starting mesh size
+    double h  = 0.9;             // starting mesh size
     double dT = 0.5;
 
     int total_number_iteration;
@@ -1026,7 +898,8 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
+        //Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
+        Mesh Th(nx, ny, -3.51, -1.5, 7., 3.);
         // Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
 #elif defined(ex3)
         const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
@@ -1059,7 +932,8 @@ int main(int argc, char **argv) {
         const int divisionMeshSize = 3;
 
         // double dT = h / divisionMeshSize;
-        double dT = tfinal / 32;
+        //double dT = tfinal / 32;
+        double dT = 0.5*std::pow(2, -j-1);
         // double dT = tfinal / (j + 1);
 
         total_number_iteration = int(tfinal / dT);
@@ -1213,18 +1087,12 @@ int main(int argc, char **argv) {
 
 #elif defined(conservative)
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
-            // convdiff.addBilinear(-innerProduct(3.*u, v)-innerProduct(5.*dt(u), v), Thi, 0, In);
-
-            // auto dtu0 = dt(b0h.expr());
 
             // Impose initial condition
             if (iter == 0) {
                 convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
-                // convdiff.addLinearExact(fun_uBulk, -innerProduct(3., v), Thi, 0, In);
-                // convdiff.addLinear(-innerProduct(5.*dtu0, v), Thi, 0, In);
             } else {
                 convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
-                // convdiff.addLinear(-innerProduct(3.*b0h.expr(), v)-innerProduct(5.*dtu0, v), Thi, 0, In);
             }
 
             convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
@@ -1309,7 +1177,7 @@ int main(int argc, char **argv) {
             // error_I = std::pow(L2_norm_T(zrs_fun, fun_oneD, Thi, In, qTime, phi), 2) / dT; // int_In ||u(t) -
             // u_h(t)||_{Omega(t)} dt
             error_I += L2_norm_T(uh_t, fun_uBulkD, Thi, In, qTime, phi); // int_In ||u(t) - u_h(t)||_{Omega(t)} dt
-            
+
             std::cout << " t_n -> || u-uex||_(In x Omega) = " << error_I << '\n';
 
             // Compute error in Reynold relation
