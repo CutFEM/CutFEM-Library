@@ -212,6 +212,78 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t)
     return sqrt(val);
 }
 
+// L2(In x Omega)
+template <typename L, typename fct_t>
+double L2_norm_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
+                 const QuadratureFormular1d &qTime, L &phi) {
+    using mesh_t    = MeshQuad2;
+    using fespace_t = GFESpace<mesh_t>;
+    using FElement  = typename fespace_t::FElement;
+    using Rd        = typename FElement::Rd;
+    using Element   = typename mesh_t::Element;
+
+    double val = 0.;
+
+    const int domain = 0; // do only for main domain
+
+    // Loop in time
+    for (int itq = 0; itq < qTime.n; ++itq) {
+
+        // Get quadrature points in time
+        GQuadraturePoint<R1> tq((qTime)[itq]);
+        const double t = In.mapToPhysicalElement(tq);
+        phi.t          = t;
+
+        double weight_time = In.T.measure() * tq.a;
+
+        // Loop in space
+        double weight_space = 0.;
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+            if (domain != Th.get_domain_element(k))
+                continue;
+
+            if (Th.isInactive(k, itq))
+                continue;
+
+            const Element &K(Th[k]);
+            int kb = Th.idxElementInBackMesh(k);
+
+            // Get coordinates of current quadrilateral
+            const auto &V0(K.at(0)); // vertex 0
+            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+            // Get quadrature rule
+            algoim::QuadratureRule<2> q =
+                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
+
+            // Loop over quadrature in space
+            assert(q.nodes.size() != 0);
+
+            double weight_K = 0.;
+            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+                
+                const R weight = q.nodes.at(ipq).w;
+
+                double err = fh.evalOnBackMesh(kb, domain, mip, t, 0, 0, 0) - f(mip, 0, domain, t);
+
+                weight_K += weight*err*err;
+
+            }
+            weight_space += weight_K;
+        }
+        val += weight_space*weight_time;
+
+    }
+
+    return sqrt(val);
+}
+
 // Time-dependent bulk L2 norm
 template <typename Mesh, typename L>
 double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, double tt), const TimeSlab &In,
