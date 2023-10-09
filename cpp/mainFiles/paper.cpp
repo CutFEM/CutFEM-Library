@@ -410,6 +410,8 @@ const double beta_max = 2.;
 
 double fun_one(double *P, const int i) { return 1.; }
 
+double fun_oneD(double *P, const int i, const int d, const R t) { return 1.; }
+
 double rho(double *P, const double t) { return 1. / pi * std::sin(2 * pi * t); }
 
 double fun_levelSet(double *P, const int i, const double t) {
@@ -701,7 +703,8 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 //     R2 normal(std::span<double> P) const {
 //         // R norm = sqrt(4. * (P[0] - 1. / pi * sin(2 * pi * t)) * (P[0] - 1. / pi * sin(2 * pi * t)) + 4. * P[1] *
 //         // P[1]);
-//         R norm = sqrt(4. * P[0] * P[0] + 4. * (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi * t)));
+//         R norm = sqrt(4. * P[0] * P[0] + 4. * (P[1] - 1. / pi * sin(2 * pi * t)) * (P[1] - 1. / pi * sin(2 * pi *
+//         t)));
 //         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
 //         return R2(2. * P[0] / norm, 2. * (P[1] - 1. / pi * sin(2 * pi * t)) / norm);
 //     }
@@ -965,10 +968,10 @@ int main(int argc, char **argv) {
     // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 4; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 6; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.1;             // starting mesh size
+    double h  = 0.2;             // starting mesh size
     double dT = 0.5;
 
     int total_number_iteration;
@@ -1001,15 +1004,8 @@ int main(int argc, char **argv) {
     // std::ofstream outputData(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
-    std::array<double, iterations> errors; // array to hold bulk errors
-    std::array<double, iterations> hs;     // array to hold mesh sizes
-    std::array<double, iterations> nxs;    // array to hold mesh sizes
-    std::array<double, iterations> nys;    // array to hold mesh sizes
-    std::array<double, iterations> dts;
-    std::array<double, iterations> omega;
-    std::array<double, iterations> gamma;
-    std::array<double, iterations> global_conservation_errors;
-    std::array<double, iterations> reynold_error;
+    std::array<double, iterations> errors, errors_T, hs, nxs, nys, dts, omega, gamma, global_conservation_errors,
+        reynold_error;
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
 
@@ -1062,7 +1058,8 @@ int main(int argc, char **argv) {
 #else
         const int divisionMeshSize = 3;
 
-        double dT = h / divisionMeshSize;
+        // double dT = h / divisionMeshSize;
+        double dT = tfinal / 32;
         // double dT = tfinal / (j + 1);
 
         total_number_iteration = int(tfinal / dT);
@@ -1094,14 +1091,14 @@ int main(int argc, char **argv) {
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
         const double tau1 = 5e-2, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1); // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P2); // Background FE Space
         // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly); // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
@@ -1134,9 +1131,7 @@ int main(int argc, char **argv) {
         double mass_last_previous, mass_initial;
         double intF = 0, int_outflow = 0, intG = 0, intF_total = 0,
                intG_total                = 0; // hold integrals of rhs and Neumann bcs
-        double global_conservation_error = 0;
-        double local_conservation_error  = 0;
-        double errBulk                   = 0.;
+        double global_conservation_error = 0, local_conservation_error = 0, errBulk = 0., error_I = 0.;
         std::vector<double> local_conservation_errors;
 
         // Iterate over time-slabs
@@ -1308,6 +1303,15 @@ int main(int argc, char **argv) {
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
 
+            Fun_h uh_t(Wh, In, data_u0);       // FEM function in Pk(In) x Lagrange_m(Omega)
+            Rn zrs(convdiff.get_nb_dof(), 0.); // initial data total
+            Fun_h zrs_fun(Wh, In, zrs);
+            // error_I = std::pow(L2_norm_T(zrs_fun, fun_oneD, Thi, In, qTime, phi), 2) / dT; // int_In ||u(t) -
+            // u_h(t)||_{Omega(t)} dt
+            error_I += L2_norm_T(uh_t, fun_uBulkD, Thi, In, qTime, phi); // int_In ||u(t) - u_h(t)||_{Omega(t)} dt
+            
+            std::cout << " t_n -> || u-uex||_(In x Omega) = " << error_I << '\n';
+
             // Compute error in Reynold relation
             {
 
@@ -1345,12 +1349,14 @@ int main(int argc, char **argv) {
 
             double intGamma = integral_algoim(funone, In, interface, phi, 0) / dT;
             double intOmega = integral_algoim(funone, Thi, phi, In, qTime, lastQuadTime);
-            gamma[j]        = intGamma;
-            omega[j]        = intOmega;
+
+            gamma[j] = intGamma;
+            omega[j] = intOmega;
 
             // Compute error of numerical solution
             Rn sol(Wh.get_nb_dof(), 0.);
             Fun_h funuh(Wh, sol);
+
             sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
 
             errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1);
@@ -1362,6 +1368,7 @@ int main(int argc, char **argv) {
 
             errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1);
             std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
+
             errors[j] = errBulk;
 
 // Compute conservation error
@@ -1440,6 +1447,7 @@ int main(int argc, char **argv) {
 
             iter++;
         }
+        errors_T[j] = error_I;
 
         std::cout << "\n";
         std::cout << "Local conservation error = [";
@@ -1469,6 +1477,18 @@ int main(int argc, char **argv) {
     for (int i = 0; i < iterations; i++) {
 
         std::cout << errors.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    std::cout << '\n';
+
+    std::cout << '\n';
+    std::cout << "Errors In= [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << errors_T.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }
