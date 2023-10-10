@@ -212,6 +212,78 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t)
     return sqrt(val);
 }
 
+// L2(In x Omega)
+template <typename L, typename fct_t>
+double L2_norm_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
+                 const QuadratureFormular1d &qTime, L &phi) {
+    using mesh_t    = MeshQuad2;
+    using fespace_t = GFESpace<mesh_t>;
+    using FElement  = typename fespace_t::FElement;
+    using Rd        = typename FElement::Rd;
+    using Element   = typename mesh_t::Element;
+
+    double val = 0.;
+
+    const int domain = 0; // do only for main domain
+
+    // Loop in time
+    for (int itq = 0; itq < qTime.n; ++itq) {
+
+        // Get quadrature points in time
+        GQuadraturePoint<R1> tq((qTime)[itq]);
+        const double t = In.mapToPhysicalElement(tq);
+        phi.t          = t;
+
+        double weight_time = In.T.measure() * tq.a;
+
+        // Loop in space
+        double weight_space = 0.;
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+            if (domain != Th.get_domain_element(k))
+                continue;
+
+            if (Th.isInactive(k, itq))
+                continue;
+
+            const Element &K(Th[k]);
+            int kb = Th.idxElementInBackMesh(k);
+
+            // Get coordinates of current quadrilateral
+            const auto &V0(K.at(0)); // vertex 0
+            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+            // Get quadrature rule
+            algoim::QuadratureRule<2> q =
+                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
+
+            // Loop over quadrature in space
+            assert(q.nodes.size() != 0);
+
+            double weight_K = 0.;
+            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+                
+                const R weight = q.nodes.at(ipq).w;
+
+                double err = fh.evalOnBackMesh(kb, domain, mip, t, 0, 0, 0) - f(mip, 0, domain, t);
+
+                weight_K += weight*err*err;
+
+            }
+            weight_space += weight_K;
+        }
+        val += weight_space*weight_time;
+
+    }
+
+    return sqrt(val);
+}
+
 // Time-dependent bulk L2 norm
 template <typename Mesh, typename L>
 double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, double tt), const TimeSlab &In,
@@ -253,7 +325,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
     GQuadraturePoint<R1> tq((qTime)[itq]);
     const double t = In.mapToPhysicalElement(tq);
     phi.t          = t;
-    //std::cout << "t = " << t << "\n";
+    // std::cout << "t = " << t << "\n";
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         if (domain != Th.get_domain_element(k))
@@ -701,8 +773,11 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
                 const R Cint = weight * In.T.measure() * tq.a;
                 if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
                     val += Cint * fh.evalOnBackMesh(kb, domain, mip, t, cu, 0, 0);
-                } else {
+
+                } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
                     val += Cint * fh->evalOnBackMesh(kb, domain, mip, t);
+                } else {
+                    val += Cint * fh(mip, domain, t);
                 }
             }
         }
@@ -828,8 +903,65 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int dom
  * @return double int_In int_Gamma(t) fh ds dt
  * @note This integral scales with dT.
  */
-template <typename M, typename L>
-double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M> &gamma, L &phi, int cu) {
+// template <typename M, typename L>
+// double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M> &gamma, L &phi, int cu) {
+
+//     using mesh_t    = MeshQuad2;
+//     using fespace_t = GFESpace<mesh_t>;
+//     using FElement  = typename fespace_t::FElement;
+//     using Rd        = typename FElement::Rd;
+//     using Element   = typename mesh_t::Element;
+
+//     double val = 0.;
+
+//     // Loop over time quadrature points
+//     for (int it = 0; it < gamma.size(); ++it) {
+//         const Interface<mesh_t> &interface(*gamma(it));
+//         const QuadratureFormular1d *qTime(gamma.get_quadrature_time());
+//         GQuadraturePoint<R1> tq((*qTime)[it]);
+//         const double t = In.mapToPhysicalElement(tq);
+//         phi.t          = t;
+
+//         for (int iface = interface.first_element(); iface < interface.last_element();
+//              iface += interface.next_element()) {
+
+//             const int kb = interface.idxElementOfFace(iface); // idx on backMesh
+//             // const R meas = interface.measure(iface);
+
+//             const auto &T(interface.get_element(kb));
+//             const auto &V0(T.at(0)); // vertex 0
+//             const auto &V2(T.at(2)); // vertex 2   diagonally opposed
+
+//             algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+//             algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+//             algoim::QuadratureRule<2> q =
+//                 algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
+
+//             assert(q.nodes.size() != 0);
+//             for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+//                 Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+//                 const R weight             = q.nodes.at(ipq).w;
+//                 // const R Cint = meas * ip.getWeight() * In.T.mesure() * tq.a;
+//                 const R Cint               = weight * In.T.measure() * tq.a;
+//                 const int domain_interface = 0;
+//                 val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
+//             }
+//         }
+//     }
+//     double val_receive = 0;
+// #ifdef USE_MPI
+//     MPIcf::AllReduce(val, val_receive, MPI_SUM);
+// #else
+//     val_receive = val;
+// #endif
+
+//     return val_receive;
+// }
+
+template <typename L, typename fct_t>
+double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<MeshQuad2> &gamma, L &phi, int cu) {
 
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
@@ -871,7 +1003,15 @@ double integral_algoim(FunFEM<M> &fh, const TimeSlab &In, const TimeInterface<M>
                 // const R Cint = meas * ip.getWeight() * In.T.mesure() * tq.a;
                 const R Cint               = weight * In.T.measure() * tq.a;
                 const int domain_interface = 0;
-                val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
+                // val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
+
+                if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+                    val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
+                } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
+                    val += Cint * fh->evalOnBackMesh(kb, domain_interface, mip, t, cu);
+                } else {
+                    val += Cint * fh(mip, 0, t);
+                }
             }
         }
     }
