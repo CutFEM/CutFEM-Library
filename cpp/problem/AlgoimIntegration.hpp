@@ -281,7 +281,7 @@ double L2_norm_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<M
 
     }
 
-    return sqrt(val);
+    return val; // return \int_{I_n} ||u(t)-uh(t)||_{L^2(Omega(t))}^2 dt 
 }
 
 // Time-dependent bulk L2 norm

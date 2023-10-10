@@ -965,14 +965,14 @@ int main(int argc, char **argv) {
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
         const double tau1 = 5e-2, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P2); // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P1); // Background FE Space
         // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly); // FE Space in time
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
@@ -1172,10 +1172,12 @@ int main(int argc, char **argv) {
             convdiff.saveSolution(data_u0);
 
             Fun_h uh_t(Wh, In, data_u0);       // FEM function in Pk(In) x Lagrange_m(Omega)
-            Rn zrs(convdiff.get_nb_dof(), 0.); // initial data total
-            Fun_h zrs_fun(Wh, In, zrs);
-            // error_I = std::pow(L2_norm_T(zrs_fun, fun_oneD, Thi, In, qTime, phi), 2) / dT; // int_In ||u(t) -
-            // u_h(t)||_{Omega(t)} dt
+            // Rn zrs(convdiff.get_nb_dof(), 0.); // initial data total
+            // Fun_h zrs_fun(Wh, In, zrs);
+            // Rn halves(convdiff.get_nb_dof(), 0.5); // initial data total
+            // Fun_h halves_fun(Wh, In, halves);
+            //error_I = std::pow(L2_norm_T(zrs_fun, fun_oneD, Thi, In, qTime, phi), 2) / dT; // int_In ||u(t) -
+            //error_I = std::pow(L2_norm_T(halves_fun, fun_oneD, Thi, In, qTime, phi), 2) / dT; // int_In ||u(t) - u_h(t)||_{Omega(t)} dt
             error_I += L2_norm_T(uh_t, fun_uBulkD, Thi, In, qTime, phi); // int_In ||u(t) - u_h(t)||_{Omega(t)} dt
 
             std::cout << " t_n -> || u-uex||_(In x Omega) = " << error_I << '\n';
@@ -1315,7 +1317,7 @@ int main(int argc, char **argv) {
 
             iter++;
         }
-        errors_T[j] = error_I;
+        errors_T[j] = std::sqrt(error_I);
 
         std::cout << "\n";
         std::cout << "Local conservation error = [";
