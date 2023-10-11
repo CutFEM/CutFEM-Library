@@ -558,6 +558,7 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
 
             Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             const R weight   = q.nodes.at(ipq).w;
+            assert(weight > 0);
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = weight * cst_time;
 
@@ -939,6 +940,7 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContributionExact(const Fct &f, const i
 
             Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             const R weight   = q.nodes.at(ipq).w;
+            assert(weight > 0);
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = weight * cst_time;
 
