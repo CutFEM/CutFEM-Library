@@ -64,6 +64,9 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In);
 
+    template <typename Fct>
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const Interface<M> &gamma, const TimeSlab &In, const int itq);
+
     // Constructors
 
     AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option, int np)
