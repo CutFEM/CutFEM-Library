@@ -1281,9 +1281,7 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     bar.end();
 }
 
-
-template <typename M>
-void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th) {
+template <typename M> void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
     progress bar("Add Patch Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
 
@@ -1309,11 +1307,31 @@ void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh 
     bar.end();
 }
 
+// template <typename M>
+// void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<M> &macro) {
+//     assert(!VF.isRHS());
+
+//     for (auto me = macro.macro_element_begin(); me != macro.macro_element.end(); ++me) {
+
+//         for (auto it = me->second.inner_edge.begin(); it != me->second.inner_edge.end(); ++it) {
+//             int k    = it->first;
+//             int ifac = it->second;
+//             int jfac = ifac;
+//             int kn   = Th.ElementAdj(k, jfac);
+            
+//             //std::pair<int, int> e1 = std::make_pair(k, ifac);
+//             //std::pair<int, int> e2 = std::make_pair(kn, jfac);
+//             BaseFEM<M>::addPatchContribution(VF, k, kn, nullptr, 0, 1.);
+//         }
+//         this->addLocalContribution();
+//     }
+// }
+
 template <typename M>
 void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
 
     int number_of_quadrature_points = this->get_nb_quad_point_time();
-    
+
     // Loop through time quadrature points
     for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
         assert(!VF.isRHS());
@@ -1324,15 +1342,15 @@ void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh 
         KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
         RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
         In.BF(tq.x, bf_time); // compute time basic funtions
-        double cst_time   = tq.a * In.get_measure();
-        
+        double cst_time = tq.a * In.get_measure();
+
         std::string title = " Add Patch Stab, In(" + std::to_string(itq) + ")";
         progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
 
         // Loop through active mesh elements
         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
             bar += Th.next_element();
-            
+
             // Exclude elements whose edges do not need stabilization
             if (!Th.isStabilizeElement(k))
                 continue;
@@ -1341,17 +1359,17 @@ void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh 
             for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
 
                 int jfac = ifac;
-                int kn   = Th.ElementAdj(k, jfac);      // get neighbor element's index
+                int kn   = Th.ElementAdj(k, jfac); // get neighbor element's index
 
                 // By skipping neighbors with smaller indices, we avoid adding contribution to the same edge twice
                 if (kn < k)
                     continue;
 
-                std::pair<int, int> e1 = std::make_pair(k, ifac);   // (element index, edge index) current element
-                std::pair<int, int> e2 = std::make_pair(kn, jfac);  // (element index, edge index) neighbor element
+                std::pair<int, int> e1 = std::make_pair(k, ifac);  // (element index, edge index) current element
+                std::pair<int, int> e2 = std::make_pair(kn, jfac); // (element index, edge index) neighbor element
 
                 // Add patch contribution
-                //BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+                // BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
                 BaseFEM<M>::addPatchContribution(VF, k, kn, &In, itq, cst_time);
             }
             this->addLocalContribution();
@@ -1583,7 +1601,7 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const ActiveMes
 template <typename M>
 template <typename L>
 void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In,
-                                         const AlgoimMacro<M, L> &macro) {
+                                          const AlgoimMacro<M, L> &macro) {
 
     // number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();
