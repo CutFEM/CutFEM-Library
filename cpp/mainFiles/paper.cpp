@@ -1036,7 +1036,7 @@ int main(int argc, char **argv) {
     //}
 
     // Data file to hold problem data
-    std::ofstream output_data("data.dat", std::ofstream::out);
+    std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
 
     // Arrays to hold data
     std::array<double, iterations> errors, errors_T, hs, nxs, ns_active, dts, omega, gamma, global_conservation_errors,
@@ -1130,18 +1130,18 @@ int main(int argc, char **argv) {
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
         const double tau1 = 0.05, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P3); // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P2); // Background FE Space
         // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P3Poly); // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(9)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -1161,7 +1161,7 @@ int main(int argc, char **argv) {
 
         Levelset<2> phi;
         ProblemOption option;
-        const int quadrature_order_space       = 9;
+        const int quadrature_order_space       = 7;
         option.order_space_element_quadrature_ = quadrature_order_space;
         AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
@@ -1493,7 +1493,11 @@ int main(int argc, char **argv) {
         }
         errors_T[j] = std::sqrt(error_I);
 
-        output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << '\n';
+        if (iterations > 1) {
+            output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << '\n';
+            output_data.flush();
+        }
+        
 
         std::cout << "error_T = " << errors_T[j] << "\n";
 
