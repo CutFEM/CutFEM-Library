@@ -201,7 +201,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::truncate(const Interface<Mesh> &
             // Get the sign of the level set function in the element kb
             const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
 
-            bool is_cut = interface.isCut(k); // is element k cut or not
+            bool is_cut = interface.isCut(kb); // is element k cut or not
 
             // Remove the Mesh::Element in the domain corresponding to sign_domain_remove
             //? How to do this with algoim, in cases where the level set has the same
