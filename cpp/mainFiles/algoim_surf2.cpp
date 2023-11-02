@@ -1142,11 +1142,11 @@ int main(int argc, char **argv) {
                 std::cout << "length error = " << fabs(intGamma - 2 * 0.17 * pi) << "\n";
 
                 //errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), tid, phi, 0, 1);
-                errL2 = L2_norm_surface(funuh_0.expr(), fun_sol_surfactant, *interface(0), In, qTime, 0, phi);
+                errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), In, qTime, 0, phi);
                 std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
                 //errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, phi, 0, 1);
                 
-                errL2 = L2_norm_surface(funuh.expr(), fun_sol_surfactant, *interface(lastQuadTime), In, qTime,
+                errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), In, qTime,
                 lastQuadTime, phi);
                 std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
 
