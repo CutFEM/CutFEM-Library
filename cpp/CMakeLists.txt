@@ -47,6 +47,10 @@ endif()
 if(${CUTFEM_BUILD_MAIN})
 
 
+set(EX_NAME henry)
+add_executable(${EX_NAME}  mainFiles/algoim_henry.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
 set(EX_NAME bulkCD2)
 add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion2.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )

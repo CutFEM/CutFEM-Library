@@ -742,7 +742,7 @@ R fun_one(double *P, const int i) { return 1.; }
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
 #define ex1
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 
@@ -774,7 +774,7 @@ using namespace Preuss;
 #endif
 
 int main(int argc, char **argv) {
-    MPIcf cfMPI(argc, argv);
+    //MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
     const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
@@ -789,18 +789,18 @@ int main(int argc, char **argv) {
 
 #ifdef ex1
     // Paths to store data
-    const std::string path_output_data    = "../output_files/henry/example1/data/";
-    const std::string path_output_figures = "../output_files/henry/example1/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/henry/example1/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/henry/example1/paraview/";
 #elif defined(ex2)
     const std::string path_output_data    = "../output_files/henry/example2/data/";
     const std::string path_output_figures = "../output_files/henry/example2/paraview/";
 #endif
 
     // Create directory if not already existent
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_output_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    //     std::filesystem::create_directories(path_output_data);
+    //     std::filesystem::create_directories(path_output_figures);
+    // }
 
     // Data file to hold problem data
     std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
@@ -1052,8 +1052,8 @@ int main(int argc, char **argv) {
             convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(uS), jump(vS)), ThGamma, In);
 
             //! TRY THIS:
-            // surfactant.addBilinear(+ innerProduct(tau2 * h * h * grad(u) * n, grad(v) * n)
-            //                        + innerProduct(tau2 * h * h * h * h * grad(grad(u) * n) * n, grad(grad(v) * n) * n), interface, In);
+            convdiff.addBilinear(+ innerProduct(tau * h * h * grad(uS) * n, grad(vS) * n)
+                                   + innerProduct(tau * h * h * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n), interface, In);
 
 #elif defined(macro)
             // MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
@@ -1098,10 +1098,11 @@ int main(int argc, char **argv) {
 
                 indices << idx_s0 << ", " << idx_s1
                         << "\n"; // export indices needed for computing the scaled condition number
+                indices.flush(); // export simultaneously
             }
 
             // Solve linear system
-            convdiff.solve("mumps");
+            convdiff.solve("umfpack");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);

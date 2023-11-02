@@ -31,8 +31,8 @@ find_path (MUMPS_INCLUDE_DIR
   ~/lib/include)
 
 find_path(MUMPS_LIBRARY_DIR
-  NAMES libmumps_common.dylib libdmumps.dylib libpord.dylib
-#  NAMES libmumps_common.a libdmumps.a libpord.a
+  #NAMES libmumps_common.dylib libdmumps.dylib libpord.dylib    ### MAC
+  NAMES libmumps_common.a libdmumps.a libpord.a   ### SERVER
 
   PATHS
   /usr/local/Cellar/brewsci-mumps/5.2.1/lib
