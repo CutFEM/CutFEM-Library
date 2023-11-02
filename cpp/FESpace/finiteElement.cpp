@@ -31,7 +31,8 @@ template <>
 std::vector<std::vector<const GTypeOfFE<MeshQuad2> *>> BaseFE_Array<MeshQuad2, ContinuityType::continuous>::FE_ = {
     {&DataFE<MeshQuad2>::P0, &DataFE<MeshQuad2>::P0},
     {&DataFE<MeshQuad2>::P1, &DataFE<MeshQuad2>::P1},
-    {&DataFE<MeshQuad2>::P2, &DataFE<MeshQuad2>::P2}};
+    {&DataFE<MeshQuad2>::P2, &DataFE<MeshQuad2>::P2},
+    {&DataFE<MeshQuad2>::P3, &DataFE<MeshQuad2>::P3}};
 
 template <>
 BaseFE_Array<MeshQuad2, ContinuityType::continuous>::BaseFE_Array(int k) : GTypeOfFESum<MeshQuad2>(this->FE_.at(k)) {}
