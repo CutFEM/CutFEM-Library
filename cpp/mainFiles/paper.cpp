@@ -964,10 +964,121 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 }
 } // namespace N_sphere
 
+namespace Example4 {
+// A circle moving in a circular trajectory
+const double D        = 1.;
+const double R0       = 0.17;
+const double beta_max = M_PI * 0.5;
+
+// Level-set function
+double fun_levelSet(double *P, const int i, const R t) {
+    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0);
+}
+
+// Level-set function initial
+double fun_levelSet(double *P, const int i) {
+    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - R0 * R0);
+}
+
+template <int N> struct Levelset {
+
+    double t;
+
+    // level set function
+    template <typename V> typename V::value_type operator()(const V &P) const {
+        R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+        return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17);
+    }
+
+    // gradient of level set function
+    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+
+        return algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
+                                     2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
+    }
+
+    // normal = grad(phi)/norm(grad(phi))
+    R2 normal(std::span<double> P) const {
+        R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
+                      pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
+        // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
+        return R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
+                  2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
+    }
+};
+
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return 0.;
+}
+
+// Velocity field
+R fun_velocity(double *P, const int i, const double t) {
+    if (i == 0)
+        return M_PI * (0.5 - P[1]);
+    else
+        return M_PI * (P[0] - 0.5);
+}
+
+R fun_one(double *P, const int i) { return 1.; }
+
+// // Normal x-direction
+// R n1(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[0] - xc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
+
+// // Normal y-direction
+// R n2(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[1] - yc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
+
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) { return 0.; }
+
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    double x = P[0], y = P[1];
+
+    double xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+
+    double r   = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
+    return cos(M_PI * r / R0) * sin(M_PI * t);
+
+}
+
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    double x = P[0], y = P[1];
+
+    double xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+
+    double r   = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
+    return cos(M_PI * r / R0) * sin(M_PI * t);
+}
+
+// RHS fB bulk
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    // automatic
+    return D*((3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0)*2.0E+8)/R0+(1.0/(R0*R0)*(3.141592653589793*3.141592653589793)*sin(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12)/(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0)-(3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0,3.0/2.0)*4.0E+20)/R0-(3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0,3.0/2.0)*4.0E+20)/R0+(1.0/(R0*R0)*(3.141592653589793*3.141592653589793)*sin(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12)/(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))+3.141592653589793*cos(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8));
+
+}
+
+} // namespace Example4
+
+
+
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
 #define ex3
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 
@@ -976,6 +1087,8 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
                  // proportional to h.
 #define conservationnot
+
+#define reynoldnot
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -997,13 +1110,15 @@ using namespace Kite;
 using namespace N_sphere;
 #elif defined(preuss)
 using namespace Preuss;
+#elif defined(ex4)
+using namespace Example4;
 #endif
 
 int main(int argc, char **argv) {
     // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 7; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 6; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.9;             // starting mesh size
@@ -1023,6 +1138,9 @@ int main(int argc, char **argv) {
 #elif defined(ex3)
     const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example3/data/";
     const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example3/paraview/";
+#elif defined(ex4)
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example4/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example4/paraview/";
 #elif defined(preuss)
     const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/preuss/data/";
     const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/preuss/paraview/";
@@ -1065,18 +1183,32 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
         // Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
-        Mesh Th(nx, ny, -3.500123, -1.5, 7., 3.);
+        //Mesh Th(nx, ny, -3.500123, -1.5, 7., 3.);
+        Mesh Th(nx, ny, -2.500123, -1.5, 7., 3.);
         // Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
 #elif defined(ex3)
-        const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
+        //const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
         // const double lx = 2., ly = 1.1;
+        const double lx = 2., ly = 1.2;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, -2.01 * Example3::R0, -1.5 * Example3::R0, lx, ly);
-        // Mesh Th(nx, ny, -1., -0.6, lx, ly);
+        //Mesh Th(nx, ny, -2.01 * Example3::R0, -1.5 * Example3::R0, lx, ly);
+        Mesh Th(nx, ny, -1.-Epsilon, -0.6-Epsilon, lx, ly);
+
+#elif defined(ex4)
+        const double lx = 1., ly = 1.;
+        //const double lx = 4. * Example4::R0, ly = 4. * Example4::R0;
+#ifdef use_h
+        nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
+#elif defined(use_n)
+        h = lx / (nx - 1);
+#endif
+        Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
+        //Mesh Th(nx, ny, 0. - 2.01 * Example4::R0, -2.01 * Example4::R0, lx, ly);
+
 #elif defined(preuss)
         const double lx = 3. * Preuss::R0, ly = 4. * Preuss::R0;
         // const double lx = 2., ly = 1.1;
@@ -1097,7 +1229,7 @@ int main(int argc, char **argv) {
 #else
         const int divisionMeshSize = 3;
 
-        // double dT = h / divisionMeshSize;
+        //double dT = h / divisionMeshSize;
         //  double dT = tfinal / 32;
         double dT = 0.5 * std::pow(2, -j - 1);
         // double dT = tfinal / (j + 1);
@@ -1130,24 +1262,24 @@ int main(int argc, char **argv) {
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
         const double tau1 = 0.05, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P2); // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P3); // Background FE Space
         // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P3Poly); // FE Space in time
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(14)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
 
         // Velocity field
-        LagrangeQuad2 FEvelocity(2);
+        LagrangeQuad2 FEvelocity(0);
         FESpace VelVh(Th, FEvelocity);
         std::vector<Fun_h> vel(nbTime);
 
@@ -1161,7 +1293,7 @@ int main(int argc, char **argv) {
 
         Levelset<2> phi;
         ProblemOption option;
-        const int quadrature_order_space       = 7;
+        const int quadrature_order_space       = 9;
         option.order_space_element_quadrature_ = quadrature_order_space;
         AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
@@ -1268,6 +1400,8 @@ int main(int argc, char **argv) {
             for (int i = 0; i < nbTime; ++i) {
                 convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
             }
+
+            //convdiff.addBilinearExact(fun_velocity, -innerProduct(u, grad(v)), Thi, In);
 #endif
 
             // Source function
@@ -1291,7 +1425,8 @@ int main(int argc, char **argv) {
             //     Thi, In);
 
             convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In);
-
+            //convdiff.addPatchStabilization(+innerProduct(tau1 / 10000 / h * jump(u), jump(v)), Thi, In, 0);
+            
 #elif defined(macro)
             // MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
             // std::cout << TimeMacro.number_of_stabilized_edges << "\n";
@@ -1353,8 +1488,7 @@ int main(int argc, char **argv) {
             std::cout << " t_n -> || u-uex||_(In x Omega)^2 = " << error_I << '\n';
 
             // Compute error in Reynold relation
-            {
-
+            #if defined(reynold)
                 AlgoimCutFEM<Mesh, Levelset<2>> reynold(qTime, phi);
 
                 reynold.initSpace(Wh, In);
@@ -1382,16 +1516,16 @@ int main(int argc, char **argv) {
                 reynold_error.at(j) = lhs.linfty();
 
                 std::cout << " e_r^n = " << reynold_error.at(j) << '\n';
-            }
+            #endif
 
             // Compute area of domain in time quadrature point 0
             Fun_h funone(Wh, fun_one);
 
-            double intGamma = integral_algoim(funone, In, interface, phi, 0, quadrature_order_space) / dT;
-            double intOmega = integral_algoim(funone, Thi, phi, In, qTime, lastQuadTime, quadrature_order_space);
+            //double intGamma = integral_algoim(funone, In, interface, phi, 0, quadrature_order_space) / dT;
+            //double intOmega = integral_algoim(funone, Thi, phi, In, qTime, lastQuadTime, quadrature_order_space);
 
-            gamma[j] = intGamma;
-            omega[j] = intOmega;
+            //gamma[j] = intGamma;
+            //omega[j] = intOmega;
 
             // Compute error of numerical solution
             Rn sol(Wh.get_nb_dof(), 0.);
@@ -1399,8 +1533,8 @@ int main(int argc, char **argv) {
 
             sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
 
-            errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1, quadrature_order_space);
-            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
+            // errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1, quadrature_order_space);
+            // std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
 
             for (int n = 1; n < ndfTime; n++) {
                 sol += data_u0(SubArray(Wh.get_nb_dof(), n * Wh.get_nb_dof()));
@@ -1494,7 +1628,7 @@ int main(int argc, char **argv) {
         errors_T[j] = std::sqrt(error_I);
 
         if (iterations > 1) {
-            output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << '\n';
+            output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << "," << ns_active.at(j) << '\n';
             output_data.flush();
         }
         
