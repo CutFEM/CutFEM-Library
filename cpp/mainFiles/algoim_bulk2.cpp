@@ -602,6 +602,116 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 }
 } // namespace Kite
 
+namespace Example4 {
+// A circle moving in a circular trajectory
+const double D        = 1.;
+const double R0       = 0.17;
+const double beta_max = M_PI * 0.5;
+
+// Level-set function
+double fun_levelSet(double *P, const int i, const R t) {
+    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0);
+}
+
+// Level-set function initial
+double fun_levelSet(double *P, const int i) {
+    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - R0 * R0);
+}
+
+template <int N> struct Levelset {
+
+    double t;
+
+    // level set function
+    template <typename V> typename V::value_type operator()(const V &P) const {
+        R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+        return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17);
+    }
+
+    // gradient of level set function
+    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
+
+        return algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
+                                     2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
+    }
+
+    // normal = grad(phi)/norm(grad(phi))
+    R2 normal(std::span<double> P) const {
+        R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
+                      pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
+        // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
+        return R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
+                  2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
+    }
+};
+
+// The rhs Neumann boundary condition
+R fun_neumann_Gamma(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    return 0.;
+}
+
+// Velocity field
+R fun_velocity(double *P, const int i) {
+    if (i == 0)
+        return M_PI * (0.5 - P[1]);
+    else
+        return M_PI * (P[0] - 0.5);
+}
+
+R fun_one(double *P, const int i) { return 1.; }
+
+// // Normal x-direction
+// R n1(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[0] - xc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
+
+// // Normal y-direction
+// R n2(double *P, const R t) {
+//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+//    return (P[1] - yc) /
+//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
+// }
+
+// Initial solution bulk
+R fun_uBulkInit(double *P, const int i) { return 0.; }
+
+// Exact solution bulk
+R fun_uBulk(double *P, const int i, const R t) {
+    double x = P[0], y = P[1];
+
+    double xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+
+    double r   = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
+    return cos(M_PI * r / R0) * sin(M_PI * t);
+
+}
+
+R fun_uBulkD(double *P, const int i, const int d, const R t) {
+    double x = P[0], y = P[1];
+
+    double xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+
+    double r   = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
+    return cos(M_PI * r / R0) * sin(M_PI * t);
+}
+
+// RHS fB bulk
+R fun_rhsBulk(double *P, const int i, const R t) {
+    R x = P[0], y = P[1];
+
+    // automatic
+    return D*((3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0)*2.0E+8)/R0+(1.0/(R0*R0)*(3.141592653589793*3.141592653589793)*sin(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12)/(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0)-(3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0,3.0/2.0)*4.0E+20)/R0-(3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0,3.0/2.0)*4.0E+20)/R0+(1.0/(R0*R0)*(3.141592653589793*3.141592653589793)*sin(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12)/(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))+3.141592653589793*cos(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8));
+
+}
+
+} // namespace Example4
+
+
 // The below parameters can be varied according to the options to use different methods,
 // different numerical examples, different subdomains and boundary conditions etc.
 
@@ -609,9 +719,9 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 #define algoim
 
 //* Set numerical example (options: "example1", "lehrenfeld")
-#define example1
+#define example4
 //* Set parameter D (options: "convection_dominated" means D=0.01, else D=1)
-#define convection_dominated
+#define convection_dominatednot
 
 //* Choose domain to solve on (options: "omega1", "omega2")
 #define omega2
@@ -627,7 +737,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 //* Decide whether to solve for level set function, or to use exact (options:
 // "levelsetsolve", "levelsetexact")
 #define levelsetexact
@@ -659,23 +769,25 @@ using namespace Lehrenfeld;
 using namespace Lehrenfeld2;
 #elif defined(kite)
 using namespace Kite;
+#elif defined(example4)
+using namespace Example4;
 #endif
 
 int main(int argc, char **argv) {
-    // MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.05;            // starting mesh size
+    double h  = 0.1;            // starting mesh size
     double dT = 0.1;
 
     int total_number_iteration;
     double time_step;
     double t0 = 0.;
 
-#ifdef example1
+#ifdef example1 
     // Paths to store data
     const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/bulk/example1/";
     const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/bulk/example1/";
@@ -691,6 +803,10 @@ int main(int argc, char **argv) {
     // Paths to store data
     const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/bulk/kite/";
     const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/bulk/kite/";
+#elif defined(example4)
+    // Paths to store data
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/bulk/example1/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/bulk/example1/";
 #endif
 
     // Create directory if not already existent
@@ -751,6 +867,20 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
         Mesh Th(nx, ny, -3.523, -1.5108, lx, ly);
+
+#elif defined(example4)
+        const double lx = 1., ly = 1.;
+        const double x0 = 0. - Epsilon, y0 = 0. - Epsilon;
+        //const double lx = 4. * Example4::R0, ly = 4. * Example4::R0;
+#ifdef use_h
+        nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
+#elif defined(use_n)
+        h = lx / (nx - 1);
+#endif
+        Mesh Th(nx, ny, x0, y0, lx, ly);
+        //Mesh Th(nx, ny, 0. - 2.01 * Example4::R0, -2.01 * Example4::R0, lx, ly);
+
+
 #endif
 
         // Parameters
@@ -797,18 +927,18 @@ int main(int argc, char **argv) {
         // CG stabilization parameter
         const double tau1 = 0.1, tau2 = 0.1;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1);               // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P2);               // Background FE Space
         FESpace Vh_interpolation(Th, DataFE<Mesh>::P2); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);               // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);               // FE Space in time
         FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P2Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(3)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
         // const QuadratureFormular1d &qTime(QF_Euler); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
@@ -962,6 +1092,15 @@ int main(int argc, char **argv) {
             convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)) -
                                              innerProduct(u, (vel.exprList() * grad(v))),
                                          Thi, In);
+
+            
+            const double C = 0.1;
+            double tau_supg = C*h*h/D;  
+
+            convdiff.addBilinear(innerProduct(dt(u) + vel.exprList()*grad(u) - D*div(grad(u)), tau_supg*(dt(v) + vel.exprList() * grad(v))), Thi, In);
+            
+            convdiff.addLinear(innerProduct(f.expr(), tau_supg*(dt(v) + vel.exprList() * grad(v))), Thi, In);
+            
 #endif
 
             convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
@@ -976,10 +1115,15 @@ int main(int argc, char **argv) {
             //                               + innerProduct(tau1 * h*h*h*jump(grad(grad(u) * n)*n), jump(grad(grad(v) *
             //                               n)*n))
             // , Thi, In);
-            convdiff.addFaceStabilization(
-                +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
-                    innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
-                Thi, In);
+
+            // OLD
+            // convdiff.addFaceStabilization(
+            //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
+            //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+            //     Thi, In);
+
+            // NEW
+            convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In);
 
             // convdiff.addBilinear(+innerProduct(h * h * tau1 * grad(u) * n, grad(v) * n), interface, In);
 
@@ -1152,12 +1296,12 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
-            if ((iter == total_number_iteration - 1)) {
+            if (iter == total_number_iteration - 1) {
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
             }
 
             // Solve linear system
-            convdiff.solve("umfpack");
+            convdiff.solve("mumps");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -1175,8 +1319,8 @@ int main(int argc, char **argv) {
             Fun_h funuh(Wh, sol);
             sol += data_u0(SubArray(Wh.get_nb_dof(), 0));
 
-            errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1);
-            std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
+            // errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, 0, phi, 0, 1);
+            // std::cout << " t_{n-1} -> || u-uex||_2 = " << errBulk << '\n';
 
             for (int n = 1; n < ndfTime; n++) {
                 sol += data_u0(SubArray(Wh.get_nb_dof(), n * Wh.get_nb_dof()));

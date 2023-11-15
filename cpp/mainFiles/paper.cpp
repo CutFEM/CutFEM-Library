@@ -1115,7 +1115,7 @@ using namespace Example4;
 #endif
 
 int main(int argc, char **argv) {
-    // MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
     const size_t iterations = 6; // number of mesh refinements   (set to 1 to run
@@ -1130,28 +1130,28 @@ int main(int argc, char **argv) {
 
 #ifdef ex1
     // Paths to store data
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example1/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example1/paraview/";
+    const std::string path_output_data    = "../output_files/paper/example1/data/";
+    const std::string path_output_figures = "../output_files/paper/example1/paraview/";
 #elif defined(ex2)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example2/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example2/paraview/";
+    const std::string path_output_data    = "../output_files/paper/example2/data/";
+    const std::string path_output_figures = "../output_files/paper/example2/paraview/";
 #elif defined(ex3)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example3/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example3/paraview/";
+    const std::string path_output_data    = "../output_files/paper/example3/data/";
+    const std::string path_output_figures = "../output_files/paper/example3/paraview/";
 #elif defined(ex4)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example4/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example4/paraview/";
+    const std::string path_output_data    = "../output_files/paper/example4/data/";
+    const std::string path_output_figures = "../output_files/paper/example4/paraview/";
 #elif defined(preuss)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/preuss/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/preuss/paraview/";
+    const std::string path_output_data    = "../output_files/paper/preuss/data/";
+    const std::string path_output_figures = "../output_files/paper/preuss/paraview/";
 
 #endif
 
     // Create directory if not already existent
-    // // if (MPIcf::IamMaster()) {
-    // std::filesystem::create_directories(path_output_data);
-    // std::filesystem::create_directories(path_output_figures);
-    //}
+    if (MPIcf::IamMaster()) {
+    std::filesystem::create_directories(path_output_data);
+    std::filesystem::create_directories(path_output_figures);
+    }
 
     // Data file to hold problem data
     std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
@@ -1190,35 +1190,40 @@ int main(int argc, char **argv) {
         //const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
         // const double lx = 2., ly = 1.1;
         const double lx = 2., ly = 1.2;
+        double x0 = -1.-Epsilon, y0 = -0.6-Epsilon;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
         //Mesh Th(nx, ny, -2.01 * Example3::R0, -1.5 * Example3::R0, lx, ly);
-        Mesh Th(nx, ny, -1.-Epsilon, -0.6-Epsilon, lx, ly);
+        //Mesh Th(nx, ny, -1.-Epsilon, -0.6-Epsilon, lx, ly);
 
 #elif defined(ex4)
         const double lx = 1., ly = 1.;
+        const double x0 = 0. - Epsilon, y0 = 0. - Epsilon;
         //const double lx = 4. * Example4::R0, ly = 4. * Example4::R0;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
+        //Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
         //Mesh Th(nx, ny, 0. - 2.01 * Example4::R0, -2.01 * Example4::R0, lx, ly);
 
 #elif defined(preuss)
         const double lx = 3. * Preuss::R0, ly = 4. * Preuss::R0;
+        const double x0 = -1.51 * Preuss::R0, y0 = -1.5 * Preuss::R0;
         // const double lx = 2., ly = 1.1;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        Mesh Th(nx, ny, -1.51 * Preuss::R0, -1.5 * Preuss::R0, lx, ly);
+        //Mesh Th(nx, ny, -1.51 * Preuss::R0, -1.5 * Preuss::R0, lx, ly);
 #endif
+
+        Mesh Th(nx, ny, x0, y0, lx, ly);
 
         // Parameters
         const double tfinal = .5; // Final time
@@ -1273,13 +1278,13 @@ int main(int argc, char **argv) {
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(14)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(9)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
 
         // Velocity field
-        LagrangeQuad2 FEvelocity(0);
+        LagrangeQuad2 FEvelocity(2);
         FESpace VelVh(Th, FEvelocity);
         std::vector<Fun_h> vel(nbTime);
 
@@ -1401,6 +1406,33 @@ int main(int argc, char **argv) {
                 convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
             }
 
+
+            // SUPG stabilization
+            const double C = .01;
+            double tau_supg = C*h*h/D;  
+            //double tau_supg = C*h/(2*beta_max);  
+            //double tau_supg = C*beta_max*h/(2*D);  
+
+            //std::cout << "tau_supg = " << tau_supg << "\n";
+
+            for (int i = 0; i < nbTime; ++i) {
+                convdiff.addBilinear(innerProduct(dt(u) + vel[i].exprList()*grad(u), tau_supg*(dt(v) + vel[i].exprList() * grad(v))), Thi, In, i);
+                convdiff.addBilinear(innerProduct(D*grad(u), tau_supg*grad(dt(v) + vel[i].exprList() * grad(v))), interface, In, i);
+            }
+
+            
+
+            for (int i = 0; i < nbTime; ++i) {
+                convdiff.addLinearExact(fun_rhsBulk, innerProduct(1, tau_supg*(dt(v) + vel[i].exprList() * grad(v))), Thi, In, i);
+                convdiff.addLinearExact(fun_neumann_Gamma, innerProduct(1, tau_supg*grad(dt(v) + vel[i].exprList() * grad(v))), interface, In, i);
+            }
+
+
+            // for (int i = 0; i < nbTime; ++i) {
+            //     convdiff.addLinearExact(fun_neumann_Gamma, innerProduct(1, tau_supg*(dt(v) + vel[i].exprList() * grad(v))), *interface(i), In, i);
+            // }
+
+
             //convdiff.addBilinearExact(fun_velocity, -innerProduct(u, grad(v)), Thi, In);
 #endif
 
@@ -1469,7 +1501,7 @@ int main(int argc, char **argv) {
             }
 
             // Solve linear system
-            convdiff.solve("umfpack");
+            convdiff.solve("mumps");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);

@@ -90,6 +90,20 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
             Cint *= VF[l].c;
 
+            // std::cout << std::setprecision(16);
+            // std::cout << "AlgoimFEM\n";
+            // std::cout << "t = " << tid << "\n";
+            // std::cout << "x = " << mip[0] << ", y = " << mip[1] << "\n";
+            // // std::cout << "pi(0.5-y) =\t " << M_PI*(0.5-mip[1]) << "\n";
+            // // std::cout << "pi(x-0.5) =\t " << M_PI*(mip[0]-0.5) << "\n";
+            // std::cout << "2*cos(2*pi*t) = " << 2.*std::cos(2*M_PI*tid) << "\n";
+            // std::cout << "f(mip, t)[" << l << "]: " << VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid) << "\n";
+            // //R xc = 0.5 + 0.28 * sin(M_PI * tid), yc = 0.5 - 0.28 * cos(M_PI * tid), R0 = 0.17;
+            // R xc = 1./M_PI*std::sin(2*M_PI*tid), yc = 0., R0 = 0.5;
+            // std::cout << "phi_exact(mip, t): " << ((mip[0] - xc) * (mip[0] - xc) + (mip[1] - yc) * (mip[1] - yc) - R0 * R0) << "\n";
+            // std::cout << "phi_algoi(mip, t): " << phi(mip) << "\n";
+            // //getchar();
+
             if (In) {
                 if (VF.isRHS())
                     this->addToRHS(VF[l], *In, FKv, fv, Cint);
@@ -199,6 +213,19 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionExact(const Fct &f, const ite
             Cint *= VF[l].c;
             Cint *= f(mip, VF[l].cv, tid);
 
+            // std::cout << std::setprecision(16);
+            // std::cout << "AlgoimFEM\n";
+            // std::cout << "x = " << mip[0] << ", y = " << mip[1] << "\n";
+            // // std::cout << "pi(0.5-y) =\t " << M_PI*(0.5-mip[1]) << "\n";
+            // // std::cout << "pi(x-0.5) =\t " << M_PI*(mip[0]-0.5) << "\n";
+            // std::cout << "2*cos(2*pi*t) = " << 2*std::cos(2*M_PI*tid) << "\n";
+            // std::cout << "f(mip, t)[" << l << "]: " << VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid) << "\n";
+            // //R xc = 0.5 + 0.28 * sin(M_PI * tid), yc = 0.5 - 0.28 * cos(M_PI * tid), R0 = 0.17;
+            // R xc = 1./M_PI*std::sin(2*M_PI*tid), yc = 0., R0 = 0.5;
+            // std::cout << "phi_exact(mip, t): " << ((mip[0] - xc) * (mip[0] - xc) + (mip[1] - yc) * (mip[1] - yc) - R0 * R0) << "\n";
+            // std::cout << "phi_algoi(mip, t): " << phi(mip) << "\n";
+            // getchar();
+
             if (In) {
                 if (VF.isRHS())
                     this->addToRHS(VF[l], *In, FKv, fv, Cint);
@@ -214,6 +241,31 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionExact(const Fct &f, const ite
     }
     // getchar();
 }
+
+template <typename M, typename L>
+template <typename Fct>
+void AlgoimBaseCutFEM<M, L>::addBilinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+                                            const TimeSlab &In) {
+    for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
+        assert(!VF.isRHS());
+        auto tq    = this->get_quadrature_time(itq);
+        double tid = In.map(tq);
+
+        KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+        In.BF(tq.x, bf_time); // compute time basic funtions
+        double cst_time = tq.a * In.get_measure();
+
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+            if (Th.isInactive(k, itq))
+                continue;
+
+            addElementContributionExact(f, VF, k, &In, itq, cst_time);
+        }
+    }
+}
+
 
 template <typename M, typename L>
 template <typename Fct>
@@ -257,6 +309,42 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
 
         addElementContributionExact(f, VF, k, &In, itq, 1.);
     }
+}
+
+
+/**
+ * @brief Add bulk rhs integral in specific time quadrature point and scale with time.
+ * 
+ * @tparam M 
+ * @tparam L 
+ * @tparam Fct 
+ * @param f 
+ * @param VF 
+ * @param Th 
+ * @param In 
+ */
+template <typename M, typename L>
+template <typename Fct>
+void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+                                            const TimeSlab &In, const int itq) {
+    
+    assert(VF.isRHS());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time); // compute time basic funtions
+    double cst_time = tq.a * In.get_measure();
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isInactive(k, itq))
+            continue;
+
+        addElementContributionExact(f, VF, k, &In, itq, cst_time);
+    }
+
 }
 
 
@@ -607,6 +695,18 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
 }
 
 
+/**
+ * @brief Add exact RHS in specific time quadrature point, without scaling in time.
+ * 
+ * @tparam M 
+ * @tparam L 
+ * @tparam Fct 
+ * @param f 
+ * @param VF 
+ * @param gamma 
+ * @param In 
+ * @param itq 
+ */
 template <typename M, typename L>
 template <typename Fct>
 void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF, const Interface<M> &gamma,
@@ -620,11 +720,49 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
     In.BF(tq.x, bf_time); // compute time basic funtions
 
+
     for (int iface = gamma.first_element(); iface < gamma.last_element();
             iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
 
         addInterfaceContributionExact(f, VF, gamma, iface, tid, &In, 1., itq);
+    }
+
+}
+
+
+/**
+ * @brief Add exact RHS in specific time quadrature point, WITH scaling in time.
+ * 
+ * @tparam M 
+ * @tparam L 
+ * @tparam Fct 
+ * @param f 
+ * @param VF 
+ * @param gamma 
+ * @param In 
+ * @param itq 
+ */
+template <typename M, typename L>
+template <typename Fct>
+void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma,
+                                            const TimeSlab &In, const int itq) {
+    assert(VF.isRHS());
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time); // compute time basic funtions
+
+    double cst_time = tq.a * In.get_measure();
+
+    for (int iface = gamma[itq]->first_element(); iface <  gamma[itq]->last_element();
+            iface += gamma[itq]->next_element()) {
+        const typename Interface<M>::Face &face =  (*gamma[itq])[iface]; // the face
+
+        addInterfaceContributionExact(f, VF, *gamma[itq], iface, tid, &In, cst_time, itq);
     }
 
 }
