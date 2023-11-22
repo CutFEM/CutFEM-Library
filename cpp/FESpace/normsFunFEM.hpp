@@ -28,6 +28,20 @@ double L2normCut(const FunFEM<M> &fh, R(fex)(double *, int i, int dom, double tt
     return sqrt(val);
 }
 
+template <typename M, FunctionDomainTime fct_t>
+double L2normCut(const FunFEM<M> &fh, fct_t fex, double t, int c0, int num_comp,
+                 const MacroElement<M> *macro = nullptr) {
+
+    const GFESpace<M> &Vh(*fh.Vh);
+    const ActiveMesh<M> &Th(Vh.get_mesh());
+    double val = 0;
+    for (int i = c0; i < num_comp + c0; ++i) {
+        auto ui = fh.expr(i);
+        val += L2normCut_2(ui, fex, Th, t, macro);
+    }
+    return sqrt(val);
+}
+
 template <typeMesh mesh_t, FunctionDomain fct>
 double L2normCut(const FunFEM<mesh_t> &fh, fct fex, int c0, int num_comp, const MacroElement<mesh_t> *macro = nullptr) {
 
@@ -79,6 +93,17 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, cons
 
 template <typename M>
 double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
+                   const ActiveMesh<M> &Th, double t, const MacroElement<M> *macro) {
+    int nb_dom = Th.get_nb_domain();
+    double val = 0.;
+    for (int i = 0; i < nb_dom; ++i) {
+        val += L2normCut_2(fh, fex, i, Th, t, macro);
+    }
+    return val;
+}
+
+template <typename M, FunctionDomainTime fct_t>
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex,
                    const ActiveMesh<M> &Th, double t, const MacroElement<M> *macro) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
@@ -193,6 +218,59 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, int 
 
 template <typename Mesh>
 double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
+                   int domain, const ActiveMesh<Mesh> &Th, double t, const MacroElement<Mesh> *macro) {
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QF QF;
+    typedef typename FElement::Rd Rd;
+    typedef typename QF::QuadraturePoint QuadraturePoint;
+    typedef typename ActiveMesh<Mesh>::Element Element;
+
+    const QF &qf(*QF_Simplex<typename FElement::RdHat>(5));
+
+    double val = 0.;
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (domain != Th.get_domain_element(k))
+            continue;
+
+        const Cut_Part<Element> cutK(Th.get_cut_part(k, 0));
+        int kb = Th.idxElementInBackMesh(k);
+
+        int kk = k;
+        // if(macro){
+        //   if(!macro->isRootFat(k)) {
+        //     kk = macro->getIndexRootElement(k);
+        //   }
+        // }
+
+        for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+            const R meas = cutK.measure(it);
+
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+                QuadraturePoint ip(qf[ipq]); // integration point
+                Rd mip       = cutK.mapToPhysicalElement(it, ip);
+                const R Cint = meas * ip.getWeight();
+
+                double a = fh->eval(kk, mip) - fex(mip, fh->cu, domain, t);
+
+                val += Cint * a * a;
+            }
+        }
+    }
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+    return val_receive;
+}
+
+template <typename Mesh, FunctionDomainTime fct_t>
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex,
                    int domain, const ActiveMesh<Mesh> &Th, double t, const MacroElement<Mesh> *macro) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
