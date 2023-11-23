@@ -15,11 +15,14 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 #include "solverMumps.hpp"
 #include "../num/matlab.hpp"
+#include <thread>
+#include "../num/print_container.hpp"
+#include "../common/logger.hpp"
 
 #define ICNTL(I) icntl[(I)-1]
 #define INFO(I) info[(I)-1]
 
-MUMPS::MUMPS(const Solver &s, matmap &AA, Rn &bb)
+MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
     :
 
       // verbose(s.verbose),
@@ -27,12 +30,25 @@ MUMPS::MUMPS(const Solver &s, matmap &AA, Rn &bb)
       mat(AA), rhs(bb), cleanMatrix(s.clearMatrix_) {
 
     //    if(MPIcf::size() > 1) assert(0);
+    LOG_INFO << "MUMPS solver is used" << logger::endl;
     initializeSetting();
+    MPIcf::Barrier();
+    LOG_INFO << "MUMPS: initialization done" << logger::endl;
     setDoF();
+    MPIcf::Barrier();
+    LOG_INFO << "MUMPS: set dof done" << logger::endl;
     saveMatrixToCSR();
+    MPIcf::Barrier();
+    LOG_INFO << "MUMPS: save matrix to CSR done" << logger::endl;
     analyzeMatrix();
+    MPIcf::Barrier();
+    LOG_INFO << "MUMPS: analysis matrix done" << logger::endl;
     factorizationMatrix();
+    MPIcf::Barrier();
+    LOG_INFO << "MUMPS: factorization matrix done" << logger::endl;
     solvingLinearSystem();
+    MPIcf::Barrier();
+    LOG_INFO << "MUMPS: solving system done" << logger::endl;
 
     // if(verbose > 1)
     // info();
@@ -105,7 +121,7 @@ void MUMPS::saveMatrixToCSR() {
     //-------------------------------------------------------
     IRN_loc.init(mumps_par.nz_loc);
     JCN_loc.init(mumps_par.nz_loc);
-    A_loc.init(mumps_par.nz_loc);
+    A_loc.resize(mumps_par.nz_loc);
 
     int k = 0;
     for (std::map<std::pair<int, int>, R>::const_iterator q = mat.begin(); q != mat.end(); ++q, ++k) {
@@ -114,14 +130,14 @@ void MUMPS::saveMatrixToCSR() {
         // JCN_loc(k) = mapp->iperm(q->first.second) + 1;
         IRN_loc(k) = q->first.first + 1;
         JCN_loc(k) = q->first.second + 1;
-        A_loc(k)   = q->second;
+        A_loc[k]   = q->second;
     }
     if (cleanMatrix)
         mat.clear();
 
     mumps_par.irn_loc = IRN_loc;
     mumps_par.jcn_loc = JCN_loc;
-    mumps_par.a_loc   = A_loc;
+    mumps_par.a_loc   = A_loc.data();
 
     // mumps_par.irn = IRN_loc;
     // mumps_par.jcn = JCN_loc;
@@ -132,13 +148,17 @@ void MUMPS::saveMatrixToCSR() {
     //-------------------------------------------------------
     // rhsG.init(rhs.size()*(MPIcf::IamMaster()));             // alloc mem for
     // global rhs
-    rhsG.init(rhs.size()); // alloc mem for global rhs
-    rhsG = rhs;
-    MPIcf::Reduce(rhsG, rhs, MPI_SUM, MPIcf::Master());
+    rhsG.resize(rhs.size()); // alloc mem for global rhs
+    std::copy(rhs.begin(), rhs.end(), rhsG.begin());
+    // rhsG = rhs;
+    MPIcf::Reduce<double>(rhsG, rhs, MPI_SUM, MPIcf::Master());
+    // MPI_Reduce(rhsG.data(), rhs.data(), rhs.size(), MPI_TYPE<double>::TYPE(), MPI_SUM, MPIcf::Master(),
+    // MPI_COMM_WORLD);
+
     //   //    Rn rhsMapp;
     if (MPIcf::IamMaster()) {
         //      mapp->reorder(rhs_sum, rhsMapp);
-        mumps_par.rhs = rhs; // rhsMapp;
+        mumps_par.rhs = rhs.data(); // rhsMapp;
     }
 
     // mumps_par.rhs = rhs;
@@ -201,6 +221,11 @@ void MUMPS::solvingLinearSystem() {
     //   mapp->inverseMapp(rhsMapp, rhs);
     // }
     // if(!MPIcf::IamMaster()) rhs = 0.;
+    // std::cout << rhs.size() << std::endl;
+    // std::cout << rhs << std::endl;
+    // getchar();
+    // MPIcf::Barrier();
+
     MPIcf::Bcast(rhs, MPIcf::Master());
     // matlab::Export(rhs,
     // "sol"+to_string(MPIcf::my_rank())+"_"+to_string(MPIcf::size())+".dat");

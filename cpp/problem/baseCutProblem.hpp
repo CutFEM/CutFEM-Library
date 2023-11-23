@@ -110,6 +110,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
     // Face stabilization
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &);
+    void addFaceStabilizationMixed(const itemVFlist_t &VF, const CutMesh &);
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In);
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In, int itq);
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, int itq, const TimeSlab &In);
@@ -126,7 +127,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                               const AlgoimMacro<Mesh, L> &);
     template <typename L>
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
-                              const AlgoimMacro<Mesh, L> &);
+                               const AlgoimMacro<Mesh, L> &);
 
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const TimeMacroElementSurface<Mesh> &);
@@ -199,8 +200,9 @@ template <typename Mesh> class CutFEM : public BaseCutFEM<Mesh>, public Solver {
         gather(this->mat_);
         Solver::solve(this->mat_[0], this->rhs_);
     }
-    void solve(std::map<std::pair<int, int>, R> &A, Rn &b) { Solver::solve(A, b); }
-    void solve(std::vector<Matrix> &A, Rn &b, std::string solverName) {
+    void solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) { Solver::solve(A, b); }
+    // void solve(std::map<std::pair<int, int>, R> &A, Rn &b) { Solver::solve(A, b); }
+    void solve(std::vector<Matrix> &A, std::span<double> b, std::string solverName) {
         gather(A);
         Solver::solve(A[0], b);
     }

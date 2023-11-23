@@ -17,15 +17,18 @@
 #include <thread>
 #include <concepts>
 #include <algorithm>
+#include <numeric>
 
 #include "concept/function.hpp"
 #include "common/global.hpp"
 #include "common/Mesh3dn.hpp"
 #include "common/time_interface.hpp"
+
 #include "common/logger.hpp"
 
 #include "num/print_container.hpp"
 #include "num/util.hpp"
+#include "num/matlab.hpp"
 #include "problem/baseProblem.hpp"
 #include "FESpace/expression.hpp"
 #include "FESpace/paraview.hpp"

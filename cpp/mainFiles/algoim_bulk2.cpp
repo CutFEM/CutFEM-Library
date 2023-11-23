@@ -1085,7 +1085,7 @@ int main(int argc, char **argv) {
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface,
                                In); // note the negative sign because of the changed interface normal
 
-                                    //* Neumann on outer and Dirichlet on inner
+            //* Neumann on outer and Dirichlet on inner
 #elif defined(neumann1) && defined(dirichlet2)
             // Neumann outer
 
@@ -1152,7 +1152,7 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
-            if ((iter == total_number_iteration - 1)) {
+            if (iter == total_number_iteration - 1) {
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
             }
 

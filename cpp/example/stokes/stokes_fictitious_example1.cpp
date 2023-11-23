@@ -44,9 +44,9 @@ int main(int argc, char **argv) {
 
     int nx              = 11;
     double penaltyParam = 4e3;
-    double sigma        = 1e0;
-    double uPenParam    = 6e0;
-    double pPenParam    = 4e0;
+    double sigma        = 1e-2;
+    double uPenParam    = 1e0;
+    double pPenParam    = 1e0;
     double mu           = 1.;
 
     Normal n;
@@ -69,16 +69,16 @@ int main(int argc, char **argv) {
         cutmesh_t Khi(Kh);
         Khi.truncate(interface, 1);
 
-        MacroElement<mesh_t> macro(Khi, 0.8);
+        MacroElement<mesh_t> macro(Khi, 1.);
 
         Lagrange2 FEvelocity(4);
         space_t VELh(Kh, FEvelocity);
         space_t SCAh(Kh, DataFE<mesh_t>::P2);
 
-        space_t Wh(Kh, DataFE<mesh_t>::BDM1);
+        space_t Wh(Kh, DataFE<mesh_t>::RT1);
         cutspace_t Vh(Khi, Wh);
 
-        space_t Qh(Kh, DataFE<mesh_t>::P0);
+        space_t Qh(Kh, DataFE<mesh_t>::P1dc);
         cutspace_t Ph(Khi, Qh);
 
         fct_t fh(VELh, fun_rhs);
@@ -99,40 +99,44 @@ int main(int argc, char **argv) {
                                innerProduct(1. / hi * sigma * jump(u * t), jump(v * t)),
                            Khi, INTEGRAL_INNER_EDGE_2D);
 
-        stokes.addBilinear(-innerProduct(mu * grad(u) * n, v)      // natural
-                               + innerProduct(u, mu * grad(v) * n) // symmetry
-                               // + innerProduct(1./hi*sigma*u*t, v*t) // stability
-                               // + innerProduct(1./hi*penaltyParam*u*n, v*n) // stability
+        stokes.addBilinear(-innerProduct(mu * grad(u) * n, v)                // natural
+                               + innerProduct(u, mu * grad(v) * n)           // symmetry
                                + innerProduct(1. / hi * penaltyParam * u, v) // stability
                                + innerProduct(p, v * n)                      // natural
                            ,
                            interface);
-        stokes.addLinear(+innerProduct(gh.exprList(), mu * grad(v) * n)
-                             // + innerProduct(gh*t, 1./hi*sigma*v*t)
-                             // + innerProduct(gh*n, 1./hi*penaltyParam*v*n)
-                             + innerProduct(gh.exprList(), 1. / hi * penaltyParam * v),
+        stokes.addLinear(+innerProduct(gh.exprList(), mu * grad(v) * n) +
+                             innerProduct(gh.exprList(), 1. / hi * penaltyParam * v),
                          interface);
 
-        funtest_t grad2un = grad(grad(u) * n) * n;
-        stokes.addFaceStabilization(                                  // [h^(2k+1) h^(2k+1)]
-            +innerProduct(uPenParam * pow(hi, -1) * jump(u), jump(v)) // [Method 1: Remove jump in vel]
-                + innerProduct(uPenParam * pow(hi, 1) * jump(grad(u) * n), jump(grad(v) * n))
-                // +innerProduct(uPenParam*pow(hi,3)*jump(grad2un), jump(grad2un))
-                - innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) +
-                innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) -
-                innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) +
-                innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(v))), jump(grad(q))),
-            Khi, macro);
+        // funtest_t grad2un = grad(grad(u) * n) * n;
+        // stokes.addFaceStabilization(                                  // [h^(2k+1) h^(2k+1)]
+        //     +innerProduct(uPenParam * pow(hi, -1) * jump(u), jump(v)) // [Method 1: Remove jump in vel]
+        //         + innerProduct(uPenParam * pow(hi, 1) * jump(grad(u) * n), jump(grad(v) * n))
+        //         // +innerProduct(uPenParam*pow(hi,3)*jump(grad2un), jump(grad2un))
+        //         - innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) +
+        //         innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) -
+        //         innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) +
+        //         innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(v))), jump(grad(q))),
+        //     Khi, macro);
+
+        stokes.addPatchStabilization(+innerProduct(uPenParam * pow(hi, -2) * jump(u), jump(v)) -
+                                         innerProduct(pPenParam * pow(hi, 0) * jump(p), jump(div(v))) +
+                                         innerProduct(pPenParam * pow(hi, 0) * jump(div(u)), jump(q)),
+                                     Khi);
 
         // [Sets uniqueness of the pressure]
         CutFEM<Mesh2> lagr(Vh);
         lagr.add(Ph);
         lagr.addLinear(innerProduct(1., p), Khi);
         std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
-        lagr.rhs_ = 0.;
+        std::fill(lagr.rhs_.begin(), lagr.rhs_.end(), 0.);
+
         lagr.addLinear(innerProduct(1, v * n), interface);
 
         stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
+
+        matlab::Export(stokes.mat_[0], "mat" + std::to_string(i) + "Cut.dat");
 
         stokes.solve("umfpack");
 
@@ -147,7 +151,9 @@ int main(int argc, char **argv) {
         double meanPfem = integral(Khi, ph.expr(), 0);
         CutFEM<Mesh2> post(Ph);
         post.addLinear(innerProduct(1, q), Khi);
-        double area = post.rhs_.sum();
+        // double area = post.rhs_.sum();
+        double area = std::accumulate(post.rhs_.begin(), post.rhs_.end(), 0);
+
         ph.v -= meanPfem / area;
         ph.v += meanP / area;
 

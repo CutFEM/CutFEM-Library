@@ -8,7 +8,7 @@ using space_t    = GFESpace<mesh_t>;
 using cutspace_t = CutFESpace<mesh_t>;
 
 double shift        = 0.5;
-double interfaceRad = sqrt(0.25);
+double interfaceRad = sqrt(0.25) - 1e-12;
 
 double fun_levelSet(R2 P) { return sqrt((P.x - shift) * (P.x - shift) + (P.y - shift) * (P.y - shift)) - interfaceRad; }
 
@@ -38,13 +38,16 @@ double fun_exact_p(R2 P, int i, int dom) {
 
 int main(int argc, char **argv) {
 
+#ifdef USE_MPI
+    MPIcf cfMPI(argc, argv);
+#endif
+
     int nx              = 11;
-    double penaltyParam = 4e3;
+    double penaltyParam = 800;
     double wPenParam1   = 1e1;
     double wPenParam2   = 0.;
     double uPenParam    = 1e1;
     double pPenParam    = 1e1;
-    double sigma        = 1e-2;
     double mu           = 1.;
 
     Normal n;
@@ -58,7 +61,7 @@ int main(int argc, char **argv) {
 
         double hi = 1. / (nx - 1);
 
-        mesh_t Kh(nx, nx, -0.127, -0.127, 1.333, 1.333);
+        mesh_t Kh(nx, nx, -0., -0., 1.0, 1.0);
         space_t Lh(Kh, DataFE<Mesh2>::P1);
         fct_t levelSet(Lh, fun_levelSet);
 
@@ -67,7 +70,7 @@ int main(int argc, char **argv) {
         cutmesh_t Khi(Kh);
         Khi.truncate(interface, 1);
 
-        MacroElement<mesh_t> macro(Khi, 0.8);
+        MacroElement<mesh_t> macro(Khi, 1.);
 
         Lagrange2 FEvelocity(4);
         space_t VELh(Kh, FEvelocity);
@@ -108,25 +111,32 @@ int main(int argc, char **argv) {
 
         funtest_t grad2un = grad(grad(u) * n) * n;
         funtest_t grad2wn = grad(grad(w) * n) * n;
-        stokes.addFaceStabilization(
-            /* "Primal" stab (lw,0,la) */
-            +innerProduct(wPenParam1 * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n)) +
-                innerProduct(wPenParam1 * pow(hi, 5) * jump(grad2wn), jump(grad2wn)) +
+        // stokes.addFaceStabilization(
+        //     /* "Primal" stab (lw,0,la) */
+        //     +innerProduct(wPenParam1 * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n)) +
+        //         innerProduct(wPenParam1 * pow(hi, 5) * jump(grad2wn), jump(grad2wn))
+        //         // +
 
-                +innerProduct(wPenParam2 * pow(hi, 1) * jump(rotgrad(w)), jump(v)) -
-                innerProduct(wPenParam2 * pow(hi, 1) * jump(u), jump(rotgrad(tau))) +
-                innerProduct(wPenParam2 * pow(hi, 3) * jump(grad(rotgrad(w))), jump(grad(v))) -
-                innerProduct(wPenParam2 * pow(hi, 3) * jump(grad(u)), jump(grad(rotgrad(tau))))
+        //         //         +innerProduct(wPenParam2 * pow(hi, 1) * jump(rotgrad(w)), jump(v)) -
+        //         //         innerProduct(wPenParam2 * pow(hi, 1) * jump(u), jump(rotgrad(tau))) +
+        //         //         innerProduct(wPenParam2 * pow(hi, 3) * jump(grad(rotgrad(w))), jump(grad(v))) -
+        //         //         innerProduct(wPenParam2 * pow(hi, 3) * jump(grad(u)), jump(grad(rotgrad(tau))))
 
-                + innerProduct(uPenParam * pow(hi, 1) * jump(u), jump(v)) +
-                innerProduct(uPenParam * pow(hi, 3) * jump(grad(u) * n), jump(grad(v) * n)) +
-                innerProduct(uPenParam * pow(hi, 5) * jump(grad2un), jump(grad2un))
+        //         + innerProduct(uPenParam * pow(hi, 1) * jump(u), jump(v)) +
+        //         innerProduct(uPenParam * pow(hi, 3) * jump(grad(u) * n), jump(grad(v) * n)) +
+        //         innerProduct(uPenParam * pow(hi, 5) * jump(grad2un), jump(grad2un))
 
-                - innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) +
-                innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) -
-                innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) +
-                innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(u))), jump(grad(q))),
-            Khi, macro);
+        //         - innerProduct(pPenParam * pow(hi, 1) * jump(p), jump(div(v))) +
+        //         innerProduct(pPenParam * pow(hi, 1) * jump(div(u)), jump(q)) -
+        //         innerProduct(pPenParam * pow(hi, 3) * jump(grad(p)), jump(grad(div(v)))) +
+        //         innerProduct(pPenParam * pow(hi, 3) * jump(grad(div(u))), jump(grad(q))),
+        //     Khi, macro);
+
+        stokes.addPatchStabilization(innerProduct(uPenParam * pow(hi, 0) * jump(w), jump(tau)) +
+                                         innerProduct(uPenParam * pow(hi, 0) * jump(u), jump(v)) -
+                                         innerProduct(pPenParam * pow(hi, 0) * jump(p), jump(div(v))) +
+                                         innerProduct(pPenParam * pow(hi, 0) * jump(div(u)), jump(q)),
+                                     Khi);
 
         // [Sets uniqueness of the pressure]
 
@@ -135,9 +145,14 @@ int main(int argc, char **argv) {
         lagr.add(Ph);
         lagr.addLinear(innerProduct(1, p), Khi);
         std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
-        lagr.rhs_ = 0.;
+        std::fill(lagr.rhs_.begin(), lagr.rhs_.end(), 0.);
+
         lagr.addLinear(innerProduct(1, v * n), interface);
         stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
+
+        matlab::Export(stokes.mat_[0], "mat" + std::to_string(i) + "Cut.dat");
+        // nx = 2 * nx - 1;
+        // continue;
 
         stokes.solve("umfpack");
 
@@ -157,16 +172,17 @@ int main(int argc, char **argv) {
         double meanPfem = integral(Khi, ph.expr(), 0);
         CutFEM<mesh_t> post(Ph);
         post.addLinear(innerProduct(1, q), Khi);
-        double area = post.rhs_.sum();
+        // double area = post.rhs_.sum();
+        double area = std::accumulate(post.rhs_.begin(), post.rhs_.end(), 0.);
         ph.v -= meanPfem / area;
         ph.v += meanP / area;
 
-        {
-            Paraview<mesh_t> writer(Khi, "stokesVorticity_" + std::to_string(i) + ".vtk");
-            writer.add(uh, "velocity", 0, 2);
-            writer.add(ph, "pressure", 0, 1);
-            writer.add(dx(uh.expr(0)) + dy(uh.expr(1)), "divergence");
-        }
+        // {
+        //     Paraview<mesh_t> writer(Khi, "stokesVorticity_" + std::to_string(i) + ".vtk");
+        //     writer.add(uh, "velocity", 0, 2);
+        //     writer.add(ph, "pressure", 0, 1);
+        //     writer.add(dx(uh.expr(0)) + dy(uh.expr(1)), "divergence");
+        // }
         auto uh_0dx = dx(uh.expr(0));
         auto uh_1dy = dy(uh.expr(1));
 

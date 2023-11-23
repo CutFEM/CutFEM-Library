@@ -7,3 +7,6 @@
 [submodule "cpp/test/Catch2"]
 	path = cpp/test/Catch2
 	url = https://github.com/catchorg/Catch2.git
+[submodule "rapidyaml"]
+	path = rapidyaml
+	url = https://github.com/biojppm/rapidyaml.git

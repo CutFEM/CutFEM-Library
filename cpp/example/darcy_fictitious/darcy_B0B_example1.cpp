@@ -7,22 +7,50 @@ using cutmesh_t  = ActiveMesh<mesh_t>;
 using space_t    = GFESpace<mesh_t>;
 using cutspace_t = CutFESpace<mesh_t>;
 
-// double sq_SW        = 0. + 1e-10;
-// double sq_LGTH      = 1. + 2e-10;
+double sq_SW        = 0. + 1e-10;
+double sq_LGTH      = 1. + 2e-10;
 double interfaceRad = 0.250001;
 double mu_G         = 2. / 3 * interfaceRad;
 R2 shift(0.5, 0.5);
 
-double fun_levelSet(R2 P, const int i) { return -(norm2(P - shift) - interfaceRad); }
-double fun_div(R2 P, int compInd, int dom) { return 2.; }
-double fun_exact_u(R2 P, int compInd, int dom) {
-    if (compInd == 0) {
-        return P.x - 0.5;
-    } else {
-        return P.y - 0.5;
-    }
+double fun_radius2(R2 P) { return norm2_2(P - shift); }
+double fun_levelSet(R2 P, const int i) { return norm2(P - shift) - interfaceRad; }
+double fun_dirichlet(R2 P, int compInd) { return 0; }
+
+double fun_neumann(R2 P, int compInd, int dom) {
+    double r2      = fun_radius2(P);
+    double radius2 = interfaceRad * interfaceRad;
+    return r2 / (2 * radius2) + 3. / 2.;
 }
-double fun_exact_p(R2 P, int compInd, int dom) { return -0.5 * (P.x * P.x - P.x + P.y * P.y - P.y); }
+double fun_force(R2 P, int compInd) { return 0; }
+
+double fun_div(R2 P, int compInd, int dom) {
+    double radius2 = interfaceRad * interfaceRad;
+    if (dom == 0)
+        return -2. / radius2;
+    else
+        return -4. / radius2;
+}
+double fun_exact_u(R2 P, int compInd, int dom) {
+    DA<double, 2> X(P[0], 0), Y(P[1], 1);
+    DA<double, 2> r2  = (X - shift.x) * (X - shift.x) + (Y - shift.y) * (Y - shift.y);
+    double radius2    = interfaceRad * interfaceRad;
+    double cst        = (dom == 0) * 3. / 2;
+    double mul        = (dom == 0) * 2 + (dom == 1) * 1;
+    DA<double, 2> val = r2 / (mul * radius2) + cst;
+    return -val.d[compInd];
+}
+
+double fun_exact_p(R2 P, int compInd, int dom) {
+    DA<double, 2> X(P[0], 0), Y(P[1], 1);
+    DA<double, 2> r2  = (X - shift.x) * (X - shift.x) + (Y - shift.y) * (Y - shift.y);
+    double radius2    = interfaceRad * interfaceRad;
+    double cst        = (dom == 0) * 3. / 2;
+    double mul        = (dom == 0) * 2 + (dom == 1) * 1;
+    DA<double, 2> val = r2 / (mul * radius2) + cst;
+    return val.val;
+}
+double fun_interfacePr(R2 P, int compInd) { return 19. / 12; }
 
 int main(int argc, char **argv) {
 
@@ -36,115 +64,77 @@ int main(int argc, char **argv) {
     std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h, convuPr, convpPr, convdivPr,
         convdivPrLoc, convmaxdivPr;
     std::vector<double> ratioCut1, ratioCut2;
-    int iters = 5;
+    int iters = 3;
 
     for (int i = 0; i < iters; ++i) {
 
-        mesh_t Kh(nx, nx, 0., 0., 1., 1.);
+        mesh_t Kh(nx, nx, sq_SW, sq_SW, sq_LGTH, sq_LGTH);
 
         space_t Lh(Kh, DataFE<mesh_t>::P1);
         fct_t levelSet(Lh, fun_levelSet);
         InterfaceLevelSet<mesh_t> interface(Kh, levelSet);
 
-        space_t V2h(Kh, DataFE<mesh_t>::RT2);
-        space_t Q2h(Kh, DataFE<mesh_t>::P2);
         space_t Vh(Kh, DataFE<mesh_t>::RT0);
         space_t Qh(Kh, DataFE<mesh_t>::P0);
 
-        cutmesh_t Kh_i(Kh);
-        Kh_i.truncate(interface, -1);
-
-        cutspace_t W2h(Kh_i, V2h);
-        cutspace_t P2h(Kh_i, Q2h);
+        cutmesh_t Kh_i(Kh, interface);
         cutspace_t Wh(Kh_i, Vh);
         cutspace_t Ph(Kh_i, Qh);
 
-        // SURFACE MESH
-        cutmesh_t Kh_itf(Kh);
-        Kh_itf.createSurfaceMesh(interface);
-        cutspace_t Ph_itf(Kh_itf, Qh);
-
         CutFEM<mesh_t> darcy(Wh);
         darcy.add(Ph);
-        darcy.add(Ph_itf);
 
         const double h_i  = 2. / (nx - 1);
         const double invh = 1. / h_i;
+        MacroElement<mesh_t> macro(Kh_i, 0.25);
 
-        MacroElement<mesh_t> macro(Kh_i, 1.);
+        double xi  = 3. / 4;
+        double xi0 = (xi - 0.5) / 2.;
 
-        fct_t fq(Ph, fun_div);
+        Lagrange2 FEvelocity(4);
+        space_t V2h(Kh, FEvelocity);
+        cutspace_t W2h(Kh_i, V2h);
+        space_t Q2h(Kh, DataFE<mesh_t>::P2dc);
+        cutspace_t P2h(Kh_i, Q2h);
+
+        fct_t fv(W2h, fun_force);
+        fct_t fq(P2h, fun_div);
         fct_t u0(W2h, fun_exact_u);
         fct_t p0(P2h, fun_exact_p);
-        auto exactp = p0.expr(0);
+        fct_t phat(Ph, fun_interfacePr);
+        fct_t pex(Ph, fun_exact_p);
 
         Normal n;
         Tangent t;
         funtest_t p(Ph, 1), q(Ph, 1), u(Wh, 2), v(Wh, 2);
-        funtest_t p_itf(Ph_itf, 1), q_itf(Ph_itf, 1);
 
-        double uPenParam   = 1e1;
-        double pPenParam   = 1e1;
-        double itfPenParam = 1e-1;
+        double uPenParam = 1e-1;
+        double pPenParam = 1e-1;
+        double jumpParam = 1e0;
 
         darcy.addBilinear(innerProduct(u, v) - innerProduct(p, div(v)) + innerProduct(div(u), q), Kh_i);
 
-        darcy.addLinear(innerProduct(fq.expr(), q), Kh_i);
+        darcy.addBilinear(innerProduct(mu_G * average(u * n), average(v * n)) +
+                              innerProduct(xi0 * mu_G * jump(u * n), jump(v * n)),
+                          interface);
 
-        darcy.addBilinear(innerProduct(p_itf, v * n) + innerProduct(u * n, q_itf), interface);
+        darcy.addLinear(-innerProduct(phat.expr(), jump(v * n)), interface);
 
-        darcy.addLinear(innerProduct(u0.exprList(2), q_itf * n), interface);
+        darcy.addLinear(innerProduct(fv.exprList(2), v) + innerProduct(fq.expr(), q), Kh_i);
 
-        // [GHOST PENALTY]
+        darcy.addLinear(-innerProduct(p0.expr(), v * n), Kh_i, INTEGRAL_BOUNDARY);
+
         funtest_t grad2un = grad(grad(u) * n) * n;
-        darcy.addFaceStabilization(
-            // [h^(2k+1) h^(2k+1)]
-            //  innerProduct(uPenParam*pow(h_i,1)*jump(u), jump(v))
-            // +innerProduct(uPenParam*pow(h_i,3)*jump(grad(u)*n), jump(grad(v)*n))
-            // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-            // +innerProduct(pPenParam*pow(h_i,1)*jump(p), jump(q))
-            // +innerProduct(pPenParam*pow(h_i,3)*jump(grad(p)), jump(grad(q)))
-
-            +innerProduct(uPenParam * pow(h_i, 1) * jump(u), jump(v)) +
-                innerProduct(uPenParam * pow(h_i, 3) * jump(grad(u) * n), jump(grad(v) * n))
-                // +innerProduct(uPenParam*pow(h_i,5)*jump(grad2un), jump(grad2un))
-                - innerProduct(pPenParam * pow(h_i, 1) * jump(p), jump(div(v))) +
-                innerProduct(pPenParam * pow(h_i, 1) * jump(div(u)), jump(q)) -
-                innerProduct(pPenParam * pow(h_i, 3) * jump(grad(p)), jump(grad(div(v)))) +
-                innerProduct(pPenParam * pow(h_i, 3) * jump(grad(div(v))), jump(grad(q))),
-            Kh_i, macro);
-
-        darcy.addFaceStabilizationMixed(
-            // -innerProduct(itfPenParam * pow(h_i, 1) * jump(p_itf), jump(q_itf))
-            //-
-            //     innerProduct(itfPenParam * pow(h_i, 3) * jump(grad(p_itf)), jump(grad(q_itf))) // (1)
-            -innerProduct(itfPenParam * pow(h_i, 0) * jump(p_itf), jump(div(v))) -
-                innerProduct(itfPenParam * pow(h_i, 0) * jump(div(u)), jump(q_itf)),
-            Kh_itf
-            // , macro_itf
-        );
-
-        darcy.addLagrangeMultiplier(innerProduct(1, q), 0, Kh_i);
-
-        // darcy.addLinear(-innerProduct(phat.expr(), jump(v * n)), interface);
-
-        // darcy.addLinear(-innerProduct(p0.expr(), v * n), Kh_i, INTEGRAL_BOUNDARY);
-
-        // funtest_t grad2un = grad(grad(u) * n) * n;
-        // darcy.addFaceStabilization(innerProduct(uPenParam * h_i * jump(u), jump(v)) +
-        //                                innerProduct(uPenParam * pow(h_i, 3) * jump(grad(u) * n), jump(grad(v) * n)) +
-        //                                innerProduct(uPenParam * pow(h_i, 5) * jump(grad2un), jump(grad2un)) -
-        //                                innerProduct(pPenParam * h_i * jump(p), jump(div(v))) +
-        //                                innerProduct(pPenParam * h_i * jump(div(u)), jump(q)) -
-        //                                innerProduct(pPenParam * pow(h_i, 3) * jump(grad(p)), jump(grad(div(v)))) +
-        //                                innerProduct(pPenParam * pow(h_i, 3) * jump(grad(div(v))), jump(grad(q))),
-        //                            Kh_i, macro);
-
-        matlab::Export(darcy.mat_[0], "mat" + std::to_string(i) + "Cut.dat");
+        darcy.addFaceStabilization(innerProduct(uPenParam * h_i * jump(u), jump(v)) +
+                                       innerProduct(uPenParam * pow(h_i, 3) * jump(grad(u) * n), jump(grad(v) * n)) +
+                                       innerProduct(uPenParam * pow(h_i, 5) * jump(grad2un), jump(grad2un)) -
+                                       innerProduct(pPenParam * h_i * jump(p), jump(div(v))) +
+                                       innerProduct(pPenParam * h_i * jump(div(u)), jump(q)) -
+                                       innerProduct(pPenParam * pow(h_i, 3) * jump(grad(p)), jump(grad(div(v)))) +
+                                       innerProduct(pPenParam * pow(h_i, 3) * jump(grad(div(v))), jump(grad(q))),
+                                   Kh_i, macro);
 
         darcy.solve("umfpack");
-
-        double area = integral(Kh_i, 1.);
 
         // EXTRACT SOLUTION
         int idx0_s = Wh.get_nb_dof();
@@ -152,16 +142,10 @@ int main(int argc, char **argv) {
         std::span<double> data_ph{std::span(darcy.rhs_.data() + Wh.get_nb_dof(), Ph.get_nb_dof())};
         fct_t uh(Wh, data_uh);
         fct_t ph(Ph, data_ph);
-
-        // [Post process pressure]
-        auto fem_p      = ph.expr(0);
-        double meanP    = integral(Kh_i, exactp, 0);
-        double meanPfem = integral(Kh_i, fem_p, 0);
-        ph.v += (meanP - meanPfem) / area;
+        auto femSol_0dx = dx(uh.expr(0));
+        auto femSol_1dy = dy(uh.expr(1));
 
         // L2 norm vel
-        auto femSol_0dx  = dx(uh.expr(0));
-        auto femSol_1dy  = dy(uh.expr(1));
         double errU      = L2normCut(uh, fun_exact_u, 0, 2);
         double errP      = L2normCut(ph, fun_exact_p, 0, 1);
         double errDiv    = L2normCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);

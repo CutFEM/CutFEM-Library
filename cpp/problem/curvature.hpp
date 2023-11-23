@@ -50,7 +50,7 @@ template <typename M> class Curvature {
     //   this->solve();
     // }
   public:
-    Rn solve() {
+    std::vector<double> solve() {
 
         CutFEM<Mesh2> problem(Vh);
         FunTest H(Vh, D), v(Vh, D);
@@ -86,7 +86,7 @@ template <typename M> class Curvature {
         problem.solve();
         return problem.rhs_;
     }
-    Rn solve(const ExpressionVirtual &w) {
+    std::vector<double> solve(const ExpressionVirtual &w) {
 
         CutFEM<Mesh2> problem(Vh);
         FunTest H(Vh, D), v(Vh, D);
@@ -122,7 +122,7 @@ template <typename M> class Curvature {
         problem.solve();
         return problem.rhs_;
     }
-    Rn solve(const IsoMapping &mapping) {
+    std::vector<double> solve(const IsoMapping &mapping) {
 
         CutFEM<Mesh2> problem(Vh);
         FunTest H(Vh, D), v(Vh, D);
@@ -162,7 +162,7 @@ template <typename M> class Curvature {
         problem.solve();
         return problem.rhs_;
     }
-    Rn solve(const ExpressionVirtual &w, const IsoMapping &mapping) {
+    std::vector<double> solve(const ExpressionVirtual &w, const IsoMapping &mapping) {
 
         CutFEM<Mesh2> problem(Vh);
         FunTest H(Vh, D), v(Vh, D);

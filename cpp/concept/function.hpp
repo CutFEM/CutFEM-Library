@@ -79,15 +79,16 @@ using fct_R3_int  = std::add_pointer_t<double(R3, int)>;
 
 template <typename fct_t>
 concept FunctionLevelSet =
-    std::is_same_v<fct_t, fct_ptr_int> || std::is_same_v<fct_t, fct_R2_int> || std::is_same_v<fct_t, fct_R3_int>;
+    std::is_same_v<fct_t, fct_ptr_int> || std::is_same_v<fct_t, fct_R2_int> || std::is_same_v<fct_t, fct_R3_int> ||
+    std::is_convertible_v<fct_t, std::function<double(std::span<double>, int)>>;
 
 using fct_ptr_int_double = std::add_pointer_t<double(double *, int, double)>;
 using fct_R2_int_double  = std::add_pointer_t<double(R2, int, const double)>;
 using fct_R3_int_double  = std::add_pointer_t<double(R3, int, double)>;
 
 template <typename fct_t>
-concept FunctionLevelSetTime =
-    std::is_same_v<fct_t, fct_ptr_int_double> || std::is_same_v<fct_t, fct_R2_int_double> || std::is_same_v<fct_t, fct_R3_int_double>;
+concept FunctionLevelSetTime = std::is_same_v<fct_t, fct_ptr_int_double> || std::is_same_v<fct_t, fct_R2_int_double> ||
+                               std::is_same_v<fct_t, fct_R3_int_double>;
 
 using fct_ptr_int_int = std::add_pointer_t<double(double *, int, int)>;
 using fct_R2_int_int  = std::add_pointer_t<double(R2, int, int)>;
@@ -95,7 +96,8 @@ using fct_R3_int_int  = std::add_pointer_t<double(R3, int, int)>;
 
 template <typename fct_t>
 concept FunctionDomain = std::is_same_v<fct_t, fct_ptr_int_int> || std::is_same_v<fct_t, fct_R2_int_int> ||
-                         std::is_same_v<fct_t, fct_R3_int_int>;
+                         std::is_same_v<fct_t, fct_R3_int_int> ||
+                         std::is_convertible_v<fct_t, std::function<double(std::span<double>, int, int)>>;
 
 using fct_ptr_int_int_double = std::add_pointer_t<double(double *, int, int, double)>;
 using fct_R2_int_int_double  = std::add_pointer_t<double(R2, int, int, double)>;

@@ -30,7 +30,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "solverMumps.hpp"
 #endif
 
-void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
+// void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
+void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
 
     double tsolver = this->get_Time();
 
@@ -90,9 +91,11 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 
 namespace solver {
 #ifdef USE_UMFPACK
-void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
+// void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
+void umfpack(std::map<std::pair<int, int>, R> &Amap, std::span<double> b, bool clearMatrix) {
+
     const int n = b.size();
-    KN<double> x(n);
+    std::vector<double> x(n);
     SparseMatrixRC<double> A(n, n, Amap);
     if (clearMatrix)
         Amap.clear();
@@ -100,9 +103,11 @@ void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
     (void)umfpack_di_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
     (void)umfpack_di_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
     umfpack_di_free_symbolic(&Symbolic);
-    (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x, b, Numeric, 0, 0);
+    (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x.data(), b.data(), Numeric, 0, 0);
     umfpack_di_free_numeric(&Numeric);
-    b = x;
+
+    std::copy(x.begin(), x.end(), b.begin());
+    // b = x;
 }
 #endif
 

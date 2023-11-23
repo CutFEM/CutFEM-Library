@@ -1,6 +1,31 @@
+/*
+This file is part of CutFEM-Library.
 
+CutFEM-Library is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+CutFEM-Library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
+*/
 #ifndef CUTFEM_COMMON_LOGGER_HPP
 #define CUTFEM_COMMON_LOGGER_HPP
+
+#include <cassert>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <map>
+#include <string>
+#include <memory>
+#include <mutex>
+#include <thread>
 
 enum class Severity {
     Trace,
@@ -9,6 +34,11 @@ enum class Severity {
     Warning,
     Error,
     Critical,
+};
+
+enum class SolverInfo {
+    Iteration,
+    Info,
 };
 
 enum class LogOutput {
@@ -34,41 +64,52 @@ constexpr const char *capitalize(Severity severity) noexcept {
         return "UNKNOWN";
     }
 }
+
+constexpr const char *capitalize(SolverInfo solverinfo) noexcept {
+    switch (solverinfo) {
+    case SolverInfo::Iteration:
+        return "ITERATION";
+    case SolverInfo::Info:
+        return "INFO";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 namespace logger {
 const std::string endl = "\n";
 }
 
-class Logger {
+class CutFEMLogger {
   private:
     std::mutex m_logMutex;
     std::mutex m_threadMsgMutex;
     const char *filename_separator = "/\\";
 
   public:
-    Logger() {}
+    CutFEMLogger() {}
 
-    ~Logger() { close(); }
+    ~CutFEMLogger() { close(); }
 
   public:
-    static Logger &get() {
-        static Logger self;
+    static CutFEMLogger &get() {
+        static CutFEMLogger self;
         return self;
     }
 
-    Logger(const Logger &)            = delete;
-    Logger &operator=(const Logger &) = delete;
+    CutFEMLogger(const CutFEMLogger &)            = delete;
+    CutFEMLogger &operator=(const CutFEMLogger &) = delete;
 
-    void init(std::string &filename, const LogOutput output = LogOutput::Everywhere) {
+    void init(std::string &filename, const LogOutput output = LogOutput::File) {
         m_filename = filename;
         m_output   = output;
         open();
     }
 
-    static void initialize(std::string filename, const LogOutput output = LogOutput::Everywhere) {
-
-        Logger &logger_instance    = get();
-        logger_instance.m_filename = filename;
-        logger_instance.m_output   = output;
+    static void initialize(std::string filename, const LogOutput output = LogOutput::File) {
+        CutFEMLogger &logger_instance = get();
+        logger_instance.m_filename    = filename;
+        logger_instance.m_output      = output;
         if (output == LogOutput::Everywhere || output == LogOutput::File) {
             try {
                 logger_instance.open();
@@ -80,7 +121,6 @@ class Logger {
     }
 
     void open() {
-
         if (m_streamOpen) {
             return;
         }
@@ -102,6 +142,7 @@ class Logger {
 
         if (m_output == LogOutput::Everywhere || m_output == LogOutput::File) {
             m_file.close();
+            m_streamOpen = false;
         }
     }
 
@@ -123,7 +164,6 @@ class Logger {
     }
 
     void log(const std::string &msg, const Severity severity = Severity::Debug) {
-
         std::string output_message =
             wrapString(timestamp()) + wrapString("#" + threadId()) + " " + wrapString(capitalize(severity)) + " " + msg;
 
@@ -144,7 +184,6 @@ class Logger {
     }
 
     void log(int line, std::string source_file, const std::string &msg, const Severity severity) {
-
         std::size_t found    = source_file.find_last_of(filename_separator);
         std::string location = source_file.substr(found + 1) + "@" + std::to_string(line);
 
@@ -201,14 +240,14 @@ class Logger {
         m_threadsSeverityMap.erase(threadID);
     }
 
-    Logger &operator()(const Severity severity) {
+    CutFEMLogger &operator()(const Severity severity) {
         std::unique_lock<std::mutex> locker(m_threadMsgMutex);
         m_threadsSeverityMap[threadId()] = severity;
         m_severity                       = severity;
         return get();
     }
 
-    Logger &operator()(int line, const char *source_file, const Severity severity) {
+    CutFEMLogger &operator()(int line, const char *source_file, const Severity severity) {
         std::unique_lock<std::mutex> locker(m_threadMsgMutex);
         m_threadsSeverityMap[threadId()] = severity;
         m_severity                       = severity;
@@ -244,7 +283,6 @@ class Logger {
 
     static std::string threadId() {
         std::stringstream ss;
-        std::thread::id id = std::this_thread::get_id();
         ss << std::this_thread::get_id();
         return ss.str();
     }
@@ -255,17 +293,17 @@ class Logger {
     }
 };
 
-Logger &operator<<(Logger &logger, const std::string &message);
+CutFEMLogger &operator<<(CutFEMLogger &logger, const std::string &message);
 
-template <class T> Logger &operator<<(Logger &logger, const T &t) {
+template <class T> CutFEMLogger &operator<<(CutFEMLogger &logger, const T &t) {
     std::stringstream ss;
     ss << t;
     logger.addMessage(ss.str());
     return logger;
 }
 
-Logger &LOG(const Severity severity = Severity::Info);
-Logger &LOG(int line, const char *source_file, const Severity severity);
+CutFEMLogger &LOG(const Severity severity = Severity::Info);
+CutFEMLogger &LOG(int line, const char *source_file, const Severity severity);
 
 #define LOG_TRACE (LOG(__LINE__, __FILE__, Severity::Trace))
 #define LOG_DEBUG (LOG(__LINE__, __FILE__, Severity::Debug))
@@ -273,38 +311,5 @@ Logger &LOG(int line, const char *source_file, const Severity severity);
 #define LOG_WARNING (LOG(__LINE__, __FILE__, Severity::Warning))
 #define LOG_ERROR (LOG(__LINE__, __FILE__, Severity::Error))
 #define LOG_CRITICAL (LOG(__LINE__, __FILE__, Severity::Critical))
-
-// Below is to test tread saftey.
-// Cannot be there otherwise one get duplicated symbol. Has to be in a cpp file
-// void threadFunc() {
-//   LOG().log("TreadFunc");
-//   LOG(Severity::Error) << "Interesting log" << 11 << logger::endl;
-// }
-
-// void threadFunc2() {
-//   static int thread_num = 0;
-//   for (int i = 0; i < 10; i++) {
-//     LOG() << "tread #" << ++thread_num;
-//     LOG() << "iteration #" << i + 1 << logger::endl;
-//     LOG_DEBUG << "Macro test with thread#" << ++thread_num << logger::endl;
-//   }
-// }
-
-// void testLoggerTreadSaftey() {
-
-//   Logger::initialize("testLoggerTreadSaftey.txt");
-//   std::vector<std::thread> threads;
-
-//   for (int i = 0; i < 10; i++) {
-//     threads.emplace_back(std::thread(i % 2 ? threadFunc : threadFunc2));
-//   }
-//   threadFunc();
-
-//   for (auto &th : threads) {
-//     if (th.joinable()) {
-//       th.join();
-//     }
-//   }
-// }
 
 #endif

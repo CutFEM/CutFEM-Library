@@ -21,6 +21,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <cassert>
 #include <bitset>
 #include <memory>
+#include "logger.hpp"
 #include "../concept/function.hpp"
 #include "RNM.hpp"
 #include "Label.hpp"
@@ -79,6 +80,8 @@ template <typeMesh M> class Interface {
     std::map<int, int> face_of_element_;
     std::vector<Uint> edge_of_node_;
 
+    double measure_;
+
   public:
     Interface(const Mesh &MM) : backMesh(&MM) {}
 
@@ -96,6 +99,7 @@ template <typeMesh M> class Interface {
     virtual bool isCutFace(int k, int ifac) const                                     = 0;
     virtual bool isCut(int k) const                                                   = 0;
 
+    double measure() const { return measure_; }
     Rd operator()(const int k, const int i) const { return vertices_[faces_[k][i]]; }
     // const Rd &operator()(const int i) const { return vertices_.at(i); }
     // const Face &operator[](const int k) const { return faces_.at(k); }
@@ -151,10 +155,9 @@ template <typeMesh M> class Interface {
         assert(i >= 0 && i < size());
         return i;
     }
-    
+
     Interface(const Interface &);      // pas de construction par copie
     void operator=(const Interface &); // pas affectation par copy
-
 };
 
 #endif

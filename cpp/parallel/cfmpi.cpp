@@ -29,41 +29,39 @@ const MPI_Comm &MPIcf::Communicator_ = MPI_COMM_WORLD;
 
 // constructor of the class
 MPIcf::MPIcf(int &argc, char **&argv) {
-   MPI_Init(&argc, &argv);                   // initialize MPI
-   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_); // set the rank
-   MPI_Comm_size(MPI_COMM_WORLD, &size_);    // set the size
+    MPI_Init(&argc, &argv);                   // initialize MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_); // set the rank
+    MPI_Comm_size(MPI_COMM_WORLD, &size_);    // set the size
 
-   mute_ = new MuteStdOstream(); // mute ostream for non master
-   muteStdOstreams();
+    mute_ = new MuteStdOstream(); // mute ostream for non master
+    muteStdOstreams();
 
-   std::cout << "init parallel rank " << my_rank_ << " of " << size_
-             << std::endl;
-   // PetscInitialize(&argc, &argv, NULL, NULL);
+    std::cout << "init parallel rank " << my_rank_ << " of " << size_ << std::endl;
+    // PetscInitialize(&argc, &argv, NULL, NULL);
 }
 
 MPIcf::MPIcf() {
 
-   MPI_Init(nullptr, nullptr); // initialize MPI
+    MPI_Init(nullptr, nullptr); // initialize MPI
 
-   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_); // set the rank
-   MPI_Comm_size(MPI_COMM_WORLD, &size_);    // set the size
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_); // set the rank
+    MPI_Comm_size(MPI_COMM_WORLD, &size_);    // set the size
 
-   mute_ = new MuteStdOstream(); // mute ostream for non master
-   muteStdOstreams();
-   std::cout << "init parallel rank " << my_rank_ << " of " << size_
-             << std::endl;
+    mute_ = new MuteStdOstream(); // mute ostream for non master
+    muteStdOstreams();
+    std::cout << "init parallel rank " << my_rank_ << " of " << size_ << std::endl;
 
-   usePetsc_ = false;
+    usePetsc_ = false;
 }
 
 MPIcf::~MPIcf() {
 
-   // if(usePetsc_)PetscFinalize();
+    // if(usePetsc_)PetscFinalize();
 
-   MPI_Finalize();
-   std::cout << " \n MPI finalized correctly \n" << std::flush;
+    MPI_Finalize();
+    std::cout << " \n MPI finalized correctly \n" << std::flush;
 
-   size_ = 0;
-   RecoverStdOstreams();
-   delete mute_;
+    size_ = 0;
+    RecoverStdOstreams();
+    delete mute_;
 }

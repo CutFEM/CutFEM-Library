@@ -21,7 +21,12 @@ ${CMAKE_CURRENT_SOURCE_DIR}/geometry.cpp
 # ${CMAKE_CURRENT_SOURCE_DIR}/spline.cpp
 )
 
-add_library(common SHARED ${COMMON_SOURCES})
+# add_library(common SHARED ${COMMON_SOURCES})
+
+add_library(common SHARED "")
+add_library(common::common ALIAS common)
+target_sources(common PRIVATE ${COMMON_SOURCES})
+
 target_include_directories(common
 PRIVATE
 "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -62,4 +62,4 @@ PRIVATE
 "${CMAKE_CURRENT_BINARY_DIR}"
 "${PROJECT_BINARY_DIR}"
 )
-target_link_libraries(solver PRIVATE ${LINK_LIBRARY})
+target_link_libraries(solver PRIVATE common::common ${LINK_LIBRARY})

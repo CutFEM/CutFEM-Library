@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
     const double cpubegin = CPUtime();
 
-    //MPIcf cfMPI(argc, argv);
+    // MPIcf cfMPI(argc, argv);
 
     const int d = 3;
 
@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 
         // [Stabilization]
 
-        double tau_w = 1e-1;        // smaller tau_w seems to give larger condition number
+        double tau_w = 1e-1; // smaller tau_w seems to give larger condition number
         double tau_m = 2e0;
         double tau_a = 1e-1;
         double tau_b = 15;
@@ -220,18 +220,18 @@ int main(int argc, char **argv) {
             // WM
 
             // W block
-            + innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau)) 
-            + innerProduct(tau_w * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n))
-            // M blocks
-            + innerProduct(tau_m * pow(hi, 1) * jump(curl(w)), jump(v))                       // M block
-            + innerProduct(tau_m * pow(hi, 3) * jump(grad(curl(w)) * n), jump(grad(v) * n))   // M block
-            - innerProduct(tau_m * pow(hi, 1) * jump(u), jump(curl(tau)))                     // -M^T block
-            - innerProduct(tau_m * pow(hi, 3) * jump(grad(u) * n), jump(grad(curl(tau)) * n)) // -M^T block
-            // B blocks
-            + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))                     // -B^T block
-            + innerProduct(tau_b * pow(hi, 3) * jump(grad(p) * n), jump(grad(div(v)) * n)) // -B^T block
-            - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))                     // B_0 block
-            - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u)) * n), jump(grad(q) * n)) // B_0 block
+            +innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau)) +
+                innerProduct(tau_w * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n))
+                // M blocks
+                + innerProduct(tau_m * pow(hi, 1) * jump(curl(w)), jump(v))                       // M block
+                + innerProduct(tau_m * pow(hi, 3) * jump(grad(curl(w)) * n), jump(grad(v) * n))   // M block
+                - innerProduct(tau_m * pow(hi, 1) * jump(u), jump(curl(tau)))                     // -M^T block
+                - innerProduct(tau_m * pow(hi, 3) * jump(grad(u) * n), jump(grad(curl(tau)) * n)) // -M^T block
+                // B blocks
+                + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))                     // -B^T block
+                + innerProduct(tau_b * pow(hi, 3) * jump(grad(p) * n), jump(grad(div(v)) * n)) // -B^T block
+                - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))                     // B_0 block
+                - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u)) * n), jump(grad(q) * n)) // B_0 block
             ,
             Khi);
 
@@ -245,12 +245,16 @@ int main(int argc, char **argv) {
 
         int nb_flux_dof = Vh.get_nb_dof();
 
-        Rn_ data_wh = maxwell3D.rhs_(SubArray(nb_vort_dof, 0));
+        std::span<double> data_wh{std::span(maxwell3D.rhs_.data(), Vh.get_nb_dof())};
+        // Rn_ data_wh = maxwell3D.rhs_(SubArray(nb_vort_dof, 0));
 
-        Rn_ data_uh = maxwell3D.rhs_(SubArray(
-            nb_flux_dof, nb_vort_dof)); // Rn_ data_uh = stokes.rhs_(SubArray(nb_vort_dof+nb_flux_dof,nb_vort_dof));
+        // Rn_ data_uh = maxwell3D.rhs_(SubArray(nb_flux_dof, nb_vort_dof));
+        std::span<double> data_uh(std::span<double>(maxwell3D.rhs_.data() + nb_vort_dof, nb_flux_dof));
+        // Rn_ data_uh = stokes.rhs_(SubArray(nb_vort_dof+nb_flux_dof,nb_vort_dof));
 
-        Rn_ data_ph = maxwell3D.rhs_(SubArray(Wh.get_nb_dof(), nb_vort_dof + nb_flux_dof)); //
+        // Rn_ data_ph = maxwell3D.rhs_(SubArray(Wh.get_nb_dof(), nb_vort_dof + nb_flux_dof)); //
+        std::span<double> data_ph(
+            std::span<double>(maxwell3D.rhs_.data() + nb_vort_dof + nb_flux_dof, Wh.get_nb_dof()));
 
         Fun_h wh(Uh, data_wh);
 

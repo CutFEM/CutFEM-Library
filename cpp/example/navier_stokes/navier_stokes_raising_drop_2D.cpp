@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     int thread_count = 1;
     double cpubegin  = MPIcf::Wtime();
 
-    Logger::initialize("log_navier_Stokes.txt");
+    CutFEMLogger::initialize("log_navier_Stokes.txt");
 
     // MESH DEFINITION
     // ---------------------------------------------
@@ -451,7 +451,8 @@ int main(int argc, char **argv) {
                            [](double a, double b) { return a - b; });
 
             stokes.rhs_.resize(stokes.get_nb_dof());
-            stokes.rhs_ = 0.0;
+            // stokes.rhs_ = 0.0;
+            std::fill(stokes.rhs_.begin(), stokes.rhs_.end(), 0.0);
 
             iterNewton += 1;
 

@@ -4,6 +4,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++20 -fPIC -O3")
 
+if(CUTFEM_RAPID_YAML)
+  add_subdirectory(../rapidyaml/ ryml)
+  list(APPEND EXTRA_LIBS ryml::ryml)
+
+  add_subdirectory(force_project)
+list(APPEND EXTRA_LIBS force_project)
+endif()
 
 if(USE_MPI)
   find_package(MPI REQUIRED)
@@ -45,6 +52,10 @@ add_subdirectory(test/)
 endif()
 
 if(${CUTFEM_BUILD_MAIN})
+
+set(EX_NAME kiln_bed)
+add_executable(${EX_NAME}  mainFiles/kiln_bed_motion.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
 set(EX_NAME maxwell3d)
 add_executable(${EX_NAME}  mainFiles/maxwell3D.cpp )
@@ -107,6 +118,9 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 # add_executable(${EX_NAME}  mainFiles/stokes_interface_problem.cpp )
 # target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
+set(EX_NAME force)
+add_executable(${EX_NAME}  mainFiles/force.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 set(EX_NAME test_BDM2)
 add_executable(${EX_NAME}  mainFiles/test_BDM2.cpp )

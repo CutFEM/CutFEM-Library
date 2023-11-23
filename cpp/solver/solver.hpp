@@ -33,7 +33,9 @@ struct ProblemOption {
 
 namespace solver {
 
-void umfpack(std::map<std::pair<int, int>, R> &, Rn &, bool);
+// void umfpack(std::map<std::pair<int, int>, R> &, Rn &, bool);
+void umfpack(std::map<std::pair<int, int>, R> &, std::span<double>, bool);
+
 void LAPACK(Rnm &a, Rn &b);
 } // namespace solver
 class Solver {
@@ -56,7 +58,8 @@ class Solver {
         verbose_     = option.verbose_;
     }
 
-    void solve(std::map<std::pair<int, int>, R> &A, Rn &b);
+    // void solve(std::map<std::pair<int, int>, R> &A, Rn &b);
+    void solve(std::map<std::pair<int, int>, R> &A, std::span<double> b);
 };
 
 #endif

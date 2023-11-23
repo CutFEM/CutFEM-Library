@@ -174,7 +174,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     }
     template <typename fun_t>
     FunFEM(const FESpace &vh, const TimeSlab &in, fun_t f)
-    // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
+        // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
         : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), alloc(true), Vh(&vh), In(&in),
           databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
         interpolate(*Vh, *In, this->v, f);
@@ -199,7 +199,8 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     }
 
     template <typename fct_t>
-        requires FunctionLevelSet<fct_t> || FunctionLevelSetTime<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
+        requires FunctionLevelSet<fct_t> || FunctionLevelSetTime<fct_t> || FunctionDomain<fct_t> ||
+                 FunctionScalar<fct_t>
     void init(const FESpace &vh, fct_t f) {
         assert(!data_);
         Vh    = &vh;
@@ -224,9 +225,10 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     // }
 
     void init(const FESpace &vh, R (*f)(double *, int, R), R tid) {
-    // template <typename fct_t>
-    //     requires FunctionLevelSet<fct_t> || FunctionLevelSetTime<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
-    // void init(const FESpace &vh, fct_t f, R tid) {
+        // template <typename fct_t>
+        //     requires FunctionLevelSet<fct_t> || FunctionLevelSetTime<fct_t> || FunctionDomain<fct_t> ||
+        //     FunctionScalar<fct_t>
+        // void init(const FESpace &vh, fct_t f, R tid) {
         // assert(!data_);
         if (data_)
             delete[] data_;
@@ -240,9 +242,10 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     }
 
     void init(const FESpace &vh, R (*f)(R2, int, R), R tid) {
-    // template <typename fct_t>
-    //     requires FunctionLevelSet<fct_t> || FunctionLevelSetTime<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
-    // void init(const FESpace &vh, fct_t f, R tid) {
+        // template <typename fct_t>
+        //     requires FunctionLevelSet<fct_t> || FunctionLevelSetTime<fct_t> || FunctionDomain<fct_t> ||
+        //     FunctionScalar<fct_t>
+        // void init(const FESpace &vh, fct_t f, R tid) {
         // assert(!data_);
         if (data_)
             delete[] data_;
@@ -255,7 +258,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
             databf = new double[10 * vh[0].NbDoF() * vh.N * 4];
     }
 
-    //void init(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int, R)) {
+    // void init(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int, R)) {
     template <typename fct_t>
         requires FunctionLevelSet<fct_t> || FunctionDomain<fct_t> || FunctionScalar<fct_t>
     void init(const FESpace &vh, const TimeSlab &in, fct_t f) {
@@ -448,7 +451,7 @@ template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dt(const std::shared_
     return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, u->op, op_dx, u->domain);
 }
 
-/* Sebastian's implementation, is this correct? 
+/* Sebastian's implementation, is this correct?
 It generates an assertion error */
 template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dxx(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
     return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dxx, u->opt, u->domain);
@@ -462,7 +465,6 @@ template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dzz(const std::shared
 template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dxy(const std::shared_ptr<ExpressionFunFEM<M>> &u) {
     return std::make_shared<ExpressionFunFEM<M>>(u->fun, u->cu, op_dxy, u->opt, u->domain);
 }
-
 
 template <typename M> std::shared_ptr<ExpressionFunFEM<M>> dx(const ExpressionFunFEM<M> &u) {
     return std::make_shared<ExpressionFunFEM<M>>(u.fun, u.cu, op_dx, u.opt, u.domain);
@@ -795,23 +797,20 @@ class ExpressionNormalCrossX3 : public ExpressionVirtual {
     const FunFEM<M> &fun;
     ExpressionFunFEM<M> uzny, uynz;
 
-    public:
+  public:
     ExpressionNormalCrossX3(const FunFEM<M> &fh1) : fun(fh1), uynz(fh1, 1, op_id, 0, 0), uzny(fh1, 2, op_id, 0, 0) {
         assert(fh1.Vh->N == 3); // assert that the function is a 3D vector field
-        
+
         uzny.addNormal(1);
         uynz.addNormal(2);
-        
     }
 
-    virtual R operator()(long i) const { 
+    virtual R operator()(long i) const {
         assert(0);
         return 0;
     };
 
-    R eval(const int k, const R *x, const R *normal) const {
-        return uzny.eval(k, x, normal) - uynz.eval(k, x, normal);
-    }
+    R eval(const int k, const R *x, const R *normal) const { return uzny.eval(k, x, normal) - uynz.eval(k, x, normal); }
 
     R eval(const int k, const R *x, const R t, const R *normal) const {
         return uzny.eval(k, x, t, normal) - uynz.eval(k, x, t, normal);
@@ -835,24 +834,20 @@ class ExpressionNormalCrossY3 : public ExpressionVirtual {
     const FunFEM<M> &fun;
     ExpressionFunFEM<M> uxnz, uznx;
 
-    public:
+  public:
     ExpressionNormalCrossY3(const FunFEM<M> &fh1) : fun(fh1), uxnz(fh1, 0, op_id, 0, 0), uznx(fh1, 2, op_id, 0, 0) {
         assert(fh1.Vh->N == 3); // assert that the function is a 3D vector field
 
         uznx.addNormal(0);
         uxnz.addNormal(2);
-        
     }
 
-    virtual R operator()(long i) const { 
+    virtual R operator()(long i) const {
         assert(0);
         return 0;
     };
 
-
-    R eval(const int k, const R *x, const R *normal) const {
-        return uxnz.eval(k, x, normal) - uznx.eval(k, x, normal);
-    }
+    R eval(const int k, const R *x, const R *normal) const { return uxnz.eval(k, x, normal) - uznx.eval(k, x, normal); }
 
     R eval(const int k, const R *x, const R t, const R *normal) const {
         return uxnz.eval(k, x, t, normal) - uznx.eval(k, x, t, normal);
@@ -875,7 +870,8 @@ class ExpressionNormalCrossZ3 : public ExpressionVirtual {
     typedef Mesh3 M;
     const FunFEM<M> &fun;
     ExpressionFunFEM<M> uynx, uxny;
-public:
+
+  public:
     ExpressionNormalCrossZ3(const FunFEM<M> &fh1) : fun(fh1), uynx(fh1, 1, op_id, 0, 0), uxny(fh1, 0, op_id, 0, 0) {
         assert(fh1.Vh->N == 3); // assert that the function is a 3D vector field
 
@@ -883,15 +879,12 @@ public:
         uxny.addNormal(1);
     }
 
-    virtual R operator()(long i) const { 
+    virtual R operator()(long i) const {
         assert(0);
         return 0;
     };
 
-
-    R eval(const int k, const R *x, const R *normal) const {
-        return uynx.eval(k, x, normal) - uxny.eval(k, x, normal);
-    }
+    R eval(const int k, const R *x, const R *normal) const { return uynx.eval(k, x, normal) - uxny.eval(k, x, normal); }
 
     R eval(const int k, const R *x, const R t, const R *normal) const {
         return uynx.eval(k, x, t, normal) - uxny.eval(k, x, t, normal);
@@ -979,9 +972,8 @@ public:
 std::list<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
 
 // divS for 2d
-template <typeMesh M>
-class ExpressionDSx2 : public ExpressionVirtual {
-    //typedef Mesh2 M;
+template <typeMesh M> class ExpressionDSx2 : public ExpressionVirtual {
+    // typedef Mesh2 M;
     const FunFEM<M> &fun;
     ExpressionFunFEM<M> dxu1, dxu1nxnx, dyu1nxny;
 
@@ -1024,12 +1016,10 @@ class ExpressionDSx2 : public ExpressionVirtual {
     ~ExpressionDSx2() {}
 };
 
-template <typeMesh M>
-std::shared_ptr<ExpressionDSx2<M>> dxS(const FunFEM<M> &f1);
+template <typeMesh M> std::shared_ptr<ExpressionDSx2<M>> dxS(const FunFEM<M> &f1);
 
-template <typeMesh M>
-class ExpressionDSy2 : public ExpressionVirtual {
-    //typedef Mesh2 M;
+template <typeMesh M> class ExpressionDSy2 : public ExpressionVirtual {
+    // typedef Mesh2 M;
     const FunFEM<M> &fun;
     ExpressionFunFEM<M> dxu2, dxu2nxny, dyu2nyny;
 
@@ -1072,12 +1062,10 @@ class ExpressionDSy2 : public ExpressionVirtual {
     ~ExpressionDSy2() {}
 };
 
-template <typeMesh M>
-std::shared_ptr<ExpressionDSy2<M>> dyS(const FunFEM<M> &f1);
+template <typeMesh M> std::shared_ptr<ExpressionDSy2<M>> dyS(const FunFEM<M> &f1);
 
-template <typeMesh M>
-class ExpressionDivS2 : public ExpressionVirtual {
-    //typedef Mesh2 M;
+template <typeMesh M> class ExpressionDivS2 : public ExpressionVirtual {
+    // typedef Mesh2 M;
     const FunFEM<M> &fun;
     const std::shared_ptr<ExpressionDSx2<M>> dx;
     const std::shared_ptr<ExpressionDSy2<M>> dy;
@@ -1114,9 +1102,7 @@ class ExpressionDivS2 : public ExpressionVirtual {
     ~ExpressionDivS2() {}
 };
 
-template <typeMesh M>
-std::shared_ptr<ExpressionDivS2<M>> divS(const FunFEM<M> &f1);
-
+template <typeMesh M> std::shared_ptr<ExpressionDivS2<M>> divS(const FunFEM<M> &f1);
 
 // divs for 3D
 class ExpressionDSx3 : public ExpressionVirtual {
@@ -1499,9 +1485,15 @@ template <typename M> class ExpressionNonLinearSurfaceTension : public Expressio
 
 #include "expression.tpp"
 
-template<typeMesh M> std::shared_ptr<ExpressionDSx2<M>> dxS(const FunFEM<M> &f1) { return std::make_shared<ExpressionDSx2<M>>(f1); }
-template<typeMesh M> std::shared_ptr<ExpressionDSy2<M>> dyS(const FunFEM<M> &f1) { return std::make_shared<ExpressionDSy2<M>>(f1); }
-template<typeMesh M> std::shared_ptr<ExpressionDivS2<M>> divS(const FunFEM<M> &f1) { return std::make_shared<ExpressionDivS2<M>>(f1); }
+template <typeMesh M> std::shared_ptr<ExpressionDSx2<M>> dxS(const FunFEM<M> &f1) {
+    return std::make_shared<ExpressionDSx2<M>>(f1);
+}
+template <typeMesh M> std::shared_ptr<ExpressionDSy2<M>> dyS(const FunFEM<M> &f1) {
+    return std::make_shared<ExpressionDSy2<M>>(f1);
+}
+template <typeMesh M> std::shared_ptr<ExpressionDivS2<M>> divS(const FunFEM<M> &f1) {
+    return std::make_shared<ExpressionDivS2<M>>(f1);
+}
 
 typedef FunFEM<Mesh2> Fun2_h;
 typedef ExpressionFunFEM<Mesh2> Expression2;

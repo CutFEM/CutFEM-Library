@@ -201,19 +201,20 @@ template <class M> class Paraview {
                     const Cut_Part<Element> cutK(cutTh.get_cut_part(k, 0));
 
                     if (cutK.multi_interface()) {
-                        // Here we need to create triangles to feel the multi cut
-                        for (int l = 0; l < cutK.get_nb_element(); ++l) {
-                            check_and_resize_array(kk);
-                            CutElement<Element> K = cutK.get_element(l);
-                            for (int i = 0; i < nvCutCell_; ++i) {
-                                mesh_node[kk].push_back(K[i]);
-                            }
-                            num_cell[kk]  = std::make_pair(nvCutCell_, 7);
-                            idx_in_Vh[kk] = std::make_pair(kb, domain);
-                            nv_ += nvCutCell_;
-                            ntCut_++;
-                            kk++;
-                        }
+                        assert(0);
+                        //     // Here we need to create triangles to feel the multi cut
+                        //     for (int l = 0; l < cutK.get_nb_element(); ++l) {
+                        //         check_and_resize_array(kk);
+                        //         CutElement<Element> K = cutK.get_element(l);
+                        //         for (int i = 0; i < nvCutCell_; ++i) {
+                        //             mesh_node[kk].push_back(K[i]);
+                        //         }
+                        //         num_cell[kk]  = std::make_pair(nvCutCell_, 7);
+                        //         idx_in_Vh[kk] = std::make_pair(kb, domain);
+                        //         nv_ += nvCutCell_;
+                        //         ntCut_++;
+                        //         kk++;
+                        //     }
                     } else {
                         check_and_resize_array(kk);
 
@@ -1421,9 +1422,6 @@ template <class M> class Paraview {
             }
             shrinkToFit(kk + 1);
         }
-
-
-
 
         template <typename L>
         void buildAlgoimQuadrature(const ActiveMesh<M> &cutTh, L &phi, const TimeSlab &In,
