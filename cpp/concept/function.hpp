@@ -106,6 +106,16 @@ concept FunctionDomainTime =
     std::is_same_v<fct_t, fct_ptr_int_int_double> || std::is_same_v<fct_t, fct_R2_int_int_double> ||
     std::is_same_v<fct_t, fct_R3_int_int_double>;
 
+
+using fct_ptr_int_double = std::add_pointer_t<double(double *, int, double)>;
+using fct_R2_int_double  = std::add_pointer_t<double(R2, int, double)>;
+using fct_R3_int_double  = std::add_pointer_t<double(R3, int, double)>;
+
+template <typename fct_t>
+concept FunctionTime =
+    std::is_same_v<fct_t, fct_ptr_int_double> || std::is_same_v<fct_t, fct_R2_int_double> ||
+    std::is_same_v<fct_t, fct_R3_int_double>;
+
 template <typename R> class KN_;
 template <typename R> class KN;
 template <typename C> struct is_vector : std::false_type {};
