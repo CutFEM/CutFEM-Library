@@ -62,23 +62,23 @@ double fun_p_d(R2 P, int i, int dom, const double t) {
     return rho / 4 * (std::cos(2 * P.x) + std::cos(2 * P.y)) * std::exp(-4 * mu / rho * t);
 }
 
-#define epsnot     // run with Eps(u) instead of grad(u)
+#define epsnot // run with Eps(u) instead of grad(u)
 
 int main(int argc, char **argv) {
 
-    MPIcf cfMPI(argc, argv);
+    // MPIcf cfMPI(argc, argv);
 
-    const std::string path_output_data    = "../output_files/navier_stokes/taylor_green/data/";
-    const std::string path_output_figures = "../output_files/navier_stokes/taylor_green/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/navier_stokes/taylor_green/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/navier_stokes/taylor_green/paraview/";
 
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_output_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    //     std::filesystem::create_directories(path_output_data);
+    //     std::filesystem::create_directories(path_output_figures);
+    // }
 
-    double h = 0.5; // starting mesh size
+    double h = 0.75; // starting mesh size
 
-    const size_t iterations = 3;
+    const size_t iterations = 1;
 
     std::array<double, iterations> errors_uh, errors_ph, errors_div_uh, hs;
     for (int j = 0; j < iterations; ++j) {
@@ -92,17 +92,18 @@ int main(int argc, char **argv) {
         hs[j] = h;
 
         // Th.info();
+        //Th.info();
 
         // Time stepping
         int division_mesh_size     = 2;
         double final_time          = 0.5;
         double dT                  = h / division_mesh_size;
-        int total_mumber_iteration = final_time / dT;
-        dT                         = final_time / total_mumber_iteration;
+        int total_number_iteration = final_time / dT;
+        dT                         = final_time / total_number_iteration;
         double time_step           = dT;
         double t0                  = 0.;
 
-        Mesh1 Qh(total_mumber_iteration + 1, t0, final_time);
+        Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);
 
         // Define the time quadrature formula
@@ -112,14 +113,18 @@ int main(int argc, char **argv) {
         const Uint last_quad_time = nb_quad_time - 1;
 
         ProblemOption optionProblem;
-        optionProblem.solver_name_  = "mumps";
+        optionProblem.solver_name_  = "umfpack";
         optionProblem.clear_matrix_ = true;
         std::vector<std::map<std::pair<int, int>, double>> mat_NL(1);
 
         CutFEM<mesh_t> navier_stokes(qTime, optionProblem);
 
-        const double lambda_boundary = 100.;
-        const double lambda_interior = 10.;
+        // These parameters work fine
+        // const double lambda_boundary = 100.;
+        // const double lambda_interior = 10.;
+
+        const double lambda_boundary = 1.;
+        const double lambda_interior = 1.;
 
         // Finite element spaces
         Lagrange2 FEu(2); // for interpolating the exact solution
@@ -159,11 +164,11 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
         std::cout << "dT = " << dT << '\n';
 
-        std::cout << "mumber of time slabs \t : \t " << total_mumber_iteration << '\n';
+        std::cout << "number of time slabs \t : \t " << total_number_iteration << '\n';
 
         double error_uh = 0, error_ph = 0, error_div_uh = 0, u_norm, p_norm;
         int iter = 0;
-        while (iter < total_mumber_iteration) {
+        while (iter < total_number_iteration) {
             int current_iteration = iter;
             double current_time   = iter * time_step;
 
@@ -180,7 +185,7 @@ int main(int argc, char **argv) {
             cutspace_t Phn(Thi, Ph);
 
             std::cout << " -------------------------------------------------------\n";
-            std::cout << " Iteration \t : \t" << iter + 1 << "/" << total_mumber_iteration << '\n';
+            std::cout << " Iteration \t : \t" << iter + 1 << "/" << total_number_iteration << '\n';
             std::cout << " Time      \t : \t" << current_iteration * time_step << '\n';
 
             // DEFINE TEST FUNCTIONS
@@ -195,6 +200,7 @@ int main(int argc, char **argv) {
             // Create tensor-product spaces
             navier_stokes.initSpace(Vhn, In);
             navier_stokes.add(Phn, In);
+
 
             fct_t u_exact(Vhn, In, fun_u);
             fct_t p_exact(Phn, In, fun_p);
@@ -236,7 +242,7 @@ int main(int argc, char **argv) {
 
                     // a(t, du, vh) in In x Omega(t)
 
-                    #if defined(eps)
+#if defined(eps)
                     navier_stokes.addBilinear(contractProduct(mu * Eps(du), Eps(v)), Thi, In);
                     navier_stokes.addBilinear(-innerProduct(mu * Eps(du) * n, v) - innerProduct(du, mu * Eps(v) * n) +
                                                   innerProduct(lambda_boundary / h * mu * du, v),
@@ -245,16 +251,16 @@ int main(int argc, char **argv) {
                                                   innerProduct(jump(du * t), mu * average(Eps(v) * t * n, 0.5, 0.5)) +
                                                   innerProduct(lambda_interior * mu / h * (jump(du * t)), jump(v * t)),
                                               Thi, INTEGRAL_INNER_EDGE_2D, In);
-                    #else
+#else
                     navier_stokes.addBilinear(contractProduct(mu * grad(du), grad(v)), Thi, In);
                     navier_stokes.addBilinear(-innerProduct(mu * grad(du) * n, v) - innerProduct(du, mu * grad(v) * n) +
                                                   innerProduct(lambda_boundary / h * mu * du, v),
                                               Thi, INTEGRAL_BOUNDARY, In);
-                    navier_stokes.addBilinear(-innerProduct(average(grad(du * t)  * n, 0.5, 0.5), mu * jump(v * t)) +
-                                                  innerProduct(jump(du * t), mu * average(grad(v* t)  * n, 0.5, 0.5)) +
+                    navier_stokes.addBilinear(-innerProduct(average(grad(du * t) * n, 0.5, 0.5), mu * jump(v * t)) +
+                                                  innerProduct(jump(du * t), mu * average(grad(v * t) * n, 0.5, 0.5)) +
                                                   innerProduct(lambda_interior * mu / h * (jump(du * t)), jump(v * t)),
                                               Thi, INTEGRAL_INNER_EDGE_2D, In);
-                    #endif
+#endif
                     // -b(v, p) + b(u, q)
                     navier_stokes.addBilinear(-innerProduct(dp, div(v)) + innerProduct(div(du), q), Thi, In);
                     navier_stokes.addBilinear(innerProduct(dp, v * n) - innerProduct(du * n, q), Thi, INTEGRAL_BOUNDARY,
@@ -265,17 +271,17 @@ int main(int argc, char **argv) {
                 navier_stokes.addLinear(-innerProduct(fh.exprList(), rho * v), Thi, In);
                 navier_stokes.addLinear(-innerProduct(u0.exprList(), rho * v), Thi);
 
-                #if defined(eps)
+#if defined(eps)
                 navier_stokes.addLinear(innerProduct(gh.exprList(), mu * Eps(v) * n) -
                                             innerProduct(gh.exprList(), lambda_boundary / h * mu * v) +
                                             innerProduct(gh.exprList(), q * n),
                                         Thi, INTEGRAL_BOUNDARY, In);
-                #else
+#else
                 navier_stokes.addLinear(innerProduct(gh.exprList(), mu * grad(v) * n) -
                                             innerProduct(gh.exprList(), lambda_boundary / h * mu * v) +
                                             innerProduct(gh.exprList(), q * n),
                                         Thi, INTEGRAL_BOUNDARY, In);
-                #endif
+#endif
 
                 navier_stokes.gather_map();
                 navier_stokes.addMatMul(data_all); // add B(uh^k, vh) to rhs
@@ -303,13 +309,13 @@ int main(int argc, char **argv) {
                 //     navier_stokes.addLagrangeMultiplier(innerProduct(1., q), 0., Thi, itq, In);
                 // }
 
-                navier_stokes.addLagrangeMultiplier(innerProduct(1., q), 0., Thi, 0, In);
-                navier_stokes.addLagrangeMultiplier(innerProduct(1., q), 0., Thi, last_quad_time, In);
+                // navier_stokes.addLagrangeMultiplier(innerProduct(1., q), 0., Thi, 0, In);
+                // navier_stokes.addLagrangeMultiplier(innerProduct(1., q), 0., Thi, last_quad_time, In);
 
                 // Add Lagrange multipliers
-                CutFEM<Mesh2> lagr(qTime, optionProblem);
-                lagr.initSpace(Vhn, In);
-                lagr.add(Phn, In);
+                CutFEM<Mesh2> lagrange(qTime, optionProblem);
+                lagrange.initSpace(Vhn, In);
+                lagrange.add(Phn, In);
 
                 // lagr.addLinear(innerProduct(1., q), Thi);
                 // Rn lag_row(lagr.rhs_);
@@ -323,7 +329,7 @@ int main(int argc, char **argv) {
                 // // getchar();
                 // navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhs_, 0);
 
-               // matlab::Export(mat_NL[0], "mat_before.dat");
+                // matlab::Export(mat_NL[0], "mat_before.dat");
 
                 // for (int itq = 0; itq < nb_quad_time; ++itq) {
                 //     // std::fill(lagr.rhs_.begin(), lagr.rhs_.end(), 0.);
@@ -341,20 +347,28 @@ int main(int argc, char **argv) {
                 //     navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhs_, 0);
                 // }
 
+                
 
-                // for (int itq = 0; itq < 2; ++itq) {
-                //     lagr.addLinear(innerProduct(1., q), Thi, itq*last_quad_time, In);
-                //     Rn lag_row(lagr.rhs_);
-                //     lagr.rhs_ = 0.;
-                //     lagr.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq*last_quad_time, In);
-                //     //lagr.addLinear(innerProduct(1., q), Thi, itq*last_quad_time, In);
-                //     navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhs_, 0);
-                // }
+                for (int itq = 0; itq < 2; ++itq) {
+                    //std::cout << lagrange.rhs_ << "\n";
+                    //getchar();
+                    lagrange.addLinear(innerProduct(1., q), Thi, itq*last_quad_time, In);
+                    //std::cout << lagrange.rhs_ << "\n";
+                    Rn lag_row(lagrange.rhs_);
+                    lagrange.rhs_ = 0.;
+                    lagrange.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq*last_quad_time, In);
+                    //lagrange.addLinear(innerProduct(1., q), Thi, itq*last_quad_time, In);
+                  //  mat_NL[0].clear();
+                    navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagrange.rhs_, 0);
+                    
+                    //matlab::Export(mat_NL[0], "matrix" + std::to_string(itq) + ".dat");
+                }
+                //return 0;
 
-  //              matlab::Export(mat_NL[0], "mat_after_velo.dat");
+                //              matlab::Export(mat_NL[0], "mat_after_velo.dat");
                 navier_stokes.solve(mat_NL[0], navier_stokes.rhs_);
 
-//                return 0;
+                //                return 0;
 
                 // Compute norm of the difference in the succesive approximations
                 std::span<double> dwu = std::span<double>(navier_stokes.rhs_.data(), Vhn.NbDoF() * In.NbDoF());
@@ -451,6 +465,8 @@ int main(int argc, char **argv) {
                 writer.add(fun_ph, "pressure", 0, 1);
                 writer.add(u_exact, "velocity_exact", 0, 2);
                 writer.add(p_exact, "pressure_exact", 0, 1);
+
+                writer.add(uh_0dx + uh_1dy, "divergence");
 
                 fct_t u_exact_T(Vhn, fun_u, current_time + dT);
                 fct_t p_exact_T(Phn, fun_p, current_time + dT);
