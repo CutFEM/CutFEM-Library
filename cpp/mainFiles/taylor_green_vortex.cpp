@@ -67,9 +67,9 @@ double fun_p_d(R2 P, int i, int dom, const double t) {
 
 int main(int argc, char **argv) {
 
-    double h = 0.5; // starting mesh size
+    double h = 0.125; // starting mesh size
 
-    const size_t iterations = 5;
+    const size_t iterations = 1;
 
     MPIcf cfMPI(argc, argv);
 
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
     //     std::filesystem::create_directories(path_output_figures);
     // }
 
-    std::array<double, iterations> errors_uh, errors_ph, errors_div_uh, hs;
+    std::array<double, iterations> errors_uh, errors_ph, errors_div_uh, errors_uh_T, errors_ph_T, hs;
     for (int j = 0; j < iterations; ++j) {
 
         // Mesh
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
 
         std::cout << "number of time slabs \t : \t " << total_number_iteration << '\n';
 
-        double error_uh = 0, error_ph = 0, error_div_uh = 0, u_norm, p_norm;
+        double error_uh = 0, error_ph = 0, error_div_uh = 0, u_norm = 0, p_norm = 0, error_I_uh = 0, error_I_ph = 0;
         std::vector<double> divergence_errors_t;
         int iter = 0;
         while (iter < total_number_iteration) {
@@ -240,6 +240,9 @@ int main(int argc, char **argv) {
                     // Time terms
                     navier_stokes.addBilinear(
                         + innerProduct(dt(du), rho * v)
+                        + contractProduct(mu * grad(du), grad(v))
+                        - innerProduct(dp, div(v)) 
+                        + innerProduct(div(du), q)
                         , Thi
                         , In);
 
@@ -249,26 +252,11 @@ int main(int argc, char **argv) {
                         , 0
                         , In);
 
-                    // a(t, du, vh) in In x Omega(t)
-#if defined(eps)
-                    navier_stokes.addBilinear(contractProduct(mu * Eps(du), Eps(v)), Thi, In);
-                    navier_stokes.addBilinear(-innerProduct(mu * Eps(du) * n, v) - innerProduct(du, mu * Eps(v) * n) +
-                                                  innerProduct(lambda_boundary / h * mu * du, v),
-                                              Thi, INTEGRAL_BOUNDARY, In);
-                    navier_stokes.addBilinear(-innerProduct(average(Eps(du) * t * n, 0.5, 0.5), mu * jump(v * t)) +
-                                                  innerProduct(jump(du * t), mu * average(Eps(v) * t * n, 0.5, 0.5)) +
-                                                  innerProduct(lambda_interior * mu / h * (jump(du * t)), jump(v * t)),
-                                              Thi, INTEGRAL_INNER_EDGE_2D, In);
-#else
-                    navier_stokes.addBilinear(
-                        + contractProduct(mu * grad(du), grad(v))
-                        , Thi
-                        , In);
-
                     navier_stokes.addBilinear(
                         - innerProduct(mu * grad(du) * n, v)
                         - innerProduct(du, mu * grad(v) * n) 
                         + innerProduct(lambda_boundary / h * mu * du, v)
+                        + innerProduct(dp, v * n)
                         , Thi
                         , INTEGRAL_BOUNDARY
                         , In);
@@ -280,19 +268,6 @@ int main(int argc, char **argv) {
                         , Thi
                         , INTEGRAL_INNER_EDGE_2D
                         , In);
-#endif
-                    // -b(v, p) + b0(u, q)
-                    navier_stokes.addBilinear(
-                        - innerProduct(dp, div(v)) 
-                        + innerProduct(div(du), q)
-                        , Thi
-                        , In);
-
-                    navier_stokes.addBilinear(
-                        + innerProduct(dp, v * n)
-                        , Thi
-                        , INTEGRAL_BOUNDARY
-                        , In); 
 
                 }
 
@@ -306,22 +281,14 @@ int main(int argc, char **argv) {
                     - innerProduct(u0.exprList(), rho * v)
                     , Thi);
 
-#if defined(eps)
-                navier_stokes.addLinear(
-                    + innerProduct(gh.exprList(), mu * Eps(v) * n) 
-                    - innerProduct(gh.exprList(), lambda_boundary / h * mu * v) 
-                    + innerProduct(gh.exprList(), q * n)
-                    , Thi
-                    , INTEGRAL_BOUNDARY
-                    , In);
-#else
+
                 navier_stokes.addLinear(
                     + innerProduct(gh.exprList(), mu * grad(v) * n) 
                     - innerProduct(gh.exprList(), lambda_boundary / h * mu * v)
                     , Thi
                     , INTEGRAL_BOUNDARY
                     , In); 
-#endif
+
 
                 navier_stokes.gather_map();
                 navier_stokes.addMatMul(data_all); // add B(uh^k, vh) to rhs
@@ -336,15 +303,20 @@ int main(int argc, char **argv) {
                 auto ux = uh.expr(0);
                 auto uy = uh.expr(1);
 
-                navier_stokes.addBilinear(innerProduct(du1 * dx(ux) + du2 * dy(ux), rho * v1) +
-                                              innerProduct(du1 * dx(uy) + du2 * dy(uy), rho * v2) +
-                                              innerProduct(ux * dx(du1) + uy * dy(du1), rho * v1) +
-                                              innerProduct(ux * dx(du2) + uy * dy(du2), rho * v2),
-                                          Thi, In);
-                navier_stokes.addLinear(innerProduct(ux * dx(ux) + uy * dy(ux), rho * v1) +
-                                            innerProduct(ux * dx(uy) + uy * dy(uy), rho * v2),
-                                        Thi, In);
+                // Linearized advection term
+                navier_stokes.addBilinear(
+                    + innerProduct(du1 * dx(ux) + du2 * dy(ux), rho * v1) 
+                    + innerProduct(du1 * dx(uy) + du2 * dy(uy), rho * v2) 
+                    + innerProduct(ux * dx(du1) + uy * dy(du1), rho * v1) 
+                    + innerProduct(ux * dx(du2) + uy * dy(du2), rho * v2)
+                    , Thi
+                    , In);
 
+                navier_stokes.addLinear(
+                    + innerProduct(ux * dx(ux) + uy * dy(ux), rho * v1) 
+                    + innerProduct(ux * dx(uy) + uy * dy(uy), rho * v2)
+                    , Thi
+                    , In);
 
                 // Add Lagrange multipliers
                 CutFEM<Mesh2> lagrange(qTime, optionProblem);
@@ -371,7 +343,6 @@ int main(int argc, char **argv) {
 
                 navier_stokes.solve(mat_NL[0], navier_stokes.rhs_);
 
-                //                return 0;
 
                 // Compute norm of the difference in the succesive approximations
                 std::span<double> dwu = std::span<double>(navier_stokes.rhs_.data(), Vhn.NbDoF() * In.NbDoF());
@@ -444,6 +415,12 @@ int main(int argc, char **argv) {
             error_div_uh = maxNormCut(uh_0dx + uh_1dy, Thi);
             divergence_errors_t.push_back(error_div_uh);
 
+            fct_t fun_uh_t(Vhn, In, data_uh);
+            fct_t fun_ph_t(Phn, In, data_ph);
+
+            error_I_uh += L2normCut_T(fun_uh_t, fun_u_d, Thi, In, qTime, 2);
+            error_I_ph += L2normCut_T(fun_ph_t, fun_p_d, Thi, In, qTime, 1);
+
             // std::cout << " ||u(T)-uh(T)||_2 / ||u(T)||_2 = " << error_uh / u_norm
             // << '\n'; std::cout << " ||p(T)-ph(T)||_2 / ||p(T)||_2 = " << error_ph /
             // p_norm << '\n';
@@ -453,6 +430,9 @@ int main(int argc, char **argv) {
 
             std::cout << " ||u(T)-uh(T)||_2 = " << error_uh << '\n';
             std::cout << " ||p(T)-ph(T)||_2 = " << error_ph << '\n';
+
+            std::cout << " int_{In} ||u(t)-uh(t)||^2_2 dt = " << error_I_uh << '\n';
+            std::cout << " int_{In} ||p(t)-ph(t)||^2_2 dt = " << error_I_ph << '\n';
 
             errors_uh[j] = error_uh;
             errors_ph[j] = error_ph;
@@ -487,6 +467,10 @@ int main(int argc, char **argv) {
 
             iter += 1;
         }
+
+        errors_uh_T[j] = std::sqrt(error_I_uh);
+        errors_ph_T[j] = std::sqrt(error_I_ph);
+
         h *= 0.5;
 
         if (iterations == 1) {
@@ -528,6 +512,30 @@ int main(int argc, char **argv) {
     for (int i = 0; i < iterations; i++) {
 
         std::cout << errors_div_uh.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    std::cout << '\n';
+
+    std::cout << '\n';
+    std::cout << "Errors [0, T] Velocity = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << errors_uh_T.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    std::cout << '\n';
+
+    std::cout << '\n';
+    std::cout << "Errors [0, T] Pressure = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << errors_ph_T.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }
