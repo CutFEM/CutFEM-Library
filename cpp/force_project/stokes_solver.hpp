@@ -120,7 +120,6 @@ std::vector<double> solveStokes(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, In
     std::vector<double> lag_row(lagr.rhs_);
     std::fill(lagr.rhs_.begin(), lagr.rhs_.end(), 0.);
     lagr.addLinear(innerProduct(1, v * n), Khi, INTEGRAL_BOUNDARY);
-
     stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhs_, 0);
 
     // stokes.addLagrangeMultiplier(innerProduct(1., p1), 0., Khi);

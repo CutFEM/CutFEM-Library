@@ -300,7 +300,8 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
 
     // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
     for (int l = 0; l < VF.size(); ++l) {
-        // if(!VF[l].on(domain)) continue;
+        if (!VF[l].on(domain))
+            continue;
 
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
