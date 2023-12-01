@@ -1,0 +1,54 @@
+
+
+# set(PYTHON_INCLUDES /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/include/python3.10/
+# /usr/local/lib/python3.10/site-packages/numpy/core/include)
+# set(PYTHON_LIBRARIES /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/lib/libpython3.10.dylib) 
+# set(PYTHON_DIR /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10)
+
+
+set(PYTHON_FOUND "NO")
+
+
+find_path (PYTHON_INCLUDE_DIR
+  NAMES Python.h
+  PATHS
+    /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/include/python3.10/
+  )
+
+find_path (NUMPY_INCLUDE_DIR
+  NAMES numpy/arrayobject.h
+  PATHS
+    /usr/local/lib/python3.10/site-packages/numpy/core/include
+)
+
+find_path(PYTHON_LIBRARY_DIR
+  NAMES libpython3.10.dylib
+  PATHS
+    /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/lib/
+)
+
+
+if(PYTHON_INCLUDE_DIR AND NUMPY_INCLUDE_DIR AND PYTHON_LIBRARY_DIR)
+  set(PYTHON_FOUND YES)
+
+  find_library(PYTHON_LIBRARY
+    NAMES libpython3.10
+    PATHS ${PYTHON_LIBRARY_DIR}
+    NO_DEFAULT_PATH
+  )
+
+
+  set(PYTHON_LIBRARIES ${PYTHON_LIBRARY} )
+
+  set(PYTHON_INCLUDES ${PYTHON_INCLUDE_DIR} ${NUMPY_INCLUDE_DIR})
+
+  message( "-- PYTHON_library FOUND")
+  message( " PYTHON & NUMPY includes = ${PYTHON_INCLUDES}")
+  message( " PYTHON library = ${PYTHON_LIBRARIES}")
+
+
+  else()
+    message( "PYTHON include dirs = ${PYHTON_INCLUDE_DIR}")
+    message( "PYTHON library = ${PYTHON_LIBRARIES}")
+endif()
+
