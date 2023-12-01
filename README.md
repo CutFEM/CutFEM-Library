@@ -27,6 +27,9 @@ On another hand, to update all modules (test, solver etc) one can do
 "git submodule update --init --recursive"
 
 
+# TO INSTALL A SUBMODULE
+git submodule update --init --recusive submodule_name
+
 # TO INSTALL UMFPACK
 1. add the module SuiteSparse
 "git submodule update --init --SuiteSparse"
