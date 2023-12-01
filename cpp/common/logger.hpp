@@ -27,6 +27,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <mutex>
 #include <thread>
 
+#include "../num/print_container.hpp"
+
 enum class Severity {
     Trace,
     Debug,

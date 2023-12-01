@@ -257,9 +257,9 @@ int main(int argc, char **argv) {
 
     // 3) compute force
     // compute the mean of u.n on gamma
-    R2 Fc = computeForce(uh, interface);
-    LOG_INFO << "Average interface: Fc = ( " << Fc.x << " , " << Fc.y << " )" << logger::endl;
-    Fc = computeForce(uh, Khi);
+    // R2 Fc = computeForce(uh, interface);
+    // LOG_INFO << "Average interface: Fc = ( " << Fc.x << " , " << Fc.y << " )" << logger::endl;
+    R2 Fc = computeForce(uh, Khi);
     LOG_INFO << "Average bubble: Fc = ( " << Fc.x << " , " << Fc.y << " )" << logger::endl;
     // 4) save force
 

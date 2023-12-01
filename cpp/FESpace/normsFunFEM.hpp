@@ -41,6 +41,19 @@ double L2normCut(const FunFEM<mesh_t> &fh, fct fex, int c0, int num_comp, const 
     return sqrt(val);
 }
 
+template <typeMesh mesh_t>
+double L2normCut(const FunFEM<mesh_t> &fh, int c0, int num_comp, const MacroElement<mesh_t> *macro = nullptr) {
+
+    const GFESpace<mesh_t> &Vh(*fh.Vh);
+    const ActiveMesh<mesh_t> &Th(Vh.get_mesh());
+    double val = 0;
+    for (int i = c0; i < num_comp + c0; ++i) {
+        auto ui = fh.expr(i);
+        val += L2normCut_2(ui, Th, macro);
+    }
+    return sqrt(val);
+}
+
 template <typeMesh mesh_t, FunctionDomain fct>
 double L2normCut(const std::shared_ptr<ExpressionVirtual> &fh, fct fex, const ActiveMesh<mesh_t> &Th,
                  const MacroElement<mesh_t> *macro = nullptr) {
@@ -73,6 +86,17 @@ double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, cons
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
         val += L2normCut_2(fh, fex, i, Th, macro);
+    }
+    return val;
+}
+
+template <typeMesh mesh_t>
+double L2normCut_2(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<mesh_t> &Th,
+                   const MacroElement<mesh_t> *macro) {
+    int nb_dom = Th.get_nb_domain();
+    double val = 0.;
+    for (int i = 0; i < nb_dom; ++i) {
+        val += L2normCut_2(fh, i, Th, macro);
     }
     return val;
 }
@@ -554,50 +578,6 @@ double max_norm_surface(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(dou
     return val_receive;
 }
 
-//
-// //
-// template<typename M>
-// double maxNorm(const ExpressionVirtual& fh,R (fex)(const typename
-// GFESpace<M>::FElement::Rd, int i),const GFESpace<M>& Vh) {
-//
-//   typedef M Mesh;
-//   typedef GFESpace<Mesh> FESpace;
-//   typedef typename FESpace::FElement FElement;
-//   typedef typename FElement::QF QF;
-//   typedef typename FElement::Rd Rd;
-//   typedef typename Mesh::Partition Partition;
-//   typedef typename QF::QuadraturePoint QuadraturePoint;
-//   typedef typename TypeCutData<Rd::d>::CutData CutData;
-//
-//   const QF& qf(*QF_Simplex<typename FElement::RdHat>(0));
-//   What_d Fop = Fwhatd(op_id);
-//   double val = 0.;
-//
-//   for(int k=Vh.first_element(); k<Vh.last_element(); k+= Vh.next_element()) {
-//
-//     const FElement& FK(Vh[k]);
-//     const R meas = FK.getMeasure();
-//     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
-//
-//       QuadraturePoint ip(qf[ipq]); // integration point
-//       Rd mip = FK.map(ip);
-//       const R Cint = meas * ip.getWeight();
-//
-//       val = std::max(val, fabs(fh->eval(k, mip)-fex(mip, fh->cu)));
-//     }
-//   }
-//
-//   double val_receive = 0;
-//   MPIcf::AllReduce(val, val_receive, MPI_MAX);
-// #ifdef USE_MPI
-// MPIcf::AllReduce(val, val_receive, MPI_MAX);
-// #else
-// val_receive = val;
-// #endif //
-
-//   return val_receive;
-// }
-
 template <typename M> double maxNormCut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<M> &Th) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
@@ -810,6 +790,52 @@ template <typename Mesh> double maxNorm(const std::shared_ptr<ExpressionVirtual>
 }
 
 /*---------------------------- cut local L2 norm ----------------------------
+
+//
+// //
+// template<typename M>
+// double maxNorm(const ExpressionVirtual& fh,R (fex)(const typename
+// GFESpace<M>::FElement::Rd, int i),const GFESpace<M>& Vh) {
+//
+//   typedef M Mesh;
+//   typedef GFESpace<Mesh> FESpace;
+//   typedef typename FESpace::FElement FElement;
+//   typedef typename FElement::QF QF;
+//   typedef typename FElement::Rd Rd;
+//   typedef typename Mesh::Partition Partition;
+//   typedef typename QF::QuadraturePoint QuadraturePoint;
+//   typedef typename TypeCutData<Rd::d>::CutData CutData;
+//
+//   const QF& qf(*QF_Simplex<typename FElement::RdHat>(0));
+//   What_d Fop = Fwhatd(op_id);
+//   double val = 0.;
+//
+//   for(int k=Vh.first_element(); k<Vh.last_element(); k+= Vh.next_element()) {
+//
+//     const FElement& FK(Vh[k]);
+//     const R meas = FK.getMeasure();
+//     for(int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq)  {
+//
+//       QuadraturePoint ip(qf[ipq]); // integration point
+//       Rd mip = FK.map(ip);
+//       const R Cint = meas * ip.getWeight();
+//
+//       val = std::max(val, fabs(fh->eval(k, mip)-fex(mip, fh->cu)));
+//     }
+//   }
+//
+//   double val_receive = 0;
+//   MPIcf::AllReduce(val, val_receive, MPI_MAX);
+// #ifdef USE_MPI
+// MPIcf::AllReduce(val, val_receive, MPI_MAX);
+// #else
+// val_receive = val;
+// #endif //
+
+//   return val_receive;
+// }
+
+
 Integrates only over elements whose edges are not part of the stabilised edges,
 thereby neglecting elements messed up by the mcdonald stab
 */
