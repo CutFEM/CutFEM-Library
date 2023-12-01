@@ -9,7 +9,7 @@ option(USE_MPI "Perform a parallel computation" ON)
 option(USE_OMP "Perform a parallel omp computation" OFF)
 option(USE_UMFPACK "Found the UMFpack library" ON)
 option(USE_LAPACK "Found the lapacke library" OFF)
-option(USE_MUMPS "Found the MUMPS library" OFF)
+option(USE_MUMPS "Found the MUMPS library" ON)
 
 option(CUTFEM_BUILD_DEBUG "Build to allow debugging" OFF)
 option(CUTFEM_BUILD_TESTS "Build and run library tests" OFF)
