@@ -32,7 +32,7 @@ using cutmesh_t  = ActiveMesh<mesh_t>;
 using space_t    = GFESpace<mesh_t>;
 using cutspace_t = CutFESpace<mesh_t>;
 
-const double Re = 100.;
+const double Re = 10000.;
 
 double fun_levelset(R2 P) { return -1.; }
 
@@ -62,6 +62,22 @@ double fun_u_d(R2 P, int i, int dom, const double t) {
         return x;
 }
 
+double fun_u0_dx(R2 P, int i, const double t) {
+    return 0.;
+}
+
+double fun_u0_dy(R2 P, int i, const double t) {
+    return -1.;
+}
+
+double fun_u1_dx(R2 P, int i, const double t) {
+    return 1.;
+}
+
+double fun_u1_dy(R2 P, int i, const double t) {
+    return 0.;
+}
+
 double fun_u_initial(R2 P, int i) {
     double x = P.x, y = P.y;
     if (i == 0)
@@ -83,6 +99,7 @@ double fun_p_d(R2 P, int i, int dom, const double t) {
 }
 
 #define FORMULATION2
+#define TAYLOR_HOODnot
 
 int main(int argc, char **argv) {
 
@@ -90,17 +107,17 @@ int main(int argc, char **argv) {
 
     const size_t iterations = 3;
 
-    // MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/paraview/";
+    const std::string path_output_data    = "../output_files/navier_stokes/stationary_vortex/data/";
+    const std::string path_output_figures = "../output_files/navier_stokes/stationary_vortex/paraview/";
 
-    // if (MPIcf::IamMaster()) {
-    //     std::filesystem::create_directories(path_output_data);
-    //     std::filesystem::create_directories(path_output_figures);
-    // }
+    if (MPIcf::IamMaster()) {
+        std::filesystem::create_directories(path_output_data);
+        std::filesystem::create_directories(path_output_figures);
+    }
 
-    std::array<double, iterations> errors_uh, errors_ph, errors_div_uh, errors_uh_T, errors_ph_T, hs;
+    std::array<double, iterations> errors_uh, errors_ph, errors_grad_uh, errors_div_uh, errors_uh_T, errors_ph_T, hs;
     for (int j = 0; j < iterations; ++j) {
 
         // Mesh
@@ -133,7 +150,7 @@ int main(int argc, char **argv) {
         const Uint last_quad_time = nb_quad_time - 1;
 
         ProblemOption optionProblem;
-        optionProblem.solver_name_  = "umfpack";
+        optionProblem.solver_name_  = "mumps";
         optionProblem.clear_matrix_ = true;
         std::vector<std::map<std::pair<int, int>, double>> mat_NL(1);
 
@@ -149,14 +166,16 @@ int main(int argc, char **argv) {
         // Finite element spaces
         Lagrange2 FEu(2); // for interpolating the exact solution
         space_t Vh_interpolation(Th, FEu);
+        space_t Ph_interpolation(Th, DataFE<mesh_t>::P1);
 
-        // Taylor-Hood
-        // space_t Vh(Th, FEu);
-        // space_t Ph(Th, DataFE<mesh_t>::P1);
-
+    #if defined(TAYLOR_HOOD)
+        space_t Vh(Th, FEu);
+        space_t Ph(Th, DataFE<mesh_t>::P1);
+    #else
         // P0 x BDM1
         space_t Vh(Th, DataFE<mesh_t>::BDM1);
         space_t Ph(Th, DataFE<mesh_t>::P0);
+    #endif
 
         space_t Lh(Th, DataFE<mesh_t>::P1);
         TimeInterface<mesh_t> interface(qTime);
@@ -186,7 +205,7 @@ int main(int argc, char **argv) {
 
         std::cout << "number of time slabs \t : \t " << total_number_iteration << '\n';
 
-        double error_uh = 0, error_ph = 0, error_div_uh = 0, u_norm = 0, p_norm = 0, error_I_uh = 0, error_I_ph = 0;
+        double error_uh = 0, error_ph = 0, error_div_uh = 0, error_grad_uh = 0, u_norm = 0, p_norm = 0, error_I_uh = 0, error_I_ph = 0;
         std::vector<double> divergence_errors_t;
         int iter = 0;
         while (iter < total_number_iteration) {
@@ -204,6 +223,9 @@ int main(int argc, char **argv) {
 
             cutspace_t Vhn(Thi, Vh);
             cutspace_t Phn(Thi, Ph);
+
+            cutspace_t Vhn_interpolation(Thi, Vh_interpolation);
+            cutspace_t Phn_interpolation(Thi, Ph_interpolation);
 
             std::cout << " -------------------------------------------------------\n";
             std::cout << " Iteration \t : \t" << iter + 1 << "/" << total_number_iteration << '\n';
@@ -224,10 +246,14 @@ int main(int argc, char **argv) {
             navier_stokes.add(Phn, In);
 
             // Interpolate exact functions
-            fct_t u_exact(Vhn, In, fun_u);
-            fct_t p_exact(Phn, In, fun_p);
-            fct_t fh(Vhn, In, fun_rhs); // rhs force
-            fct_t gh(Vhn, In, fun_u);   // Dirichlet boundary condition
+            fct_t u_exact(Vhn_interpolation, In, fun_u);      // exact velocity
+            fct_t p_exact(Phn_interpolation, In, fun_p);      // exact pressure
+            fct_t u0_dx(Phn_interpolation, In, fun_u0_dx);    // du0/dx
+            fct_t u0_dy(Phn_interpolation, In, fun_u0_dy);    // du0/dy
+            fct_t u1_dx(Phn_interpolation, In, fun_u1_dx);    // du1/dx
+            fct_t u1_dy(Phn_interpolation, In, fun_u1_dy);    // du1/dy   
+            fct_t fh(Vhn_interpolation, In, fun_rhs);         // rhs force
+            fct_t gh(Vhn_interpolation, In, fun_u);           // Dirichlet boundary condition
 
             // Initialize DOFs and data
             std::vector<double> data_init(navier_stokes.get_nb_dof());
@@ -244,7 +270,7 @@ int main(int argc, char **argv) {
             // Create FEM functions corresponding to the numerical solutions
             fct_t u0(Vhn, data_uh0);
             fct_t uh(Vhn, In, data_uh);
-            fct_t ph(Phn, In, data_ph);
+            fct_t ph(Phn_interpolation, In, data_ph);
 
             if (iter == 0) {
                 interpolate(Vhn, data_uh0, fun_u_initial);
@@ -338,7 +364,7 @@ int main(int argc, char **argv) {
                 #elif defined(FORMULATION2)
                 if (newton_iterations == 0) {
 
-                    // Time terms
+                    // Terms in Omega(t)
                     navier_stokes.addBilinear(
                         + innerProduct(dt(du), v) 
                         + contractProduct(grad(du), 1./Re*grad(v)) 
@@ -347,21 +373,28 @@ int main(int argc, char **argv) {
                         , Thi
                         , In);
 
+                    // Term in Omega(t_{n-1})
                     navier_stokes.addBilinear(
                         + innerProduct(du, v)
                         , Thi
                         , 0
                         , In);
 
+                    // Terms on outer boundary
                     navier_stokes.addBilinear(
                         - innerProduct(grad(du) * n, 1./Re*v) 
                         - innerProduct(du, 1./Re*grad(v) * n) 
                         + innerProduct(lambda_boundary / h * du, v) 
                         + innerProduct(dp, 1./Re * v * n)
+                    #if defined(TAYLOR_HOOD)
+                        - innerProduct(du * n, 1./Re * q)    // added for block-anti-symmetry in the B(u,q) matrix
+                    #endif
                         , Thi
                         , INTEGRAL_BOUNDARY
                         , In);
 
+                    // Terms on inner edges
+                #ifndef TAYLOR_HOOD
                     navier_stokes.addBilinear(
                         - innerProduct(average(grad(du * t) * n, 0.5, 0.5), 1./Re*jump(v * t)) 
                         + innerProduct(jump(du * t), 1./Re*average(grad(v * t) * n, 0.5, 0.5)) 
@@ -369,6 +402,7 @@ int main(int argc, char **argv) {
                         , Thi
                         , INTEGRAL_INNER_EDGE_2D
                         , In);
+                #endif
                 }
 
                 // Add -Lh(vh)
@@ -377,13 +411,18 @@ int main(int argc, char **argv) {
                     , Thi
                     , In);
 
+                // Impose initial condition (continuity between time-slabs)
                 navier_stokes.addLinear(
                     - innerProduct(u0.exprList(), v)
                     , Thi);
 
+                // Terms from Nitsche's method
                 navier_stokes.addLinear(
                     + innerProduct(gh.exprList(), 1./Re*grad(v) * n) 
                     - innerProduct(gh.exprList(), lambda_boundary / h * v)
+                #if defined(TAYLOR_HOOD)
+                    + innerProduct(gh.exprList(), 1./Re*q*n)      // compensate for added symmetry term
+                #endif
                     , Thi
                     , INTEGRAL_BOUNDARY
                     , In);
@@ -430,8 +469,11 @@ int main(int argc, char **argv) {
                     lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
                     lag_row       = lagrange.rhs_;
                     lagrange.rhs_ = 0.;
+                #if defined(TAYLOR_HOOD)
+                    lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
+                #else
                     lagrange.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq * last_quad_time, In);
-                    //lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
+                #endif
                     navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagrange.rhs_, 0);
                 }
 
@@ -501,6 +543,15 @@ int main(int argc, char **argv) {
             fct_t fun_ph(Phn, sol_ph);
             auto uh_0dx = dx(fun_uh.expr(0));
             auto uh_1dy = dy(fun_uh.expr(1));
+            auto uh_0dy = dy(fun_uh.expr(0));
+            auto uh_1dx = dx(fun_uh.expr(1));
+
+            auto u_0dx = dx(u_exact.expr(0));
+            auto u_1dy = dy(u_exact.expr(1));
+            auto u_0dy = dy(u_exact.expr(0));
+            auto u_1dx = dx(u_exact.expr(1));
+
+            //std::cout << (*uh_0dx).v << "\n";
 
             error_uh = L2normCut(fun_uh, fun_u_d, current_time + dT, 0, 2);
             error_ph = L2normCut(fun_ph, fun_p_d, current_time + dT, 0, 1);
@@ -514,16 +565,23 @@ int main(int argc, char **argv) {
             error_I_uh += L2normCut_T(fun_uh_t, fun_u_d, Thi, In, qTime, 2);
             error_I_ph += L2normCut_T(fun_ph_t, fun_p_d, Thi, In, qTime, 1);
 
-            std::cout << " ||u(T)-uh(T)||_2 = " << error_uh << '\n';
-            std::cout << " ||p(T)-ph(T)||_2 = " << error_ph << '\n';
+            
+            // double errGradU  = std::sqrt(integral(Thi, (uh_0dx - u0_dx.expr())*(uh_0dx - u0_dx.expr()) + (uh_0dy-u0_dy.expr())*(uh_0dy-u0_dy.expr()) + (uh_1dx-u1_dx.expr())*(uh_1dx-u1_dx.expr()) + (uh_1dy-u1_dy.expr())*(uh_1dy-u1_dy.expr()), last_quad_time));
+            error_grad_uh = std::sqrt(integral(Thi, (uh_0dx - u_0dx)*(uh_0dx - u_0dx) + (uh_0dy-u_0dy)*(uh_0dy-u_0dy) + (uh_1dx-u_1dx)*(uh_1dx-u_1dx) + (uh_1dy-u_1dy)*(uh_1dy-u_1dy), last_quad_time));
 
-            std::cout << " int_{In} ||u(t)-uh(t)||^2_2 dt = " << error_I_uh << '\n';
-            std::cout << " int_{In} ||p(t)-ph(t)||^2_2 dt = " << error_I_ph << '\n';
+            std::cout << " || grad(u(T)-uh(T)) ||_2 = " << error_grad_uh << "\n" << "\n";
+
+            std::cout << " ||u(T)-uh(T)||_2 = " << error_uh << "\n";
+            std::cout << " ||p(T)-ph(T)||_2 = " << error_ph << "\n" << "\n";
+
+            std::cout << " int_{In} ||u(t)-uh(t)||^2_2 dt = " << error_I_uh << "\n";
+            std::cout << " int_{In} ||p(t)-ph(t)||^2_2 dt = " << error_I_ph << "\n" << "\n";
+
+            std::cout << " ||div(uh(T))||_infty = " << error_div_uh << "\n" << "\n";
 
             errors_uh[j] = error_uh;
             errors_ph[j] = error_ph;
-
-            std::cout << " ||div(uh(T))||_infty = " << error_div_uh << '\n';
+            errors_grad_uh[j] = error_grad_uh;
             errors_div_uh[j] = error_div_uh;
 
             // Plotting
@@ -539,6 +597,15 @@ int main(int argc, char **argv) {
                 writer.add(fun_ph, "pressure", 0, 1);
                 writer.add(u_exact, "velocity_exact", 0, 2);
                 writer.add(p_exact, "pressure_exact", 0, 1);
+                writer.add(u0_dx, "u0_dx", 0, 1);
+                writer.add(u0_dy, "u0_dy", 0, 1);
+                writer.add(u1_dx, "u1_dx", 0, 1);
+                writer.add(u1_dy, "u1_dy", 0, 1);
+                writer.add(uh_0dx, "uh_0dx");
+                writer.add(uh_0dy, "uh_0dy");
+                writer.add(uh_1dx, "uh_1dx");
+                writer.add(uh_1dy, "uh_1dy");
+                writer.add((uh_0dx - u_0dx)*(uh_0dx - u_0dx) + (uh_0dy-u_0dy)*(uh_0dy-u_0dy) + (uh_1dx-u_1dx)*(uh_1dx-u_1dx) + (uh_1dy-u_1dy)*(uh_1dy-u_1dy), "gradient_error");
 
                 writer.add(uh_0dx + uh_1dy, "divergence");
 
@@ -582,7 +649,6 @@ int main(int argc, char **argv) {
         }
     }
     std::cout << "]" << '\n';
-    std::cout << '\n';
     std::cout << "Errors Pressure = [";
     for (int i = 0; i < iterations; i++) {
 
@@ -593,6 +659,16 @@ int main(int argc, char **argv) {
     }
     std::cout << "]" << '\n';
     std::cout << '\n';
+    
+    std::cout << "Gradient Errors = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << errors_grad_uh.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
 
     std::cout << "Divergence Errors = [";
     for (int i = 0; i < iterations; i++) {
@@ -617,7 +693,6 @@ int main(int argc, char **argv) {
     std::cout << "]" << '\n';
     std::cout << '\n';
 
-    std::cout << '\n';
     std::cout << "Errors [0, T] Pressure = [";
     for (int i = 0; i < iterations; i++) {
 
