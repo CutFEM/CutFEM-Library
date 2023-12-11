@@ -959,7 +959,7 @@ template <typename Mesh> double maxNorm(const std::shared_ptr<ExpressionVirtual>
     typedef typename FElement::Rd Rd;
     typedef typename QF::QuadraturePoint QuadraturePoint;
 
-    const QF &qf(*QF_Simplex<typename FElement::RdHat>(0));
+    const QF &qf(*QF_Simplex<typename FElement::RdHat>(0)); //! should it really be zero here?
     What_d Fop = Fwhatd(op_id);
 
     double val = 0.;
