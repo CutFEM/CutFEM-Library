@@ -102,7 +102,7 @@ class Weight2Kappa : public VirtualParameter {
 
 int main(int argc, char **argv) {
 
-    MPIcf cfMPI(argc, argv);
+    //MPIcf cfMPI(argc, argv);
     // int thread_count_tmp = 1;
     // cout << "Threads: ";
     // cin >> thread_count_tmp;
@@ -112,15 +112,15 @@ int main(int argc, char **argv) {
     int thread_count = 1;
     //double cpubegin  = MPIcf::Wtime();
 
-    const std::string path_output_data    = "../output_files/navier_stokes/rising_bubble/data/";
-    const std::string path_output_figures = "../output_files/navier_stokes/rising_bubble/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/navier_stokes/rising_bubble/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/navier_stokes/rising_bubble/paraview/";
 
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_output_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    //     std::filesystem::create_directories(path_output_data);
+    //     std::filesystem::create_directories(path_output_figures);
+    // }
 
-    Logger::initialize("log_Navier_Stokes_Sebastian.txt");
+    //Logger::initialize("log_Navier_Stokes_Sebastian.txt");
 
     // MESH DEFINITION
     // ---------------------------------------------
@@ -132,9 +132,9 @@ int main(int argc, char **argv) {
     std::list<int> dirichlet{1, 3};
     std::list<int> neumann{2, 4};
 
-    LOG_INFO << " ------------------------------------" << logger::endl;
-    LOG_INFO << " Background mesh " << logger::endl;
-    Kh.info();
+    // LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " Background mesh " << logger::endl;
+    //Kh.info();
 
     // TIME DEFINITION
     // ---------------------------------------------
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
     // PROBLEM AND PARAMETER DEFINITION
     // ----------------------------------------------
     ProblemOption optionProblem;
-    optionProblem.solver_name_  = "mumps";
+    optionProblem.solver_name_  = "umfpack";
     optionProblem.clear_matrix_ = true;
     std::vector<std::map<std::pair<int, int>, double>> mat_NL(thread_count);
 
@@ -168,26 +168,30 @@ int main(int argc, char **argv) {
     CutFEMParameter lambdaI(1000., 100.);
     CutFEMParameter rho(1000., 100.);
     CutFEMParameter invmu(0.1, 1.);
-    LambdaBoundary lambdaB(mu, 10, 100);
-    LambdaGamma lambdaG(100*mu(0), 10*mu(1));
-    WeightKappa kappa(mu(0), mu(1));
+    //LambdaBoundary lambdaB(mu, 10, 100);
+    //LambdaGamma lambdaG(mu(0), mu(1));
+    //WeightKappa kappa(mu(0), mu(1));
+    
     // double lambdaG = 10.;
     // double kappa = 0.5;
+    double lambdaB = 1000/mesh_size;
+    double lambdaG = 1000/mesh_size;
+    // CutFEMParameter lambdaG(100*mu(0)/mesh_size, 10*mu(1)/mesh_size);
     Weight2Kappa kappa2(mu(0), mu(1));
     const double sigma = 24.5;
 
     // WRITE THE PROBLEM PARAMETERS
     // ----------------------------------------------
-    LOG_INFO << " ------------------------------------" << logger::endl;
-    LOG_INFO << " Discretization of the problem : \n"
-             << " h = " << mesh_size << "\n t_begin = " << t0 << " and t_final = " << final_time << "\n dt = " << dT
-             << "\n number of iteration = " << total_number_iteration << logger::endl;
-    LOG_INFO << " ------------------------------------" << logger::endl;
-    LOG_INFO << " Parameters of the problem : \n"
-             << " mu_1 = " << mu(0) << " and mu_2 = " << mu(1) << " \n"
-             << " rho_1 = " << rho(0) << " and rho_2 = " << rho(1) << " \n"
-             << " the surface tension sigma = " << sigma << logger::endl;
-    LOG_INFO << " ------------------------------------ " << logger::endl;
+    // LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " Discretization of the problem : \n"
+    //          << " h = " << mesh_size << "\n t_begin = " << t0 << " and t_final = " << final_time << "\n dt = " << dT
+    //          << "\n number of iteration = " << total_number_iteration << logger::endl;
+    // LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " Parameters of the problem : \n"
+    //          << " mu_1 = " << mu(0) << " and mu_2 = " << mu(1) << " \n"
+    //          << " rho_1 = " << rho(0) << " and rho_2 = " << rho(1) << " \n"
+    //          << " the surface tension sigma = " << sigma << logger::endl;
+    // LOG_INFO << " ------------------------------------ " << logger::endl;
 
     // SPACE DEFINITION
     // ---------------------------------------------
@@ -205,16 +209,16 @@ int main(int argc, char **argv) {
 
     // INTERPOLATION OF THE VELOCITY (BOUNDARY CONDITION)
     // ----------------------------------------------
-    LOG_INFO << " ------------------------------------" << logger::endl;
-    LOG_INFO << " Interpolate the velocity " << logger::endl;
+    // LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " Interpolate the velocity " << logger::endl;
     std::vector<fct_t> vel(nb_quad_time);
     for (int i = 0; i < nb_quad_time; ++i)
         vel[i].init(Vh, fun_boundary);
 
     // DECLARATION OF INTERFACE AND LEVELSET
     // ----------------------------------------------
-    LOG_INFO << " ------------------------------------" << logger::endl;
-    LOG_INFO << " Create interface and levelSet " << logger::endl;
+    // LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " Create interface and levelSet " << logger::endl;
     TimeInterface<mesh_t> interface(qTime);
     double dt_levelSet = dT / (nb_quad_time - 1);
     std::vector<fct_t> ls_k(nb_quad_time), ls(nb_quad_time);
@@ -241,13 +245,13 @@ int main(int argc, char **argv) {
 
     // INTERPOLATE RHS AND BOUNDARY CONDITION
     // ----------------------------------------------
-    LOG_INFO << " ------------------------------------" << logger::endl;
-    LOG_INFO << " Interpolate boundary and rhs " << logger::endl;
+    // LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " Interpolate boundary and rhs " << logger::endl;
     fct_t fh(Vh, fun_rhs);
     fct_t gh(Vh, fun_boundary);
 
-    LOG_INFO << " ------------------------------------" << logger::endl;
-    LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " ------------------------------------" << logger::endl;
+    // LOG_INFO << " ------------------------------------" << logger::endl;
 
     int iter = 0, ifig = 0;
     progress bar(" Navier-Stokes solver ", total_number_iteration, 2);
@@ -260,8 +264,8 @@ int main(int argc, char **argv) {
         // MOVE THE LEVELSET AND CREATE INTERFACES
         // ----------------------------------------------
         {
-            LOG_INFO << "\n ------------------------------------" << logger::endl;
-            LOG_INFO << " Move the levelSet and create interfaces " << logger::endl;
+            // LOG_INFO << "\n ------------------------------------" << logger::endl;
+            // LOG_INFO << " Move the levelSet and create interfaces " << logger::endl;
 
             //double t0               = MPIcf::Wtime();
             globalVariable::verbose = 0;
@@ -303,12 +307,12 @@ int main(int argc, char **argv) {
     #endif
         
         if (iter == 0) {
-            LOG_INFO << " Cut Mesh " << logger::endl;
-            Kh_i.info();
-            LOG_INFO << " Cut Space for velocity " << logger::endl;
-            Wh.info();
-            LOG_INFO << " Cut Space for pressure " << logger::endl;
-            Ph.info();
+            // LOG_INFO << " Cut Mesh " << logger::endl;
+            // Kh_i.info();
+            // LOG_INFO << " Cut Space for velocity " << logger::endl;
+            // Wh.info();
+            // LOG_INFO << " Cut Space for pressure " << logger::endl;
+            // Ph.info();
             //LOG_INFO << " TIME BUILDING CUT MESH/SPACE : \t" << MPIcf::Wtime() - t0_cmesh << logger::endl;
         }
 
@@ -324,7 +328,7 @@ int main(int argc, char **argv) {
         navier_stokes.initSpace(Wh, In);
         navier_stokes.add(Ph, In);
 
-        LOG_INFO << " Problem's DOF : \t" << navier_stokes.get_nb_dof() << logger::endl;
+        // LOG_INFO << " Problem's DOF : \t" << navier_stokes.get_nb_dof() << logger::endl;
 
         // INITIALIZE VECTORS USED
         // -------------------------------------
@@ -375,8 +379,8 @@ int main(int argc, char **argv) {
 
                 // Interface
                 navier_stokes.addBilinear(
-                    - innerProduct(2 * mu * average(Eps(du) * n, kappa), jump(v)) 
-                    + innerProduct(jump(du), 2 * mu * average(Eps(v) * n, kappa))
+                    - innerProduct(2 * mu * average(Eps(du) * n, 0.5, 0.5), jump(v)) 
+                    + innerProduct(jump(du), 2 * mu * average(Eps(v) * n, 0.5, 0.5))
                     //+ innerProduct(1./mesh_size * lambdaG * jump(du), jump(v)) 
                     + innerProduct(lambdaG * jump(du), jump(v)) 
                     , interface
@@ -427,7 +431,7 @@ int main(int argc, char **argv) {
 
                 // Interface
                 navier_stokes.addBilinear(
-                    + innerProduct(average(dp, kappa), jump(v * n)) 
+                    + innerProduct(average(dp, 0.5, 0.5), jump(v * n)) 
                     //- innerProduct(jump(du * n), average(q, kappa))
                 #if defined(TAYLOR_HOOD)    // make block-anti-symmetric
                     - innerProduct(jump(du * n), average(q, kappa))
@@ -486,7 +490,7 @@ int main(int argc, char **argv) {
                 fct_t H(cutVh, data_H);
                 
                 navier_stokes.addLinear(
-                    - sigma * innerProduct(H.exprList(), average(v, kappa2))
+                    - sigma * innerProduct(H.exprList(), average(v, 0.5, 0.5))
                     , interface
                     , In
                     , i);
@@ -520,7 +524,7 @@ int main(int argc, char **argv) {
             
             navier_stokes.addLinear(
                 - innerProduct(gh.exprList(), 2. * mu * Eps(v) * n)
-                - innerProduct(gh.exprList(), 10./mesh_size * v) 
+                - innerProduct(gh.exprList(), lambdaB * v) 
                 //+ innerProduct(gh.exprList(), q * n)
             #if defined(TAYLOR_HOOD)
                 + innerProduct(gh.exprList(), q * n)

@@ -32,7 +32,9 @@ using cutmesh_t  = ActiveMesh<mesh_t>;
 using space_t    = GFESpace<mesh_t>;
 using cutspace_t = CutFESpace<mesh_t>;
 
-const double Re = 10000.;
+
+const double Re = 100.;
+
 
 double fun_levelset(R2 P) { return -1.; }
 
@@ -98,24 +100,24 @@ double fun_p_d(R2 P, int i, int dom, const double t) {
     return Re * ((x * x + y * y) * 0.5 - 1. / 3);
 }
 
-#define FORMULATION2
 #define TAYLOR_HOODnot
+#define weak
 
 int main(int argc, char **argv) {
 
-    double h = 0.5; // starting mesh size
+    double h = 0.125; // starting mesh size
 
-    const size_t iterations = 3;
+    const size_t iterations = 1;
 
-    MPIcf cfMPI(argc, argv);
+    //MPIcf cfMPI(argc, argv);
 
-    const std::string path_output_data    = "../output_files/navier_stokes/stationary_vortex/data/";
-    const std::string path_output_figures = "../output_files/navier_stokes/stationary_vortex/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/paraview/";
 
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_output_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    //     std::filesystem::create_directories(path_output_data);
+    //     std::filesystem::create_directories(path_output_figures);
+    // }
 
     std::array<double, iterations> errors_uh, errors_ph, errors_grad_uh, errors_div_uh, errors_uh_T, errors_ph_T, hs;
     for (int j = 0; j < iterations; ++j) {
@@ -150,7 +152,7 @@ int main(int argc, char **argv) {
         const Uint last_quad_time = nb_quad_time - 1;
 
         ProblemOption optionProblem;
-        optionProblem.solver_name_  = "mumps";
+        optionProblem.solver_name_  = "umfpack";
         optionProblem.clear_matrix_ = true;
         std::vector<std::map<std::pair<int, int>, double>> mat_NL(1);
 
@@ -160,7 +162,7 @@ int main(int argc, char **argv) {
         // const double lambda_boundary = 100.;
         // const double lambda_interior = 10.;
 
-        const double lambda_boundary = 10.;
+        const double lambda_boundary = 1e2/Re/h;   // scaled with Re (original has 1/Re)  
         const double lambda_interior = 1.;
 
         // Finite element spaces
@@ -252,8 +254,10 @@ int main(int argc, char **argv) {
             fct_t u0_dy(Phn_interpolation, In, fun_u0_dy);    // du0/dy
             fct_t u1_dx(Phn_interpolation, In, fun_u1_dx);    // du1/dx
             fct_t u1_dy(Phn_interpolation, In, fun_u1_dy);    // du1/dy   
-            fct_t fh(Vhn_interpolation, In, fun_rhs);         // rhs force
-            fct_t gh(Vhn_interpolation, In, fun_u);           // Dirichlet boundary condition
+            // fct_t fh(Vhn_interpolation, In, fun_rhs);         // rhs force
+            fct_t fh(Vhn, In, fun_rhs);         // rhs force
+            //fct_t gh(Vhn_interpolation, In, fun_u);           // Dirichlet boundary condition
+            fct_t gh(Vhn, In, fun_u);           // Dirichlet boundary condition
 
             // Initialize DOFs and data
             std::vector<double> data_init(navier_stokes.get_nb_dof());
@@ -280,88 +284,6 @@ int main(int argc, char **argv) {
             int newton_iterations = 0;
             while (1) {
 
-                #if defined(FORMULATION1)
-                // Add terms that are in the residual
-                if (newton_iterations == 0) {
-
-                    // Time terms
-                    navier_stokes.addBilinear(
-                        + innerProduct(dt(du), Re*v) 
-                        + contractProduct(grad(du), grad(v)) 
-                        - innerProduct(dp, div(v)) 
-                        + innerProduct(div(du), q)
-                        , Thi
-                        , In);
-
-                    navier_stokes.addBilinear(
-                        + innerProduct(du, Re*v)
-                        , Thi
-                        , 0
-                        , In);
-
-                    navier_stokes.addBilinear(
-                        - innerProduct(grad(du) * n, v) 
-                        - innerProduct(du, grad(v) * n) 
-                        + innerProduct(lambda_boundary / h * du, v) 
-                        + innerProduct(dp, v * n)
-                        , Thi
-                        , INTEGRAL_BOUNDARY
-                        , In);
-
-                    navier_stokes.addBilinear(
-                        - innerProduct(average(grad(du * t) * n, 0.5, 0.5), jump(v * t)) 
-                        + innerProduct(jump(du * t), average(grad(v * t) * n, 0.5, 0.5)) 
-                        + innerProduct(lambda_interior / h * (jump(du * t)), jump(v * t))
-                        , Thi
-                        , INTEGRAL_INNER_EDGE_2D
-                        , In);
-                }
-
-                // Add -Lh(vh)
-                navier_stokes.addLinear(
-                    - innerProduct(fh.exprList(), v)
-                    , Thi
-                    , In);
-
-                navier_stokes.addLinear(
-                    - innerProduct(u0.exprList(), Re*v)
-                    , Thi);
-
-                navier_stokes.addLinear(
-                    + innerProduct(gh.exprList(), grad(v) * n) 
-                    - innerProduct(gh.exprList(), lambda_boundary / h * v)
-                    , Thi
-                    , INTEGRAL_BOUNDARY
-                    , In);
-
-                navier_stokes.gather_map();
-                navier_stokes.addMatMul(data_all); // add B(uh^k, vh) to rhs
-
-                // Construct remaining terms of the Jacobian
-
-                // Assemble Jacobian in the matrix mat_NL
-                navier_stokes.set_map(mat_NL);
-                mat_NL[0] = navier_stokes.mat_[0];
-
-                funtest_t du1(Vhn, 1, 0), du2(Vhn, 1, 1), v1(Vhn, 1, 0), v2(Vhn, 1, 1);
-                auto ux = uh.expr(0);
-                auto uy = uh.expr(1);
-
-                // Linearized advection term
-                navier_stokes.addBilinear(
-                    + innerProduct(du1 * dx(ux) + du2 * dy(ux), Re*v1) 
-                    + innerProduct(du1 * dx(uy) + du2 * dy(uy), Re*v2) 
-                    + innerProduct(ux * dx(du1) + uy * dy(du1), Re*v1) 
-                    + innerProduct(ux * dx(du2) + uy * dy(du2), Re*v2)
-                    , Thi
-                    , In);
-
-                navier_stokes.addLinear(
-                    + innerProduct(ux * dx(ux) + uy * dy(ux), Re*v1) 
-                    + innerProduct(ux * dx(uy) + uy * dy(uy), Re*v2)
-                    , Thi
-                    , In);
-                #elif defined(FORMULATION2)
                 if (newton_iterations == 0) {
 
                     // Terms in Omega(t)
@@ -381,10 +303,11 @@ int main(int argc, char **argv) {
                         , In);
 
                     // Terms on outer boundary
+                    #if defined(weak)
                     navier_stokes.addBilinear(
                         - innerProduct(grad(du) * n, 1./Re*v) 
                         - innerProduct(du, 1./Re*grad(v) * n) 
-                        + innerProduct(lambda_boundary / h * du, v) 
+                        + innerProduct(lambda_boundary * du, v) 
                         + innerProduct(dp, 1./Re * v * n)
                     #if defined(TAYLOR_HOOD)
                         - innerProduct(du * n, 1./Re * q)    // added for block-anti-symmetry in the B(u,q) matrix
@@ -392,6 +315,7 @@ int main(int argc, char **argv) {
                         , Thi
                         , INTEGRAL_BOUNDARY
                         , In);
+                    #endif
 
                     // Terms on inner edges
                 #ifndef TAYLOR_HOOD
@@ -416,16 +340,18 @@ int main(int argc, char **argv) {
                     - innerProduct(u0.exprList(), v)
                     , Thi);
 
+                #if defined(weak)
                 // Terms from Nitsche's method
                 navier_stokes.addLinear(
                     + innerProduct(gh.exprList(), 1./Re*grad(v) * n) 
-                    - innerProduct(gh.exprList(), lambda_boundary / h * v)
+                    - innerProduct(gh.exprList(), lambda_boundary * v)
                 #if defined(TAYLOR_HOOD)
                     + innerProduct(gh.exprList(), 1./Re*q*n)      // compensate for added symmetry term
                 #endif
                     , Thi
                     , INTEGRAL_BOUNDARY
                     , In);
+                #endif
 
                 navier_stokes.gather_map();
                 navier_stokes.addMatMul(data_all); // add B(uh^k, vh) to rhs
@@ -454,8 +380,8 @@ int main(int argc, char **argv) {
                     + innerProduct(ux * dx(uy) + uy * dy(uy), v2)
                     , Thi
                     , In);
-                #endif
 
+                #if defined(weak)
                 // Add Lagrange multipliers
                 CutFEM<Mesh2> lagrange(qTime, optionProblem);
                 lagrange.initSpace(Vhn, In);
@@ -476,6 +402,11 @@ int main(int argc, char **argv) {
                 #endif
                     navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagrange.rhs_, 0);
                 }
+                
+                #else
+                navier_stokes.setDirichlet(gh, Thi);
+                
+                #endif
 
                 // Export matrix
                 if (iter == total_number_iteration - 1) {
