@@ -1097,9 +1097,9 @@ int main(int argc, char **argv) {
             const double C = 0.1;
             double tau_supg = C*h*h/D;  
 
-            convdiff.addBilinear(innerProduct(dt(u) + vel.exprList()*grad(u) - D*div(grad(u)), tau_supg*(dt(v) + vel.exprList() * grad(v))), Thi, In);
+            // convdiff.addBilinear(innerProduct(dt(u) + vel.exprList()*grad(u) - D*div(grad(u)), tau_supg*(dt(v) + vel.exprList() * grad(v))), Thi, In);
             
-            convdiff.addLinear(innerProduct(f.expr(), tau_supg*(dt(v) + vel.exprList() * grad(v))), Thi, In);
+            // convdiff.addLinear(innerProduct(f.expr(), tau_supg*(dt(v) + vel.exprList() * grad(v))), Thi, In);
             
 #endif
 
