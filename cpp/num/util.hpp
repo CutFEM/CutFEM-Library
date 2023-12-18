@@ -48,6 +48,13 @@ typedef KN<R> RN;
 typedef KNM_<R> RNM_;
 typedef KNMK_<R> RNMK_;
 
+
+inline std::tuple<size_t, size_t> size(const std::map<std::pair<int, int>, double> &mat) {
+  return (mat.size() == 0 ? std::make_pair(0, 0)
+                          : std::make_pair(mat.rbegin()->first.first + 1,
+                                           mat.rbegin()->first.second + 1));
+}
+
 namespace util {
 inline byte sign(double d) { return d > 0. ? 1 : (d < 0. ? -1 : 0); }
 
@@ -89,6 +96,7 @@ static bool contain(const std::list<int> &v, int x) {
             return true;
     return false;
 }
+
 
 } // namespace util
 
