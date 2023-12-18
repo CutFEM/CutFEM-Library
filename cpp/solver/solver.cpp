@@ -37,8 +37,9 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
 
 #ifndef USE_MUMPS
     if (solver_name_ == "mumps") {
-        std::cout << " MUMPS not linked" << std::endl;
-        exit(EXIT_FAILURE);
+        solver_name_ = "umfpack";
+        // std::cout << " MUMPS not linked" << std::endl;
+        // exit(EXIT_FAILURE);
     }
 #endif
 #ifndef USE_UMFPACK
@@ -47,18 +48,18 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
         exit(EXIT_FAILURE);
     }
 #endif
-#ifdef USE_MUMPS
-    if (solver_name_ == "mumps") {
-        if (!MPIcf::isInitialized()) {
-            std::cout << " cannot use mumps, mpi is not initialized" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-#ifndef USE_MPI
-        std::cout << " You need to compile using MPI to be able to use MUMPS" << std::endl;
-        exit(EXIT_FAILURE);
-#endif
-    }
-#endif
+// #ifdef USE_MUMPS
+//     if (solver_name_ == "mumps") {
+//         if (!MPIcf::isInitialized()) {
+//             std::cout << " cannot use mumps, mpi is not initialized" << std::endl;
+//             exit(EXIT_FAILURE);
+//         }
+// #ifndef USE_MPI
+//         std::cout << " You need to compile using MPI to be able to use MUMPS" << std::endl;
+//         exit(EXIT_FAILURE);
+// #endif
+//     }
+// #endif
 
     if (solver_name_ == "default") {
 #ifdef USE_MUMPS

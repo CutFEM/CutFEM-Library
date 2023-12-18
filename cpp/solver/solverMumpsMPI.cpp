@@ -32,23 +32,11 @@ MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
     //    if(MPIcf::size() > 1) assert(0);
     LOG_INFO << "MUMPS solver is used" << logger::endl;
     initializeSetting();
-    MPIcf::Barrier();
-    LOG_INFO << "MUMPS: initialization done" << logger::endl;
     setDoF();
-    MPIcf::Barrier();
-    LOG_INFO << "MUMPS: set dof done" << logger::endl;
     saveMatrixToCSR();
-    MPIcf::Barrier();
-    LOG_INFO << "MUMPS: save matrix to CSR done" << logger::endl;
     analyzeMatrix();
-    MPIcf::Barrier();
-    LOG_INFO << "MUMPS: analysis matrix done" << logger::endl;
     factorizationMatrix();
-    MPIcf::Barrier();
-    LOG_INFO << "MUMPS: factorization matrix done" << logger::endl;
     solvingLinearSystem();
-    MPIcf::Barrier();
-    LOG_INFO << "MUMPS: solving system done" << logger::endl;
 
     // if(verbose > 1)
     // info();

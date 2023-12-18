@@ -299,4 +299,46 @@ template <Space F> void interpolate(const F &Mh, const TimeSlab &In, KN_<double>
     // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
 }
 
+
+
+
+
+
+template <typename Mesh> void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, 
+                                                            const FunFEM<Mesh> &ls) {
+
+
+    using cutmesh_t = ActiveMesh<Mesh>;
+    using Rd =  Mesh::Rd;
+
+    const auto &Vh_cut = *fh.Vh;
+    const auto & cutTh = Vh_cut.get_mesh();
+    const auto &Vh = *uh.Vh;
+
+    uh.v = 0.;
+    for (int k = 0; k < Vh.NbElement(); ++k) {
+        const auto &FK(Vh[k]);
+
+        auto idx_K = cutTh.idxAllElementFromBackMesh(k, -1);
+        if (idx_K.size() > 1) {
+            for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
+                Rd x     = FK.Pt(i);
+                R lsval  = ls.eval(k, x);
+                int kcut = (lsval > 0) ? idx_K[0] : idx_K[1];
+                for (int ci = 0; ci < Rd::d; ++ci) {
+                    uh(FK(i + FK.dfcbegin(ci))) = fh.eval(kcut, x, ci);
+                }
+            }
+        } else {
+            int kcut =  idx_K[0] ;
+            for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
+                Rd x = FK.Pt(i);
+                for (int ci = 0; ci < Rd::d; ++ci) {
+                    uh(FK(i + FK.dfcbegin(ci))) = fh.eval(kcut, x,ci);
+                }
+            }
+        }
+    }
+}
+
 #endif
