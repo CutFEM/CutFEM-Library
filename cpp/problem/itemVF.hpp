@@ -230,11 +230,11 @@ template <typeMesh M> struct ItemVF {
         // f << " FESpaces => " << u.fespaceU << " and " << u.fespaceV << "\t";
         f << u.c << "\t" << whichOperator(u.dtu) << whichOperator(u.du, u.cu);
         for (int i = 0; i < u.ar_nu.size(); ++i)
-            f << " * " << n[u.ar_nu(i)];
+            f << " * " << n[u.ar_nu[i]];
         // for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
         f << " * " << whichOperator(u.dtv) << whichOperatorV(u.dv, u.cv);
         for (int i = 0; i < u.ar_nv.size(); ++i)
-            f << " * " << n[u.ar_nv(i)];
+            f << " * " << n[u.ar_nv[i]];
         // for(int i=0;i<u.coefv.size();++i) f << " * " << u.coefv[i];
         if (u.face_sideU_ == u.face_sideV_ && u.face_sideU_ != -1)
             f << "\t in Omega_" << u.face_sideU_ + 1;
