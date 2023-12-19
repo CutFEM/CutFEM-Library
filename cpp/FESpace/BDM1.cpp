@@ -85,8 +85,8 @@ class TypeOfFE_BDM1_2d : public GTypeOfFE<Mesh2> {
                        KN_<double> &v) const { // compute the coef of interpolation ...
         const Element &T = K.T;
         int k            = 0;
-        double s         = 1. / sqrt(T.measure());    // gives h^-3 for Taylor-Green vortex problem
-        //double s         = 1.;  // gives h^-1.15 for Taylor-Green vortex problem
+        //double s         = 1. / sqrt(T.measure());    // gives h^-3 for Taylor-Green vortex problem
+        double s         = 1.;  // gives h^-1.15 for Taylor-Green vortex problem
         //double s = sqrt(T.measure());   // gives decreasing condition numbers
 
         for (int i = 0; i < 3; i++) {
@@ -137,8 +137,8 @@ void TypeOfFE_BDM1_2d::FB(const What_d whatd, const Element &K, const R2 &PHat, 
 
     bfMat      = 0;
     R cK       = 2 * K.measure();
-    double s   = sqrt(K.measure());   // gives h^-3 for Taylor-Green vortex problem
-    //double s = 1.;                  // gives h^-1.15 for Taylor-Green vortex problem
+    //double s   = sqrt(K.measure());   // gives h^-3 for Taylor-Green vortex problem
+    double s = 1.;                  // gives h^-1.15 for Taylor-Green vortex problem
     //double s   = 1./sqrt(K.measure());  // gives decreasing condition numbers
     int ortho0 = 0, ortho1 = 1;
     R s1ortho = 1;
