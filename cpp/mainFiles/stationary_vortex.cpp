@@ -102,18 +102,18 @@ double fun_p_d(R2 P, int i, int dom, const double t) {
 }
 
 #define TAYLOR_HOODnot
-#define weaknot
+#define weak
 
 int main(int argc, char **argv) {
 
     double h = 0.5; // starting mesh size
 
-    const size_t iterations = 3;
+    const size_t iterations = 5;
 
-    //MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/paraview/";
+    const std::string path_output_data    = "../output_files/navier_stokes/stationary_vortex/data/";
+    const std::string path_output_figures = "../output_files/navier_stokes/stationary_vortex/paraview/";
 
     // if (MPIcf::IamMaster()) {
     //     std::filesystem::create_directories(path_output_data);
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
         const Uint last_quad_time = nb_quad_time - 1;
 
         ProblemOption optionProblem;
-        optionProblem.solver_name_  = "umfpack";
+        optionProblem.solver_name_  = "mumps";
         optionProblem.clear_matrix_ = true;
         std::vector<std::map<std::pair<int, int>, double>> mat_NL(1);
 
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
         // const double lambda_boundary = 100.;
         // const double lambda_interior = 10.;
 
-        const double lambda_boundary = 1e1/h;   // scaled with Re (original has 1/Re)  
+        const double lambda_boundary = 1e1/Re/h;   // scaled with Re (original has 1/Re)  
         const double lambda_boundary_tangent = 1e1/Re/h;   // scaled with Re (original has 1/Re)  
         const double lambda_interior = 1.;
 
@@ -286,7 +286,6 @@ int main(int argc, char **argv) {
             fct_t ph(Phn_interpolation, In, data_ph);
 
             auto boundary_dof = getBoundaryDof(Vhn, In);
-            //std::cout << boundary_dof << "\n";
             setBoundaryDof(boundary_dof, gh, data_uh);          
 
             // Newton's method
@@ -315,8 +314,8 @@ int main(int argc, char **argv) {
                     #if defined(weak)
                     navier_stokes.addBilinear(
                         - innerProduct(grad(du) * n, 1./Re*v) 
-                        - innerProduct(du, 1./Re*grad(v) * n) 
-                        + innerProduct(lambda_boundary * du, v) 
+                        // - innerProduct(du, 1./Re*grad(v) * n) 
+                        + innerProduct(lambda_boundary * du*t, v*t) 
                         + innerProduct(dp, 1./Re * v * n)
                     #if defined(TAYLOR_HOOD)
                         - innerProduct(du * n, 1./Re * q)    // added for block-anti-symmetry in the B(u,q) matrix
@@ -359,8 +358,8 @@ int main(int argc, char **argv) {
                 #if defined(weak)
                 // Terms from Nitsche's method
                 navier_stokes.addLinear(
-                    + innerProduct(gh.exprList(), 1./Re*grad(v) * n) 
-                    - innerProduct(gh.exprList(), lambda_boundary * v)
+                    //+ innerProduct(gh.exprList(), 1./Re*grad(v) * n) 
+                    - innerProduct(gh.exprList(), lambda_boundary * v * t * t)
                 #if defined(TAYLOR_HOOD)
                     + innerProduct(gh.exprList(), 1./Re*q*n)      // compensate for added symmetry term
                 #endif
@@ -377,6 +376,8 @@ int main(int argc, char **argv) {
 
                 //navier_stokes.setDirichlet(gh, Thi, In);
 
+                // setBoundaryDof(boundary_dof, 0. , navier_stokes.rhs_);  
+                setBoundaryDof(navier_stokes.rhs_.size(), boundary_dof, 1. , navier_stokes.mat_[0]); 
 
                 navier_stokes.gather_map();
                 navier_stokes.addMatMul(data_all); // add B(uh^k, vh) to rhs
@@ -405,6 +406,9 @@ int main(int argc, char **argv) {
                     + innerProduct(ux * dx(uy) + uy * dy(uy), v2)
                     , Thi
                     , In);
+
+                setBoundaryDof(boundary_dof, 0. , navier_stokes.rhs_);  
+                setBoundaryDof(navier_stokes.rhs_.size(), boundary_dof, 1. , mat_NL[0]);  
 
                 #if defined(weak)
                 // Add Lagrange multipliers
@@ -440,8 +444,8 @@ int main(int argc, char **argv) {
                 //     matlab::Export(mat_NL[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
                 // }
 
-                setBoundaryDof(boundary_dof, 0. ,navier_stokes.rhs_);  
-                setBoundaryDof(boundary_dof, 1. , mat_NL[0]);  
+          
+                
 
                 navier_stokes.solve(mat_NL[0], navier_stokes.rhs_);
 
@@ -581,7 +585,7 @@ int main(int argc, char **argv) {
             else {
                  Paraview<mesh_t> writerTh(Th, path_output_figures + "Th.vtk");
                 Paraview<mesh_t> writer(Thi,
-                                        path_output_figures + "navier_stokes_" + std::to_string(iterations + 1) + ".vtk");
+                                        path_output_figures + "navier_stokes_" + std::to_string(j + 1) + ".vtk");
                 writer.add(ls[0], "levelSet", 0, 1);
                 // writer.add(uh, "velocity", 0, 2);
                 writer.add(fun_uh, "velocity", 0, 2);
@@ -607,7 +611,7 @@ int main(int argc, char **argv) {
                 writer.add(fabs(fun_uh.expr() - u_exact_T.expr()), "velocity_error");
                 writer.add(fabs(fun_ph.expr() - p_exact_T.expr()), "pressure_error");
 
-                writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iterations + 1) + ".vtk");
+                writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(j + 1) + ".vtk");
             }
 
             iter += 1;

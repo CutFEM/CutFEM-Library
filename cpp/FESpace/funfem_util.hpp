@@ -73,29 +73,30 @@ for (const auto& df : dof2set)
     b[df] = val;
 }
 
-inline void setBoundaryDof( const std::vector<size_t>& dof2set, double val ,std::map<std::pair<int,int>,double>& A) {
+inline void setBoundaryDof(const size_t N, const std::vector<size_t>& dof2set, double val ,std::map<std::pair<int,int>,double>& A) {
 
-    auto [N,M] = size(A);
+    // auto [N,M] = size(A);
+    std::map<std::pair<int,int>,double> C;
+    std::map<std::pair<int, int>, double> P;
+    for (int i = 0; i < N; ++i) {
+        P[std::make_pair(i, i)] = 1;
+    }
 
-   std::map<std::pair<int,int>,double> C;
-   std::map<std::pair<int, int>, double> P;
-   for (int i = 0; i < N; ++i) {
-      P[std::make_pair(i, i)] = 1;
-   }
+    for (auto &i0 : dof2set) {
+        P[std::make_pair(i0, i0)] = 0;
+    }
 
-   for (auto &i0 : dof2set) {
-      P[std::make_pair(i0, i0)] = 0;
-   }
+    SparseMatrixRC<double> AA(N, N, A);
+    SparseMatrixRC<double> PP(N, N, P);
+    multiply(PP, AA, C);
+    A = std::move(C);
+    // SparseMatrixRC<double> CC(N,N,C);
+    // multiply(CC, PP, A);
+    
 
-   SparseMatrixRC<double> AA(N, N, A);
-   SparseMatrixRC<double> PP(N, N, P);
-   multiply(PP, AA, C);
-   SparseMatrixRC<double> CC (N,N,C);
-   multiply(CC, PP, A);
-
-   for (auto &i0 : dof2set) {
-      A[std::make_pair(i0, i0)] = val;
-   }
+    for (auto &i0 : dof2set) {
+        A[std::make_pair(i0, i0)] = val;
+    }
 
 }
 
