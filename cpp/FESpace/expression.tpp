@@ -29,17 +29,15 @@ FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh)
     KN<R> ggf(Vh->MaxNbDFPerElement); // stock the values of the dof of the
                                       // interpolate
 
-    for (int k = Vh->first_element(); k < Vh->last_element();
-         k += Vh->next_element()) {
+    for (int k = Vh->first_element(); k < Vh->last_element(); k += Vh->next_element()) {
 
         const FElement &FK((*Vh)[k]);
         const int nbdf   = FK.NbDoF(); // nof local
         const int domain = FK.whichDomain();
         const int kb     = Vh->idxElementInBackMesh(k);
 
-        for (int p = 0; p < FK.tfe->NbPtforInterpolation;
-             p++) {                // all interpolation points
-            const Rd &P(FK.Pt(p)); // the coordinate of P in K hat
+        for (int p = 0; p < FK.tfe->NbPtforInterpolation; p++) { // all interpolation points
+            const Rd &P(FK.Pt(p));                               // the coordinate of P in K hat
             for (int i = 0; i < d; ++i) {
                 Vpf(p, i) = fh.evalOnBackMesh(kb, domain, P);
             }
@@ -65,8 +63,7 @@ FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh)
 }
 
 template <typename M>
-FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh1,
-                  const ExpressionVirtual &fh2)
+FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh1, const ExpressionVirtual &fh2)
     : FunFEMVirtual(vh.NbDoF()), alloc(true), Vh(&vh),
       // data(new double[vh.NbDoF()]),
       // v(data, vh.NbDoF()) ,
@@ -81,17 +78,15 @@ FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh1,
     KN<R> ggf(Vh->MaxNbDFPerElement); // stock the values of the dof of the
                                       // interpolate
 
-    for (int k = Vh->first_element(); k < Vh->last_element();
-         k += Vh->next_element()) {
+    for (int k = Vh->first_element(); k < Vh->last_element(); k += Vh->next_element()) {
 
         const FElement &FK((*Vh)[k]);
         const int nbdf   = FK.NbDoF(); // nof local
         const int domain = FK.whichDomain();
         const int kb     = Vh->idxElementInBackMesh(k);
 
-        for (int p = 0; p < FK.tfe->NbPtforInterpolation;
-             p++) {                // all interpolation points
-            const Rd &P(FK.Pt(p)); // the coordinate of P in K hat
+        for (int p = 0; p < FK.tfe->NbPtforInterpolation; p++) { // all interpolation points
+            const Rd &P(FK.Pt(p));                               // the coordinate of P in K hat
             for (int i = 0; i < d; ++i) {
                 const ExpressionVirtual &fh = (d == 0) ? fh1 : fh2;
                 Vpf(p, i)                   = fh.evalOnBackMesh(kb, domain, P);
@@ -115,12 +110,9 @@ FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh1,
 #endif
 }
 
-template <typename M> void FunFEM<M>::print() const {
-    std::cout << v << std::endl;
-}
+template <typename M> void FunFEM<M>::print() const { std::cout << v << std::endl; }
 
-template <typename M>
-double FunFEM<M>::eval(const int k, const R *x, int cu, int op) const {
+template <typename M> double FunFEM<M>::eval(const int k, const R *x, int cu, int op) const {
     const FElement &FK((*Vh)[k]);
     int ndf = FK.NbDoF();
     RNMK_ w(databf, ndf, Vh->N, op_dz + 1);
@@ -135,9 +127,7 @@ double FunFEM<M>::eval(const int k, const R *x, int cu, int op) const {
     return val;
 }
 
-template <typename M>
-double FunFEM<M>::eval(const int k, const R *x, const R t, int cu, int op,
-                       int opt) const {
+template <typename M> double FunFEM<M>::eval(const int k, const R *x, const R t, int cu, int op, int opt) const {
 
     if (!In)
         return eval(k, x, cu, op);
@@ -169,49 +159,40 @@ template <typename M> void FunFEM<M>::eval(R *u, const int k) const {
     }
 }
 
-template <typename M>
-double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R *x, int cu,
-                                 int op) const {
+template <typename M> double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R *x, int cu, int op) const {
     int k = Vh->idxElementFromBackMesh(kb, dom);
     return eval(k, x, cu, op);
 }
 
 template <typename M>
-double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R *x, const R t,
-                                 int cu, int op, int opt) const {
+double FunFEM<M>::evalOnBackMesh(const int kb, int dom, const R *x, const R t, int cu, int op, int opt) const {
 
     int k = Vh->idxElementFromBackMesh(kb, dom);
 
     return eval(k, x, t, cu, op, opt);
 }
 
-template <typename M>
-std::list<std::shared_ptr<ExpressionFunFEM<M>>>
-FunFEM<M>::exprList(int n) const {
+template <typename M> std::vector<std::shared_ptr<ExpressionFunFEM<M>>> FunFEM<M>::exprList(int n) const {
     if (n == -1)
         n = Vh->N;
     assert(n <= Vh->N);
-    std::list<std::shared_ptr<ExpressionFunFEM<Mesh>>> l;
+    std::vector<std::shared_ptr<ExpressionFunFEM<Mesh>>> l;
     for (int i = 0; i < n; ++i) {
         l.push_back(std::make_shared<ExpressionFunFEM<Mesh>>(*this, i, op_id));
     }
     return l;
 }
 
-template <typename M>
-std::shared_ptr<ExpressionFunFEM<M>> FunFEM<M>::expr(int i0) const {
+template <typename M> std::shared_ptr<ExpressionFunFEM<M>> FunFEM<M>::expr(int i0) const {
     assert(i0 < Vh->N);
     return std::make_shared<ExpressionFunFEM<Mesh>>(*this, i0, op_id);
 }
 
-template <typename M>
-std::list<std::shared_ptr<ExpressionFunFEM<M>>>
-FunFEM<M>::exprList(int n, int i0) const {
+template <typename M> std::vector<std::shared_ptr<ExpressionFunFEM<M>>> FunFEM<M>::exprList(int n, int i0) const {
     assert(n <= Vh->N);
-    std::list<std::shared_ptr<const ExpressionFunFEM<Mesh>>> l;
+    std::vector<std::shared_ptr<ExpressionFunFEM<Mesh>>> l;
     for (int i = 0; i < n; ++i) {
-        l.push_back(
-            std::make_shared<ExpressionFunFEM<Mesh>>(*this, i + i0, op_id));
+        l.push_back(std::make_shared<ExpressionFunFEM<Mesh>>(*this, i + i0, op_id));
     }
     return l;
 }

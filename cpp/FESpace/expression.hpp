@@ -305,8 +305,8 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     BasisFctType getBasisFctType() const { return Vh->basisFctType; }
     int getPolynomialOrder() const { return Vh->polynomialOrder; }
     std::shared_ptr<ExpressionFunFEM<M>> expr(int i0 = 0) const;
-    std::list<std::shared_ptr<ExpressionFunFEM<M>>> exprList(int n = -1) const;
-    std::list<std::shared_ptr<ExpressionFunFEM<M>>> exprList(int n, int i0) const;
+    std::vector<std::shared_ptr<ExpressionFunFEM<M>>> exprList(int n = -1) const;
+    std::vector<std::shared_ptr<ExpressionFunFEM<M>>> exprList(int n, int i0) const;
 
     ~FunFEM() {
         if (databf)
@@ -376,6 +376,38 @@ class ExpressionVirtual {
 
     virtual void whoAmI() const { std::cout << " I am virtual class Expression" << std::endl; }
     ~ExpressionVirtual() {}
+};
+
+class DefaultExpression : public ExpressionVirtual {
+
+    virtual R operator()(long i) const override {
+        assert(0);
+        return 0;
+    };
+    virtual R eval(const int k, const R *x, const R *normal) const override {
+        assert(0);
+        return 0;
+    };
+    virtual R eval(const int k, const R *x, const R t, const R *normal) const override {
+        assert(0);
+        return 0;
+    };
+
+  public:
+    virtual R evalOnBackMesh(const int k, int dom, const R *x, const R *normal) const override {
+        assert(0);
+        return 0;
+    };
+
+    virtual R evalOnBackMesh(const int k, int dom, const R *x, const R t, const R *normal) const override {
+        assert(0);
+        return 0;
+    };
+
+    virtual int idxElementFromBackMesh(int kb, int dd = 0) const override {
+        assert(0);
+        return 0;
+    };
 };
 
 template <typename M> class ExpressionFunFEM : public ExpressionVirtual {

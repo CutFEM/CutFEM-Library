@@ -14,11 +14,10 @@ You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 
-#ifndef CUTFEM_FORCE_PROJECT_INPUT_HANDLER_HPP
-#define CUTFEM_FORCE_PROJECT_INPUT_HANDLER_HPP
+#ifndef CUTFEM_FORCE_PROJECT_YAML_READER_HPP
+#define CUTFEM_FORCE_PROJECT_YAML_READER_HPP
 
-#include <ryml.hpp>
-#include <ryml_std.hpp>
+#include <ryml_all.hpp>
 
 namespace ryaml {
 using namespace std;
@@ -70,6 +69,7 @@ class YamlReaderNode {
     /// @brief Return a YamlReaderNode of the child s of the current node, if it exist.
     /// Otherwise it will stop the program
     YamlReaderNode operator[](std::string s);
+    ryml::ConstNodeRef operator[](int i) const { return yaml_node[i]; };
 
     /// @brief Deserialize a value from the yaml node
     /// @tparam T
@@ -78,7 +78,15 @@ class YamlReaderNode {
 
     ryml::ConstNodeRef get() const { return yaml_node; }
 
-    bool has_val() { return yaml_node.has_val(); }
+    bool has_val() const { return yaml_node.has_val(); }
+
+    template <typename T> std::string val() const;
+
+    std::string key() const { return std::string(yaml_node.key().str, yaml_node.key().len); }
+
+    size_t num_children() const { return yaml_node.num_children(); }
+
+    bool has_child(std::string s) const;
 
   private:
     /// @brief main tree

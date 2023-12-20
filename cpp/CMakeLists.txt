@@ -5,14 +5,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++20 -fPIC -O3")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++2a -fPIC -O3")
 
-if(CUTFEM_RAPID_YAML)
-  add_subdirectory(../rapidyaml/ ryml)
-  list(APPEND EXTRA_LIBS ryml::ryml)
-
-  add_subdirectory(force_project)
-list(APPEND EXTRA_LIBS force_project)
-endif()
-
 if(USE_MPI)
   find_package(MPI REQUIRED)
 
@@ -40,6 +32,12 @@ add_library(_pyCutFEM SHARED
                             wrap_lib/lib_stokes.cpp)
 target_link_libraries(_pyCutFEM PUBLIC ${EXTRA_LIBS})
 endif()
+
+
+
+add_subdirectory(force_project)
+list(APPEND EXTRA_LIBS force_project)
+
 
 
 
@@ -118,10 +116,6 @@ target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 # set(EX_NAME stokes)
 # add_executable(${EX_NAME}  mainFiles/stokes_interface_problem.cpp )
 # target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
-
-set(EX_NAME force)
-add_executable(${EX_NAME}  mainFiles/force.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS})
 
 set(EX_NAME test_BDM2)
 add_executable(${EX_NAME}  mainFiles/test_BDM2.cpp )

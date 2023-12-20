@@ -169,7 +169,6 @@ R2 computeForce(const fct_t &uh, const cutmesh_t &Khi) {
     return R2(fx, fy);
 }
 
-
 template <typename T>
 bool checkIfValid(double xc, double yc, double delta_l, const std::vector<std::shared_ptr<T>> &levelSets_v) {
 
@@ -179,6 +178,15 @@ bool checkIfValid(double xc, double yc, double delta_l, const std::vector<std::s
             return false;
     }
     return true;
+}
+
+template <typename mesh_t> double Circularity(const ActiveMesh<mesh_t> &Th, const Interface<mesh_t> &gamma) {
+    double areaBubble  = integral(Th, 1., 1, 0);
+    double Pb          = integral(gamma, 1);
+    double ra          = sqrt(areaBubble / globalVariable::Pi);
+    double Pa          = 2 * globalVariable::Pi * ra;
+    double circularity = Pa / Pb;
+    return circularity;
 }
 
 } // namespace force_project

@@ -559,6 +559,43 @@ double integral(const std::shared_ptr<const ExpressionVirtual> &fh, const Interf
     return val_receive;
 }
 
+template <typename M> double integral(const Interface<M> &interface, double C) {
+
+    typedef M Mesh;
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QFB QFB;
+    typedef typename FElement::Rd Rd;
+    typedef typename QFB::QuadraturePoint QuadraturePoint;
+
+    const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(2));
+    double val = 0.;
+
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
+        const int kb = interface.idxElementOfFace(iface); // idx on backMesh
+        const R meas = interface.measure(iface);
+        const Rd normal(interface.normal(iface));
+
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+
+            QuadraturePoint ip(qfb[ipq]); // integration point
+            const Rd mip = interface.mapToPhysicalFace(iface, (typename FElement::RdHatBord)ip);
+            const R Cint = meas * ip.getWeight();
+
+            val += Cint * C;
+        }
+    }
+
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
 // template<typename M>
 // double integral(const ExpressionVirtual& fh, const Interface<M>& interface,
 // double t) {

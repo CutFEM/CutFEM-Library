@@ -1,9 +1,5 @@
-
-
-
 #include "../force_project/util.hpp"
 #include "../force_project/csvfile.hpp"
-#include "../example/stokes/interface_problem/stokes_solver.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -14,15 +10,14 @@ using cutspace_t = CutFESpace<mesh_t>;
 using gamma_t    = InterfaceLevelSet<mesh_t>;
 using paraview_t = Paraview<mesh_t>;
 
-
 using namespace force_project;
 
 int main(int argc, char **argv) {
 
     MPIcf cfMPI(argc, argv);
 
-    double t0 = CPUtime();
-    auto t0_real_time = std::chrono::high_resolution_clock::now(); 
+    double t0         = CPUtime();
+    auto t0_real_time = std::chrono::high_resolution_clock::now();
 
     CutFEMLogger::initialize("../cpp/force_project/data/force_log.txt");
 
@@ -73,8 +68,8 @@ int main(int argc, char **argv) {
     double xc;
     double yc;
     std::cout << " Creating data for force problem" << std::endl;
-     std::cout << " ";
-    progress bar (" CPU time producing data", Nx*Nx, 1);
+    std::cout << " ";
+    progress bar(" CPU time producing data", Nx * Nx, 1);
     try {
         csvfile csv("../cpp/force_project/data/test.csv", ",", std::ofstream::app);
 
@@ -85,8 +80,9 @@ int main(int argc, char **argv) {
                 yc = xc_min + jx * hx;
                 bar++;
 
-                std::cout << "\r";;
-                std::cout << "run : " << ++iter << " / " << Nx*Nx;
+                std::cout << "\r";
+                ;
+                std::cout << "run : " << ++iter << " / " << Nx * Nx;
                 std::cout.flush();
 
                 LOG_INFO << "xc = " << xc << logger::endl;
@@ -121,7 +117,7 @@ int main(int argc, char **argv) {
                 double delta = 1.;
 
                 // // 2) solve Stokes
-                auto data_stokes = stokesSolver(Vh, Ph, interface, gh, fh, mu, sigma / r_0, delta);
+                auto data_stokes = solver::cutfem::stokes::solve(Vh, Ph, interface, gh, fh, mu, sigma / r_0, delta);
 
                 // Extract solution
                 std::span<double> data_uh{std::span(data_stokes.data(), Vh.get_nb_dof())};
@@ -165,8 +161,9 @@ int main(int argc, char **argv) {
         std::cout << "Exception was thrown: " << ex.what() << std::endl;
     }
     bar.end();
-    double t1 = CPUtime();
-    auto t1_real_time = std::chrono::high_resolution_clock::now(); 
+    double t1         = CPUtime();
+    auto t1_real_time = std::chrono::high_resolution_clock::now();
     LOG_INFO << "CPU time: " << t1 - t0 << logger::endl;
-    LOG_INFO << "Wall time : " << std::chrono::duration<double>(t1_real_time - t0_real_time).count() << " ms" << logger::endl;
+    LOG_INFO << "Wall time : " << std::chrono::duration<double>(t1_real_time - t0_real_time).count() << " ms"
+             << logger::endl;
 }

@@ -16,7 +16,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "../../../tool.hpp"
 #include "../../../matplotlib-cpp/matplotlibcpp.h"
-#include "stokes_solver.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;

@@ -24,7 +24,10 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <map>
 
 #include "../common/logger.hpp"
-#include "input_handler.hpp"
+
+#define RYML_SINGLE_HDR_DEFINE_NOW
+#include <ryml_all.hpp>
+#include "yaml_reader.hpp"
 
 void checkChildExist(ryml::ConstNodeRef t, std::string str) {
     bool has_child = t.has_child(c4::to_csubstr(str));
@@ -47,3 +50,13 @@ YamlReaderNode::YamlReaderNode(ryml::ConstNodeRef t, std::string str) {
 YamlReaderNode YamlReaderNode::operator[](std::string str) { return YamlReaderNode(yaml_node, str); }
 
 YamlReaderNode YamlReader::operator[](std::string s) const { return YamlReaderNode(tree_, s); }
+
+template <> std::string YamlReaderNode::val<std::string>() const {
+    if (!has_val()) {
+        LOG_CRITICAL << "The key" << this->key() << " doesnt have a value" << logger::endl;
+        exit(EXIT_FAILURE);
+    }
+    return std::string(yaml_node.val().str, yaml_node.val().len);
+}
+
+bool YamlReaderNode::has_child(std::string s) const { return yaml_node.has_child(c4::to_csubstr(s)); }

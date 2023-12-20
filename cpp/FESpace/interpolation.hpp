@@ -299,21 +299,15 @@ template <Space F> void interpolate(const F &Mh, const TimeSlab &In, KN_<double>
     // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
 }
 
-
-
-
-
-
-template <typename Mesh> void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, 
-                                                            const FunFEM<Mesh> &ls) {
-
+template <typename Mesh>
+void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, const FunFEM<Mesh> &ls) {
 
     using cutmesh_t = ActiveMesh<Mesh>;
-    using Rd =  Mesh::Rd;
+    using Rd        = typename Mesh::Rd;
 
     const auto &Vh_cut = *fh.Vh;
-    const auto & cutTh = Vh_cut.get_mesh();
-    const auto &Vh = *uh.Vh;
+    const auto &cutTh  = Vh_cut.get_mesh();
+    const auto &Vh     = *uh.Vh;
 
     uh.v = 0.;
     for (int k = 0; k < Vh.NbElement(); ++k) {
@@ -330,11 +324,11 @@ template <typename Mesh> void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, cons
                 }
             }
         } else {
-            int kcut =  idx_K[0] ;
+            int kcut = idx_K[0];
             for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
                 Rd x = FK.Pt(i);
                 for (int ci = 0; ci < Rd::d; ++ci) {
-                    uh(FK(i + FK.dfcbegin(ci))) = fh.eval(kcut, x,ci);
+                    uh(FK(i + FK.dfcbegin(ci))) = fh.eval(kcut, x, ci);
                 }
             }
         }

@@ -31,12 +31,16 @@
 #include "num/matlab.hpp"
 #include "problem/baseProblem.hpp"
 #include "FESpace/expression.hpp"
+#include "FESpace/integrationFunFEM.hpp"
 #include "FESpace/paraview.hpp"
 #include "problem/generalNorm.hpp"
 #include "problem/projection.hpp"
-#include "problem/levelSet.hpp"
-#include "problem/curvature.hpp"
-#include "problem/time_scheme.hpp"
+
 #include "solver/solver.hpp"
 
-#include "time_stuff.hpp"
+// #include "problem/levelSet.hpp"
+#include "problem/solver_advection.hpp"
+#include "problem/solver_curvature.hpp"
+#include "problem/solver_stokes.hpp"
+
+#include "problem/time_scheme.hpp"
