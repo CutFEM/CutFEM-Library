@@ -14,6 +14,7 @@
 
 #include "../num/matlab.hpp"
 #include "../tool.hpp"
+#include "../FESpace/funfem_util.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -67,14 +68,14 @@ double fun_p_d(R2 P, int i, int dom, const double t) {
 
 int main(int argc, char **argv) {
 
-    double h = 0.125; // starting mesh size
+    double h = 0.5; // starting mesh size
 
-    const size_t iterations = 1;
+    const size_t iterations = 4;
 
-    MPIcf cfMPI(argc, argv);
+    //MPIcf cfMPI(argc, argv);
 
-    const std::string path_output_data    = "../output_files/navier_stokes/taylor_green/data/";
-    const std::string path_output_figures = "../output_files/navier_stokes/taylor_green/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/navier_stokes/taylor_green/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/navier_stokes/taylor_green/paraview/";
 
     // if (MPIcf::IamMaster()) {
     //     std::filesystem::create_directories(path_output_data);
@@ -114,7 +115,7 @@ int main(int argc, char **argv) {
         const Uint last_quad_time = nb_quad_time - 1;
 
         ProblemOption optionProblem;
-        optionProblem.solver_name_  = "mumps";
+        optionProblem.solver_name_  = "umfpack";
         optionProblem.clear_matrix_ = true;
         std::vector<std::map<std::pair<int, int>, double>> mat_NL(1);
 
@@ -124,8 +125,9 @@ int main(int argc, char **argv) {
         // const double lambda_boundary = 100.;
         // const double lambda_interior = 10.;
 
-        const double lambda_boundary = 10.;
-        const double lambda_interior = 1.;
+        //const double lambda_boundary = 10.;
+        const double lambda_boundary_tangent = 10. * mu / h;
+        const double lambda_interior = 1. * mu / h;
 
         // Finite element spaces
         Lagrange2 FEu(2); // for interpolating the exact solution
@@ -213,11 +215,16 @@ int main(int argc, char **argv) {
             // Initialize DOFs and data
             std::vector<double> data_init(navier_stokes.get_nb_dof());
             std::span<double> data_init_span(data_init);
-            navier_stokes.initialSolution(data_init_span);
-            std::vector<double> data_all(data_init);
-
-            int idxp0 = Vhn.NbDoF() * In.NbDoF(); // index for when p starts in the array
             std::span<double> data_uh0 = std::span<double>(data_init.data(), Vhn.NbDoF()); // velocity in first time DOF
+
+            if (iter == 0) {
+                interpolate(Vhn, data_uh0, fun_u_initial);
+            } else {
+                navier_stokes.initialSolution(data_init_span);
+            }
+
+            std::vector<double> data_all(data_init);
+            int idxp0 = Vhn.NbDoF() * In.NbDoF(); // index for when p starts in the array
             std::span<double> data_uh  = std::span<double>(data_all.data(), Vhn.NbDoF() * In.NbDoF()); // velocity for all time DOFs
             std::span<double> data_ph  = std::span<double>(data_all.data() + idxp0, Phn.NbDoF() * In.NbDoF());
 
@@ -226,9 +233,8 @@ int main(int argc, char **argv) {
             fct_t uh(Vhn, In, data_uh);
             fct_t ph(Phn, In, data_ph);
 
-            if (iter == 0) {
-                interpolate(Vhn, data_uh0, fun_u_initial);
-            }
+            auto boundary_dof = getBoundaryDof(Vhn, In);    // get DOFs in Vhn on the boundary
+            setBoundaryDof(boundary_dof, gh, data_uh);      // set BC strongly on initial solution
 
             // Newton's method
             int newton_iterations = 0;
@@ -252,10 +258,11 @@ int main(int argc, char **argv) {
                         , 0
                         , In);
 
+                    // A(t, u, v)
                     navier_stokes.addBilinear(
                         - innerProduct(mu * grad(du) * n, v)
                         - innerProduct(du, mu * grad(v) * n) 
-                        + innerProduct(lambda_boundary / h * mu * du, v)
+                        + innerProduct(lambda_boundary_tangent * du * t, v * t)
                         + innerProduct(dp, v * n)
                         , Thi
                         , INTEGRAL_BOUNDARY
@@ -264,7 +271,7 @@ int main(int argc, char **argv) {
                     navier_stokes.addBilinear(
                         - innerProduct(average(grad(du * t) * n, 0.5, 0.5), mu * jump(v * t)) 
                         + innerProduct(jump(du * t), mu * average(grad(v * t) * n, 0.5, 0.5)) 
-                        + innerProduct(lambda_interior * mu / h * (jump(du * t)), jump(v * t))
+                        + innerProduct(lambda_interior * (jump(du * t)), jump(v * t))
                         , Thi
                         , INTEGRAL_INNER_EDGE_2D
                         , In);
@@ -284,11 +291,13 @@ int main(int argc, char **argv) {
 
                 navier_stokes.addLinear(
                     + innerProduct(gh.exprList(), mu * grad(v) * n) 
-                    - innerProduct(gh.exprList(), lambda_boundary / h * mu * v)
+                    - innerProduct(gh.exprList(), lambda_boundary_tangent * v * t * t)
                     , Thi
                     , INTEGRAL_BOUNDARY
                     , In); 
 
+                // set zero BC strongly for delta u, otherwise BC will accumulate with Newton iterations
+                setBoundaryDof(navier_stokes.rhs_.size(), boundary_dof, 1., navier_stokes.mat_[0]);
 
                 navier_stokes.gather_map();
                 navier_stokes.addMatMul(data_all); // add B(uh^k, vh) to rhs
@@ -317,6 +326,10 @@ int main(int argc, char **argv) {
                     + innerProduct(ux * dx(uy) + uy * dy(uy), rho * v2)
                     , Thi
                     , In);
+
+                // set zero BC for update
+                setBoundaryDof(boundary_dof, 0. , navier_stokes.rhs_);  
+                setBoundaryDof(navier_stokes.rhs_.size(), boundary_dof, 1. , mat_NL[0]);  
 
                 // Add Lagrange multipliers
                 CutFEM<Mesh2> lagrange(qTime, optionProblem);
@@ -463,6 +476,27 @@ int main(int argc, char **argv) {
                 writer.add(fabs(fun_ph.expr() - p_exact_T.expr()), "pressure_error");
 
                 writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+            } else {
+                Paraview<mesh_t> writerTh(Th, path_output_figures + "Th.vtk");
+                Paraview<mesh_t> writer(Thi,
+                                        path_output_figures + "navier_stokes_" + std::to_string(j) + ".vtk");
+                writer.add(ls[0], "levelSet", 0, 1);
+                // writer.add(uh, "velocity", 0, 2);
+                writer.add(fun_uh, "velocity", 0, 2);
+                // writer.add(ph, "pressure", 0, 1);
+                writer.add(fun_ph, "pressure", 0, 1);
+                writer.add(u_exact, "velocity_exact", 0, 2);
+                writer.add(p_exact, "pressure_exact", 0, 1);
+
+                writer.add(uh_0dx + uh_1dy, "divergence");
+
+                fct_t u_exact_T(Vhn, fun_u, current_time + dT);
+                fct_t p_exact_T(Phn, fun_p, current_time + dT);
+
+                writer.add(fabs(fun_uh.expr() - u_exact_T.expr()), "velocity_error");
+                writer.add(fabs(fun_ph.expr() - p_exact_T.expr()), "pressure_error");
+
+                writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(j) + ".vtk");
             }
 
             iter += 1;
