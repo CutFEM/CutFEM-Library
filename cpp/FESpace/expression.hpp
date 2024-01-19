@@ -173,21 +173,21 @@ template <typename M> class FunFEM : public FunFEMVirtual {
         interpolate(*Vh, this->v, f, tid);
     }
     
-    // template <typename fun_t>
-    // FunFEM(const FESpace &vh, const TimeSlab &in, fun_t f)
-    // // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
-    //     : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), alloc(true), Vh(&vh), In(&in),
-    //       databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
-    //     interpolate(*Vh, *In, this->v, f);
-    // }
-    template <typename fct_t>
-        requires FunctionLevelSetTime<fct_t> || FunctionDomainTime<fct_t> || FunctionScalar<fct_t>
-    FunFEM(const FESpace &vh, const TimeSlab &in, fct_t f)
+    template <typename fun_t>
+    FunFEM(const FESpace &vh, const TimeSlab &in, fun_t f)
     // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
         : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), alloc(true), Vh(&vh), In(&in),
           databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
         interpolate(*Vh, *In, this->v, f);
     }
+    // template <typename fct_t>
+    //     requires FunctionLevelSetTime<fct_t> || FunctionDomainTime<fct_t> || FunctionScalar<fct_t>
+    // FunFEM(const FESpace &vh, const TimeSlab &in, fct_t f)
+    // // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
+    //     : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), alloc(true), Vh(&vh), In(&in),
+    //       databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
+    //     interpolate(*Vh, *In, this->v, f);
+    // }
     FunFEM(const FESpace &vh, const ExpressionVirtual &fh);
     FunFEM(const FESpace &vh, const ExpressionVirtual &fh1, const ExpressionVirtual &fh2);
 
@@ -1010,7 +1010,7 @@ class ExpressionNormalCrossZ3 : public ExpressionVirtual {
 //     ~ExpressionNormalCross3() {}
 // };
 
-std::list<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
+std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
 
 // divS for 2d
 template <typeMesh M> class ExpressionDSx2 : public ExpressionVirtual {

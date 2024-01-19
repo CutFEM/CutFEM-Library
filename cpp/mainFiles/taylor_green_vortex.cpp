@@ -30,7 +30,7 @@ double fun_levelset(R2 P) { return -1.; }
 
 double fun_rhs(R2 P, int i, const double t) { return 0.; }
 
-double fun_u(R2 P, int i, const double t) {
+double  fun_u(R2 P, int i, const double t) {
     // double x = P[0], y = P[1];
     double x = P.x, y = P.y;
     if (i == 0)

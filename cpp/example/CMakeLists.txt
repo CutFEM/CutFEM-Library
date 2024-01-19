@@ -64,11 +64,11 @@ target_include_directories(stokesRT_dynamic_drop PRIVATE
                                                                                           
 
 # Navier Stokes examples
-add_executable(NS_raisingDrop2D navier_stokes/navier_stokes_raising_drop_2D.cpp)
-target_link_libraries(NS_raisingDrop2D
-                        PRIVATE 
-                        ${EXTRA_LIBS} 
-                        )
+# add_executable(NS_raisingDrop2D navier_stokes/navier_stokes_raising_drop_2D.cpp)
+# target_link_libraries(NS_raisingDrop2D
+#                         PRIVATE 
+#                         ${EXTRA_LIBS} 
+#                         )
                         
 
 # add_executable(NSS_ex_2 navier_stokes/navier_stokes_surfactant_example2.cpp)
