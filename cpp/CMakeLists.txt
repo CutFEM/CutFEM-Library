@@ -36,7 +36,7 @@ endif()
 
 
 add_subdirectory(force_project)
-list(APPEND EXTRA_LIBS force_project)
+# list(APPEND EXTRA_LIBS force_project)
 
 
 
@@ -56,9 +56,9 @@ set(EX_NAME kiln_bed)
 add_executable(${EX_NAME}  mainFiles/kiln_bed_motion.cpp )
 target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
-set(EX_NAME maxwell3d)
-add_executable(${EX_NAME}  mainFiles/maxwell3D.cpp )
-target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+# set(EX_NAME maxwell3d)
+# add_executable(${EX_NAME}  mainFiles/maxwell3D.cpp )
+# target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
 set(EX_NAME statbulk)
 add_executable(${EX_NAME}  mainFiles/stationary_bulk.cpp )
