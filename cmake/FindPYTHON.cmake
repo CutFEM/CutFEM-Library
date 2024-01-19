@@ -25,7 +25,7 @@ find_path (NUMPY_INCLUDE_DIR
 
 find_path(PYTHON_LIBRARY_DIR
   NAMES 
-         libpython3.10.dylib 
+        libpython3.10.dylib 
         libpython3.8.so
   PATHS
     /usr/lib/x86_64-linux-gnu/
@@ -38,7 +38,7 @@ if(PYTHON_INCLUDE_DIR AND NUMPY_INCLUDE_DIR AND PYTHON_LIBRARY_DIR)
 
   find_library(PYTHON_LIBRARY
     NAMES 
-        libpython3.10
+        libpython3.10.dylib
         libpython3.8.so
     PATHS ${PYTHON_LIBRARY_DIR}
     NO_DEFAULT_PATH
