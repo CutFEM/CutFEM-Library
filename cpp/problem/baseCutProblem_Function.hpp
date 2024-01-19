@@ -1093,6 +1093,7 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
     std::map<int, double> dof2set;
     const FESpace &Vh(gh.getSpace());
 
+    // Loop through all fitted boundary elements 
     for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
          idx_be += cutTh.next_boundary_element()) {
 
@@ -1102,6 +1103,7 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
         int k                 = idxK[0];
 
         assert(idxK.size() == 1);
+        
         const Element &K(cutTh.Th[kb]);
         const BorderElement &BE(cutTh.be(idx_be));
         const FElement &FK(Vh[k]);
@@ -1138,6 +1140,76 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
     assert(this->pmat_.size() == 1);
     eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
 }
+
+
+/**
+ * Strong boundary conditions for BDM1 in time
+*/
+template <typename Mesh>
+void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh, const TimeSlab &In, std::list<int> label) {
+
+    bool all_label = (label.size() == 0);
+    std::map<int, double> dof2set;
+    const FESpace &Vh(gh.getSpace());
+
+    // Loop through all fitted boundary elements 
+    for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
+         idx_be += cutTh.next_boundary_element()) {
+
+        int ifac;
+        const int kb          = cutTh.Th.BoundaryElement(idx_be, ifac);
+        std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1);
+        int k                 = idxK[0];
+
+        assert(idxK.size() == 1);
+        
+        const Element &K(cutTh.Th[kb]);
+        const BorderElement &BE(cutTh.be(idx_be));
+        const FElement &FK(Vh[k]);
+
+        if (util::contain(label, BE.lab) || all_label) {
+
+            // for( int ic=0; ic<Vh.N;++ic) {
+            
+            // DOF for BDM is only one component (v*n)
+            for (int ic = 0; ic < 1; ++ic) {
+
+                // Loop over degrees of freedom of current element
+                for (int df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df) {
+
+                    int id_item = FK.DFOnWhat(df);
+
+                    if (id_item < K.nv) {
+                        assert(0);
+                    } else if (id_item < K.nv + K.ne) {
+                        // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
+                        int id_face = id_item - K.nv;
+                        if (id_face == ifac) {
+
+                            for (int dof_time; dof_time < In.NbDoF(); ++dof_time) {
+                                int df_glob = FK.loc2glb(df, dof_time);
+                                // dof2set.insert({df_glob, gh(df_glob)});
+                                dof2set.insert({df_glob, gh(df_glob)});
+
+                                // std::cout << df_glob << std::endl;    
+                            }
+                            
+                        }
+                    } else {
+                        // std::cout << " on face  " << FK.DFOnWhat(df) << std::endl;
+                    }
+                }
+            }
+        }
+        // getchar();
+    }
+
+    assert(this->pmat_.size() == 1);
+    eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
+}
+
+
+
 
 template <typename Mesh> void BaseCutFEM<Mesh>::removeDofForHansbo(const FESpace &Vh) {
 
