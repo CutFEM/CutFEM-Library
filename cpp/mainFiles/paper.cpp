@@ -63,7 +63,7 @@ using namespace globalVariable; // to access some globally defined constants
 namespace Example1 {
 // A circle moving in a circular trajectory
 const double D        = 1.;
-const double R0       = 0.5;
+const double R0       = 0.17;
 const double beta_max = M_PI * 0.5;
 
 // Level-set function
@@ -970,6 +970,13 @@ const double D        = 1.;
 const double R0       = 0.17;
 const double beta_max = M_PI * 0.5;
 
+// double fun_tau(double *P, const int i, const R t) {
+//     const double beta_2 = std::sqrt(std::pow(M_PI * (0.5 - P[1]), 2) + std::pow(M_PI * (P[0] - 0.5), 2));
+//     const double Pe       = beta_2 * h / (2 * D);
+//     const double xi       = 1. / std::tanh(Pe) - 1. / Pe;
+//     const double tau_supg = h / (2 * beta_2) * xi;
+// }
+
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
@@ -1048,9 +1055,8 @@ R fun_uBulk(double *P, const int i, const R t) {
 
     double xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
 
-    double r   = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
+    double r = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
     return cos(M_PI * r / R0) * sin(M_PI * t);
-
 }
 
 R fun_uBulkD(double *P, const int i, const int d, const R t) {
@@ -1058,7 +1064,7 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 
     double xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
 
-    double r   = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
+    double r = std::sqrt((x - xc) * (x - xc) + (y - yc) * (y - yc));
     return cos(M_PI * r / R0) * sin(M_PI * t);
 }
 
@@ -1067,18 +1073,69 @@ R fun_rhsBulk(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
 
     // automatic
-    return D*((3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0)*2.0E+8)/R0+(1.0/(R0*R0)*(3.141592653589793*3.141592653589793)*sin(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12)/(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0)-(3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0,3.0/2.0)*4.0E+20)/R0-(3.141592653589793*sin((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*sin(t*3.141592653589793)*pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0,3.0/2.0)*4.0E+20)/R0+(1.0/(R0*R0)*(3.141592653589793*3.141592653589793)*sin(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8))*pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12)/(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))+3.141592653589793*cos(t*3.141592653589793)*cos((3.141592653589793*sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)*4.0E+12+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0)*4.0E+12+1.0))/(R0*1.0E+8));
-
+    return D * ((3.141592653589793 *
+                 sin((3.141592653589793 *
+                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                     (R0 * 1.0E+8)) *
+                 sin(t * 3.141592653589793) * 1.0 /
+                 sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                      pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0) *
+                 2.0E+8) /
+                    R0 +
+                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) * sin(t * 3.141592653589793) *
+                 cos((3.141592653589793 *
+                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                     (R0 * 1.0E+8)) *
+                 pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12) /
+                    (pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                     pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0) -
+                (3.141592653589793 *
+                 sin((3.141592653589793 *
+                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                     (R0 * 1.0E+8)) *
+                 sin(t * 3.141592653589793) * pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) *
+                 1.0 /
+                 pow(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                         pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0,
+                     3.0 / 2.0) *
+                 4.0E+20) /
+                    R0 -
+                (3.141592653589793 *
+                 sin((3.141592653589793 *
+                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                     (R0 * 1.0E+8)) *
+                 sin(t * 3.141592653589793) * pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) *
+                 1.0 /
+                 pow(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                         pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0,
+                     3.0 / 2.0) *
+                 4.0E+20) /
+                    R0 +
+                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) * sin(t * 3.141592653589793) *
+                 cos((3.141592653589793 *
+                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                     (R0 * 1.0E+8)) *
+                 pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12) /
+                    (pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                     pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) +
+           3.141592653589793 * cos(t * 3.141592653589793) *
+               cos((3.141592653589793 *
+                    sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                         pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                   (R0 * 1.0E+8));
 }
 
 } // namespace Example4
 
-
-
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
-#define ex3
+#define ex1
 //* Set scheme for the method (options: "classical", "conservative")
-#define conservative
+#define classical
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 
@@ -1089,6 +1146,8 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 #define conservationnot
 
 #define reynoldnot
+
+#define local   // compute and print local errors (meaning errors in all time instances during [0,T])
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -1103,10 +1162,10 @@ typedef FunFEM<Mesh> Fun_h;
 #if defined(ex1)
 using namespace Example1;
 #elif defined(ex2)
-// using namespace Example2;
+//using namespace Example2;
 using namespace Kite;
 #elif defined(ex3)
-//using namespace Example3;
+// using namespace Example3;
 using namespace N_sphere;
 #elif defined(preuss)
 using namespace Preuss;
@@ -1115,13 +1174,13 @@ using namespace Example4;
 #endif
 
 int main(int argc, char **argv) {
-    MPIcf cfMPI(argc, argv);
+    // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 6; // number of mesh refinements   (set to 1 to run
-                                 // only once and plot to paraview)
-    int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.9;             // starting mesh size
+    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run
+                                         // only once and plot to paraview)
+    int nx = 15, ny = 15;                // starting mesh size
+    double h  = 0.1/2; // starting mesh size
     double dT = 0.25;
 
     int total_number_iteration;
@@ -1130,42 +1189,42 @@ int main(int argc, char **argv) {
 
 #ifdef ex1
     // Paths to store data
-    const std::string path_output_data    = "../output_files/paper/example1/data/";
-    const std::string path_output_figures = "../output_files/paper/example1/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example1/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example1/paraview/";
 #elif defined(ex2)
-    const std::string path_output_data    = "../output_files/paper/example2/data/";
-    const std::string path_output_figures = "../output_files/paper/example2/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example2/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example2/paraview/";
 #elif defined(ex3)
-    const std::string path_output_data    = "../output_files/paper/example3/data/";
-    const std::string path_output_figures = "../output_files/paper/example3/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example3/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example3/paraview/";
 #elif defined(ex4)
-    const std::string path_output_data    = "../output_files/paper/example4/data/";
-    const std::string path_output_figures = "../output_files/paper/example4/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example4/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example4/paraview/";
 #elif defined(preuss)
-    const std::string path_output_data    = "../output_files/paper/preuss/data/";
-    const std::string path_output_figures = "../output_files/paper/preuss/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/preuss/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/preuss/paraview/";
 
 #endif
 
     // Create directory if not already existent
-    if (MPIcf::IamMaster()) {
-    std::filesystem::create_directories(path_output_data);
-    std::filesystem::create_directories(path_output_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    // std::filesystem::create_directories(path_output_data);
+    // std::filesystem::create_directories(path_output_figures);
+    // }
 
     // Data file to hold problem data
-    std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
+    std::ofstream output_data(path_output_data + "data_temp.dat", std::ofstream::out);
 
     // Arrays to hold data
     std::array<double, iterations> errors, errors_T, hs, nxs, ns_active, dts, omega, gamma, global_conservation_errors,
         reynold_error;
     // Iterate over mesh sizes
-    for (int j = 0; j < iterations; ++j) {
+    for (int j = 0; j < iterations; ++j) {       
 
         // Define background mesh
 #if defined(ex1)
-        // const double lx = 1., ly = 1.;
-        const double lx = 4. * Example1::R0, ly = 4. * Example1::R0;
+        const double x0 = 0.-Epsilon, y0 = 0. - Epsilon, lx = 1., ly = 1.;
+        //const double x0 = 0. - 2.01 * Example1::R0, y0 = -2.01 * Example1::R0, lx = 4. * Example1::R0, ly = 4. * Example1::R0;
         // const double lx = 2., ly = 1.1;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
@@ -1173,43 +1232,46 @@ int main(int argc, char **argv) {
         h = lx / (nx - 1);
 #endif
         // Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
-        Mesh Th(nx, ny, 0. - 2.01 * Example1::R0, -2.01 * Example1::R0, lx, ly);
+        //Mesh Th(nx, ny, x0, y0, lx, ly);
 
 #elif defined(ex2)
-        const double lx = 6. * Example2::R0, ly = 6. * Example2::R0;
+        //const double lx = 6. * Example2::R0, ly = 6. * Example2::R0, x0 = -3.01 * Example2::R0, y0 = -3.01 * Example2::R0;
+        const double lx = 7., ly = 3., x0 = -3.5-Epsilon, y0 = -1.5 - Epsilon; // like paper
+        //const double lx = 6., ly = 4., x0 = -2.-Epsilon, y0 = -2. - Epsilon;     // works like the above
+        //const double lx = 6., ly = 6., x0 = -3.-Epsilon, y0 = -3. - Epsilon;    // works better? for some reason
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
         // Mesh Th(nx, ny, -3.01 * Example2::R0, -3.01 * Example2::R0, lx, ly);
-        //Mesh Th(nx, ny, -3.500123, -1.5, 7., 3.);
-        Mesh Th(nx, ny, -2.500123, -1.5, 7., 3.);
+        // Mesh Th(nx, ny, -3.500123, -1.5, 7., 3.);
+        //Mesh Th(nx, ny, -2.500123, -1.5, 7., 3.);
         // Mesh Th(12, 11, -.85, -0.8, 2.05, 1.6);
 #elif defined(ex3)
-        //const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
-        // const double lx = 2., ly = 1.1;
+        // const double lx = 4. * Example3::R0, ly = 3. * Example3::R0;
+        //  const double lx = 2., ly = 1.1;
         const double lx = 2., ly = 1.2;
-        double x0 = -1.-Epsilon, y0 = -0.6-Epsilon;
+        double x0 = -1. - Epsilon, y0 = -0.6 - Epsilon;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        //Mesh Th(nx, ny, -2.01 * Example3::R0, -1.5 * Example3::R0, lx, ly);
-        //Mesh Th(nx, ny, -1.-Epsilon, -0.6-Epsilon, lx, ly);
+        // Mesh Th(nx, ny, -2.01 * Example3::R0, -1.5 * Example3::R0, lx, ly);
+        // Mesh Th(nx, ny, -1.-Epsilon, -0.6-Epsilon, lx, ly);
 
 #elif defined(ex4)
         const double lx = 1., ly = 1.;
         const double x0 = 0. - Epsilon, y0 = 0. - Epsilon;
-        //const double lx = 4. * Example4::R0, ly = 4. * Example4::R0;
+        // const double lx = 4. * Example4::R0, ly = 4. * Example4::R0;
 #ifdef use_h
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        //Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
-        //Mesh Th(nx, ny, 0. - 2.01 * Example4::R0, -2.01 * Example4::R0, lx, ly);
+        // Mesh Th(nx, ny, 0. - Epsilon, 0. - Epsilon, lx, ly);
+        // Mesh Th(nx, ny, 0. - 2.01 * Example4::R0, -2.01 * Example4::R0, lx, ly);
 
 #elif defined(preuss)
         const double lx = 3. * Preuss::R0, ly = 4. * Preuss::R0;
@@ -1220,7 +1282,7 @@ int main(int argc, char **argv) {
 #elif defined(use_n)
         h = lx / (nx - 1);
 #endif
-        //Mesh Th(nx, ny, -1.51 * Preuss::R0, -1.5 * Preuss::R0, lx, ly);
+        // Mesh Th(nx, ny, -1.51 * Preuss::R0, -1.5 * Preuss::R0, lx, ly);
 #endif
 
         Mesh Th(nx, ny, x0, y0, lx, ly);
@@ -1234,9 +1296,12 @@ int main(int argc, char **argv) {
 #else
         const int divisionMeshSize = 3;
 
-        //double dT = h / divisionMeshSize;
+        double dT = h / divisionMeshSize;
+        //dT = 0.0078125 / std::sqrt(2);
+
+        //dT = 0.5 * std::pow(2, -j-1 - 1);
         //  double dT = tfinal / 32;
-        double dT = 0.5 * std::pow(2, -j - 1);
+
         // double dT = tfinal / (j + 1);
 
         total_number_iteration = int(tfinal / dT);
@@ -1265,7 +1330,7 @@ int main(int argc, char **argv) {
 
         // CG stabilization parameter
         // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
-        const double tau1 = 0.05, tau2 = 0.1;
+        const double tau1 = .1, tau2 = 0.1;
 
         FESpace Vh(Th, DataFE<Mesh>::P3); // Background FE Space
         // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
@@ -1278,7 +1343,7 @@ int main(int argc, char **argv) {
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
 
         // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(9)); // specify order of quadrature in time
+        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
         const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
         const Uint lastQuadTime = nbTime - 1;
@@ -1309,7 +1374,7 @@ int main(int argc, char **argv) {
         double intF = 0, int_outflow = 0, intG = 0, intF_total = 0,
                intG_total                = 0; // hold integrals of rhs and Neumann bcs
         double global_conservation_error = 0, local_conservation_error = 0, errBulk = 0., error_I = 0.;
-        std::vector<double> local_conservation_errors, global_conservation_errors_t;
+        std::vector<double> local_errors, local_conservation_errors, global_conservation_errors_t;
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -1406,34 +1471,6 @@ int main(int argc, char **argv) {
                 convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
             }
 
-
-            // SUPG stabilization
-            const double C = .01;
-            double tau_supg = C*h*h/D;  
-            //double tau_supg = C*h/(2*beta_max);  
-            //double tau_supg = C*beta_max*h/(2*D);  
-
-            //std::cout << "tau_supg = " << tau_supg << "\n";
-
-            for (int i = 0; i < nbTime; ++i) {
-                convdiff.addBilinear(innerProduct(dt(u) + vel[i].exprList()*grad(u), tau_supg*(dt(v) + vel[i].exprList() * grad(v))), Thi, In, i);
-                convdiff.addBilinear(innerProduct(D*grad(u), tau_supg*grad(dt(v) + vel[i].exprList() * grad(v))), interface, In, i);
-            }
-
-            
-
-            for (int i = 0; i < nbTime; ++i) {
-                convdiff.addLinearExact(fun_rhsBulk, innerProduct(1, tau_supg*(dt(v) + vel[i].exprList() * grad(v))), Thi, In, i);
-                convdiff.addLinearExact(fun_neumann_Gamma, innerProduct(1, tau_supg*grad(dt(v) + vel[i].exprList() * grad(v))), interface, In, i);
-            }
-
-
-            // for (int i = 0; i < nbTime; ++i) {
-            //     convdiff.addLinearExact(fun_neumann_Gamma, innerProduct(1, tau_supg*(dt(v) + vel[i].exprList() * grad(v))), *interface(i), In, i);
-            // }
-
-
-            //convdiff.addBilinearExact(fun_velocity, -innerProduct(u, grad(v)), Thi, In);
 #endif
 
             // Source function
@@ -1457,15 +1494,14 @@ int main(int argc, char **argv) {
             //     Thi, In);
 
             convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In);
-            //convdiff.addPatchStabilization(+innerProduct(tau1 / 10000 / h * jump(u), jump(v)), Thi, In, 0);
-            
+            // convdiff.addPatchStabilization(+innerProduct(tau1 / 10000 / h * jump(u), jump(v)), Thi, In, 0);
+
 #elif defined(macro)
             // MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
             // std::cout << TimeMacro.number_of_stabilized_edges << "\n";
             // std::cout << "number of stabilized edges: " << convdiff.get_number_of_stabilized_edges() << "\n";
 
             AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
-
             // convdiff.addFaceStabilization(
             //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
             //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
@@ -1501,7 +1537,7 @@ int main(int argc, char **argv) {
             }
 
             // Solve linear system
-            convdiff.solve("mumps");
+            convdiff.solve("umfpack");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -1519,45 +1555,45 @@ int main(int argc, char **argv) {
 
             std::cout << " t_n -> || u-uex||_(In x Omega)^2 = " << error_I << '\n';
 
-            // Compute error in Reynold relation
-            #if defined(reynold)
-                AlgoimCutFEM<Mesh, Levelset<2>> reynold(qTime, phi);
+// Compute error in Reynold relation
+#if defined(reynold)
+            AlgoimCutFEM<Mesh, Levelset<2>> reynold(qTime, phi);
 
-                reynold.initSpace(Wh, In);
+            reynold.initSpace(Wh, In);
 
-                reynold.addBilinear(innerProduct(u, v), Thi, (int)lastQuadTime, In);
-                if (iter == 0)
-                    reynold.addLinearExact(fun_uBulk, innerProduct(1, v), Thi, 0, In);
-                else
-                    reynold.addLinear(innerProduct(b0h.expr(), v), Thi, 0, In);
+            reynold.addBilinear(innerProduct(u, v), Thi, (int)lastQuadTime, In);
+            if (iter == 0)
+                reynold.addLinearExact(fun_uBulk, innerProduct(1, v), Thi, 0, In);
+            else
+                reynold.addLinear(innerProduct(b0h.expr(), v), Thi, 0, In);
 
-                reynold.addBilinear(-innerProduct(dt(u), v) - innerProduct(u, dt(v)), Thi, In);
+            reynold.addBilinear(-innerProduct(dt(u), v) - innerProduct(u, dt(v)), Thi, In);
 
-                for (int i = 0; i < nbTime; ++i) {
-                    reynold.addBilinear(-innerProduct((vel[i].exprList() * grad(u)), v) -
-                                            innerProduct(u, (vel[i].exprList() * grad(v))),
-                                        Thi, In, i);
-                }
+            for (int i = 0; i < nbTime; ++i) {
+                reynold.addBilinear(-innerProduct((vel[i].exprList() * grad(u)), v) -
+                                        innerProduct(u, (vel[i].exprList() * grad(v))),
+                                    Thi, In, i);
+            }
 
-                int N = Wh.NbDoF();
-                Rn lhs(ndfTime * N);
-                multiply(ndfTime * N, ndfTime * N, reynold.mat_, data_u0, lhs);
+            int N = Wh.NbDoF();
+            Rn lhs(ndfTime * N);
+            multiply(ndfTime * N, ndfTime * N, reynold.mat_, data_u0, lhs);
 
-                lhs -= reynold.rhs_;
+            lhs -= reynold.rhs_;
 
-                reynold_error.at(j) = lhs.linfty();
+            reynold_error.at(j) = lhs.linfty();
 
-                std::cout << " e_r^n = " << reynold_error.at(j) << '\n';
-            #endif
+            std::cout << " e_r^n = " << reynold_error.at(j) << '\n';
+#endif
 
             // Compute area of domain in time quadrature point 0
             Fun_h funone(Wh, fun_one);
 
-            //double intGamma = integral_algoim(funone, In, interface, phi, 0, quadrature_order_space) / dT;
-            //double intOmega = integral_algoim(funone, Thi, phi, In, qTime, lastQuadTime, quadrature_order_space);
+            // double intGamma = integral_algoim(funone, In, interface, phi, 0, quadrature_order_space) / dT;
+            // double intOmega = integral_algoim(funone, Thi, phi, In, qTime, lastQuadTime, quadrature_order_space);
 
-            //gamma[j] = intGamma;
-            //omega[j] = intOmega;
+            // gamma[j] = intGamma;
+            // omega[j] = intOmega;
 
             // Compute error of numerical solution
             Rn sol(Wh.get_nb_dof(), 0.);
@@ -1576,6 +1612,7 @@ int main(int argc, char **argv) {
             std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
 
             errors[j] = errBulk;
+            local_errors.push_back(errBulk);
 
 // Compute conservation error
 // if (iterations == 1 && h > 0.01) {
@@ -1663,9 +1700,19 @@ int main(int argc, char **argv) {
             output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << "," << ns_active.at(j) << '\n';
             output_data.flush();
         }
-        
 
         std::cout << "error_T = " << errors_T[j] << "\n";
+
+    #ifdef local
+        std::cout << "\n";
+        std::cout << "Local errors = [";
+        for (auto &err : local_errors) {
+
+            std::cout << err;
+
+            std::cout << ", ";
+        }
+        std::cout << "]\n";
 
         std::cout << "\n";
         std::cout << "Local conservation error = [";
@@ -1686,6 +1733,7 @@ int main(int argc, char **argv) {
             std::cout << ", ";
         }
         std::cout << "]\n";
+    #endif
 
 // Refine mesh
 #ifdef use_n
