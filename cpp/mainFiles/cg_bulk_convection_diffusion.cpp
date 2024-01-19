@@ -56,7 +56,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/gnuplot.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
-#include "../time_stuff.hpp"
 #include "projection.hpp"
 #include "../num/matlab.hpp"
 #include "../num/redirectOutput.hpp"
@@ -664,13 +663,13 @@ using namespace Lehrenfeld2;
 #endif
 
 int main(int argc, char **argv) {
-    //MPIcf cfMPI(argc, argv);
+    // MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
     const size_t iterations = 1; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
-    double h  = 0.01;             // starting mesh size
+    double h  = 0.01;            // starting mesh size
     double dT = 0.125;
 
     int total_number_iteration;
@@ -910,7 +909,7 @@ int main(int argc, char **argv) {
             FunTest u(Wh, 1), v(Wh, 1);
 
             // Data for initial solution
-            Rn data_u0(convdiff.get_nb_dof(), 0.);                // initial data total
+            Rn data_u0(convdiff.get_nb_dof(), 0.); // initial data total
             convdiff.initialSolution(data_u0);
             KN_<R> data_B0(data_u0(SubArray(Wh.NbDoF(), 0))); // initial data bulk
 
@@ -1082,7 +1081,7 @@ int main(int argc, char **argv) {
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface,
                                In); // note the negative sign because of the changed interface normal
 
-                                    //* Neumann on outer and Dirichlet on inner
+            //* Neumann on outer and Dirichlet on inner
 #elif defined(neumann1) && defined(dirichlet2)
             // Neumann outer
 
@@ -1167,13 +1166,13 @@ int main(int argc, char **argv) {
                 Fun_h funuh(Wh, data_u0);
 
                 intF = integral(Thi, In, f, 0, qTime);
-                intG         = integral(g_Neumann, In, interface, 0);
+                intG = integral(g_Neumann, In, interface, 0);
 
 #if defined(conservative) && defined(omega1) && defined(neumann1) && defined(neumann2)
                 auto outflow = (vel * n) * funuh.expr();
                 int_outflow  = integral(Thi, In, (vel * n) * b0h.expr(), INTEGRAL_BOUNDARY,
                                         qTime); // integral(outflow, In, interface, 0);
-                
+
 #endif
 
                 Rn sol2(Wh.NbDoF(), 0.);

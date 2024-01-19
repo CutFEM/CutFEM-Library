@@ -5,8 +5,8 @@
 #include <chrono>
 
 #include "../force_project/util.hpp"
-#include "../force_project/input_handler.hpp"
-#include "../force_project/stokes_solver.hpp"
+// #include "../force_project/input_handler.hpp"
+// #include "../force_project/stokes_solver.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
     double t0 = MPIcf::Wtime();
 
-    mesh_t Th("../../mesh/kiln.msh");
+    mesh_t Th("../../mesh/kiln_100.msh");
 
     paraview_t writer(Th, "kiln_bed.vtk");
 
@@ -26,8 +26,11 @@ int main(int argc, char **argv) {
     space_t Vh(Th, FEu);
     space_t Ph(Th, DataFE<Mesh2>::P1);
 
-    auto fw = [](R2 P, int i) { return (i == 0) * P.y - (i == 1) * P.x; };
-    auto fs = [](R2 P, int i) { return (i == 0) * 2. / globalVariable::Pi + (i == 1) * 0.; };
+    // auto fw = [](R2 P, int i) { return (i == 0) * P.y - (i == 1) * P.x; };
+    // auto fs = [](R2 P, int i) { return (i == 0) * 2. / globalVariable::Pi + (i == 1) * 0.; };
+    double speed = 0.3246312408709453;
+    auto fw      = [speed](R2 P, int i) -> double { return speed / norm2(P) * ((i == 0) * P[1] - (i == 1) * P[0]); };
+    auto fs      = [speed](R2 P, int i) -> double { return (i == 0) * speed; };
 
     fct_t f_w(Vh, fw);
     fct_t f_s(Vh, fs);
@@ -40,18 +43,35 @@ int main(int argc, char **argv) {
     double mu      = 1.;
     double lambdaB = 1e5;
 
-    stokes.addBilinear(contractProduct(2 * mu * Eps(u), Eps(v)) - innerProduct(p, div(v)) + innerProduct(div(u), q),
+    // stokes.addBilinear(contractProduct(2 * mu * Eps(u), Eps(v)) - innerProduct(p, div(v)) + innerProduct(div(u), q),
+    //                    Th);
+
+    // stokes.addBilinear(innerProduct(lambdaB * u, v) + innerProduct(p, v * n) - innerProduct(u * n, q) -
+    //                        innerProduct(2. * mu * Eps(u) * n, v) - innerProduct(u, 2. * mu * Eps(v) * n),
+    //                    Th, INTEGRAL_BOUNDARY, {1, 2});
+
+    // stokes.addLinear(innerProduct(f_w.exprList(2), lambdaB * v) - innerProduct(f_w.exprList(2), 2. * mu * Eps(v) * n)
+    // -
+    //                      innerProduct(f_w.exprList(2), p * n),
+    //                  Th, INTEGRAL_BOUNDARY, {1});
+
+    // stokes.addLinear(innerProduct(f_s.exprList(2), lambdaB * v) - innerProduct(f_s.exprList(2), 2. * mu * Eps(v) * n)
+    // -
+    //                      innerProduct(f_s.exprList(2), p * n),
+    //                  Th, INTEGRAL_BOUNDARY, {2});
+
+    stokes.addBilinear(contractProduct(2 * mu * grad(u), grad(v)) - innerProduct(p, div(v)) + innerProduct(div(u), q),
                        Th);
 
     stokes.addBilinear(innerProduct(lambdaB * u, v) + innerProduct(p, v * n) - innerProduct(u * n, q) -
-                           innerProduct(2. * mu * Eps(u) * n, v) - innerProduct(u, 2. * mu * Eps(v) * n),
+                           innerProduct(2. * mu * grad(u) * n, v) - innerProduct(u, 2. * mu * grad(v) * n),
                        Th, INTEGRAL_BOUNDARY, {1, 2});
 
-    stokes.addLinear(innerProduct(f_w.exprList(2), lambdaB * v) - innerProduct(f_w.exprList(2), 2. * mu * Eps(v) * n) -
+    stokes.addLinear(innerProduct(f_w.exprList(2), lambdaB * v) - innerProduct(f_w.exprList(2), 2. * mu * grad(v) * n) -
                          innerProduct(f_w.exprList(2), p * n),
                      Th, INTEGRAL_BOUNDARY, {1});
 
-    stokes.addLinear(innerProduct(f_s.exprList(2), lambdaB * v) - innerProduct(f_s.exprList(2), 2. * mu * Eps(v) * n) -
+    stokes.addLinear(innerProduct(f_s.exprList(2), lambdaB * v) - innerProduct(f_s.exprList(2), 2. * mu * grad(v) * n) -
                          innerProduct(f_s.exprList(2), p * n),
                      Th, INTEGRAL_BOUNDARY, {2});
 

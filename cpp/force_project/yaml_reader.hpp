@@ -65,11 +65,12 @@ class YamlReaderNode {
     /// @param t the constant reference to the yaml node
     /// @param s the name of the node to access
     YamlReaderNode(ryml::ConstNodeRef t, std::string s);
+    explicit YamlReaderNode(ryml::ConstNodeRef t) : yaml_node(t) {}
 
     /// @brief Return a YamlReaderNode of the child s of the current node, if it exist.
     /// Otherwise it will stop the program
     YamlReaderNode operator[](std::string s);
-    ryml::ConstNodeRef operator[](int i) const { return yaml_node[i]; };
+    YamlReaderNode operator[](int i) const { return YamlReaderNode(yaml_node[i]); };
 
     /// @brief Deserialize a value from the yaml node
     /// @tparam T

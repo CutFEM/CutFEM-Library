@@ -146,6 +146,8 @@ void move(const FunFEM<Mesh2> &up, const FunFEM<Mesh2> &betap, const FunFEM<Mesh
 
 void move(const FunFEM<Mesh3> &up, const FunFEM<Mesh3> &betap, const FunFEM<Mesh3> &beta, double dt, FunFEM<Mesh3> &ls);
 
+// std::vector<double> move(const FunFEM<Mesh2> &up, const FunFEM<Mesh2> &betap, const FunFEM<Mesh2> &beta, double dt);
+
 template <typename Mesh>
 void move_2D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mesh> &Beta, double dt, FunFEM<Mesh> &ls) {
     typedef GFESpace<Mesh> FESpace;

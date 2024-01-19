@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
         fct_t gh(Vh), fh(Vh);
 
         // Solve Stokes interface problem
-        auto data_stokes = stokesSolver(Vh, Ph, interface, gh, fh, mu, sigma / rad, delta);
+        auto data_stokes = solver::cutfem::stokes::solve(Vh, Ph, interface, gh, fh, mu, sigma / rad, delta);
 
         // Extract solution
         std::span<double> data_uh{std::span(data_stokes.data(), Vh.get_nb_dof())};

@@ -48,7 +48,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/gnuplot.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
-#include "../time_stuff.hpp"
 #include "projection.hpp"
 #include "../num/matlab.hpp"
 #include "../num/redirectOutput.hpp"
@@ -674,7 +673,7 @@ int main(int argc, char **argv) {
 
 #elif defined(conservative)
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
-            
+
             // Impose initial condition
             if (iter == 0) {
                 convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
@@ -690,7 +689,7 @@ int main(int argc, char **argv) {
 #endif
 
             // Source function
-            //convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
+            // convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
             convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
 
             // Neumann boundary condition
@@ -797,11 +796,10 @@ int main(int argc, char **argv) {
 
             if (iter == 0) {
                 mass_last_previous = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
-                //mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
+                // mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
             }
 
             global_conservation_error += ((mass_last - mass_last_previous) - intF - intG);
-            
 
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
 
