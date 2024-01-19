@@ -188,10 +188,10 @@ template <typename Mesh> MacroElement<Mesh>::MacroElement(const ActiveMesh<Mesh>
 
     findSmallElement();
     if (globalVariable::verbose > 0) {
-        std::cout << " ---  INFO MACRO ELEMENT  --- " << std::endl;
-        std::cout << " Tolerance small element  :\t" << tol << std::endl;
-        std::cout << " Small element in Omega 1 :\t" << nb_element_0 << std::endl;
-        std::cout << " Small element in Omega 2 :\t" << nb_element_1 << std::endl;
+        LOG_INFO << " ---  INFO MACRO ELEMENT  --- " << logger::endl;
+        LOG_INFO << " Tolerance small element  :\t" << tol << logger::endl;
+        LOG_INFO << " Small element in Omega 1 :\t" << nb_element_0 << logger::endl;
+        LOG_INFO << " Small element in Omega 2 :\t" << nb_element_1 << logger::endl;
     }
     createMacroElement();
     setOutterEdgeMacroElement();
@@ -1414,8 +1414,7 @@ template <typename Mesh> int TimeMacroElement2<Mesh>::number_of_inner_edges() {
 
 template <typename Mesh, typename L> class AlgoimMacro : public GMacro {
   public:
-    AlgoimMacro(const ActiveMesh<Mesh> &, const double, L &, const TimeSlab &,
-                const QuadratureFormular1d &);
+    AlgoimMacro(const ActiveMesh<Mesh> &, const double, L &, const TimeSlab &, const QuadratureFormular1d &);
 
     const int get_number_of_stabilized_edges() { return number_of_stabilized_edges; }
 
@@ -1504,13 +1503,15 @@ void AlgoimMacro<Mesh, L>::findSmallElement(const TimeSlab *In, const Quadrature
                 //           << ", area_cut: " << cut_area << ", |K|: " << measure_K << ", cut part %: " << part <<
                 //           "\n";
 
-                assert(0 < cut_area/measure_K && cut_area/measure_K <= 1+1e-10); // make sure cut area is not equal to element area if cut
+                assert(0 < cut_area / measure_K &&
+                       cut_area / measure_K <= 1 + 1e-10); // make sure cut area is not equal to element area if cut
                 is_large = true;
-                
+
             } else if ((cut_area <= tol) && (!Th.isInactive(k, itq))) {
                 // assert(std::fabs(cut_area - measure_K) >
                 //        1e-10); // make sure cut area is not equal to element area if cut
-                assert(0 <= cut_area/measure_K && cut_area/measure_K < 1); // make sure cut area is not equal to element area if cut
+                assert(0 <= cut_area / measure_K &&
+                       cut_area / measure_K < 1); // make sure cut area is not equal to element area if cut
                 is_small = true;
                 // std::cout << "SMALL: kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: " << k
                 //           << ", area_cut: " << cut_area << ", |K|: " << measure_K << ", cut part %: " << part <<
@@ -1518,7 +1519,7 @@ void AlgoimMacro<Mesh, L>::findSmallElement(const TimeSlab *In, const Quadrature
             }
 
             if (Th.isInactive(k, itq)) {
-                
+
                 assert(cut_area == 0); // make sure element is not cut
                 is_inactive = true;
                 // std::cout << "INACTIVE. kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: "

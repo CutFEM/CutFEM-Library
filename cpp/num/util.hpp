@@ -69,6 +69,12 @@ inline byte fsign(double d) { return d > 0. ? 1 : (d < 0. ? -1 : 0); }
 //    return false;
 // }
 
+template <class Container> auto &at(Container &&c, std::size_t pos) {
+    if (pos >= c.size())
+        throw std::out_of_range("out of bounds");
+    return c[pos];
+}
+
 inline bool changeSign(const R *v, int size) {
     R a = v[0];
     for (int i = 1; i < size; ++i) {

@@ -380,6 +380,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF,
     }
     bar.end();
 }
+
 template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, const Mesh &Th, const CFacet &b) {
     assert(VF.isRHS());
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
@@ -466,6 +467,103 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
             typename QFB::QuadraturePoint ip(qfb[ipq]);
             const Rd ip_edge = Ki.mapToReferenceElement((RdHatBord)ip, ifac);
             const Rd mip     = Ki.mapToPhysicalElement(ip_edge);
+            double Cint      = meas * ip.getWeight() * cst_time;
+
+            // EVALUATE THE BASIS FUNCTIONS
+            FKv.BF(Fop, FKv.T.mapToReferenceElement(mip), fv);
+            if (!same)
+                FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
+
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu, kbv), std::make_pair(domain, domain),
+                                                           mip, tid, normal);
+            Cint *= coef * VF[l].c;
+
+            if (In) {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    }
+}
+
+template <typename M>
+void BaseFEM<M>::addFaceContributionMixed(const itemVFlist_t &VF, const std::pair<int, int> &e1,
+                                          const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
+
+    typedef typename FElement::RdHatBord RdHatBord;
+
+    // CHECK IF IT IS FOR RHS OR MATRIX
+    // CONVENTION ki < kj
+    bool to_rhs = VF.isRHS();
+    int kbi = e1.first, ifac = e1.second;
+    int kbj = e2.first, jfac = e2.second;
+    // Compute parameter coonected to the mesh.
+    // on can take the one from the first test function
+
+    // const FESpace &Vh(*VF[0].fespaceV);
+    // const FElement &FKi(Vh[ki]);
+    // const FElement &FKj(Vh[kj]);
+    // const Element &Ki(FKi.T);
+    // const Element &Kj(FKj.T);
+    // double measK = Ki.measure() + Kj.measure();
+    // double meas  = Ki.mesureBord(ifac);
+    // double h     = 0.5 * (Ki.get_h() + Kj.get_h());
+    int domain = 0;
+    // FKi.get_domain();
+    //  Rd normal    = Ki.N(ifac);
+
+    // GET THE QUADRATURE RULE
+    const QFB &qfb(this->get_quadrature_formular_dK());
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for (int l = 0; l < VF.size(); ++l) {
+
+        // FINTE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+
+        const int kfac = VF[l].onWhatElementIsTestFunction(ifac, jfac);
+        const int kbv  = VF[l].onWhatElementIsTestFunction(kbi, kbj);
+        const int kbu  = VF[l].onWhatElementIsTrialFunction(kbi, kbj);
+
+        int kv = Vhv.idxElementFromBackMesh(kbv, 0);
+        int ku = Vhu.idxElementFromBackMesh(kbu, 0);
+
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
+        this->initIndex(FKu, FKv);
+
+        const Element &K(FKv.T);
+        Rd normal   = K.N(kfac);
+        double meas = K.mesureBord(kfac);
+
+        // BF MEMORY MANAGEMENT -
+        bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT
+        // double coef = VF[l].computeCoefElement(h, meas, measK, measK, domain);
+        double coef = VF[l].computeCoefFromNormal(normal);
+
+        // LOOP OVER QUADRATURE IN SPACE
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+            typename QFB::QuadraturePoint ip(qfb[ipq]);
+            const Rd ip_edge = K.mapToReferenceElement((RdHatBord)ip, kfac);
+            const Rd mip     = K.mapToPhysicalElement(ip_edge);
             double Cint      = meas * ip.getWeight() * cst_time;
 
             // EVALUATE THE BASIS FUNCTIONS
@@ -1460,7 +1558,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addLagrangeMultiplier(const itemVFl
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val;
+    this->rhs_.at(ndf) = val;
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 

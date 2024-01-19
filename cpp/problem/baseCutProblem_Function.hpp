@@ -1093,9 +1093,9 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
     std::map<int, double> dof2set;
     const FESpace &Vh(gh.getSpace());
 
-    // Loop through all fitted boundary elements 
-    for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
-         idx_be += cutTh.next_boundary_element()) {
+    // for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
+    //      idx_be += cutTh.next_boundary_element()) {
+    for (int idx_be = 0; idx_be < cutTh.last_boundary_element(); idx_be++) {
 
         int ifac;
         const int kb          = cutTh.Th.BoundaryElement(idx_be, ifac);
@@ -1364,6 +1364,36 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_
     bar.end();
 }
 
+template <typename M> void BaseCutFEM<M>::addFaceStabilizationMixed(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(!VF.isRHS());
+    assert(Th.get_nb_domain() == 1);
+    progress bar("Add Face Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+
+        if (!Th.isCut(k, 0) && !Th.isInactive(k, 0))
+            continue;
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if (kn < k)
+                continue;
+
+            int kb  = Th.idxElementInBackMesh(k);
+            int kbn = Th.idxElementInBackMesh(kn);
+
+            std::pair<int, int> e1 = std::make_pair(kb, ifac);
+            std::pair<int, int> e2 = std::make_pair(kbn, jfac);
+            BaseFEM<M>::addFaceContributionMixed(VF, e1, e2, nullptr, 0, 1.);
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+
 template <typename M>
 void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
 
@@ -1412,7 +1442,7 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
 
 template <typename M> void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
-    progress bar("Add Patch Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
+    progress bar(" Add Patch Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
@@ -1890,7 +1920,7 @@ template <typename M> void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val;
+    this->rhs_.at(ndf) = val;
     progress bar(" Add Lagrange Multiplier Kh", Th.last_element(), globalVariable::verbose);
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
@@ -1910,7 +1940,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val;
+    this->rhs_[ndf] = val;
 
     if (Th.isCut(k, 0))
         BaseCutFEM<M>::addLagrangeContribution(VF, k, nullptr, 0, 1);
@@ -1925,7 +1955,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
 
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val;
+    this->rhs_[ndf] = val;
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
 
         addLagrangeMultiplier(VF, val, Th, In, itq, false);
@@ -1940,7 +1970,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     if (init) {
         ndf++;
         this->rhs_.resize(ndf + 1);
-        this->rhs_(ndf) = val;
+        this->rhs_[ndf] = val;
     }
 
     auto tq    = this->get_quadrature_time(itq);
@@ -2087,7 +2117,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
 
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val;
+    this->rhs_[ndf] = val;
 
     for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
          idx_be += cutTh.next_boundary_element()) {
@@ -2209,7 +2239,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     assert(VF.isRHS());
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val;
+    this->rhs_[ndf] = val;
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
@@ -2295,7 +2325,7 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
                                               const R val_rhs) {
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
-    this->rhs_(ndf) = val_rhs;
+    this->rhs_[ndf] = val_rhs;
 
     this->index_j0_[0] = 0;
     this->index_i0_[0] = 0;

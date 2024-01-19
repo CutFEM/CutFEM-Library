@@ -54,6 +54,8 @@ template <typeMesh M> class InterfaceLevelSet : public Interface<M> {
 
     R measure(int i) const override { return measure(this->faces_[i]); };
 
+    double measure() const { return this->measure_; }
+
   private:
     void make_patch(int label);
 

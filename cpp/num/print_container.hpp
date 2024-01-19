@@ -18,6 +18,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include <iostream>
 #include <map>
+#include <span>
 #include <unordered_map>
 #include <vector>
 

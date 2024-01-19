@@ -47,7 +47,8 @@ template <typename Mesh> class ShapeOfProblem {
 
     // The right hand side vector
     // Can be reassign user should not use it!
-    KN<double> rhs_;
+    // KN<double> rhs_;
+    std::vector<double> rhs_;
 
     // // matrix is on a std::map form
     // Matrix mat_;
@@ -145,12 +146,14 @@ template <typename Mesh> class ShapeOfProblem {
 
     void init(int n) {
         nb_dof_ = n;
-        rhs_.init(nb_dof_);
+        // rhs_.init(nb_dof_);
+        rhs_.resize(nb_dof_);
     }
     void init(int n, int nt) {
         nb_dof_      = n;
         nb_dof_time_ = nt;
-        rhs_.init(nb_dof_);
+        // rhs_.init(nb_dof_);
+        rhs_.resize(nb_dof_);
     }
     // void init_nb_thread(int nn) {
     //   thread_count_max_ = nn;
@@ -168,7 +171,6 @@ template <typename Mesh> class ShapeOfProblem {
     }
 
     // Matrix& get_matrix() {return *(pmat_[0]);}
-    // Rn& get_rhs() {return rhs_;}
     // Rn_ get_solution() {
     //   return Rn_(rhs_(SubArray(nb_dof_,0)));
     // }
@@ -282,7 +284,7 @@ template <typename Mesh> class ShapeOfProblem {
             multiply(A, Pl, mat_[0]);
         }
 
-        Rn x(N, 0.);
+        std::vector<R> x(N, 0.);
 
         multiply(N, N, P, rhs_, x);
 
@@ -292,7 +294,7 @@ template <typename Mesh> class ShapeOfProblem {
     }
     void recoverSolution(std::map<std::pair<int, int>, R> &P) {
         int N = nb_dof_;
-        Rn x(N, 0.);
+        std::vector<R> x(N, 0.);
         multiply(N, N, P, rhs_, x);
         rhs_ = x;
     }
@@ -303,7 +305,7 @@ template <typename Mesh> class ShapeOfProblem {
         SparseMatrixRC<double> A(N, N, mat_[0]);
         multiply(Pl, A, mat_[0]);
 
-        Rn x(N, 0.);
+        std::vector<R> x(N, 0.);
 
         multiply(N, N, P, rhs_, x);
 
@@ -311,7 +313,7 @@ template <typename Mesh> class ShapeOfProblem {
 
         rhs_ = x;
     }
-    void addMatMul(const KN_<R> &uuh) {
+    void addMatMul(std::span<double> uuh) {
         assert(uuh.size() == nb_dof_);
         MatriceMap<double> A(nb_dof_, nb_dof_, mat_[0]);
         A.addMatMul(uuh, rhs_);

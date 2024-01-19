@@ -440,6 +440,7 @@ template <typename Mesh> double integral(const Mesh &Th, const std::shared_ptr<c
 
     return val_receive;
 }
+
 template <typename Mesh> double integral(const Mesh &Th, const FunFEM<Mesh> &fh, int c0) {
     // ExpressionFunFEM<Mesh> ui(fh, c0, op_id);
     std::shared_ptr<const ExpressionVirtual> ui = std::make_shared<ExpressionFunFEM<Mesh>>(fh, c0, op_id);
@@ -502,13 +503,18 @@ template <typename Mesh> double integral(const Mesh &Th, const FunFEM<Mesh> &fh,
 // }
 //
 
+// template <typename M>
+// double integral(const std::shared_ptr<const ExpressionVirtual> &fh, const Interface<M> &interface) {
+//     return integral(fh, interface);
+// }
 template <typename M> double integral(FunFEM<M> &fh, const Interface<M> &interface, int cu) {
-    return integral(fh, interface, cu, -1);
+    return integral(fh.expr(cu), interface);
 }
 template <typename M> double integral(FunFEM<M> &fh, const Interface<M> *interface, int cu) {
-    return integral(fh, *interface, cu, -1);
+    return integral(fh.expr(cu), *interface);
 }
-template <typename M> double integral(FunFEM<M> &fh, const Interface<M> &interface, int cu, double t) {
+template <typename M>
+double integral(const std::shared_ptr<const ExpressionVirtual> &fh, const Interface<M> &interface) {
 
     typedef M Mesh;
     typedef GFESpace<Mesh> FESpace;
@@ -517,13 +523,13 @@ template <typename M> double integral(FunFEM<M> &fh, const Interface<M> &interfa
     typedef typename FElement::Rd Rd;
     typedef typename QFB::QuadraturePoint QuadraturePoint;
 
-    if (t > -globalVariable::Epsilon && fh.In) {
-        assert(fh.In->Pt(0) <= t && t <= fh.In->Pt(1));
-    }
-    if (t < -globalVariable::Epsilon && fh.In) {
-        t = fh.In->Pt(0);
-        std::cout << " Use default value In(0) \t -> " << t << std::endl;
-    }
+    // if (t > -globalVariable::Epsilon && fh.In) {
+    //     assert(fh.In->Pt(0) <= t && t <= fh.In->Pt(1));
+    // }
+    // if (t < -globalVariable::Epsilon && fh.In) {
+    //     t = fh.In->Pt(0);
+    //     std::cout << " Use default value In(0) \t -> " << t << std::endl;
+    // }
 
     const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(5));
     double val = 0.;
@@ -531,6 +537,7 @@ template <typename M> double integral(FunFEM<M> &fh, const Interface<M> &interfa
     for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
         const R meas = interface.measure(iface);
+        const Rd normal(interface.normal(iface));
 
         for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
 
@@ -538,7 +545,44 @@ template <typename M> double integral(FunFEM<M> &fh, const Interface<M> &interfa
             const Rd mip = interface.mapToPhysicalFace(iface, (typename FElement::RdHatBord)ip);
             const R Cint = meas * ip.getWeight();
 
-            val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, cu, 0, 0);
+            val += Cint * fh->evalOnBackMesh(kb, 0, mip, normal);
+        }
+    }
+
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
+template <typename M> double integral(const Interface<M> &interface, double C) {
+
+    typedef M Mesh;
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QFB QFB;
+    typedef typename FElement::Rd Rd;
+    typedef typename QFB::QuadraturePoint QuadraturePoint;
+
+    const QFB &qfb(*QF_Simplex<typename FElement::RdHatBord>(2));
+    double val = 0.;
+
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
+        const int kb = interface.idxElementOfFace(iface); // idx on backMesh
+        const R meas = interface.measure(iface);
+        const Rd normal(interface.normal(iface));
+
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+
+            QuadraturePoint ip(qfb[ipq]); // integration point
+            const Rd mip = interface.mapToPhysicalFace(iface, (typename FElement::RdHatBord)ip);
+            const R Cint = meas * ip.getWeight();
+
+            val += Cint * C;
         }
     }
 

@@ -153,8 +153,6 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addToMatrix(const itemVF_t &VFi, const FElement &FKv, const RNMK_ &fv, double Cint);
     void addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FElement &FKv, const RNMK_ &fv, double Cint);
 
-    
-
     void addToRHS(const itemVF_t &VF, const FElement &FKv, const RNMK_ &fv, double Cint);
     void addToRHS(const itemVF_t &VF, const TimeSlab &In, const FElement &FKv, const RNMK_ &fv, double Cint);
 
@@ -173,12 +171,14 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addLinear(const itemVFlist_t &VF, const Mesh &, const CFacet &b);
     void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1, const std::pair<int, int> &e2,
                              const TimeSlab *In, int itq, double cst_time);
-    void addFaceContributionSpecial(const itemVFlist_t &VF, const std::pair<int, int> &e1, const std::pair<int, int> &e2,
-                             const TimeSlab *In, int itq, double cst_time);
+    void addFaceContributionMixed(const itemVFlist_t &VF, const std::pair<int, int> &e1, const std::pair<int, int> &e2,
+                                  const TimeSlab *In, int itq, double cst_time);
+    void addFaceContributionSpecial(const itemVFlist_t &VF, const std::pair<int, int> &e1,
+                                    const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time);
 
     // integral on patches
-    void addPatchContribution(const itemVFlist_t &VF, const int k, const int kn,
-                             const TimeSlab *In, int itq, double cst_time);
+    void addPatchContribution(const itemVFlist_t &VF, const int k, const int kn, const TimeSlab *In, int itq,
+                              double cst_time);
 
     // integral on boundary
     void addBilinear(const itemVFlist_t &VF, const Mesh &, const CBorder &b, std::list<int> label = {});

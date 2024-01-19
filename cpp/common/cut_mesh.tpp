@@ -924,10 +924,12 @@ Cut_Part<typename ActiveMesh<Mesh>::Element> ActiveMesh<Mesh>::get_cut_part(int 
         // and the local index of the interface
         return Cut_Part<typename ActiveMesh<Mesh>::Element>(it->second.at(0).first->get_partition(kb),
                                                             it->second.at(0).second);
-    else
+    else {
+        std::cout << it->second.size() << std::endl;
         // return the partition of the element k in the time t
         // and the local index of the interface
         return Cut_Part<typename ActiveMesh<Mesh>::Element>(this->build_local_partition(k), 0);
+    }
 }
 
 /**

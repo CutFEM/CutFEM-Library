@@ -883,9 +883,11 @@ int main(int argc, char **argv) {
 
         darcy.solve("umfpack");
         // EXTRACT SOLUTION
-        int idx0_s  = Wh.get_nb_dof();
-        Rn_ data_uh = darcy.rhs_(SubArray(Wh.get_nb_dof(), 0));
-        Rn_ data_ph = darcy.rhs_(SubArray(Ph.get_nb_dof(), idx0_s));
+        int idx0_s = Wh.get_nb_dof();
+        // Rn_ data_uh = darcy.rhs_(SubArray(Wh.get_nb_dof(), 0));
+        std::span<double> data_uh(std::span<double>(darcy.rhs_.data(), Wh.get_nb_dof()));
+        // Rn_ data_ph = darcy.rhs_(SubArray(Ph.get_nb_dof(), idx0_s));
+        std::span<double> data_ph(std::span<double>(darcy.rhs_.data() + idx0_s, Ph.get_nb_dof()));
         Fun_h uh(Wh, data_uh);
         Fun_h ph(Ph, data_ph);
         auto femSol_0dx = dx(uh.expr(0));

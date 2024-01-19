@@ -48,7 +48,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/gnuplot.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
-#include "../time_stuff.hpp"
 #include "projection.hpp"
 #include "../num/matlab.hpp"
 #include "../num/redirectOutput.hpp"
@@ -1457,6 +1456,7 @@ int main(int argc, char **argv) {
 
 #elif defined(conservative)
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
+
 
             // Impose initial condition
             if (iter == 0) {

@@ -340,11 +340,11 @@ int main(int argc, char **argv) {
 
                 // Add multipliers in first and last time quadrature point
                 for (int itq = 0; itq < 2; ++itq) {
-                    lagrange.rhs_ = 0.;
-                    lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
+                    std::fill(lagrange.rhs_.begin(),lagrange.rhs_.end(),0.);   
+                                     lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
                     lag_row       = lagrange.rhs_;
-                    lagrange.rhs_ = 0.;
-                    lagrange.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq * last_quad_time, In);
+                    std::fill(lagrange.rhs_.begin(),lagrange.rhs_.end(),0.); 
+                                       lagrange.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq * last_quad_time, In);
                     // lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
                     navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagrange.rhs_, 0);
                 }
@@ -371,7 +371,9 @@ int main(int argc, char **argv) {
                                [](double a, double b) { return a - b; });
 
                 navier_stokes.rhs_.resize(navier_stokes.get_nb_dof());
-                navier_stokes.rhs_ = 0.0;
+                       std::fill(navier_stokes.rhs_.begin(),navier_stokes.rhs_.end(),0.); 
+                
+
 
                 newton_iterations += 1;
 

@@ -196,10 +196,12 @@ class MPIcf {
     // static inline long Bcast(T &a, int who); {return WBcast(&a, 1,
     // who,Communicator_);}
     template <typename T> static inline long Bcast(const KN<T> &a, int who);
+    template <typename T> static inline long Bcast(const std::span<T> a, int who);
     template <typename T> static inline long Bcast(const KN<T> &a, int who, const MPI_Comm &comm);
 
     template <typename T> static inline void Reduce(const T &, T &, int, const MPI_Op &, int);
     template <typename T> static inline void Reduce(const KN<T> &, KN<T> &, const MPI_Op &, int);
+    template <typename T> static inline void Reduce(std::span<T>, std::span<T>, const MPI_Op &, int);
 
     template <typename T> static inline void AllReduce(const T &, T &, const MPI_Op &);
     template <typename T> static inline void AllReduce(const T &, T &, int, const MPI_Op &);

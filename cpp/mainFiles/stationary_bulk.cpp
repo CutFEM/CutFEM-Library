@@ -12,7 +12,6 @@
 #include "../num/gnuplot.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
-#include "../time_stuff.hpp"
 #include "projection.hpp"
 #include "../num/matlab.hpp"
 #include "../num/redirectOutput.hpp"
@@ -378,7 +377,7 @@ int main(int argc, char **argv) {
 
 #if defined(algoim)
         AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi, option);
-        //AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi);
+        // AlgoimCutFEM<Mesh, Levelset<2>> convdiff(Wh, phi);
 #elif defined(triangle) || defined(quad)
         CutFEM<Mesh> convdiff(Wh);
 #endif
@@ -398,9 +397,10 @@ int main(int argc, char **argv) {
         FunTest u(Wh, 1), v(Wh, 1);
 
         // Data for initial solution
-        Rn data_u0(convdiff.get_nb_dof(), 0.);                  // initial data total
-        KN_<R> data_B0(convdiff.rhs_(SubArray(Wh.NbDoF(), 0))); // data bulk
+        Rn data_u0(convdiff.get_nb_dof(), 0.); // initial data total
 
+        // KN_<R> data_B0(convdiff.rhs_(SubArray(Wh.NbDoF(), 0))); // data bulk
+        std::span<double> data_B0(std::span<double>(convdiff.rhs_.data(), Wh.NbDoF()));
         // Make function objects to use in innerProducts
         Fun_h b0h(Wh, data_B0);
 
@@ -424,15 +424,13 @@ int main(int argc, char **argv) {
 #elif defined(k2)
         // convdiff.addFaceStabilization(
         //     innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n))
-        //      + innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)) 
-        //         //+ innerProduct(h * h * h * h * h * tau1 * jump(grad(grad(grad(u) * n) * n) * n), jump(grad(grad(grad(v) * n) * n) * n))
-        //         , Thi);
+        //      + innerProduct(h * h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+        //         //+ innerProduct(h * h * h * h * h * tau1 * jump(grad(grad(grad(u) * n) * n) * n),
+        //         jump(grad(grad(grad(v) * n) * n) * n)) , Thi);
 
-        const double tau = 0.1; 
-        
-        convdiff.addPatchStabilization(
-            innerProduct(tau/h/h*jump(u), jump(v))
-            , Thi);
+        const double tau = 0.1;
+
+        convdiff.addPatchStabilization(innerProduct(tau / h / h * jump(u), jump(v)), Thi);
 #endif
 
         //* Boundary conditions
@@ -441,7 +439,7 @@ int main(int argc, char **argv) {
 
         // Neumann (won't work if we solve on Omega2, since then the solution is not unique)
         convdiff.addLinear(innerProduct(g_Neumann.expr(), v), interface);
-        
+
         // // Dirichlet
         // convdiff.addBilinear(-innerProduct(D * grad(u) * n, v)      // from IBP
         //                          - innerProduct(u, D * grad(v) * n) // added to make symmetric
@@ -468,8 +466,7 @@ int main(int argc, char **argv) {
         convdiff.addLinear(-innerProduct(g.expr(), D * grad(v) * n) + innerProduct(g.expr(), lambda / h * v), Thi,
                            INTEGRAL_BOUNDARY);
 
-        matlab::Export(convdiff.mat_[0], path_output_data + "mat_" +
-                                             std::to_string(j + 1) + ".dat");
+        matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
         // matlab::Export(convdiff.mat_[0], "mat_P1.dat");
 
         // Solve linear system

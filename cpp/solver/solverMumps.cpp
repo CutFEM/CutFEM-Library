@@ -18,7 +18,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #define ICNTL(I) icntl[(I)-1]
 #define INFO(I) info[(I)-1]
 
-MUMPS::MUMPS(const Solver &s, matmap &AA, Rn &bb)
+MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
     : // verbose(s.verbose),
       //   reordering(s.reordering),
       mat(AA), rhs(bb), cleanMatrix(s.clearMatrix_) {
@@ -60,7 +60,7 @@ void MUMPS::initializeSetting() {
    //-------------------------------------------------------
    mumps_par.ICNTL(5)  = 0;
    //    setFormatMatrix();
-   mumps_par.ICNTL(18) = 3; // 3;
+   mumps_par.ICNTL(18) = 0; // 3;
 
    // Pre-treatment of the matrix (permutation, ordering)
    // 7 : automatic choice
@@ -94,7 +94,7 @@ void MUMPS::saveMatrixToCSR() {
    //-------------------------------------------------------
    IRN_loc.init(mumps_par.nz_loc);
    JCN_loc.init(mumps_par.nz_loc);
-   A_loc.init(mumps_par.nz_loc);
+   A_loc.resize(mumps_par.nz_loc);
 
    int k = 0;
    for (std::map<std::pair<int, int>, R>::const_iterator q = mat.begin();
@@ -104,7 +104,7 @@ void MUMPS::saveMatrixToCSR() {
       // JCN_loc(k) = mapp->iperm(q->first.second) + 1;
       IRN_loc(k) = q->first.first + 1;
       JCN_loc(k) = q->first.second + 1;
-      A_loc(k)   = q->second;
+      A_loc[k]   = q->second;
    }
    if (cleanMatrix)
       mat.clear();
@@ -115,12 +115,12 @@ void MUMPS::saveMatrixToCSR() {
 
    mumps_par.irn = IRN_loc;
    mumps_par.jcn = JCN_loc;
-   mumps_par.a   = A_loc;
+   mumps_par.a   = A_loc.data();
 
    // Construction of the right hand side
    // The full rhs is saved on the root.
    //-------------------------------------------------------
-   mumps_par.rhs = rhs;
+   mumps_par.rhs = rhs.data();
 }
 
 void MUMPS::analyzeMatrix() {

@@ -230,11 +230,11 @@ template <typeMesh M> struct ItemVF {
         // f << " FESpaces => " << u.fespaceU << " and " << u.fespaceV << "\t";
         f << u.c << "\t" << whichOperator(u.dtu) << whichOperator(u.du, u.cu);
         for (int i = 0; i < u.ar_nu.size(); ++i)
-            f << " * " << n[u.ar_nu(i)];
+            f << " * " << n[u.ar_nu[i]];
         // for(int i=0;i<u.coefu.size();++i) f << " * " << u.coefu[i];
         f << " * " << whichOperator(u.dtv) << whichOperatorV(u.dv, u.cv);
         for (int i = 0; i < u.ar_nv.size(); ++i)
-            f << " * " << n[u.ar_nv(i)];
+            f << " * " << n[u.ar_nv[i]];
         // for(int i=0;i<u.coefv.size();++i) f << " * " << u.coefv[i];
         if (u.face_sideU_ == u.face_sideV_ && u.face_sideU_ != -1)
             f << "\t in Omega_" << u.face_sideU_ + 1;
@@ -470,11 +470,12 @@ template <typeMesh mesh_t> ListItemVF<mesh_t> operator,(const R c, const TestFun
                 item(k).face_sideU_ = v.face_side_;
                 item(k).face_sideV_ = v.face_side_;
                 item(k).domainU_id_ = v.domain_id_;
-                item(k).domainV_id_ = v.domain_id_, item(k).coefv = v.coefu;
-                item(k).dtu      = -1;
-                item(k).dtv      = v.dtu;
-                item(k).expru    = v.expru;
-                item(k).fespaceV = v.fespace;
+                item(k).domainV_id_ = v.domain_id_;
+                item(k).coefv       = v.coefu;
+                item(k).dtu         = -1;
+                item(k).dtv         = v.dtu;
+                item(k).expru       = v.expru;
+                item(k).fespaceV    = v.fespace;
                 k++;
             }
         }
@@ -625,7 +626,7 @@ template <typeMesh mesh_t> ListItemVF<mesh_t> operator,(const ExpressionAverage 
 }
 
 template <typeMesh mesh_t, typename Expr>
-ListItemVF<mesh_t> operator,(const std::list<std::shared_ptr<Expr>> &fh, const TestFunction<mesh_t> &F) {
+ListItemVF<mesh_t> operator,(const std::vector<std::shared_ptr<Expr>> &fh, const TestFunction<mesh_t> &F) {
     if (F.nbRow() != fh.size()) {
         std::cout << "size expression \t" << fh.size() << std::endl;
         std::cout << "size test function \t" << F.nbRow() << std::endl;
@@ -640,8 +641,7 @@ ListItemVF<mesh_t> operator,(const std::list<std::shared_ptr<Expr>> &fh, const T
 
     ListItemVF<mesh_t> item(l);
     int k = 0, kloc = 0;
-    auto it = fh.begin();
-    for (int i = 0; i < F.nbRow(); ++i, ++it) {
+    for (int i = 0; i < F.nbRow(); ++i) {
         for (int j = 0; j < F.nbCol(); ++j) {
             for (int ui = 0; ui < F(i, j).size(); ++ui) {
                 const ItemTestFunction<mesh_t> &v(F(i, j).getItem(ui));
@@ -653,7 +653,7 @@ ListItemVF<mesh_t> operator,(const std::list<std::shared_ptr<Expr>> &fh, const T
                 item(k).coefv       = v.coefu;
                 item(k).dtu         = 0;
                 item(k).dtv         = v.dtu;
-                item(k).expru       = *it;
+                item(k).expru       = fh[i];
                 item(k).exprv       = v.expru;
                 item(k).fespaceV    = v.fespace;
 
@@ -670,7 +670,7 @@ ListItemVF<mesh_t> operator,(const std::list<std::shared_ptr<Expr>> &fh, const T
 template <typeMesh mesh_t>
 ListItemVF<mesh_t> innerProduct(const std::shared_ptr<ExpressionVirtual> &fh, const TestFunction<mesh_t> &F) {
 
-    std::list<std::shared_ptr<ExpressionVirtual>> l;
+    std::vector<std::shared_ptr<ExpressionVirtual>> l;
     l.push_back(fh);
     return (l, F);
 }
@@ -684,7 +684,7 @@ template <typeMesh mesh_t> ListItemVF<mesh_t> innerProduct(double c, const TestF
 }
 
 template <typeMesh mesh_t, typename Expr>
-ListItemVF<mesh_t> innerProduct(const std::list<std::shared_ptr<Expr>> &fh, const TestFunction<mesh_t> &F) {
+ListItemVF<mesh_t> innerProduct(const std::vector<std::shared_ptr<Expr>> &fh, const TestFunction<mesh_t> &F) {
     return operator,(fh, F);
 }
 

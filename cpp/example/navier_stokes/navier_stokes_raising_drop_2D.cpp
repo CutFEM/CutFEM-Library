@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     int thread_count = 1;
     double cpubegin  = MPIcf::Wtime();
 
-    Logger::initialize("log_navier_Stokes.txt");
+    CutFEMLogger::initialize("log_navier_Stokes.txt");
 
     // MESH DEFINITION
     // ---------------------------------------------
@@ -188,6 +188,7 @@ int main(int argc, char **argv) {
     LOG_INFO << " ------------------------------------" << logger::endl;
     LOG_INFO << " Interpolate the velocity " << logger::endl;
     std::vector<fct_t> vel(nb_quad_time);
+
     for (int i = 0; i < nb_quad_time; ++i)
         vel[i].init(Vh, fun_boundary);
 
@@ -197,10 +198,13 @@ int main(int argc, char **argv) {
     LOG_INFO << " Create interface and levelSet " << logger::endl;
     TimeInterface<mesh_t> interface(qTime);
     double dt_levelSet = dT / (nb_quad_time - 1);
-    std::vector<fct_t> ls_k(nb_quad_time), ls(nb_quad_time);
+    std::vector<std::vector<double>> ls_data(nb_quad_time);
+    std::vector<fct_t> ls;
 
-    for (int i = 0; i < nb_quad_time; ++i)
-        ls[i].init(Lh, fun_levelSet);
+    for (int i = 0; i < nb_quad_time; ++i) {
+        interpolate(Lh, ls_data[i], fun_levelSet);
+        ls.push_back(fct_t(Lh, ls_data[i]));
+    }
 
     //   projection(ls_k[0], ls[nbTime-1]);
     //   levelSet.setStrongBC({2,4});
@@ -259,7 +263,9 @@ int main(int argc, char **argv) {
 
                 interface.init(i, Kh, ls[i]);
                 if (i < nb_quad_time - 1) {
-                    LevelSet::move(ls[i], vel[last_quad_time], vel[last_quad_time], dt_levelSet, ls[i + 1]);
+                    ls_data[i + 1] = solver::fem::advection::streamline_diffusion::solve(
+                        ls[i], vel[last_quad_time], vel[last_quad_time], dt_levelSet);
+                    // LevelSet::move(ls[i], vel[last_quad_time], vel[last_quad_time], dt_levelSet);
                 }
             }
             LOG_INFO << " Time moving interface : \t" << MPIcf::Wtime() - t0 << logger::endl;
@@ -363,12 +369,11 @@ int main(int argc, char **argv) {
                 cutmesh_t cutTh(Kh);
                 cutTh.createSurfaceMesh(*interface[i]);
                 cutspace_t cutVh(cutTh, Vh1);
-                Curvature<mesh_t> curvature(cutVh, interface[i]);
 
-                auto tq    = qTime(i);
-                double tid = (double)In.map(tq);
+                auto tq     = qTime(i);
+                double tid  = (double)In.map(tq);
+                auto data_H = solver::cutfem::curvature::solve(cutVh, interface[i]);
 
-                auto data_H = curvature.solve();
                 fct_t H(cutVh, data_H);
                 stokes.addLinear(-sigma * innerProduct(H.exprList(), average(v, kappa2)), interface, In, i);
 
@@ -451,7 +456,8 @@ int main(int argc, char **argv) {
                            [](double a, double b) { return a - b; });
 
             stokes.rhs_.resize(stokes.get_nb_dof());
-            stokes.rhs_ = 0.0;
+            // stokes.rhs_ = 0.0;
+            std::fill(stokes.rhs_.begin(), stokes.rhs_.end(), 0.0);
 
             iterNewton += 1;
 
@@ -517,7 +523,8 @@ int main(int argc, char **argv) {
         LOG_INFO << " Set Velocity " << logger::endl;
         for (int i = 0; i < nb_quad_time; ++i) {
             fct_t sol(Wh, In, data_uh);
-            set_velocity(sol, vel[i], ls[i], In.map(qTime[i]));
+
+            interpolateOnBackGroundMesh(sol, vel[i], ls[i], In.map(qTime[i]));
         }
 
         //  -----------------------------------------------------

@@ -30,14 +30,16 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "solverMumps.hpp"
 #endif
 
-void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
+// void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
+void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
 
     double tsolver = this->get_Time();
 
 #ifndef USE_MUMPS
     if (solver_name_ == "mumps") {
-        std::cout << " MUMPS not linked" << std::endl;
-        exit(EXIT_FAILURE);
+        solver_name_ = "umfpack";
+        // std::cout << " MUMPS not linked" << std::endl;
+        // exit(EXIT_FAILURE);
     }
 #endif
 #ifndef USE_UMFPACK
@@ -46,18 +48,18 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
         exit(EXIT_FAILURE);
     }
 #endif
-#ifdef USE_MUMPS
-    if (solver_name_ == "mumps") {
-        if (!MPIcf::isInitialized()) {
-            std::cout << " cannot use mumps, mpi is not initialized" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-#ifndef USE_MPI
-        std::cout << " You need to compile using MPI to be able to use MUMPS" << std::endl;
-        exit(EXIT_FAILURE);
-#endif
-    }
-#endif
+// #ifdef USE_MUMPS
+//     if (solver_name_ == "mumps") {
+//         if (!MPIcf::isInitialized()) {
+//             std::cout << " cannot use mumps, mpi is not initialized" << std::endl;
+//             exit(EXIT_FAILURE);
+//         }
+// #ifndef USE_MPI
+//         std::cout << " You need to compile using MPI to be able to use MUMPS" << std::endl;
+//         exit(EXIT_FAILURE);
+// #endif
+//     }
+// #endif
 
     if (solver_name_ == "default") {
 #ifdef USE_MUMPS
@@ -90,9 +92,11 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 
 namespace solver {
 #ifdef USE_UMFPACK
-void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
+// void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
+void umfpack(std::map<std::pair<int, int>, R> &Amap, std::span<double> b, bool clearMatrix) {
+
     const int n = b.size();
-    KN<double> x(n);
+    std::vector<double> x(n);
     SparseMatrixRC<double> A(n, n, Amap);
     if (clearMatrix)
         Amap.clear();
@@ -100,9 +104,11 @@ void umfpack(std::map<std::pair<int, int>, R> &Amap, Rn &b, bool clearMatrix) {
     (void)umfpack_di_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
     (void)umfpack_di_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
     umfpack_di_free_symbolic(&Symbolic);
-    (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x, b, Numeric, 0, 0);
+    (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x.data(), b.data(), Numeric, 0, 0);
     umfpack_di_free_numeric(&Numeric);
-    b = x;
+
+    std::copy(x.begin(), x.end(), b.begin());
+    // b = x;
 }
 #endif
 

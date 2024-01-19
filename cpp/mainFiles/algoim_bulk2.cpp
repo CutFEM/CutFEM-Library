@@ -56,7 +56,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/gnuplot.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
-#include "../time_stuff.hpp"
 #include "projection.hpp"
 #include "../num/matlab.hpp"
 #include "../num/redirectOutput.hpp"
@@ -1229,7 +1228,7 @@ int main(int argc, char **argv) {
             convdiff.addLinear(-innerProduct(g_Neumann.expr(), v), interface,
                                In); // note the negative sign because of the changed interface normal
 
-                                    //* Neumann on outer and Dirichlet on inner
+            //* Neumann on outer and Dirichlet on inner
 #elif defined(neumann1) && defined(dirichlet2)
             // Neumann outer
 

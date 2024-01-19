@@ -31,7 +31,6 @@
 #include "../num/gnuplot.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
-#include "../time_stuff.hpp"
 #include "projection.hpp"
 // #include "../util/redirectOutput.hpp"
 #include "../num/matlab.hpp"

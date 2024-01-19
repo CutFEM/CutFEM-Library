@@ -56,7 +56,6 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/gnuplot.hpp"
 #include "levelSet.hpp"
 #include "baseProblem.hpp"
-#include "../time_stuff.hpp"
 #include "projection.hpp"
 #include "../num/matlab.hpp"
 #include "../num/redirectOutput.hpp"
@@ -542,8 +541,8 @@ int main(int argc, char **argv) {
     std::array<double, iterations> errors;                  // array to hold bulk errors
     std::array<int, iterations> number_of_stabilized_edges; // array to count stabilized edges
     std::array<double, iterations> hs;                      // array to hold mesh sizes
-    std::array<double, iterations> nxs;                      // array to hold mesh sizes
-    std::array<double, iterations> nys;                      // array to hold mesh sizes
+    std::array<double, iterations> nxs;                     // array to hold mesh sizes
+    std::array<double, iterations> nys;                     // array to hold mesh sizes
     std::array<double, iterations> dts;
 
     // Iterate over mesh sizes
@@ -584,8 +583,8 @@ int main(int argc, char **argv) {
         time_step = dT;
 
         hs.at(j)  = h;
-        nxs.at(j)  = nx;
-        nys.at(j)  = ny;
+        nxs.at(j) = nx;
+        nys.at(j) = ny;
         dts.at(j) = dT;
 
         if (iterations > 1) {
@@ -1143,7 +1142,6 @@ int main(int argc, char **argv) {
         }
     }
     std::cout << "]" << '\n';
-
 
     std::cout << '\n';
 

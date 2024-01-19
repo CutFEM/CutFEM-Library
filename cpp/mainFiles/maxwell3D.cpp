@@ -281,12 +281,16 @@ int main(int argc, char **argv) {
 
         int nb_flux_dof = Vh.get_nb_dof();
 
-        Rn_ data_wh = maxwell3D.rhs_(SubArray(nb_vort_dof, 0));
+        std::span<double> data_wh{std::span(maxwell3D.rhs_.data(), Vh.get_nb_dof())};
+        // Rn_ data_wh = maxwell3D.rhs_(SubArray(nb_vort_dof, 0));
 
-        Rn_ data_uh = maxwell3D.rhs_(SubArray(
-            nb_flux_dof, nb_vort_dof)); // Rn_ data_uh = stokes.rhs_(SubArray(nb_vort_dof+nb_flux_dof,nb_vort_dof));
+        // Rn_ data_uh = maxwell3D.rhs_(SubArray(nb_flux_dof, nb_vort_dof));
+        std::span<double> data_uh(std::span<double>(maxwell3D.rhs_.data() + nb_vort_dof, nb_flux_dof));
+        // Rn_ data_uh = stokes.rhs_(SubArray(nb_vort_dof+nb_flux_dof,nb_vort_dof));
 
-        Rn_ data_ph = maxwell3D.rhs_(SubArray(Wh.get_nb_dof(), nb_vort_dof + nb_flux_dof)); //
+        // Rn_ data_ph = maxwell3D.rhs_(SubArray(Wh.get_nb_dof(), nb_vort_dof + nb_flux_dof)); //
+        std::span<double> data_ph(
+            std::span<double>(maxwell3D.rhs_.data() + nb_vort_dof + nb_flux_dof, Wh.get_nb_dof()));
 
         Fun_h wh(Uh, data_wh);
 

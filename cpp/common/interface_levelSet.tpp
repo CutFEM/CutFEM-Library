@@ -107,6 +107,7 @@ template <typeMesh M> void InterfaceLevelSet<M>::make_patch(int label) {
     this->element_of_face_.resize(0);
     this->outward_normal_.resize(0);
     this->face_of_element_.clear();
+    this->measure_ = 0.;
 
     const M &Th = *(this->backMesh);
     util::copy_levelset_sign(ls_, ls_sign);
@@ -133,8 +134,12 @@ template <typeMesh M> void InterfaceLevelSet<M>::make_patch(int label) {
             this->faces_.push_back(make_face(*it, K, loc_ls, label));
             this->element_of_face_.push_back(k);
             this->outward_normal_.push_back(make_normal(K, loc_ls));
+            this->measure_ += measure(this->faces_.back());
         }
     }
+
+    LOG_INFO << " Interface info :"
+             << "\n\t * measure " << this->measure_ << "\n\t * nb faces " << this->faces_.size() << logger::endl;
 }
 
 template <typeMesh M>
