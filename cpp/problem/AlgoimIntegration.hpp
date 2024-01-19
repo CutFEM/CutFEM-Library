@@ -6,11 +6,11 @@
 
 #include "../common/AlgoimInterface.hpp"
 
-const int quadrature_order = 14;
+const int quadrature_order_integration = 14;
 
 template <typename Mesh, typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(const R2, int i),
-                         const Interface<Mesh> &interface, L &phi, const int order_space = quadrature_order) {
+                         const Interface<Mesh> &interface, L &phi, const int order_space = quadrature_order_integration) {
 
     using fespace_t = GFESpace<Mesh>;
     using FElement  = typename fespace_t::FElement;
@@ -40,8 +40,8 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
         algoim::QuadratureRule<2> q =
             algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, order_space);
 
-        // assert((q.nodes.size() == 1 * quadrature_order) ||
-        //    (q.nodes.size() == 2 * quadrature_order));
+        // assert((q.nodes.size() == 1 * quadrature_order_integration) ||
+        //    (q.nodes.size() == 2 * quadrature_order_integration));
         assert(q.nodes.size() != 0);
         assert((order_space <= q.nodes.size()) || (q.nodes.size() <= 2 * order_space));
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
@@ -66,7 +66,7 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
 
 template <typename Mesh, typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(const R2, int i, double t),
-                         const Interface<Mesh> &interface, double tt, L &phi, const int order_space = quadrature_order) {
+                         const Interface<Mesh> &interface, double tt, L &phi, const int order_space = quadrature_order_integration) {
 
     using fespace_t = GFESpace<Mesh>;
     using FElement  = typename fespace_t::FElement;
@@ -98,8 +98,8 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
         algoim::QuadratureRule<2> q =
             algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, order_space);
 
-        // assert((q.nodes.size() == 1 * quadrature_order) ||
-        //    (q.nodes.size() == 2 * quadrature_order));
+        // assert((q.nodes.size() == 1 * quadrature_order_integration) ||
+        //    (q.nodes.size() == 2 * quadrature_order_integration));
         assert((order_space <= q.nodes.size()) || (q.nodes.size() <= 2 * order_space));
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
@@ -123,7 +123,7 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
 
 template <typename Mesh, typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, double t),
-                         const Interface<Mesh> &interface, double tt, L &phi, const int order_space = quadrature_order) {
+                         const Interface<Mesh> &interface, double tt, L &phi, const int order_space = quadrature_order_integration) {
 
     using fespace_t = GFESpace<Mesh>;
     using FElement  = typename fespace_t::FElement;
@@ -178,7 +178,7 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(do
 
 template <typename Mesh, typename L>
 double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(const R2, int i), const Interface<Mesh> &interface, L &phi,
-                       int c0, int num_comp, const int order_space = quadrature_order) {
+                       int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -190,7 +190,7 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(const R2, int i), const In
 
 template <typename Mesh, typename L>
 double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(const R2, int i, double t), const Interface<Mesh> &interface,
-                       double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order) {
+                       double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -202,7 +202,7 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(const R2, int i, double t)
 
 template <typename Mesh, typename L>
 double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t), const Interface<Mesh> &interface,
-                       double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order) {
+                       double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
@@ -215,7 +215,7 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t)
 // L2(In x Omega)
 template <typename L, typename fct_t>
 double L2_norm_surf_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInterface<MeshQuad2> &gamma, const TimeSlab &In,
-                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order) {
+                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
@@ -282,7 +282,7 @@ double L2_norm_surf_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInt
 // L2(In x Omega)
 template <typename L, typename fct_t>
 double L2_norm_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
-                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order) {
+                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
@@ -352,7 +352,7 @@ double L2_norm_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<M
 // Time-dependent bulk L2 norm
 template <typename Mesh, typename L>
 double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, double tt), const TimeSlab &In,
-                   const QuadratureFormular1d &qTime, const int itq, L &phi, int c0, int num_comp, const int order_space = quadrature_order) {
+                   const QuadratureFormular1d &qTime, const int itq, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
     const GFESpace<Mesh> &Vh(*fh.Vh);
     const ActiveMesh<Mesh> &Th(Vh.get_mesh());
@@ -367,7 +367,7 @@ double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, doub
 template <typename M, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
                      const ActiveMesh<M> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime, const int itq,
-                     L &phi, const int order_space = quadrature_order) {
+                     L &phi, const int order_space = quadrature_order_integration) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
@@ -379,7 +379,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 template <typename Mesh, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
                      int domain, const ActiveMesh<Mesh> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime,
-                     const int itq, L &phi, const int order_space = quadrature_order) {
+                     const int itq, L &phi, const int order_space = quadrature_order_integration) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename ActiveMesh<Mesh>::Element Element;
@@ -441,7 +441,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 
 // Stationary bulk L2 norm
 template <typename Mesh, typename L>
-double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom), L &phi, int c0, int num_comp, const int order_space = quadrature_order) {
+double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom), L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
     const GFESpace<Mesh> &Vh(*fh.Vh);
     const ActiveMesh<Mesh> &Th(Vh.get_mesh());
@@ -455,7 +455,7 @@ double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom), L &
 
 template <typename M, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom),
-                     const ActiveMesh<M> &Th, L &phi, const int order_space = quadrature_order) {
+                     const ActiveMesh<M> &Th, L &phi, const int order_space = quadrature_order_integration) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
@@ -466,7 +466,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 
 template <typename Mesh, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom), int domain,
-                     const ActiveMesh<Mesh> &Th, L &phi, const int order_space = quadrature_order) {
+                     const ActiveMesh<Mesh> &Th, L &phi, const int order_space = quadrature_order_integration) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename ActiveMesh<Mesh>::Element Element;
@@ -523,7 +523,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 }
 
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const int order_space = quadrature_order) {
+double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const int order_space = quadrature_order_integration) {
 
     using mesh_t        = MeshQuad2;
     using fespace_t     = GFESpace<mesh_t>;
@@ -577,7 +577,7 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
 }
 
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const double t, const int order_space = quadrature_order) {
+double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const double t, const int order_space = quadrature_order_integration) {
 
     using mesh_t        = MeshQuad2;
     using fespace_t     = GFESpace<mesh_t>;
@@ -634,7 +634,7 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
 
 template <typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order) {
+                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
 
     using mesh_t        = MeshQuad2;
     using fespace_t     = GFESpace<mesh_t>;
@@ -706,7 +706,7 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
  * @return double
  */
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c0, const int order_space = quadrature_order) {
+double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c0, const int order_space = quadrature_order_integration) {
 
     assert(Th.get_nb_domain() == 1);
 
@@ -782,7 +782,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c
  */
 template <typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int order_space = quadrature_order) {
+                       const QuadratureFormular1d &qTime, const int order_space = quadrature_order_integration) {
 
     const int number_of_domains = Th.get_nb_domain();
     double val                  = 0.;
@@ -796,7 +796,7 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
 
 template <typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi,
-                       const TimeSlab &In, const QuadratureFormular1d &qTime, const int order_space = quadrature_order) {
+                       const TimeSlab &In, const QuadratureFormular1d &qTime, const int order_space = quadrature_order_integration) {
 
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
@@ -881,7 +881,7 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
  */
 template <typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order) {
+                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
 
     const int number_of_domains = Th.get_nb_domain();
     double val                  = 0.;
@@ -899,7 +899,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
  */
 template <typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order) {
+                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
 
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
@@ -1010,7 +1010,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int dom
 //             algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
 
 //             algoim::QuadratureRule<2> q =
-//                 algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
+//                 algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order_integration);
 
 //             assert(q.nodes.size() != 0);
 //             for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
@@ -1035,7 +1035,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int dom
 // }
 
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<MeshQuad2> &gamma, L &phi, int cu, const int order_space = quadrature_order) {
+double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<MeshQuad2> &gamma, L &phi, int cu, const int order_space = quadrature_order_integration) {
 
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;

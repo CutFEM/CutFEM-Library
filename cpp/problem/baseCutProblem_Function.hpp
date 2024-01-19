@@ -1108,18 +1108,24 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
 
         if (util::contain(label, BE.lab) || all_label) {
 
-            // for( int ic=0; ic<Vh.N;++ic) {
+            //for( int ic=0; ic<Vh.N;++ic) {
             for (int ic = 0; ic < 1; ++ic) {
                 for (int df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df) {
 
                     int id_item = FK.DFOnWhat(df);
 
-                    if (id_item < K.nv) {
+                    if (id_item < K.nv) {   
+                        // DOF is node (0,1,2)
                         assert(0);
-                    } else if (id_item < K.nv + K.ne) {
+                    } 
+                    // DOF is edge (3,4,5)
+                    else if (id_item < K.nv + K.ne) {
+                        
                         // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
-                        int id_face = id_item - K.nv;
+                        int id_face = id_item - K.nv;   // id of boundary face
                         if (id_face == ifac) {
+                            // edge is boundary edge
+
                             int df_glob = FK.loc2glb(df);
                             // dof2set.insert({df_glob, gh(df_glob)});
                             dof2set.insert({df_glob, gh(df_glob)});

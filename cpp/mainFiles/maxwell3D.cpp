@@ -258,11 +258,13 @@ int main(int argc, char **argv) {
 
             // WM
 
-            // W block
-            +innerProduct(tau_w * pow(hi, 0) * jump(w), jump(tau))
-            // M blocks
-            + innerProduct(tau_m * pow(hi, 0) * jump(curl(w)), jump(v))   // M block
-            - innerProduct(tau_m * pow(hi, 0) * jump(u), jump(curl(tau))) // -M^T block
+            // M block
+            +innerProduct(tau_m * pow(hi, 0) * jump(w), jump(tau))
+            // A block
+            + innerProduct(tau_a * pow(hi, 0) * jump(u), jump(v))
+            // W blocks
+            // + innerProduct(tau_w * pow(hi, 0) * jump(curl(w)), jump(v))   // M block
+            // - innerProduct(tau_w * pow(hi, 0) * jump(u), jump(curl(tau))) // -M^T block
             // B blocks
             + innerProduct(tau_b * pow(hi, 0) * jump(p), jump(div(v))) // -B^T block
             - innerProduct(tau_b * pow(hi, 0) * jump(div(u)), jump(q)) // B_0 block
