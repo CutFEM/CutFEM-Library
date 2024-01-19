@@ -194,7 +194,46 @@ template <Space F, FunctionDomainTime fct> void interpolate(const F &Mh, KN_<dou
 Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
 */
-template <Space F> void interpolate(const F &Mh, KN_<double> fh, R (*f)(double *, int, R), R tid) {
+// template <Space F> void interpolate(const F &Mh, KN_<double> fh, R (*f)(double *, int, R), R tid) {
+//     // std::cout << " need to double check this interpolate function and add MPI"
+//     // << std::endl; assert(0);
+//     typedef typename F::Rd Rd;
+//     typedef typename F::Element::RdHat RdHat;
+//     // Rn fhSend(Mh.nbDoF); fhSend = 1e+50;
+//     assert(fh.size() == Mh.nbDoF);
+//     // fh.init(Mh.nbDoF);
+//     const int d   = Mh.N;
+//     const int nve = Mh.TFE(0)->NbPtforInterpolation;
+//     KNM<R> Vpf(nve, d);              // value of f at the interpolation points
+//     KN<R> ggf(Mh.MaxNbDFPerElement); // stock the values of the dof of the interpolate
+//     progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
+
+//     // for (int t=Mh.first_element();t<Mh.last_element();
+//     //      t+= Mh.next_element()) {      // loop over element
+//     for (int t = 0; t < Mh.NbElement(); t += 1) {
+//         bar += 1;
+//         typename F::FElement K(Mh[t]);
+//         const int nbdf = K.NbDoF(); // nof local
+
+//         for (int p = 0; p < K.tfe->NbPtforInterpolation; p++) { // all interpolation points
+//             Rd P(K.Pt(p));                                      // the coordinate of P in K hat
+//             for (int i = 0; i < d; ++i) {
+//                 Vpf(p, i) = f(P, i, tid);
+//             }
+//         }
+
+//         K.Pi_h(Vpf, ggf);
+
+//         for (int df = 0; df < nbdf; df++) {
+//             // fhSend[K(df)] =  ggf[df] ;
+//             fh[K(df)] = ggf[df];
+//         }
+//     }
+//     bar.end();
+//     // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
+// }
+
+template <Space F, FunctionTime fct_t> void interpolate(const F &Mh, KN_<double> fh, fct_t f, R tid) {
     // std::cout << " need to double check this interpolate function and add MPI"
     // << std::endl; assert(0);
     typedef typename F::Rd Rd;
@@ -238,6 +277,68 @@ Interpolate f : Rd->R    on space time Vh
 - output : fh contains the values
 */
 template <Space F> void interpolate(const F &Mh, const TimeSlab &In, KN_<double> fh, R (*f)(double *, int, R)) {
+    // std::cout << " need to double check this interpolate function and add MPI"
+    // << std::endl; assert(0);
+    typedef typename F::Rd Rd;
+    typedef typename F::Element::RdHat RdHat;
+    // Rn fhSend(Mh.nbDoF); fhSend = 1e+50;
+    assert(fh.size() == Mh.nbDoF * In.NbDoF());
+    // fh.init(Mh.nbDoF);
+    const int d   = Mh.N;
+    const int nve = Mh.TFE(0)->NbPtforInterpolation;
+    const int nvt = In.tfe->NbPtforInterpolation;
+    KNM<R> Vpt(nvt, 1);
+    KNM<R> ggft(Mh.MaxNbDFPerElement,
+                In.NbDoF()); // stock the values of the dof of the interpolate
+
+    KNMK<R> Vpft(nve, d, nvt); // value of f at the interpolation points
+    progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
+
+    // for (int t=Mh.first_element();t<Mh.last_element();
+    //      t+= Mh.next_element()) {      // loop over element
+    for (int t = 0; t < Mh.NbElement(); t += 1) {
+        bar += 1;
+        typename F::FElement K(Mh[t]);
+        const int nbdf = K.NbDoF(); // nof local
+
+        // compute all the value , space and time
+        for (int it = 0; it < In.tfe->NbPtforInterpolation; ++it) {
+            const R1 &tq(In.Pt(it));
+            for (int p = 0; p < K.tfe->NbPtforInterpolation; p++) { // all interpolation points
+                Rd P(K.Pt(p));                                      // the coordinate of P in K hat
+                for (int i = 0; i < d; ++i) {
+                    Vpft(p, i, it) = f(P, i, tq);
+                }
+            }
+        }
+
+        // perfom the spacxe interpolation for each time dof
+        for (int it = 0; it < In.tfe->NbPtforInterpolation; ++it) {
+            KN_<R> ggg(ggft('.', it));
+            K.Pi_h(Vpft('.', '.', it), ggg);
+        }
+
+        // perfom time interpolation and save/replacve the value in the matrix by
+        // the good one
+        for (int df = 0; df < nbdf; df++) {
+            for (int it = 0; it < In.tfe->NbPtforInterpolation; ++it) {
+                Vpt(it, 0) = ggft(df, it);
+            }
+            KN_<R> ggg(ggft(df, '.'));
+            In.Pi_h(Vpt, ggg);
+        }
+
+        for (int it = 0; it < In.tfe->NbPtforInterpolation; ++it) {
+            for (int df = 0; df < nbdf; df++) {
+                fh[K.loc2glb(df, it)] = ggft(df, it); //[df] ;
+            }
+        }
+    }
+    bar.end();
+    // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
+}
+
+template <Space F> void interpolate(const F &Mh, const TimeSlab &In, KN_<double> fh, R (*f)(R2, int, R)) {
     // std::cout << " need to double check this interpolate function and add MPI"
     // << std::endl; assert(0);
     typedef typename F::Rd Rd;

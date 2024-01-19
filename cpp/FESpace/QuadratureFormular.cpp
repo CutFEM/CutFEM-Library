@@ -177,6 +177,7 @@ const QuadratureFormular2d QF_GaussLegendreQuad2(3, 4, GaussLegendre2D(3), true)
 const QuadratureFormular2d QF_GaussLegendreQuad3(5, 9, GaussLegendre2D(5), true);
 const QuadratureFormular2d QF_GaussLegendreQuad4(7, 16, GaussLegendre2D(7), true);
 const QuadratureFormular2d QF_GaussLegendreQuad5(9, 25, GaussLegendre2D(9), true);
+const QuadratureFormular2d QF_GaussLegendreQuad9(16, 81, GaussLegendre2D(16), true);
 
 // explict instantiation
 const GQuadratureFormular<R2> *QF_Quad(int exact) {
@@ -199,13 +200,14 @@ const GQuadratureFormular<R2> *QF_Quad(int exact) {
         return &QF_GaussLegendreQuad5;
     case 9:
         return &QF_GaussLegendreQuad5;
+    case 16:
+        return &QF_GaussLegendreQuad9;
     // case 10 : return &QF_GaussLegendre6;
     // case 11 : return &QF_GaussLegendre6;
     // case 12 : return &QF_GaussLegendre7;
     // case 13 : return &QF_GaussLegendre7;
     // case 14 : return &QF_GaussLegendre8;
     // case 15 : return &QF_GaussLegendre8;
-    // case 16 : return &QF_GaussLegendre9;
     // case 17 : return &QF_GaussLegendre9;
     default:
         return &QF_GaussLegendreQuad3;

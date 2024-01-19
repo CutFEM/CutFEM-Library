@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++20 -fPIC -O3")
 
 if(USE_MPI)
   find_package(MPI REQUIRED)
-
+  
   set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
   include_directories(${MPI_CXX_INCLUDE_PATH})
 
@@ -45,6 +45,32 @@ add_subdirectory(test/)
 endif()
 
 if(${CUTFEM_BUILD_MAIN})
+
+
+set(EX_NAME thomas_risingbubble)
+add_executable(${EX_NAME}  example/navier_stokes/navier_stokes_raising_drop_2D.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+
+set(EX_NAME risingbubble)
+add_executable(${EX_NAME}  mainFiles/rising_bubble.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME stationaryvortex)
+add_executable(${EX_NAME}  mainFiles/stationary_vortex.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME taylorgreen)
+add_executable(${EX_NAME}  mainFiles/taylor_green_vortex.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME henry)
+add_executable(${EX_NAME}  mainFiles/algoim_henry.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
+
+set(EX_NAME bulkCD2)
+add_executable(${EX_NAME}  mainFiles/bulk_convection_diffusion2.cpp )
+target_link_libraries(${EX_NAME} PUBLIC ${EXTRA_LIBS} )
 
 set(EX_NAME maxwell3d)
 add_executable(${EX_NAME}  mainFiles/maxwell3D.cpp )

@@ -40,11 +40,18 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
                                      double cst_time);
 
     template <typename Fct>
+    void addBilinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+
+    template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
 
     template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq,
                         const TimeSlab &In, const double scaling_time = 1.);
+
+    template <typename Fct>
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th,
+                                            const TimeSlab &In, const int itq);
 
     // Integrals over interfaces
 
@@ -63,6 +70,13 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
 
     template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In);
+
+    template <typename Fct>
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const Interface<M> &gamma, const TimeSlab &In, const int itq);
+
+    template <typename Fct>
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In, const int itq);
+    
 
     // Constructors
 

@@ -344,7 +344,8 @@ void TypeOfFE_RT0_3d::get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v
     for (int f = 0, k = 0; f < 4; f++) {
         R3 N = T.N_notNormalized(f); //  exterior and  ||N|| = 2* area f
         N *= T.faceOrient(f) / 2.;
-        N *= 1. / (d * T.measure());
+        N *= 1. / (d * T.measure());  //! Mine?
+        //N *= 1. / (T.F(0).norm()); //! Mine
         v[k++] = N.x;
         v[k++] = N.y;
         v[k++] = N.z;
@@ -360,7 +361,8 @@ void TypeOfFE_RT0_3d::FB(const What_d whatd, const Element &K, const R3 &PHat, R
     // " << K.faceOrient(3) <<endl;
     R cc    = 1. / (d * K.measure()); //! Original
     R cc2   = (d * K.measure());      //! Mine
-    // R ci[4] = {cc * K.faceOrient(0), cc * K.faceOrient(1), cc * K.faceOrient(2), cc * K.faceOrient(3)};   //!
+    //R cc2   = K.Edge(0).norm();      //! Mine
+    //R ci[4] = {cc * K.faceOrient(0), cc * K.faceOrient(1), cc * K.faceOrient(2), cc * K.faceOrient(3)};   //!
     // Original
     R ci[4] = {cc * cc2 * K.faceOrient(0), cc * cc2 * K.faceOrient(1), cc * cc2 * K.faceOrient(2),
                cc * cc2 * K.faceOrient(3)}; //! Mine

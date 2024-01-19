@@ -81,10 +81,13 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                    std::list<int> label = {});
     void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, const TimeSlab &In, int itq,
                    std::list<int> label = {});
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, int itq, const TimeSlab &In, 
+                   std::list<int> label = {});
     virtual void addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
 
     void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
+    void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, const TimeSlab &In, std::list<int> label = {});
 
     // integral on interface
     using BaseFEM<Mesh>::addBilinear;
@@ -124,21 +127,23 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     template <typename L>
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const AlgoimMacro<Mesh, L> &);
-    template <typename L>
-    void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
-                              const AlgoimMacro<Mesh, L> &);
-
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                               const TimeMacroElementSurface<Mesh> &);
     void addFaceStabilizationRHS(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<Mesh> &macro);
 
+    template <typename L>
+    void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
+                              const AlgoimMacro<Mesh, L> &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In);
+    void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In, const int itq);
 
     // Lagrange multiplier
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &, const int k);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In);
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, int itq, const TimeSlab &In, 
+                               bool init = true);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In, int itq,
                                bool init = true);
     void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);

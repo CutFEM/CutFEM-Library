@@ -290,7 +290,7 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
 #ifdef USE_OMP
     int iam = omp_get_thread_num();
 #else
-    int iam = 0;
+    int iam       = 0;
 #endif
 
     // GET THE QUADRATURE RULE
@@ -300,7 +300,8 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
 
     // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
     for (int l = 0; l < VF.size(); ++l) {
-        // if(!VF[l].on(domain)) continue;
+        if (!VF[l].on(domain))
+            continue; //! This was outcommented before, why?
 
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
@@ -736,6 +737,7 @@ void BaseFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element &K,
     double meas  = K.mesureBord(ifac);
     double h     = K.get_h();
     Rd normal    = K.N(ifac);
+
 
     // U and V HAS TO BE ON THE SAME MESH
     const FESpace &Vh(VF.get_spaceV(0));

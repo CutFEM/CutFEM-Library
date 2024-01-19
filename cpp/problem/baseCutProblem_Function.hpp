@@ -942,6 +942,57 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &cutTh, cons
 }
 
 template <typename M>
+void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &cutTh, const CBorder &b, int itq,
+                              const TimeSlab &In, std::list<int> label) {
+    assert(VF.isRHS());
+    bool all_label = (label.size() == 0);
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+
+    // KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    // RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+
+    // In.BF(tq.x, bf_time); // compute time basic funtions
+    double cst_time = 1.; // do NOT scale with time
+
+    for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
+         idx_be += cutTh.next_boundary_element()) {
+
+        int ifac;
+        const int kb          = cutTh.Th.BoundaryElement(idx_be, ifac);
+        std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1);
+
+        const Element &K(cutTh.Th[kb]);
+        const BorderElement &BE(cutTh.be(idx_be));
+        if (util::contain(label, BE.lab) || all_label) {
+
+            // CHECK IF IT IS A CUT EDGE
+            if (cutTh.isCutFace(idxK[0], ifac, itq))
+                addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+            else {
+                if (idxK.size() == 1) {
+                    BaseFEM<M>::addBorderContribution(VF, K, BE, ifac, &In, itq, cst_time);
+                } else if (!cutTh.isCut(idxK[0], itq)) {
+                    int id_sub = (cutTh.isInactive(idxK[0], itq)) ? 1 : 0;
+                    BaseFEM<M>::addBorderContribution(VF, K, BE, ifac + id_sub * Element::nea, &In, itq, cst_time);
+                } else {
+                    assert(cutTh.get_nb_domain() < 3);
+
+                    // need to find out in what domain is the BOUNDARY
+                    int k0          = idxK[0];
+                    const auto cutK = cutTh.get_cut_part(k0, itq);
+                    int ss          = cutK.get_sign();
+                    int nv          = Element::nvface[ifac][0];
+                    int id_sub      = (cutK.get_sign_node(nv) * ss == 1) ? 0 : 1;
+                    BaseFEM<M>::addBorderContribution(VF, K, BE, ifac + id_sub * Element::nea, &In, itq, cst_time);
+                }
+            }
+        }
+    }
+}
+
+template <typename M>
 void BaseCutFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                           const TimeSlab *In, int itq, double cst_time) {
 
@@ -1042,6 +1093,7 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
     std::map<int, double> dof2set;
     const FESpace &Vh(gh.getSpace());
 
+    // Loop through all fitted boundary elements 
     for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
          idx_be += cutTh.next_boundary_element()) {
 
@@ -1051,24 +1103,31 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
         int k                 = idxK[0];
 
         assert(idxK.size() == 1);
+        
         const Element &K(cutTh.Th[kb]);
         const BorderElement &BE(cutTh.be(idx_be));
         const FElement &FK(Vh[k]);
 
         if (util::contain(label, BE.lab) || all_label) {
 
-            // for( int ic=0; ic<Vh.N;++ic) {
+            //for( int ic=0; ic<Vh.N;++ic) {
             for (int ic = 0; ic < 1; ++ic) {
                 for (int df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df) {
 
                     int id_item = FK.DFOnWhat(df);
 
-                    if (id_item < K.nv) {
+                    if (id_item < K.nv) {   
+                        // DOF is node (0,1,2)
                         assert(0);
-                    } else if (id_item < K.nv + K.ne) {
+                    } 
+                    // DOF is edge (3,4,5)
+                    else if (id_item < K.nv + K.ne) {
+                        
                         // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
-                        int id_face = id_item - K.nv;
+                        int id_face = id_item - K.nv;   // id of boundary face
                         if (id_face == ifac) {
+                            // edge is boundary edge
+
                             int df_glob = FK.loc2glb(df);
                             // dof2set.insert({df_glob, gh(df_glob)});
                             dof2set.insert({df_glob, gh(df_glob)});
@@ -1087,6 +1146,76 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
     assert(this->pmat_.size() == 1);
     eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
 }
+
+
+/**
+ * Strong boundary conditions for BDM1 in time
+*/
+template <typename Mesh>
+void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh, const TimeSlab &In, std::list<int> label) {
+
+    bool all_label = (label.size() == 0);
+    std::map<int, double> dof2set;
+    const FESpace &Vh(gh.getSpace());
+
+    // Loop through all fitted boundary elements 
+    for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
+         idx_be += cutTh.next_boundary_element()) {
+
+        int ifac;
+        const int kb          = cutTh.Th.BoundaryElement(idx_be, ifac);
+        std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1);
+        int k                 = idxK[0];
+
+        assert(idxK.size() == 1);
+        
+        const Element &K(cutTh.Th[kb]);
+        const BorderElement &BE(cutTh.be(idx_be));
+        const FElement &FK(Vh[k]);
+
+        if (util::contain(label, BE.lab) || all_label) {
+
+            // for( int ic=0; ic<Vh.N;++ic) {
+            
+            // DOF for BDM is only one component (v*n)
+            for (int ic = 0; ic < 1; ++ic) {
+
+                // Loop over degrees of freedom of current element
+                for (int df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df) {
+
+                    int id_item = FK.DFOnWhat(df);
+
+                    if (id_item < K.nv) {
+                        assert(0);
+                    } else if (id_item < K.nv + K.ne) {
+                        // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
+                        int id_face = id_item - K.nv;
+                        if (id_face == ifac) {
+
+                            for (int dof_time; dof_time < In.NbDoF(); ++dof_time) {
+                                int df_glob = FK.loc2glb(df, dof_time);
+                                // dof2set.insert({df_glob, gh(df_glob)});
+                                dof2set.insert({df_glob, gh(df_glob)});
+
+                                // std::cout << df_glob << std::endl;    
+                            }
+                            
+                        }
+                    } else {
+                        // std::cout << " on face  " << FK.DFOnWhat(df) << std::endl;
+                    }
+                }
+            }
+        }
+        // getchar();
+    }
+
+    assert(this->pmat_.size() == 1);
+    eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
+}
+
+
+
 
 template <typename Mesh> void BaseCutFEM<Mesh>::removeDofForHansbo(const FESpace &Vh) {
 
@@ -1281,9 +1410,7 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const CutMesh &
     bar.end();
 }
 
-
-template <typename M>
-void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th) {
+template <typename M> void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
     progress bar("Add Patch Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
 
@@ -1309,11 +1436,31 @@ void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh 
     bar.end();
 }
 
+// template <typename M>
+// void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th, const MacroElement<M> &macro) {
+//     assert(!VF.isRHS());
+
+//     for (auto me = macro.macro_element_begin(); me != macro.macro_element.end(); ++me) {
+
+//         for (auto it = me->second.inner_edge.begin(); it != me->second.inner_edge.end(); ++it) {
+//             int k    = it->first;
+//             int ifac = it->second;
+//             int jfac = ifac;
+//             int kn   = Th.ElementAdj(k, jfac);
+
+//             //std::pair<int, int> e1 = std::make_pair(k, ifac);
+//             //std::pair<int, int> e2 = std::make_pair(kn, jfac);
+//             BaseFEM<M>::addPatchContribution(VF, k, kn, nullptr, 0, 1.);
+//         }
+//         this->addLocalContribution();
+//     }
+// }
+
 template <typename M>
 void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
 
     int number_of_quadrature_points = this->get_nb_quad_point_time();
-    
+
     // Loop through time quadrature points
     for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
         assert(!VF.isRHS());
@@ -1324,15 +1471,15 @@ void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh 
         KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
         RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
         In.BF(tq.x, bf_time); // compute time basic funtions
-        double cst_time   = tq.a * In.get_measure();
-        
+        double cst_time = tq.a * In.get_measure();
+
         std::string title = " Add Patch Stab, In(" + std::to_string(itq) + ")";
         progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
 
         // Loop through active mesh elements
         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
             bar += Th.next_element();
-            
+
             // Exclude elements whose edges do not need stabilization
             if (!Th.isStabilizeElement(k))
                 continue;
@@ -1341,23 +1488,82 @@ void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const CutMesh 
             for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
 
                 int jfac = ifac;
-                int kn   = Th.ElementAdj(k, jfac);      // get neighbor element's index
+                int kn   = Th.ElementAdj(k, jfac); // get neighbor element's index
 
                 // By skipping neighbors with smaller indices, we avoid adding contribution to the same edge twice
                 if (kn < k)
                     continue;
 
-                std::pair<int, int> e1 = std::make_pair(k, ifac);   // (element index, edge index) current element
-                std::pair<int, int> e2 = std::make_pair(kn, jfac);  // (element index, edge index) neighbor element
+                std::pair<int, int> e1 = std::make_pair(k, ifac);  // (element index, edge index) current element
+                std::pair<int, int> e2 = std::make_pair(kn, jfac); // (element index, edge index) neighbor element
 
                 // Add patch contribution
-                //BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+                // BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
                 BaseFEM<M>::addPatchContribution(VF, k, kn, &In, itq, cst_time);
             }
             this->addLocalContribution();
         }
         bar.end();
     }
+}
+
+/**
+ * @brief Patch stabilization in specific time quadrature point
+ *
+ * @tparam M Mesh
+ * @param VF stabilization integrand
+ * @param Th Active mesh
+ * @param In Time slab
+ * @param itq Time quadrature point
+ */
+template <typename M>
+void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In,
+                                          const int itq) {
+
+    assert(!VF.isRHS());
+
+    // Compute contribution from time basis functions
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time); // compute time basic funtions
+    // double cst_time = tq.a * In.get_measure();
+
+    std::string title = " Add Patch Stab, In(" + std::to_string(itq) + ")";
+    progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+
+    // Loop through active mesh elements
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+
+        // Exclude elements whose edges do not need stabilization
+        // if (!Th.isStabilizeElement(k))
+        //     continue;
+
+        if (!(Th.isCut(k, itq) || Th.isInactive(k, itq)))
+            continue;
+
+        // Loop through the element's edges
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac); // get neighbor element's index
+
+            // By skipping neighbors with smaller indices, we avoid adding contribution to the same edge twice
+            if (kn < k)
+                continue;
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);  // (element index, edge index) current element
+            std::pair<int, int> e2 = std::make_pair(kn, jfac); // (element index, edge index) neighbor element
+
+            // Add patch contribution
+            // BaseFEM<M>::addFaceContribution(VF, e1, e2, &In, itq, cst_time);
+            BaseFEM<M>::addPatchContribution(VF, k, kn, &In, itq, 1.);
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
 }
 
 /**
@@ -1583,7 +1789,7 @@ void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_t &VF, const ActiveMes
 template <typename M>
 template <typename L>
 void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In,
-                                         const AlgoimMacro<M, L> &macro) {
+                                          const AlgoimMacro<M, L> &macro) {
 
     // number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();
@@ -1756,6 +1962,42 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
             addLagrangeContribution(VF, k, &In, itq, cst_time);
         else
             BaseFEM<M>::addLagrangeContribution(VF, k, &In, itq, cst_time);
+
+        this->addLocalContributionLagrange(ndf);
+    }
+    bar.end();
+}
+
+template <typename M>
+void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, int itq,
+                                          const TimeSlab &In, bool init) {
+    assert(VF.isRHS());
+    int ndf = this->rhs_.size() - 1;
+    if (init) {
+        ndf++;
+        this->rhs_.resize(ndf + 1);
+        this->rhs_(ndf) = val;
+    }
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time); // compute time basic funtions
+    double cst_time   = tq.a * In.get_measure();
+    std::string title = " Add Lagrange Multiplier Kh, In(" + std::to_string(itq) + ")";
+    progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+        if (Th.isInactive(k, itq))
+            continue;
+
+        if (Th.isCut(k, itq))
+            addLagrangeContribution(VF, k, &In, itq, cst_time);
+        else
+            BaseFEM<M>::addLagrangeContribution(VF, k, &In, itq, 1.);
 
         this->addLocalContributionLagrange(ndf);
     }
@@ -2055,9 +2297,15 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
     this->rhs_.resize(ndf + 1);
     this->rhs_(ndf) = val_rhs;
 
-    for (int idx = 0; idx < ndf; idx++) {
-        this->mat_[0][std::make_pair(idx, ndf)] = vecCol[idx];
-        this->mat_[0][std::make_pair(ndf, idx)] = vecRow[idx];
+    this->index_j0_[0] = 0;
+    this->index_i0_[0] = 0;
+
+    for (int idx = 0; idx < vecRow.size(); idx++) {
+        // for (int idx = 0; idx < ndf; idx++) {
+        //  this->mat_[0][std::make_pair(idx, ndf)] = vecCol[idx];
+        //  this->mat_[0][std::make_pair(ndf, idx)] = vecRow[idx];
+        (*this)(idx, ndf) += vecCol[idx];
+        (*this)(ndf, idx) += vecRow[idx];
     }
 }
 

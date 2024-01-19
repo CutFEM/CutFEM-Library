@@ -4844,11 +4844,11 @@ typedef FunFEM<Mesh2> Fun_h;
 #define convection_dominated
 
 //* Choose domain to solve on (options: "omega1", "omega2")
-#define omega1
+#define omega2
 #define neumann // boundary condition on outer domain (options: "dirichlet", "neumann")
 
 //* Set scheme for the method (options: "classical", "conservative".)
-#define classical
+#define conservative
 
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab

@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
     const double cpubegin = CPUtime();
 
-    //MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
     const int d = 3;
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
     std::vector<double> ul2, pl2, divmax, divl2, h, convu, convp;
 
-    int iters = 5;
+    int iters = 4;
     for (int i = 0; i < iters; ++i) {
 
         Mesh3 Kh(nx, ny, nz, 0., 0., 0., 1., 1., 1.);
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
 
         // Eq 2
         maxwell3D.addBilinear( // mu Delta u + grad p
-            +innerProduct(curl(w), v) - innerProduct(k * k * eps_r * u, v) + innerProduct(p, div(v)), Khi);
+            +innerProduct(curl(w), v) - innerProduct(k * k * eps_r * u, v) + innerProduct(eps_r*p, div(v)), Khi);
 
         maxwell3D.addLinear(+innerProduct(fh.exprList(), v), Khi);
 
@@ -193,12 +193,51 @@ int main(int argc, char **argv) {
 
         // [Stabilization]
 
-        double tau_w = 1e-1;        // smaller tau_w seems to give larger condition number
-        double tau_m = 2e0;
-        double tau_a = 1e-1;
-        double tau_b = 15;
+        // double tau_w = 1e-1;        // smaller tau_w seems to give larger condition number
+        // double tau_m = 2e0;
+        // double tau_a = 1e-1;
+        // double tau_b = 15;
+        //double tau_w = 0.1, tau_m = 2., tau_a = 0.1, tau_b = 15;
+        double tau_w = 1., tau_m = 1., tau_a = 1., tau_b = 1.;
 
-        maxwell3D.addFaceStabilization(
+        // maxwell3D.addFaceStabilization(
+        //     // WA
+
+        //     // // W block
+        //     // + innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau))
+        //     // + innerProduct(tau_w * pow(hi, 3) * jump(grad(w)*n), jump(grad(tau)*n))
+        //     // //+ innerProduct(tau_w * pow(hi, 5) * jump(grad(grad(w) * n)), jump(grad(grad(tau) * n)))
+
+        //     // // A block
+        //     // + innerProduct(tau_a * pow(hi, 1) * jump(u), jump(v))
+        //     // + innerProduct(tau_a * pow(hi, 3) * jump(grad(u)*n), jump(grad(v)*n))
+        //     // //+ innerProduct(tau_a * pow(hi, 5) * jump(grad(grad(u) * n)), jump(grad(grad(v) * n)))
+
+        //     // // B blocks
+        //     // + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))              // -B^T block
+        //     // + innerProduct(tau_b * pow(hi, 3) * jump(grad(p)*n), jump(grad(div(v))*n))  // -B^T block
+        //     // - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))              // B_0 block
+        //     // - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u))*n), jump(grad(q)*n)) // B_0 block
+
+        //     // WM
+
+        //     // W block
+        //     +innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau)) +
+        //         innerProduct(tau_w * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n))
+        //         // M blocks
+        //         + innerProduct(tau_m * pow(hi, 1) * jump(curl(w)), jump(v))                       // M block
+        //         + innerProduct(tau_m * pow(hi, 3) * jump(grad(curl(w)) * n), jump(grad(v) * n))   // M block
+        //         - innerProduct(tau_m * pow(hi, 1) * jump(u), jump(curl(tau)))                     // -M^T block
+        //         - innerProduct(tau_m * pow(hi, 3) * jump(grad(u) * n), jump(grad(curl(tau)) * n)) // -M^T block
+        //         // B blocks
+        //         + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))                     // -B^T block
+        //         + innerProduct(tau_b * pow(hi, 3) * jump(grad(p) * n), jump(grad(div(v)) * n)) // -B^T block
+        //         - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))                     // B_0 block
+        //         - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u)) * n), jump(grad(q) * n)) // B_0 block
+        //     ,
+        //     Khi);
+
+        maxwell3D.addPatchStabilization(
             // WA
 
             // // W block
@@ -219,25 +258,22 @@ int main(int argc, char **argv) {
 
             // WM
 
-            // W block
-            + innerProduct(tau_w * pow(hi, 1) * jump(w), jump(tau)) 
-            + innerProduct(tau_w * pow(hi, 3) * jump(grad(w) * n), jump(grad(tau) * n))
-            // M blocks
-            + innerProduct(tau_m * pow(hi, 1) * jump(curl(w)), jump(v))                       // M block
-            + innerProduct(tau_m * pow(hi, 3) * jump(grad(curl(w)) * n), jump(grad(v) * n))   // M block
-            - innerProduct(tau_m * pow(hi, 1) * jump(u), jump(curl(tau)))                     // -M^T block
-            - innerProduct(tau_m * pow(hi, 3) * jump(grad(u) * n), jump(grad(curl(tau)) * n)) // -M^T block
+            // M block
+            +innerProduct(tau_m * pow(hi, 0) * jump(w), jump(tau))
+            // A block
+            + innerProduct(tau_a * pow(hi, 0) * jump(u), jump(v))
+            // W blocks
+            // + innerProduct(tau_w * pow(hi, 0) * jump(curl(w)), jump(v))   // M block
+            // - innerProduct(tau_w * pow(hi, 0) * jump(u), jump(curl(tau))) // -M^T block
             // B blocks
-            + innerProduct(tau_b * pow(hi, 1) * jump(p), jump(div(v)))                     // -B^T block
-            + innerProduct(tau_b * pow(hi, 3) * jump(grad(p) * n), jump(grad(div(v)) * n)) // -B^T block
-            - innerProduct(tau_b * pow(hi, 1) * jump(div(u)), jump(q))                     // B_0 block
-            - innerProduct(tau_b * pow(hi, 3) * jump(grad(div(u)) * n), jump(grad(q) * n)) // B_0 block
+            + innerProduct(tau_b * pow(hi, 0) * jump(p), jump(div(v))) // -B^T block
+            - innerProduct(tau_b * pow(hi, 0) * jump(div(u)), jump(q)) // B_0 block
             ,
             Khi);
 
         matlab::Export(maxwell3D.mat_[0], "mat" + std::to_string(i) + ".dat");
 
-        maxwell3D.solve("umfpack");
+        maxwell3D.solve("mumps");
 
         // EXTRACT SOLUTION
 
