@@ -795,7 +795,15 @@ R fun_neumann_Gamma(double *P, const int i, const R t) {
 }
 
 // Velocity field
-R fun_velocity(double *P, const int i, const double t) {
+// R fun_velocity(double *P, const int i, const double t) {
+//     if (i == 0)
+//         return W - C * P[1] * P[1];
+//     else
+//         return 0.;
+// }
+
+
+R fun_velocity(double *P, const int i) {
     if (i == 0)
         return W - C * P[1] * P[1];
     else
@@ -1138,7 +1146,7 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 
 #define use_h    // to set mesh size using the h parameter. Write use_n to decide
                  // using nx, ny.
@@ -1197,12 +1205,12 @@ int main(int argc, char **argv) {
     // Space integration quadrature 
     Levelset<2> phi;
     ProblemOption option;
-    const int quadrature_order_space       = 5;
+    const int quadrature_order_space       = 9;
     option.order_space_element_quadrature_ = quadrature_order_space;
     AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
     // Global parameters
-    const double tau = 25.;     // stabilization constant
+    const double tau = 0.5;     // stabilization constant
     const double delta = 0.5;   // macro parameter
 
     std::string ex;
@@ -1235,7 +1243,7 @@ int main(int argc, char **argv) {
     // }
 
     // Data file to hold problem data
-    std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
+    std::ofstream output_data(path_output_data + "data_sensitive.dat", std::ofstream::out);
     #ifdef conservative
     output_data << "Conservative,\t";
     #else
@@ -1376,7 +1384,8 @@ int main(int argc, char **argv) {
         // Velocity field
         LagrangeQuad2 FEvelocity(2);
         FESpace VelVh(Th, FEvelocity);
-        std::vector<Fun_h> vel(nbTime);
+        //std::vector<Fun_h> vel(nbTime);
+        Fun_h vel(VelVh, fun_velocity);
 
         // Declare time dependent interface
         TimeInterface<Mesh> interface(qTime);
@@ -1416,7 +1425,7 @@ int main(int argc, char **argv) {
                 R tt  = In.Pt(R1(qTime(i).x));
                 phi.t = tt;
 
-                vel[i].init(VelVh, fun_velocity, tt);
+                //vel[i].init(VelVh, fun_velocity, tt);
 
                 interface.init(i, Th, phi);
 
@@ -1485,11 +1494,13 @@ int main(int argc, char **argv) {
                 convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
             }
 
-            convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
+            convdiff.addBilinearSensitive(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
-            for (int i = 0; i < nbTime; ++i) {
-                convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
-            }
+            convdiff.addBilinearSensitive(-innerProduct(u, (vel.exprList() * grad(v))), Thi, In);
+
+            // for (int i = 0; i < nbTime; ++i) {
+            //     convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
+            // }
 
 #endif
 

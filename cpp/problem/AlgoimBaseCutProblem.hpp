@@ -46,12 +46,22 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
 
     template <typename Fct>
+    void addLinearExactSensitive(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+
+    template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq,
                         const TimeSlab &In, const double scaling_time = 1.);
 
     template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th,
                                             const TimeSlab &In, const int itq);
+
+    void addElementContributionSensitive(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, const QuadratureFormular1d &qtime,
+                                double cst_time);      
+    template <typename Fct>
+    void addElementContributionExactSensitive(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, const QuadratureFormular1d &qtime,
+                                double cst_time);               
+    void addBilinearSensitive(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
 
     // Integrals over interfaces
 
