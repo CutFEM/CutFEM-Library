@@ -32,6 +32,22 @@ target_link_libraries( darcy_ex_1
                         PRIVATE 
                         ${EXTRA_LIBS} )
 
+
+add_executable(darcy_interface_1 darcy_interface/darcy_example1.cpp)
+target_link_libraries( darcy_interface_1
+                        PRIVATE 
+                        ${EXTRA_LIBS} )    
+                        
+add_executable(darcy_interface3D_1 darcy_interface/darcy_example1_3D.cpp)
+target_link_libraries( darcy_interface3D_1
+                        PRIVATE 
+                        ${EXTRA_LIBS} )                          
+
+add_executable(darcy_interface_2 darcy_interface/darcy_example2.cpp)
+target_link_libraries( darcy_interface_2
+                        PRIVATE 
+                        ${EXTRA_LIBS} )   
+
 # Stokes fictitious examples                        
 add_executable(stokesRT_ex_1 stokes/fictitious_problem/stokes_fictitious_example1.cpp)
 target_link_libraries( stokesRT_ex_1

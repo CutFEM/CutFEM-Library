@@ -74,26 +74,19 @@ struct MultiLevelSet {
 };
 
 // struct GeometryData {
-
 //     GeometryData(const YamlReader &input_data) {}
-
 //     MeshDimensions box;
-
 //     int nx, ny;
 // };
 
 // std::vector<std::shared_ptr<LevelSetCircle>> generateRandomLevelSets(double xc_min, double xc_max, int n_ls,
 //                                                                      double delta_l, double r_0) {
-
 //     std::vector<std::shared_ptr<LevelSetCircle>> levelSets_v;
-
 //     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 //     std::default_random_engine generator(seed);
 //     std::uniform_real_distribution<double> distribution(xc_min, xc_max);
-
 //     std::vector<double> xc_v;
 //     std::vector<double> yc_v;
-
 //     if (MPIcf::IamMaster()) {
 //         for (int k = 0; k < n_ls; ++k) {
 //             int count = 0;
@@ -101,7 +94,6 @@ struct MultiLevelSet {
 //                 double xc         = distribution(generator);
 //                 double yc         = distribution(generator);
 //                 bool is_satifying = checkIfValid(xc, yc, delta_l, levelSets_v);
-
 //                 if (is_satifying) {
 //                     xc_v.push_back(xc);
 //                     yc_v.push_back(yc);
@@ -114,7 +106,6 @@ struct MultiLevelSet {
 //                     break;
 //                 }
 //             }
-
 //             // double xc = 0.5 * std::cos(2. * k * M_PI / n_ls);
 //             // double yc = 0.5 * std::sin(2. * k * M_PI / n_ls);
 //         }
@@ -128,12 +119,10 @@ struct MultiLevelSet {
 //     }
 //     MPIcf::Bcast<double>(xc_v, MPIcf::Master());
 //     MPIcf::Bcast<double>(yc_v, MPIcf::Master());
-
 //     if (!MPIcf::IamMaster()) {
 //         for (int i = 0; i < xc_v.size(); ++i) {
 //             LOG_INFO << " Particle " << i << " - Center (" << xc_v[i] << ", " << yc_v[i] << ") , radius = " << r_0
 //                      << logger::endl;
-
 //             levelSets_v.push_back(std::make_shared<LevelSetCircle>(xc_v[i], yc_v[i], r_0));
 //         }
 //     }

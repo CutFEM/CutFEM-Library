@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h, convuPr, convpPr, convdivPr,
         convdivPrLoc, convmaxdivPr;
     std::vector<double> ratioCut1, ratioCut2;
-    int iters = 5;
+    int iters = 4;
 
     double sq_SW   = -1. + 1e-10;
     double sq_LGTH = 2 * 1. + 2e-10;
@@ -141,8 +141,8 @@ int main(int argc, char **argv) {
         Tangent t;
         funtest_t p(Ph, 1), q(Ph, 1), u(Wh, 2), v(Wh, 2);
 
-        double uPenParam = 1e-1;
-        double pPenParam = 1e-1;
+        double uPenParam = 1e0;
+        double pPenParam = 1e0;
         double jumpParam = 1e0;
 
         darcy.addBilinear(innerProduct(u, v) - innerProduct(p, div(v)) + innerProduct(div(u), q), Kh_i);
@@ -184,7 +184,10 @@ int main(int argc, char **argv) {
         double errDiv    = L2normCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         double maxErrDiv = maxNormCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         // [PLOTTING]
-        if (MPIcf::IamMaster()) {
+        #ifdef USE_MPI
+        if (MPIcf::IamMaster()) 
+        #endif
+        {
             fct_t solh(Wh, fun_exact_u);
             fct_t divSolh(Ph, fun_div);
 

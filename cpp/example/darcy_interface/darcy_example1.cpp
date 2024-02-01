@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h, convuPr, convpPr, convdivPr,
         convdivPrLoc, convmaxdivPr;
     std::vector<double> ratioCut1, ratioCut2;
-    int iters = 3;
+    int iters = 4;
 
     for (int i = 0; i < iters; ++i) {
 
@@ -99,18 +99,15 @@ int main(int argc, char **argv) {
 
         fct_t fv(W2h, fun_force);
         fct_t fq(P2h, fun_div);
-        fct_t u0(W2h, fun_exact_u);
         fct_t p0(P2h, fun_exact_p);
         fct_t phat(Ph, fun_interfacePr);
-        fct_t pex(Ph, fun_exact_p);
 
         Normal n;
         Tangent t;
         funtest_t p(Ph, 1), q(Ph, 1), u(Wh, 2), v(Wh, 2);
 
-        double uPenParam = 1e-1;
-        double pPenParam = 1e-1;
-        double jumpParam = 1e0;
+        double uPenParam = 1e0;
+        double pPenParam = 1e0;
 
         darcy.addBilinear(innerProduct(u, v) - innerProduct(p, div(v)) + innerProduct(div(u), q), Kh_i);
 
@@ -151,26 +148,20 @@ int main(int argc, char **argv) {
         double errDiv    = L2normCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         double maxErrDiv = maxNormCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         // [PLOTTING]
-        // if (MPIcf::IamMaster())
-        // {
-        //    fct_t solh(Wh, fun_exact_u);
-        //    // solh.v -= uh.v;
-        //    // solh.v.map(fabs);
-        //    fct_t divSolh(Ph, fun_div);
-        //    ExpressionFunFEM<mesh_t> femDiv(divSolh, 0, op_id);
+        #ifdef USE_MPI
+        if (MPIcf::IamMaster())
+        #endif
+        {
+           fct_t divSolh(Ph, fun_div);
+            auto femDiv = divSolh.expr();
 
-        //    // Paraview<mesh_t> writer(Kh_i, "darcyRT2_"+to_string(i)+".vtk");
-        //    Paraview<mesh_t> writer(Kh_i, "darcyscotti" + to_string(i) + ".vtk");
-
-        //    writer.add(uh, "velocity", 0, 2);
-        //    writer.add(ph, "pressure", 0, 1);
-        //    writer.add(femSol_0dx + femSol_1dy, "divergence");
-        //    writer.add(solh, "velocityExact", 0, 2);
-        //    writer.add(fabs((femSol_0dx + femSol_1dy) - femDiv),
-        //               "divergenceError");
-        //    writer.add(fq, "divu", 0, 1);
-        //    writer.add(fqq, "divuex", 0, 1);
-        // }
+           Paraview<mesh_t> writer(Kh_i, "darcy_example1_2D_" + std::to_string(i) + ".vtk");
+           writer.add(uh, "velocity", 0, 2);
+           writer.add(ph, "pressure", 0, 1);
+           writer.add(femSol_0dx + femSol_1dy, "divergence");
+           writer.add(fabs((femSol_0dx + femSol_1dy) - femDiv),
+                      "divergence_error");
+        }
 
         pPrint.push_back(errP);
         uPrint.push_back(errU);
