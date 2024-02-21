@@ -72,7 +72,7 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
         // Loop over quadrature in space
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
-            const Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             Rd cut_ip = K.mapToReferenceElement(mip); // map the quadrature points in the cut part to reference element
             const R weight = q.nodes.at(ipq).w;
 
@@ -152,6 +152,127 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionExact(const Fct &f, const ite
 
     // Get current time
     auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    phi.t = tid; // update time in level set function
+
+    // Get quadrature rule for the intersection between the element K and the negative part of the level set function
+    algoim::QuadratureRule<2> q =
+        algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
+
+    assert(q.nodes.size() != 0);
+
+    // assert((q.nodes.size() == 1 * quadrature_order * quadrature_order) ||
+    //        (q.nodes.size() == 2 * quadrature_order * quadrature_order) ||
+    //        (q.nodes.size() == 3 * quadrature_order * quadrature_order)); // assert quadrature rule is not empty
+
+    // Loop over the variational formulation items
+    for (int l = 0; l < VF.size(); ++l) {
+        if (!VF[l].on(domain))
+            continue;
+
+        // Finite element spaces and elements
+        const fespace_t &Vhv(VF.get_spaceV(l));
+        const fespace_t &Vhu(VF.get_spaceU(l));
+        const FElement &FKv(Vhv[k]);
+        const FElement &FKu(Vhu[k]);
+        this->initIndex(FKu, FKv);
+
+        // Basis functions memory management
+        bool same  = (&Vhu == &Vhv);
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
+        long offset = iam * this->offset_bf_;
+        RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
+                 lastop); //  the value for basic function
+        RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N,
+                 lastop); //  the value for basic function
+        What_d Fop = Fwhatd(lastop);
+
+        // std::cout << "fu = " << fu << "\n";
+
+        // Loop over quadrature in space
+        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            Rd cut_ip = K.mapToReferenceElement(mip); // map the quadrature points in the cut part to reference element
+            const R weight = q.nodes.at(ipq).w;
+
+            double Cint = weight * cst_time;
+
+            // Evaluate the basis functions
+            FKv.BF(Fop, cut_ip, fv);
+            if (!same)
+                FKu.BF(Fop, cut_ip, fu);
+
+            // std::cout << "mip: " << mip
+            //           << ",\t feval = " << VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid) << "\n";
+
+            // Find and compute all the coefficients and parameters
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+            Cint *= VF[l].c;
+            Cint *= f(mip, VF[l].cv, tid);
+
+            // std::cout << std::setprecision(16);
+            // std::cout << "AlgoimFEM\n";
+            // std::cout << "x = " << mip[0] << ", y = " << mip[1] << "\n";
+            // // std::cout << "pi(0.5-y) =\t " << M_PI*(0.5-mip[1]) << "\n";
+            // // std::cout << "pi(x-0.5) =\t " << M_PI*(mip[0]-0.5) << "\n";
+            // std::cout << "2*cos(2*pi*t) = " << 2*std::cos(2*M_PI*tid) << "\n";
+            // std::cout << "f(mip, t)[" << l << "]: " << VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid) << "\n";
+            // //R xc = 0.5 + 0.28 * sin(M_PI * tid), yc = 0.5 - 0.28 * cos(M_PI * tid), R0 = 0.17;
+            // R xc = 1./M_PI*std::sin(2*M_PI*tid), yc = 0., R0 = 0.5;
+            // std::cout << "phi_exact(mip, t): " << ((mip[0] - xc) * (mip[0] - xc) + (mip[1] - yc) * (mip[1] - yc) - R0 * R0) << "\n";
+            // std::cout << "phi_algoi(mip, t): " << phi(mip) << "\n";
+            // getchar();
+
+            if (In) {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    }
+    // getchar();
+}
+
+template <typename M, typename L>
+template <typename Fct>
+void AlgoimBaseCutFEM<M, L>::addElementContributionExact(const Fct &f, const itemVFlist_t &VF, const int k,
+                                                         const TimeSlab *In, int itq, const QuadratureFormular1d &qtime, double cst_time) {
+
+    // Get finite element space and element, active mesh, and mesh element
+    const fespace_t &Vh(VF.get_spaceV(0));
+    const ActiveMesh<M> &Th(Vh.get_mesh());
+    const FElement &FK(Vh[k]);
+    const Element &K(FK.T);
+
+    // double meas = K.measure();
+    // double h    = K.get_h();
+    int domain = FK.get_domain();
+    int kb     = Vh.idxElementInBackMesh(k);
+
+#ifdef USE_OMP
+    int iam = omp_get_thread_num();
+#else
+    int iam = 0;
+#endif
+
+    // Get coordinates of current quadrilateral
+    const auto &V0(K.at(0)); // vertex 0
+    const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+    algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+    algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+    // Get current time
+    auto tq    = qtime.at(itq);
     double tid = (In) ? (double)In->map(tq) : 0.;
 
     phi.t = tid; // update time in level set function
@@ -440,7 +561,7 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionExactSensitive(const Fct &f, 
         // Loop over quadrature in space
         for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
-            const Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
             Rd cut_ip = K.mapToReferenceElement(mip); // map the quadrature points in the cut part to reference element
             const R weight = q.nodes.at(ipq).w;
 
@@ -549,7 +670,7 @@ template <typename M, typename L>
 template <typename Fct>
 void AlgoimBaseCutFEM<M, L>::addLinearExactSensitive(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In) {
     // Check if the input VF is not a RHS (right-ha nd side)
-    assert(!VF.isRHS());
+    assert(VF.isRHS());
 
     // Loop over all elements in the active mesh
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
@@ -628,7 +749,7 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
         auto tq    = this->get_quadrature_time(itq);
         double tid = In.map(tq);
 
-        KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+        //KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
         RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
         In.BF(tq.x, bf_time); // compute time basic funtions
         double cst_time = tq.a * In.get_measure();
@@ -642,6 +763,31 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
         }
     }
 }
+
+
+// template <typename M, typename L>
+// template <typename Fct>
+// void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+//                                             const TimeSlab &In, const QuadratureFormular1d &qtime) {
+//     for (int itq = 0; itq < qtime.n; ++itq) {
+//         assert(VF.isRHS());
+//         auto tq    = qtime.at(itq);
+//         double tid = In.map(tq);
+
+//         //KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+//         RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+//         In.BF(tq.x, bf_time); // compute time basic funtions
+//         double cst_time = tq.a * In.get_measure();
+
+//         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+//             // if (Th.isInactive(k, itq))
+//             //     continue;
+
+//             addElementContributionExactSensitive(f, VF, k, &In, itq, cst_time);
+//         }
+//     }
+// }
 
 template <typename M, typename L>
 template <typename Fct>
@@ -1269,78 +1415,128 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
 //     }
 // }
 
-// template <typename M, typename L>
-// void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const int itq,
-//                                                const TimeSlab &In) {
 
-//     // Assert that the input is not a RHS
-//     assert(!VF.isRHS());
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+                                               const TimeSlab &In) {
 
-//     // Get the quadrature time for iteration "itq"
-//     auto tq = this->get_quadrature_time(itq);
+    // Assert that the input is not a RHS
+    assert(!VF.isRHS());
 
-//     // Calculate the time using the map function of the TimeSlab "In"
-//     double tid = In.map(tq);
+    for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
+        addBilinearAlgoim(VF, Th, In, itq);
+    }
 
-//     // Allocate memory for the time-dependent basis functions
-//     //! KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1); What does this do?
-//     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+}
 
-//     // Compute the time basic functions
-//     In.BF(tq.x, bf_time);
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+                                               const TimeSlab &In, const int itq) {
 
-//     // Set the title for the progress bar
-//     std::string title = " Add Bilinear Kh, In(" + std::to_string(itq) + ")";
+    // Time info
+    auto tq = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time);
+    double cst_time = tq.a * In.get_measure();
 
-//     // Initialize the progress bar
-//     progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+    // Loop over each element of the active mesh
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
-//     // Loop over each element of the active mesh
-//     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
-//         // Increment the progress bar
-//         bar += Th.next_element();
+        if (Th.isInactive(k, itq))
+            continue;
 
-//         // Skip the element if it is inactive at iteration "itq"
-//         if (Th.isInactive(k, itq))
-//             continue;
+        addElementContribution(VF, k, &In, itq, cst_time);
 
-//         // If the element is cut, add its contribution using BaseCutFEM
-//         // if (Th.isCut(k, itq))
-//         addElementContribution(VF, k, &In, itq, 1.);
-//         // Else, add its contribution using BaseFEM
-//         // else
-//         //     BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+    }    
+}
 
-//         // Add the local contribution
-//         this->addLocalContribution();
-//     }
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+                                               const int itq, const TimeSlab &In) {
 
-//     // End the progress bar
-//     bar.end();
-// }
+    assert(!VF.isRHS());
 
-// template <typename M, typename L>
-// void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th, int itq,
-//                                              const TimeSlab &In) {
-//     assert(VF.isRHS());
-//     auto tq    = this->get_quadrature_time(itq);
-//     double tid = In.map(tq);
-//     KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
-//     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
-//     In.BF(tq.x, bf_time);
-//     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+    auto tq = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time);
 
-//         if (Th.isInactive(k, itq))
-//             continue;
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
-//         // if (Th.isCut(k, itq))
-//         addElementContribution(VF, k, &In, itq, 1.);
-//         // else
-//         //     BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+        if (Th.isInactive(k, itq))
+            continue;
 
-//         this->addLocalContribution();
-//     }
-// }
+        addElementContribution(VF, k, &In, itq, 1.);
+
+    }
+
+}
+
+
+template <typename M, typename L>
+template <typename Fct>
+void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+                                             const TimeSlab &In) {
+    assert(VF.isRHS());
+
+    for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
+        auto tq    = this->get_quadrature_time(itq);
+        double tid = In.map(tq);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+        In.BF(tq.x, bf_time);
+        double cst_time = tq.a * In.get_measure();
+        
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+            if (Th.isInactive(k, itq))
+                continue;
+
+            addElementContributionExact(f, VF, k, &In, itq, cst_time);
+
+        }
+    }
+}
+
+
+template <typename M, typename L>
+template <typename Fct>
+void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<M> &Th, int itq,
+                                             const TimeSlab &In) {
+    assert(VF.isRHS());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time);
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isInactive(k, itq))
+            continue;
+
+        addElementContributionExact(f, VF, k, &In, itq, 1.);
+
+    }
+}
+
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th, int itq,
+                                             const TimeSlab &In) {
+    assert(VF.isRHS());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time);
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isInactive(k, itq))
+            continue;
+
+        addElementContribution(VF, k, &In, itq, 1.);
+
+    }
+}
 
 // template <typename M, typename L>
 // void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const Interface<M> &gamma,
@@ -1514,4 +1710,238 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
 //     }
 
 //     bar.end();
+// }
+
+
+/**
+ * This method for adding a linear form of an exact function
+ * uses the Algoim space quadrature method for all elements,
+ * both cut and not cut elements. It uses the given quadrature
+ * rule in time. 
+*/
+template <typename M, typename L>
+template <typename Fct>
+void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+                                            const TimeSlab &In, const QuadratureFormular1d &qtime) {
+    for (int itq = 0; itq < qtime.n; ++itq) {
+        assert(VF.isRHS());
+        auto tq    = qtime.at(itq);
+        double tid = In.map(tq);
+
+        //KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+        In.BF(tq.x, bf_time); // compute time basic funtions
+        double cst_time = tq.a * In.get_measure();
+
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+            // Get finite element space and element, active mesh, and mesh element
+            const fespace_t &Vh(VF.get_spaceV(0));
+            const ActiveMesh<M> &Th(Vh.get_mesh());
+            const FElement &FK(Vh[k]);
+            const Element &K(FK.T);
+
+            // double meas = K.measure();
+            // double h    = K.get_h();
+            int domain = FK.get_domain();
+            int kb     = Vh.idxElementInBackMesh(k);
+
+        #ifdef USE_OMP
+            int iam = omp_get_thread_num();
+        #else
+            int iam = 0;
+        #endif
+
+            // Get coordinates of current quadrilateral
+            const auto &V0(K.at(0)); // vertex 0
+            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+            // Get current time
+            auto tq = qtime.at(itq);
+            //auto tq    = this->get_quadrature_time(itq);
+            double tid = (&In) ? (double)(&In)->map(tq) : 0.;
+
+            phi.t = tid; // update time in level set function
+
+            // Get quadrature rule for the intersection between the element K and the negative part of the level set function
+            algoim::QuadratureRule<2> q =
+                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
+
+            //assert(q.nodes.size() != 0);
+
+            // Loop over the variational formulation items
+            for (int l = 0; l < VF.size(); ++l) {
+                if (!VF[l].on(domain))
+                    continue;
+
+                // Finite element spaces and elements
+                const fespace_t &Vhv(VF.get_spaceV(l));
+                const fespace_t &Vhu(VF.get_spaceU(l));
+                const FElement &FKv(Vhv[k]);
+                const FElement &FKu(Vhu[k]);
+                this->initIndex(FKu, FKv);
+
+                // Basis functions memory management
+                bool same  = (&Vhu == &Vhv);
+                int lastop = getLastop(VF[l].du, VF[l].dv);
+
+                long offset = iam * this->offset_bf_;
+                RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
+                        lastop); //  the value for basic function
+                RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N,
+                        lastop); //  the value for basic function
+                What_d Fop = Fwhatd(lastop);
+
+                // Loop over quadrature in space
+                for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+                    Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+                    Rd cut_ip = K.mapToReferenceElement(mip); // map the quadrature points in the cut part to reference element
+                    const R weight = q.nodes.at(ipq).w;
+
+                    double Cint = weight * cst_time;
+
+                    // Evaluate the basis functions
+                    FKv.BF(Fop, cut_ip, fv);
+                    if (!same)
+                        FKu.BF(Fop, cut_ip, fu);
+
+                    // Find and compute all the coefficients and parameters
+                    Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+                    Cint *= VF[l].c;
+                    Cint *= f(mip, VF[l].cv, tid);
+
+                    if (&In) {
+                        if (VF.isRHS())
+                            this->addToRHS(VF[l], In, FKv, fv, Cint);
+                        else
+                            this->addToMatrix(VF[l], In, FKu, FKv, fu, fv, Cint);
+                    } else {
+                        if (VF.isRHS())
+                            this->addToRHS(VF[l], FKv, fv, Cint);
+                        else
+                            this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+// template <typename M, typename L>
+// template <typename Fct>
+// void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th,
+//                                             const TimeSlab &In, const QuadratureFormular1d &qtime) {
+//     assert(!VF.isRHS());
+//     for (int itq = 0; itq < qtime.n; ++itq) {
+//         addBilinearAlgoim(VF, )
+//         auto tq    = qtime.at(itq);
+//         double tid = In.map(tq);
+
+//         //KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+//         RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+//         In.BF(tq.x, bf_time); // compute time basic funtions
+//         double cst_time = tq.a * In.get_measure();
+
+//         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+//             // Get finite element space and element, active mesh, and mesh element
+//             const fespace_t &Vh(VF.get_spaceV(0));
+//             const ActiveMesh<M> &Th(Vh.get_mesh());
+//             const FElement &FK(Vh[k]);
+//             const Element &K(FK.T);
+
+//             // double meas = K.measure();
+//             // double h    = K.get_h();
+//             int domain = FK.get_domain();
+//             int kb     = Vh.idxElementInBackMesh(k);
+
+//         #ifdef USE_OMP
+//             int iam = omp_get_thread_num();
+//         #else
+//             int iam = 0;
+//         #endif
+
+//             // Get coordinates of current quadrilateral
+//             const auto &V0(K.at(0)); // vertex 0
+//             const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+//             algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+//             algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+//             // Get current time
+//             auto tq = qtime.at(itq);
+//             //auto tq    = this->get_quadrature_time(itq);
+//             double tid = (&In) ? (double)(&In)->map(tq) : 0.;
+
+//             phi.t = tid; // update time in level set function
+
+//             // Get quadrature rule for the intersection between the element K and the negative part of the level set function
+//             algoim::QuadratureRule<2> q =
+//                 algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, quadrature_order);
+
+//             //assert(q.nodes.size() != 0);
+
+//             // Loop over the variational formulation items
+//             for (int l = 0; l < VF.size(); ++l) {
+//                 if (!VF[l].on(domain))
+//                     continue;
+
+//                 // Finite element spaces and elements
+//                 const fespace_t &Vhv(VF.get_spaceV(l));
+//                 const fespace_t &Vhu(VF.get_spaceU(l));
+//                 const FElement &FKv(Vhv[k]);
+//                 const FElement &FKu(Vhu[k]);
+//                 this->initIndex(FKu, FKv);
+
+//                 // Basis functions memory management
+//                 bool same  = (&Vhu == &Vhv);
+//                 int lastop = getLastop(VF[l].du, VF[l].dv);
+
+//                 long offset = iam * this->offset_bf_;
+//                 RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
+//                         lastop); //  the value for basic function
+//                 RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N,
+//                         lastop); //  the value for basic function
+//                 What_d Fop = Fwhatd(lastop);
+
+//                 // Loop over quadrature in space
+//                 for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+//                     Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+//                     Rd cut_ip = K.mapToReferenceElement(mip); // map the quadrature points in the cut part to reference element
+//                     const R weight = q.nodes.at(ipq).w;
+
+//                     double Cint = weight * cst_time;
+
+//                     // Evaluate the basis functions
+//                     FKv.BF(Fop, cut_ip, fv);
+//                     if (!same)
+//                         FKu.BF(Fop, cut_ip, fu);
+
+//                     // Find and compute all the coefficients and parameters
+//                     Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+//                     Cint *= VF[l].c;
+//                     Cint *= f(mip, VF[l].cv, tid);
+
+//                     if (&In) {
+//                         if (VF.isRHS())
+//                             this->addToRHS(VF[l], In, FKv, fv, Cint);
+//                         else
+//                             this->addToMatrix(VF[l], In, FKu, FKv, fu, fv, Cint);
+//                     } else {
+//                         if (VF.isRHS())
+//                             this->addToRHS(VF[l], FKv, fv, Cint);
+//                         else
+//                             this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+//                     }
+//                 }
+//             }
+//         }
+//     }
 // }

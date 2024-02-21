@@ -1199,6 +1199,7 @@ int main(int argc, char **argv) {
     // Time integration quadrature
     const size_t quadrature_order_time = 9;
     const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
+    const QuadratureFormular1d &qtime_20(*Lobatto(20));  // higher order quadrature in time
     const Uint nbTime       = qTime.n;
     const Uint lastQuadTime = nbTime - 1;
 
@@ -1210,7 +1211,7 @@ int main(int argc, char **argv) {
     AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
     // Global parameters
-    const double tau = 0.5;     // stabilization constant
+    const double tau = 0.1;     // stabilization constant
     const double delta = 0.5;   // macro parameter
 
     std::string ex;
@@ -1485,18 +1486,18 @@ int main(int argc, char **argv) {
             }
 
 #elif defined(conservative)
-            convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
+            convdiff.addBilinearAlgoim(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
 
             // Impose initial condition
             if (iter == 0) {
-                convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+                convdiff.addLinearAlgoim(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
             } else {
-                convdiff.addLinear(+innerProduct(b0h.expr(), v), Thi, 0, In);
+                convdiff.addLinearAlgoim(+innerProduct(b0h.expr(), v), Thi, 0, In);
             }
 
-            convdiff.addBilinearSensitive(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
+            convdiff.addBilinearAlgoim(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
-            convdiff.addBilinearSensitive(-innerProduct(u, (vel.exprList() * grad(v))), Thi, In);
+            convdiff.addBilinearAlgoim(-innerProduct(u, (vel.exprList() * grad(v))), Thi, In);
 
             // for (int i = 0; i < nbTime; ++i) {
             //     convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
@@ -1506,11 +1507,12 @@ int main(int argc, char **argv) {
 
             // Source function
             // convdiff.addLinear(+innerProduct(f.expr(), v), Thi, In);
-            convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
+            //convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In, qtime_20);
+            convdiff.addLinearAlgoim(fun_rhsBulk, +innerProduct(1, v), Thi, In);
 
             // Neumann boundary condition
             // convdiff.addLinear(+innerProduct(g_Neumann.expr(), v), interface, In);
-            convdiff.addLinearExact(fun_neumann_Gamma, +innerProduct(1, v), interface, In);
+            //convdiff.addLinearExact(fun_neumann_Gamma, +innerProduct(1, v), interface, In);
 
             // Stabilization
             double stab_bulk_faces = 0.;
@@ -1648,7 +1650,7 @@ int main(int argc, char **argv) {
 // Compute conservation error
 // if (iterations == 1 && h > 0.01) {
 #if defined(conservation)
-            intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime,
+            intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qtime_20,
                                    quadrature_order_space); // integrate source over In
             intG = integral_algoim(fun_neumann_Gamma, In, interface, phi, 0,
                                    quadrature_order_space); // integrate flux boundary over In

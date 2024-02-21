@@ -33,15 +33,18 @@ using namespace globalVariable;
 
 namespace Example1 {
 
+//const double D = .01;
+const double R0 = 0.17;
+
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return (P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17;
+    return (P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0;
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return (P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17 * 0.17;
+    return (P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - R0 * R0;
 }
 
 template <int N> struct Levelset {
@@ -49,12 +52,9 @@ template <int N> struct Levelset {
     double t;
 
     // level set function
-    // template <typename T> T operator()(const algoim::uvector<T, N> &x) const { return (x(0) - 0.5 - 0.28 * sin(pi *
-    // t)) * (x(0) - 0.5 - 0.28 * sin(pi * t)) + (x(1) - 0.5 + 0.28 * cos(pi * t)) * (x(1) - 0.5 + 0.28 * cos(pi * t)) -
-    // 0.17*0.17;}
-    template <typename V> typename V::value_type operator()(const V &x) const {
-        return (x[0] - 0.5 - 0.28 * sin(pi * t)) * (x[0] - 0.5 - 0.28 * sin(pi * t)) +
-               (x[1] - 0.5 + 0.28 * cos(pi * t)) * (x[1] - 0.5 + 0.28 * cos(pi * t)) - 0.17 * 0.17;
+    template <typename V> typename V::value_type operator()(const V &P) const {
+        R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
+        return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0);
     }
 
     // gradient of level set function
@@ -88,10 +88,18 @@ R fun_velocity(double *P, const int i) {
 R fun_init_surfactant(double *P, const int i) {
     double x = P[0], y = P[1];
 
-    return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) -
-           pi / 250 * sin(pi * x) * cos(pi * y) * (x - 0.5) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5)) -
-           pi / 250 * cos(pi * x) * sin(pi * y) * (y - 0.22) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5));
+    return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) 
+    - pi / 250 * sin(pi * x) * cos(pi * y) * (x - 0.5) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5))
+    - pi / 250 * cos(pi * x) * sin(pi * y) * (y - 0.22) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5));
 }
+
+// R fun_init_surfactant(double *P, const int i) {
+//     double x = P[0], y = P[1];
+
+//     return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) -
+//            0.4 * D * pi * sin(pi * x) * cos(pi * y) * (x - 0.5) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5)) -
+//            0.4 * D * pi * cos(pi * x) * sin(pi * y) * (y - 0.22) / sqrt((y - 0.22) * (y - 0.22) + (x - 0.5) * (x - 0.5));
+// }
 
 // Exact solution surface
 R fun_sol_surfactant(double *P, const int i, const R t) {
@@ -99,15 +107,33 @@ R fun_sol_surfactant(double *P, const int i, const R t) {
 
     R xc = 0.5 + 0.28 * sin(pi * t), yc = 0.5 - 0.28 * cos(pi * t);
 
-    return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) * cos(2 * pi * t) -
-           pi / 250 * sin(pi * x) * cos(pi * y) * cos(2 * pi * t) * (x - xc) /
+    return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) * cos(2 * pi * t) - 
+            pi / 250 * sin(pi * x) * cos(pi * y) * cos(2 * pi * t) * (x - xc) /
                sqrt((y - yc) * (y - yc) + (x - xc) * (x - xc)) -
-           pi / 250 * cos(pi * x) * sin(pi * y) * cos(2 * pi * t) * (y - yc) /
+            pi / 250 * cos(pi * x) * sin(pi * y) * cos(2 * pi * t) * (y - yc) /
                sqrt((y - yc) * (y - yc) + (x - xc) * (x - xc));
 }
 
+// R fun_sol_surfactant(double *P, const int i, const R t) {
+//     double x = P[0], y = P[1];
+
+//     R xc = 0.5 + 0.28 * sin(pi * t), yc = 0.5 - 0.28 * cos(pi * t);
+
+//     return 0.5 + 0.4 * cos(pi * x) * cos(pi * y) * cos(2 * pi * t) - 
+//            0.4 * D * pi * sin(pi * x) * cos(pi * y) * cos(2 * pi * t) * (x - xc) /
+//                sqrt((y - yc) * (y - yc) + (x - xc) * (x - xc)) -
+//            0.4 * D * pi * cos(pi * x) * sin(pi * y) * cos(2 * pi * t) * (y - yc) /
+//                sqrt((y - yc) * (y - yc) + (x - xc) * (x - xc));
+// }
+
 R fun_rhs(double *P, const int cc, const R t) {
     R x = P[0], y = P[1];
+
+    // automatic
+    //return -D*((3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*cos(y*3.141592653589793)*(-4.0/5.0)-D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*cos(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*8.0E+1+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*5.0E+4+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*5.0E+3+cos(t*3.141592653589793)*1.4E+3-2.5E+3)*2.0E+1-D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*5.0E+4-D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(x*-5.0E+3+sin(t*3.141592653589793)*1.4E+3+2.5E+3)*2.0E+1+D*(3.141592653589793*3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*2.0E+1-D*(3.141592653589793*3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*2.0E+1-D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),5.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*pow(y*5.0E+3+cos(t*3.141592653589793)*1.4E+3-2.5E+3,2.0)*(1.5E+1/2.0)+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*cos(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*(x*-5.0E+3+sin(t*3.141592653589793)*1.4E+3+2.5E+3)*1.0E+1-D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),5.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*pow(x*-5.0E+3+sin(t*3.141592653589793)*1.4E+3+2.5E+3,2.0)*(1.5E+1/2.0)+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),5.0/2.0)*pow(y*5.0E+3+cos(t*3.141592653589793)*1.4E+3-2.5E+3,2.0)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*(1.5E+1/2.0)+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),5.0/2.0)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*pow(x*-5.0E+3+sin(t*3.141592653589793)*1.4E+3+2.5E+3,2.0)*(1.5E+1/2.0)+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*sin(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*(x*-5.0E+3+sin(t*3.141592653589793)*1.4E+3+2.5E+3)*1.0E+1+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*sin(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*5.0E+3+cos(t*3.141592653589793)*1.4E+3-2.5E+3)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*1.0E+1+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*cos(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*(y*5.0E+3+cos(t*3.141592653589793)*1.4E+3-2.5E+3)*1.0E+1)+3.141592653589793*(y-1.0/2.0)*(3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*(2.0/5.0)+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*2.0E+1-D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*cos(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*1.0E+1-D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*sin(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*1.0E+1+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*(x*-5.0E+3+sin(t*3.141592653589793)*1.4E+3+2.5E+3)*5.0-D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*(x*-5.0E+3+sin(t*3.141592653589793)*1.4E+3+2.5E+3)*5.0)-3.141592653589793*(x-1.0/2.0)*(3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*(2.0/5.0)+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*2.0E+1+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*sin(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*1.0E+1+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*cos(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*1.0E+1-D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*(y*5.0E+3+cos(t*3.141592653589793)*1.4E+3-2.5E+3)*5.0+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*5.0E+3+cos(t*3.141592653589793)*1.4E+3-2.5E+3)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*5.0)-3.141592653589793*cos(x*3.141592653589793)*cos(y*3.141592653589793)*sin(t*3.141592653589793*2.0)*(4.0/5.0)-D*(3.141592653589793*3.141592653589793)*cos(y*3.141592653589793)*sin(t*3.141592653589793*2.0)*sin(x*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*2.0E+1+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(2.8E+1/5.0)+D*(3.141592653589793*3.141592653589793)*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(t*3.141592653589793)*sin(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(2.8E+1/5.0)+D*(3.141592653589793*3.141592653589793)*cos(x*3.141592653589793)*sin(t*3.141592653589793*2.0)*sin(y*3.141592653589793)*1.0/sqrt(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0))*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*2.0E+1+D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(x*3.141592653589793)*sin(y*3.141592653589793)*(3.141592653589793*cos(t*3.141592653589793)*(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1)*2.8E+1-3.141592653589793*sin(t*3.141592653589793)*(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1)*2.8E+1)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(y*2.0+cos(t*3.141592653589793)*(1.4E+1/2.5E+1)-1.0)*5.0-D*3.141592653589793*cos(t*3.141592653589793*2.0)*cos(y*3.141592653589793)*sin(x*3.141592653589793)*(3.141592653589793*cos(t*3.141592653589793)*(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1)*2.8E+1-3.141592653589793*sin(t*3.141592653589793)*(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1)*2.8E+1)*1.0/pow(pow(y*5.0E+1+cos(t*3.141592653589793)*1.4E+1-2.5E+1,2.0)+pow(x*-5.0E+1+sin(t*3.141592653589793)*1.4E+1+2.5E+1,2.0),3.0/2.0)*(x*-2.0+sin(t*3.141592653589793)*(1.4E+1/2.5E+1)+1.0)*5.0;
+
+
+
     return (pi *
             (31250 * cos(2 * t * pi) * cos(x * pi) * sin(y * pi) + 31250 * cos(2 * t * pi) * cos(y * pi) * sin(x * pi) +
              31250 * pi * cos(2 * t * pi) * cos(x * pi) * cos(y * pi) +
@@ -720,14 +746,18 @@ R fun_rhs(double *P, const int cc, const R t) {
 } // namespace Deckelnick2
 
 // Set numerical example (options: "example1", "shi1", "shi2", "deckelnick", "deckelnick2")
-#define example1
+#define deckelnick2
 // Set scheme for the dg method (options: "conservative", "classical" see
 // thesis. Irrelevant if "cg" is defined instead of "dg")
 #define conservative
 
+#define fullstab
+
 #define levelsetexact
 
 #define use_h
+
+#define conservation
 
 // Setup two-dimensional class types
 const int d = 2;
@@ -767,20 +797,39 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-    ProblemOption option;
-    option.order_space_element_quadrature_ = 7;
-
     // Mesh settings and data objects
-    const size_t iterations = 3; // number of mesh refinements   (set to 1 to
-                                 // run only once and plot to paraview)
-    int nx = 20, ny = 15;        // starting mesh size (only apply if use_n is defined)
-    // double h  = 0.1 * pow(0.5, 5) * sqrt(0.5); // starting mesh size
-    double h  = 0.1; // starting mesh size
-    double dT = 0.0625;
+    const  size_t iterations = 5;           // number of mesh refinements   
+    int    nx, ny;                               // number of elements in x and y direction
+    double h                = 0.1;  // starting mesh size
+    double dT               = 0.25;
 
     int total_number_iteration;
     double time_step;
-    double t0 = 0.;
+    double t0            = 0.;
+    const  double tfinal = .1;
+
+    // Time integration quadrature
+    const size_t quadrature_order_time = 20;
+    const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
+    const Uint nbTime       = qTime.n;
+    const Uint lastQuadTime = nbTime - 1;
+
+    // Space integration quadrature 
+    Levelset<2> phi;
+    ProblemOption option;
+    const int quadrature_order_space       = 9;
+    option.order_space_element_quadrature_ = quadrature_order_space;
+    AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi, option);
+
+    // Global parameters
+    const double tau_F = 1.;     // face stabilization
+    const double tau_G = 1.;     // interface stabilization
+    const double delta = 0.5;   // macro parameter
+    const double D = 1.;
+
+    // FE Space approximation
+
+    std::string ex, method, stab;
 
 #if defined(frachon1)
     // Paths to store data
@@ -808,25 +857,46 @@ int main(int argc, char **argv) {
     const std::string path_output_data = "../output_files/surface/algoim/deckelnick/data/";
     const std::string path_figures     = "../output_files/surface/algoim/deckelnick/paraview/";
 #elif defined(deckelnick2)
-    const std::string path_output_data = "../output_files/surface/algoim/deckelnick2/data/";
-    const std::string path_figures     = "../output_files/surface/algoim/deckelnick2/paraview/";
+    ex = "deckelnick2";
+    const std::string path_output_data = "/NOBACKUP/smyrback/output_files/surface/deckelnick2/data/";
+    const std::string path_figures     = "/NOBACKUP/smyrback/output_files/surface/deckelnick2/paraview/";
 #elif defined(deckelnick2toshi1)
     const std::string path_output_data = "../output_files/surface/algoim/deckelnick2_to_shi1/data/";
     const std::string path_figures     = "../output_files/surface/algoim/deckelnick2_to_shi1/paraview/";
 #endif
 
     // Create directory if not already existent
-    if (MPIcf::IamMaster()) {
-        std::filesystem::create_directories(path_output_data);
-        std::filesystem::create_directories(path_figures);
-    }
+    // if (MPIcf::IamMaster()) {
+    //     std::filesystem::create_directories(path_output_data);
+    //     std::filesystem::create_directories(path_figures);
+    // }
 
     // Data file to hold problem data
-    std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
+    #ifdef conservative
+    method = "conservative";
+    #else
+    method = "non_conservative";
+    #endif
+
+    #ifdef fullstab
+    stab = "full";
+    #else
+    stab = "macro_d_" + std::to_string(delta);
+    #endif
+
+    std::ofstream output_data(path_output_data + "data_" + method + "_" + stab + ".dat", std::ofstream::out);
+
+    output_data << method << ",\t";
+    output_data << stab << ",\t";
+    output_data << "tau_F = " << tau_F << ",\t tau_G = " << tau_G << ",\t N = " << quadrature_order_time << ",\t T = " << tfinal << ",\t Example " << ex;
+    output_data << "\n---------------------\n";
+    output_data << "h, \t dt, \t L2(Gamma(T)), \t L2(L2(Gamma(t)), 0, T)\n"
+    output_data.flush();
 
     // Arrays to hold data
     std::array<double, iterations> errors;             // array to hold bulk errors
-    std::array<double, iterations> average_errors;     // array to hold bulk errors
+    std::array<double, iterations> errors_T;     // array to hold bulk errors
+    std::array<double, iterations> global_conservation_errors;     // array to hold bulk errors
     std::array<double, iterations> gamma_length_h;
     std::array<double, iterations> nxs; // array to hold mesh sizes
     std::array<double, iterations> nys; // array to hold mesh sizes
@@ -883,12 +953,9 @@ int main(int argc, char **argv) {
 #endif
 
         // Parameters
-        double tfinal = .1; // Final time
-
         int divisionMeshSize = 3;
 
-        double dT = h / divisionMeshSize;
-        //double dT = h * h;
+        dT = h / divisionMeshSize;
 
         total_number_iteration = int(tfinal / dT);
         
@@ -916,29 +983,15 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << "\n";
         std::cout << "dT = " << dT << "\n";
 
-        double D = 1.;
-
-        // CG stabilization parameters
-        double tau0 = 0, tau1 = 0.1, tau2 = 0.1;
-
         // Background FE Space, Time FE Space & Space-Time Space
-        FESpace Vh(Th, DataFE<Mesh>::P3);       // Background FE space
-        FESpace Vh_interpolation(Th, DataFE<Mesh>::P2);      // For interpolating data
+        FESpace Vh(Th, DataFE<Mesh>::P2);       // Background FE space
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);     // Time FE space
-        FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P2Poly);    // for interpolating data
-        
-
-        // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(5));
-
-        const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
-        const Uint lastQuadTime = nbTime - 1;
 
         // Velocity field
         LagrangeQuad2 FEvelocity(1);
@@ -949,21 +1002,30 @@ int main(int argc, char **argv) {
         // Declare time dependent interface
         TimeInterface<Mesh> interface(qTime);
 
-        // Convection-Diffusion Problem Object
-        Levelset<2> phi;    
-        AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi, option);
-        //AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi);
-
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << "\n";
 
         int iter = 0;
-        // double q0_0, q0_1, qp_0, qp_1;
-        double q_init0, q_init1, qp1;
-        double intF = 0, intG = 0, intGamma = 0; // hold integrals of rhs and Neumann bcs
-        double errL2 = 0.;
 
-        std::vector<double> gamma_length, error_t;
-        std::vector<int> numb_stabilized_edges, numb_of_active_elements;
+        std::vector<double> gamma_length;
+        std::vector<double> error_t;
+        std::vector<int> numb_stabilized_edges;
+        std::vector<int> numb_of_active_elements;
+        double mass_last_previous;
+        double mass_last_previous_surf;
+        double mass_initial;
+        double mass_initial_surf;
+        double mass_last_surf;
+
+        double intF = 0;
+        double int_outflow = 0;
+        double intF_surf = 0;
+        double intF_total = 0;
+        double intF_surf_total = 0;
+        double intGamma = 0.; // hold integrals of rhs and Neumann bcs
+
+        double global_conservation_error = 0;
+        double error_I = 0.;
+        double errL2 = 0.;
         
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -972,7 +1034,6 @@ int main(int argc, char **argv) {
             double tid            = iter * time_step;
 
             const TimeSlab &In(Ih[iter]);
-            const TimeSlab &In_interpolation(Ih_interpolation[iter]);
             
 
             std::cout << " ----------------------------------------------------"
@@ -1001,19 +1062,10 @@ int main(int argc, char **argv) {
 
             // Data for initial solution
             surfactant.initSpace(Wh, In);
-
-            // Interpolate data
-            //Fun_h funrhs(Vh2, In2, fun_rhs);
-            Fun_h funrhs(Vh_interpolation, In_interpolation, fun_rhs);
             
             Rn datau0(surfactant.get_nb_dof(), 0.);
             surfactant.initialSolution(datau0); 
-            KN_<double> datas0(datau0(SubArray(Wh.get_nb_dof(), 0)));
-            if (iter == 0)
-                interpolate(Wh, datas0, fun_init_surfactant);
-            
             Fun_h u0(Wh, datau0);
-
 
             if (iter == 0) {
                 Paraview<Mesh> writer(ThGamma, path_figures + "surfactant_initial" + ".vtk");
@@ -1034,74 +1086,75 @@ int main(int argc, char **argv) {
 #ifdef conservative
             
             surfactant.addBilinear(+innerProduct(u, v), *interface(lastQuadTime), In, lastQuadTime);
-            surfactant.addLinear(+innerProduct(u0.expr(), v), *interface(0), In, 0);
- 
+            //surfactant.addLinear(+innerProduct(u0.expr(), v), *interface(0), In, 0);
 
-            // surfactant.addBilinear(+innerProduct(0.1*dT*u, v), *interface(0), In, 0);
-            // surfactant.addLinear(+innerProduct(0.1*dT*u0.expr(), v), *interface(0), In, 0);
+            // Impose initial condition
+            if (iter == 0) {
+                surfactant.addLinearExact(fun_sol_surfactant, +innerProduct(1, v), *interface(0), In, 0);
+            } else {
+                surfactant.addLinear(+innerProduct(u0.expr(), v), *interface(0), In, 0);
+            }
 
             surfactant.addBilinear(
                 - innerProduct(u, dt(v)) 
-                + innerProduct(D * gradS(u), gradS(v)) 
-                - innerProduct(u, (vel.exprList() * grad(v))),
-                interface, In);
+                + innerProduct(D*gradS(u), gradS(v)) 
+                - innerProduct(u, (vel.exprList() * grad(v)))
+                , interface
+                , In);
 
 // classical scheme
 #elif defined(classical)
 
             surfactant.addBilinear(innerProduct(u, v), *interface(0), In, 0);
-            surfactant.addLinear(innerProduct(u0.expr(), v), *interface(0), In, 0);
+            // surfactant.addLinear(innerProduct(u0.expr(), v), *interface(0), In, 0);
+
+            if (iter == 0) {
+                surfactant.addLinearExact(fun_sol_surfactant, +innerProduct(1, v), *interface(0), In, 0);
+            } else {
+                surfactant.addLinear(+innerProduct(u0.expr(), v), *interface(0), In, 0);
+            }
+            
 
             surfactant.addBilinear(
                 + innerProduct(dt(u), v)
-                + innerProduct(D * gradS(u), gradS(v)) 
+                + innerProduct(D*gradS(u), gradS(v)) 
+                + innerProduct(u * divS(vel), v)
                 + innerProduct((vel.exprList() * grad(u)), v)
-                , interface, In);
+                , interface
+                , In);
 
 #endif
 
             // Stabilization
-            double stab_surf_face      = h * tau1;
-            double stab_surf_interface = h * h * tau2;
-            double stab_mass           = 0.;//tau1 * h;
-            double stab_dt             = 0.;//tau1 * dT;
+#if defined(fullstab)
+            surfactant.addFaceStabilization(
+                + innerProduct(tau_F * jump(grad(u) * n), jump(grad(v) * n))
+                + innerProduct(h * h * tau_F * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+                , ThGamma
+                , In);
+#elif defined(macro)
 
-            surfactant.addFaceStabilization(+innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n))+
-                    innerProduct(h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
-                                            ThGamma, In);
-            
-            // stabilize in last quadrature point
-            double ccend = 1. / In.T.measure() * 1. / qTime[lastQuadTime].a;
-            double ccmid = 1. / In.T.measure() * 1. / qTime[lastQuadTime - 1].a;
-            
-            surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), ccend * jump(grad(v) * n)),
-                                            ThGamma, In, lastQuadTime);
-            
-            // surfactant.addFaceStabilizationSpecial(+innerProduct(stab_mass * jump(grad(u) * n), jump(grad(v) * n)),
-            //                                 ThGamma, lastQuadTime, In);
-            
-            // surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), jump(grad(v) * n)),
-            //                                 ThGamma, lastQuadTime, In);
+            AlgoimMacroSurface<Mesh, Levelset<2>> TimeMacro(ThGamma, 0.5, phi, In, qTime);
+            TimeMacro.findSmallElement();
+            TimeMacro.createMacroElement();
+            TimeMacro.setInnerEdges();
 
-            // surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), jump(grad(v) * n)),
-            //                                 ThGamma, 0, In);
-            // surfactant.addFaceStabilization(+innerProduct(stab_mass * jump(grad(u) * n), jump(grad(v) * n)),
-            //                                 ThGamma, 1, In);
-
-            
-
-            surfactant.addFaceStabilization(-innerProduct(stab_dt * jump(grad(u) * n), jump(grad(dt(v)) * n)),
-            ThGamma, In);
-
-            // surfactant.addFaceStabilization(-innerProduct(stab_mass * jump(grad(u) * n), jump((vel.exprList() *
-            // grad(v)))), ThGamma,
-            //                                 In);
-
-            surfactant.addBilinear(+ innerProduct(tau2 * h * h * grad(u) * n, grad(v) * n)
-                                   + innerProduct(tau2 * h * h * h * h * grad(grad(u) * n) * n, grad(grad(v) * n) * n), interface, In);
+            surfactant.addFaceStabilization(
+                + innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n))
+                + innerProduct(h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+                , ThGamma
+                , In
+                , TimeMacro);
+#endif
+            surfactant.addBilinear(
+                + innerProduct(tau_G * grad(u) * n, grad(v) * n)
+                + innerProduct(tau_G * h * h * grad(grad(u) * n) * n, grad(grad(v) * n) * n)
+                , interface
+                , In);
 
             // Add RHS on surface
-            surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface, In);
+            //surfactant.addLinear(+innerProduct(funrhs.expr(), v), interface, In);
+            surfactant.addLinearExact(fun_rhs, +innerProduct(1, v), interface, In);
 
 #ifndef USE_MPI
             if ((iter == total_number_iteration - 1) && MPIcf::IamMaster()) {
@@ -1131,39 +1184,59 @@ int main(int argc, char **argv) {
                 }
 
                 Fun_h funuh_0(Wh, datau0);
-                Fun_h funuh(Wh, sol);
-
+                Fun_h funuh(Wh, sol);   // FEM function in space
+                Fun_h funuh_t(Wh, In, datau0);  // FEM function in space and In
                 Fun_h funone(Wh, fun_one, 0.);
 
-                intF     = integral_algoim(funrhs, In, interface, phi, 0);
-                intGamma = integral_algoim(funone, *interface(0), 0, phi, tid);
+                error_I += L2_norm_surf_T(funuh_t, fun_sol_surfactant, interface, In, qTime, phi,
+                                 quadrature_order_space); // int_In ||u(t) - u_h(t)||_{Gamma(t)} dt
+
+                //intF     = integral_algoim(funrhs, In, interface, phi, 0);
+                //intGamma = integral_algoim(funone, *interface(0), 0, phi, tid);
                 // std::cout << std::setprecision(16);
                 std::cout << "intGamma = " << intGamma << "\n";
                 std::cout << "length error = " << fabs(intGamma - 2 * 0.17 * pi) << "\n";
 
-                // //errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), tid, phi, 0, 1);
-                // errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), In, qTime, 0, phi);
-                // std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
-                // //errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, phi, 0, 1);
+                //errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), tid, phi, 0, 1);
+                //errL2 = L2_norm_surface(funuh_0, fun_sol_surfactant, *interface(0), In, qTime, 0, phi);
+                //std::cout << " t_n -> || u-uex||_2 = " << errL2 << "\n";
+                errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), tid + dT, phi, 0, 1);
                 
                 // errL2 = L2_norm_surface(funuh, fun_sol_surfactant, *interface(lastQuadTime), In, qTime,
                 // lastQuadTime, phi);
-                // std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
+                std::cout << " t_{n+1} -> || u-uex||_2 = " << errL2 << "\n";
 
-                // Conservation error
-                double q0 = integral_algoim<Levelset<2>, Fun_h>(funuh_0, *interface(0), 0, phi, In, qTime, 0);
-                double q1 = integral_algoim<Levelset<2>, Fun_h>(funuh, *interface(lastQuadTime), 0, phi, In, qTime,
-                                                                lastQuadTime);
-                if (iter == 0) {
-                    q_init0 = q0;
-                    // q_init1 = q1;
-                    qp1     = q1;
-                    // q_init1 = integral_algoim<Levelset<2>, Fun_h>(u0, *interface(0), 0, phi);
-                }
+#if defined(conservation)
+            intF_surf = integral_algoim(fun_rhs, In, interface, phi, 0,
+                                   quadrature_order_space); // integrate flux boundary over In
 
-                output_data << std::setprecision(10);
-                output_data << tid << "," << (q1 - qp1) << "," << intF << "," << ((q1 - qp1) - intF) << "\n";
-                qp1 = q1;
+            intF_surf_total += intF_surf;
+
+            mass_last_surf = integral_algoim(funuh, *interface(lastQuadTime), 0, phi, In, qTime,
+                                                    lastQuadTime, quadrature_order_space);
+
+            if (iter == 0) {
+                mass_initial_surf = integral_algoim(fun_sol_surfactant, *interface(0), 0, phi, In, qTime,
+                                                    0, quadrature_order_space);
+                mass_last_previous_surf = mass_initial_surf;
+                // mass_last_previous = integral_algoim(b0h, Thi, phi, In, qTime, 0);
+            }
+
+            global_conservation_error = (mass_last_surf - mass_initial_surf - intF_surf_total);
+
+            std::cout << "global_conservation_error: " << global_conservation_error << "\n";
+
+            // output_data << std::setprecision(10);
+            // output_data << current_time << "," << (mass_last - mass_last_previous) << "," << intF << "," << intG <<
+            // ","
+            //            << local_conservation_error << '\n';
+
+            mass_last_previous_surf = mass_last_surf;
+
+            global_conservation_errors[j] = std::fabs(global_conservation_error);
+
+#endif
+
 
 
                 error_t.push_back(errL2);
@@ -1187,21 +1260,25 @@ int main(int argc, char **argv) {
                     writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, 0, 2,
                                                  path_figures + "algoim_quadrature_0_" + std::to_string(iter + 1) +
                                                      ".vtk");
-                    writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, 1, 2,
-                                                 path_figures + "algoim_quadrature_1_" + std::to_string(iter + 1) +
-                                                     ".vtk");
-                    writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, 2, 2,
-                                                 path_figures + "algoim_quadrature_2_" + std::to_string(iter + 1) +
+                    // writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, 1, 2,
+                    //                              path_figures + "algoim_quadrature_1_" + std::to_string(iter + 1) +
+                    //                                  ".vtk");
+                    writer.writeAlgoimQuadrature(ThGamma, phi, In, qTime, lastQuadTime, 2,
+                                                 path_figures + "algoim_quadrature_last_" + std::to_string(iter + 1) +
                                                      ".vtk");
                 }
-
-                if (iterations > 1 && iter == total_number_iteration - 1)
-                    output_data << h << "," << dT << "," << errL2 << "\n";
 
                 iter++;
 
             }
+            
+            errors_T[j] = std::sqrt(error_I);
+            std::cout << "error_T = " << errors_T[j] << "\n";
 
+            if (iterations > 1) {
+                output_data << h << "," << dT << "," << errL2 << "," << errors_T[j] << "\n";
+                output_data.flush();
+            }
 
             std::cout << "\n";
             std::cout << "Error t = [";
@@ -1229,7 +1306,7 @@ int main(int argc, char **argv) {
             }
             std::cout << "]\n\n";
 
-            average_errors.at(j) = std::reduce(error_t.begin(), error_t.end()) / static_cast<float>(error_t.size());
+            //average_errors.at(j) = std::reduce(error_t.begin(), error_t.end()) / static_cast<float>(error_t.size());
 
             // Refine mesh
 
@@ -1255,9 +1332,9 @@ int main(int argc, char **argv) {
         }
         std::cout << "]\n";
 
-        std::cout << "Average errors = [";
+        std::cout << "Errors T = [";
         for (int i = 0; i < iterations; i++) {
-            std::cout << average_errors.at(i);
+            std::cout << errors_T.at(i);
             if (i < iterations - 1) {
                 std::cout << ", ";
             }
