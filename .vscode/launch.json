@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             //"program": "/NOBACKUP/smyrback/build/bin/algoimbulk2",
-            "program": "/NOBACKUP/smyrback/build/bin/paper",
+            "program": "/afs/kth.se/home/s/m/smyrback/cutfem/build/bin/stationaryvortex",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
