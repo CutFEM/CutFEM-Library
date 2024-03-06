@@ -234,6 +234,9 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
 
     void addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
+
+    void addLagrangeVecToRowAndCol(const std::span<double> vecRow, const std::span<double> vecCol, const R val_rhs);
+
 };
 
 template <typename Mesh> class FEM : public BaseFEM<Mesh>, public Solver {
