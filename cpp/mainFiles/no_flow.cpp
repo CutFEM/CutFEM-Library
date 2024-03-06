@@ -29,7 +29,8 @@ using cutspace_t = CutFESpace<mesh_t>;
 // User-defined parameters
 const double nu  = 1.;
 const double Ra = 1e0;
-double boundary_penalty = 1e7;
+double boundary_penalty = 1e1;
+double tangential_penalty = 1e1;
 
 namespace no_flow {
 
@@ -64,12 +65,18 @@ namespace no_flow {
 
 using namespace no_flow;
 
+#define SCOTT_VOGELIUS
+
 int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
     const size_t mesh_refinements = 4;
     double h = 0.1;     // not used if mesh is imported
     const size_t thread_count = 1;
+
+    ProblemOption optionProblem;
+    optionProblem.solver_name_  = "mumps";
+    optionProblem.clear_matrix_ = true;
 
     const std::string path_output_data    = "../output_files/stokes/no_flow/data/";
     const std::string path_output_figures = "../output_files/stokes/no_flow/paraview/";
@@ -89,42 +96,45 @@ int main(int argc, char **argv) {
         // int nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
         // mesh_t Th(nx, ny, x0, y0, lx, ly);
     
-        mesh_t Th(("../cpp/meshes/no_flow_ps_" + std::to_string(j) + ".msh").c_str());
+        mesh_t Th(("../cpp/meshes/no_flow" + std::to_string(j) + ".msh").c_str());
 
         //int nx = (int)std::sqrt(Th.nbElements()); 
         // h = std::sqrt(2./Th.nbElements());
         h = Th[0].lenEdge(0);
 
-        boundary_penalty = boundary_penalty*nu/h;
-        // Th.info();
-
-        ProblemOption optionProblem;
-        optionProblem.solver_name_  = "mumps";
-        optionProblem.clear_matrix_ = true;
+        boundary_penalty = boundary_penalty * nu / h;
 
         // Finite element spaces
         Lagrange2 FEu(2); // for interpolating the exact solution
         space_t Vh_interpolation(Th, FEu);
         
         // P1-interpolated level set function
-        // space_t Lh(Th, DataFE<mesh_t>::P1);
-        // fct_t gamma(Lh, fun_levelset);
-        // InterfaceLevelSet<mesh_t> interface(Th, gamma);
+        space_t Lh(Th, DataFE<mesh_t>::P1);
+        fct_t gamma(Lh, fun_levelset);
+        InterfaceLevelSet<mesh_t> interface(Th, gamma);
+        ActiveMesh<mesh_t> active_mesh(Th, interface); 
         
         gnuplot::save(Th, "no_flow" + std::to_string(j) + ".dat");
         //gnuplot::save(interface, "gamma" + std::to_string(j) + ".dat");
 
         // Scott-Vogelius element pair
-        space_t Vh(Th, FEu);
-        space_t Ph(Th, DataFE<mesh_t>::P1dc);
+    #ifdef SCOTT_VOGELIUS
+        space_t V(Th, FEu);
+        space_t P(Th, DataFE<mesh_t>::P1dc);
+    #elif defined(TAYLOR_HOOD)
+        space_t V(Th, FEu);
+        space_t P(Th, DataFE<mesh_t>::P1);
+    #elif defined(BDM)
+        space_t V(Th, DataFE<mesh_t>::BDM1);
+        space_t P(Th, DataFE<mesh_t>::P0);
+    #endif
 
-        // Taylor-Hood
-        // space_t Vh(Th, FEu);
-        // space_t Ph(Th, DataFE<mesh_t>::P1);
+        // Cut finite element spaces
+        cutspace_t Vh(active_mesh, V);
+        cutspace_t Ph(active_mesh, P);
 
         // Create Stokes problem object
-        //CutFEM<mesh_t> no_flow(Vh, thread_count, optionProblem);
-        FEM<mesh_t> no_flow(Vh, thread_count, optionProblem);
+        CutFEM<mesh_t> no_flow(Vh, thread_count, optionProblem);
         no_flow.add(Ph);
 
         std::cout << "--------------------------------------------" << '\n';
@@ -132,15 +142,8 @@ int main(int argc, char **argv) {
         std::cout << "\n h  = " << h << '\n';
         std::cout << "N = " << Th.nbElements() << '\n';
 
-        // cutmesh_t active_mesh(Th);
-        // active_mesh.truncate(interface, 1);
-
-        // cutspace_t Vhn(active_mesh, Vh);
-        // cutspace_t Phn(active_mesh, Ph);
-
-        
-
         Normal n;
+        Tangent t;
 
         funtest_t u(Vh, 2), p(Ph, 1), v(Vh, 2), q(Ph, 1);
 
@@ -159,7 +162,7 @@ int main(int argc, char **argv) {
             + contractProduct(nu * grad(u), grad(v))
             - innerProduct(p, div(v)) 
             + innerProduct(div(u), q)
-            , Th);
+            , active_mesh);
 
         no_flow.addBilinear(
             - innerProduct(nu*grad(u)*n, v)
@@ -167,19 +170,28 @@ int main(int argc, char **argv) {
             + innerProduct(boundary_penalty*u, v)
             + innerProduct(p, v*n)
             //+ innerProduct(u, q*n)      // make problem block-symmetric
-            , Th
+            , active_mesh
             , INTEGRAL_BOUNDARY);
+
+        #ifdef BDM
+        no_flow.addBilinear(
+            - innerProduct(average(nu * grad(u) * t * n, 0.5, 0.5), jump(v * t))
+            - innerProduct(jump(u * t), average(nu * grad(v) * t * n, 0.5, 0.5))
+            + innerProduct(tangential_penalty * (jump(u * t)), jump(v * t))
+            , active_mesh
+            , INTEGRAL_INNER_EDGE_2D);
+        #endif
 
         // Linear form
         no_flow.addLinear(
             + innerProduct(fh.exprList(), v)
-            , Th);
+            , active_mesh);
 
         no_flow.addLinear(
             - innerProduct(gh.exprList(), nu*grad(v)*n) 
             + innerProduct(gh.exprList(), boundary_penalty*v)
             //+ innerProduct(gh.exprList(), q*n)  // compensate for added term
-            , Th
+            , active_mesh
             , INTEGRAL_BOUNDARY); 
 
         // Add Lagrange multipliers
@@ -190,12 +202,13 @@ int main(int argc, char **argv) {
         //     , Th
         // );
 
-        FEM<mesh_t> lagr(Vh);
+        CutFEM<mesh_t> lagr(Vh);
         lagr.add(Ph);
-        lagr.addLinear(innerProduct(1., p), Th);
+        lagr.addLinear(innerProduct(1., p), active_mesh);
         std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
         lagr.rhs_ = 0.;
-        lagr.addLinear(innerProduct(1, v * n), Th, INTEGRAL_BOUNDARY);
+        lagr.addLinear(innerProduct(1, v * n), active_mesh, INTEGRAL_BOUNDARY);
+        //lagr.addLinear(innerProduct(1, q), active_mesh);
 
         no_flow.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
 
@@ -205,9 +218,10 @@ int main(int argc, char **argv) {
         no_flow.solve(no_flow.mat_[0], no_flow.rhs_);
 
         // Extract numerical solution data
-        int nb_flux_dof           = Vh.get_nb_dof();
-        std::span<double> data_uh = std::span<double>(no_flow.rhs_.data(), nb_flux_dof);
-        std::span<double> data_ph = std::span<double>(no_flow.rhs_.data() + nb_flux_dof, Ph.get_nb_dof());
+        std::span<double> data_uh = std::span<double>(no_flow.rhs_.data(), Vh.get_nb_dof());
+        std::span<double> data_ph = std::span<double>(no_flow.rhs_.data() + Vh.get_nb_dof(), Ph.get_nb_dof());
+        
+        // Interpolate numerical solution onto FE spaces
         fct_t uh(Vh, data_uh);
         fct_t ph(Ph, data_ph);
 
@@ -241,11 +255,11 @@ int main(int argc, char **argv) {
         fct_t p_error(Ph, fun_p);
         
 
-        double error_uh = L2norm(uh, fun_u, 0, 2);
-        double error_ph = L2norm(ph, fun_p, 0, 1);
-        //double error_div_uh = maxNormCut(uh_0dx + uh_1dy, active_mesh);
-        double error_div_uh = maxNorm(uh_0dx + uh_1dy, Th);
-        double error_grad_uh = std::sqrt(integral(Th, (uh_0dx - u_0dx)*(uh_0dx - u_0dx) + (uh_0dy-u_0dy)*(uh_0dy-u_0dy) + (uh_1dx-u_1dx)*(uh_1dx-u_1dx) + (uh_1dy-u_1dy)*(uh_1dy-u_1dy)));
+        double error_uh = L2normCut(uh, fun_u_d, 0, 2);
+        double error_ph = L2normCut(ph, fun_p_d, 0, 1);
+        double error_div_uh = maxNormCut(uh_0dx + uh_1dy, active_mesh);
+        //double error_div_uh = maxNorm(uh_0dx + uh_1dy, Th);
+        double error_grad_uh = std::sqrt(integral(active_mesh, (uh_0dx - u_0dx)*(uh_0dx - u_0dx) + (uh_0dy-u_0dy)*(uh_0dy-u_0dy) + (uh_1dx-u_1dx)*(uh_1dx-u_1dx) + (uh_1dy-u_1dy)*(uh_1dy-u_1dy)));
 
         // double u_norm = L2norm(fun_zeros_u, fun_u_d, 0, 2);
         // double p_norm = L2norm(fun_zeros_p, fun_p_d, 0, 1);
@@ -269,7 +283,7 @@ int main(int argc, char **argv) {
         numb_elems[j] = Th.nbElements();
 
         // Write solutions to Paraview
-        Paraview<mesh_t> paraview(Th, path_output_figures + "no_flow_" + std::to_string(j) + ".vtk");
+        Paraview<mesh_t> paraview(active_mesh, path_output_figures + "no_flow_" + std::to_string(j) + ".vtk");
         //paraview.add(gamma, "gamma", 0, 1);
         paraview.add(uh, "velocity", 0, 2);
         paraview.add(ph, "pressure", 0, 1);
