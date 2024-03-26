@@ -49,5 +49,5 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(UMFPACK DEFAULT_MSG
                                   UMFPACK_INCLUDES UMFPACK_LIBRARIES)
 
-message( "umfpack_include = ${UMFPACK_INCLUDES}")
-message( "umfpack_libraries = ${UMFPACK_LIBRARIES}")
+message(STATUS "umfpack_include = ${UMFPACK_INCLUDES}")
+message(STATUS "umfpack_libraries = ${UMFPACK_LIBRARIES}")

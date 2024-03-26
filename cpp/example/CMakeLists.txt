@@ -1,9 +1,9 @@
-
-#set(INCLUDE_PYTHON /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/include/python3.10/
-#/usr/local/lib/python3.10/site-packages/numpy/core/include)
-#set(LIB_PYTHON /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/lib/libpython3.10.dylib) 
-
 find_package(PYTHON)
+
+add_executable(limiter_paper1_ex_1 hyberbolic_conservation_law/DG_CutFEM_ex_1.cpp)
+target_link_libraries( limiter_paper1_ex_1
+                        PRIVATE 
+                        ${EXTRA_LIBS} )
 
 add_executable(limiter_paper1_ex_2 hyberbolic_conservation_law/DG_CutFEM_ex_2.cpp)
 target_link_libraries( limiter_paper1_ex_2

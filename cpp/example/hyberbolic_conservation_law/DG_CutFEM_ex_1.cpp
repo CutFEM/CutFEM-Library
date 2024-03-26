@@ -1,19 +1,27 @@
-#ifdef EXAMPLE1
+#include "../tool.hpp"
+
+using mesh_t     = Mesh2;
+using funtest_t  = TestFunction<mesh_t>;
+using fct_t      = FunFEM<mesh_t>;
+using cutmesh_t  = ActiveMesh<mesh_t>;
+using space_t    = GFESpace<mesh_t>;
+using cutspace_t = CutFESpace<mesh_t>;
+using MatMap     = std::map<std::pair<int, int>, double>;
+
 double c0 = 0.5;
-R fun_levelSet(const R2 P, const int i) { return -P.x - P.y + c0; }
-R fun_boundary(const R2 P, int elementComp, double t) { return sin(pi * (P.x + P.y - 4 * t)); }
-R fun_solution(const R2 P, int elementComp, int domain, double t) {
-    // return 2*sin(pi*(P.x+P.y-3*t));
+double fun_levelSet(const R2 P, const int i) { return -P.x - P.y + c0; }
+double fun_boundary(const R2 P, int elementComp, double t) { return sin(std::numbers::pi * (P.x + P.y - 4 * t)); }
+double fun_solution(const R2 P, int elementComp, int domain, double t) {
     if (domain == 0)
-        return sin(pi * (P.x + P.y - 4 * t));
+        return sin(std::numbers::pi * (P.x + P.y - 4 * t));
     else
-        return 4. / 3 * sin(4. / 3 * pi * (P.x + P.y - 3 * t - c0 / 4));
+        return 4. / 3 * sin(4. / 3 * std::numbers::pi * (P.x + P.y - 3 * t - c0 / 4));
 }
 
-void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, MatMap &Mh) {
+void assembly(const space_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah, MatMap &Mh) {
 
-    double t0 = MPIcf::Wtime();
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    auto t0 = std::chrono::high_resolution_clock::now();
+    const cutmesh_t &Khi(Wh.get_mesh());
     CutFEM<Mesh2> problem(Wh);
     CutFEM_R2 beta({R2(3, 1), R2(2, 1)});
     CutFEMParameter lambda(0., 1.);
@@ -26,9 +34,9 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
     double Cstabt  = 5e-1;
 
     Normal n;
-    TestFunction2 u(Wh, 1), v(Wh, 1);
+    funtest_t u(Wh, 1), v(Wh, 1);
 
-    TestFunction2 Hessu = grad(grad(u)), Hessv = grad(grad(v));
+    funtest_t Hessu = grad(grad(u)), Hessv = grad(grad(v));
     // BUILDING A
     // =====================================================
     problem.set_map(Ah);
@@ -45,12 +53,12 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
 
     // F(u)_e = {B.u} - lambda_e/2 [u]
     problem.addBilinear(-innerProduct(average(beta * u * n), jump(v)) - innerProduct(0.5 * lambdaE * jump(u), jump(v)),
-                        Khi, innerFacet);
+                        Khi, INTEGRAL_INNER_EDGE_2D);
 
-    problem.addBilinear(-innerProduct(beta * u * n, v), Khi, boundary, {2, 3} // label other boundary
+    problem.addBilinear(-innerProduct(beta * u * n, v), Khi, INTEGRAL_BOUNDARY, {2, 3} // label other boundary
     );
-    problem.addBilinear(-innerProduct(u, beta * (0.5 * v) * n) - innerProduct(u, lambdaB * 0.5 * v), Khi, boundary,
-                        {1, 4} // label left boundary
+    problem.addBilinear(-innerProduct(u, beta * (0.5 * v) * n) - innerProduct(u, lambdaB * 0.5 * v), Khi,
+                        INTEGRAL_BOUNDARY, {1, 4} // label left boundary
     );
 
     // BUILDING (M + S)
@@ -62,27 +70,29 @@ void assembly(const Space &Wh, const Interface<Mesh> &interface, MatMap &Ah, Mat
                                      contractProduct((h ^ 5) * jump(Hessu), Cstab * jump(Hessv)),
                                  Khi);
 
-    std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::cout << " Time assembly \t" << std::chrono::duration<double>(t1 - t0).count() << std::endl;
 }
 
-void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Rn &u0, Rn &uh, MatMap &Ah, MatMap &Mh,
-                   double tn) {
+void solve_problem(const space_t &Wh, const Interface<mesh_t> &interface, std::span<double> u0, std::span<double> uh,
+                   MatMap &Ah, MatMap &Mh, double tn) {
 
     double t0 = MPIcf::Wtime();
-    const ActiveMesh<Mesh> &Khi(Wh.get_mesh());
+    const cutmesh_t &Khi(Wh.get_mesh());
 
     ProblemOption optionProblem;
+    optionProblem.solver_name_  = "umfpack";
     optionProblem.clear_matrix_ = false;
     CutFEM<Mesh2> problem(Wh, optionProblem);
 
     CutFEM_R2 beta({R2(3, 1), R2(2, 1)});
     double lambdaB = 3;
 
-    Fun_h gh(Wh, fun_solution, tn);
-    Expression2 gx(gh, 0, op_id);
+    fct_t gh(Wh, fun_solution, tn);
+    auto gx = gh.expr();
 
     Normal n;
-    FunTest u(Wh, 1), v(Wh, 1);
+    funtest_t u(Wh, 1), v(Wh, 1);
 
     // MULTIPLYING A * u_0  => rhs
     // =====================================================
@@ -91,8 +101,8 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Rn &
     int N = problem.get_nb_dof();
     multiply(N, N, Ah, u0, problem.rhs_);
 
-    problem.addLinear(-innerProduct(gx, beta * (0.5 * v) * n) + innerProduct(gx, lambdaB * 0.5 * v), Khi, boundary,
-                      {1, 4} // label left boundary
+    problem.addLinear(-innerProduct(gx, beta * (0.5 * v) * n) + innerProduct(gx, lambdaB * 0.5 * v), Khi,
+                      INTEGRAL_BOUNDARY, {1, 4} // label left boundary
     );
     // std::cout << " Time building problem \t" << MPIcf::Wtime() - t0 << std::endl;
 
@@ -100,13 +110,15 @@ void solve_problem(const Space &Wh, const Interface<Mesh> &interface, const Rn &
     // =====================================================
     problem.solve(Mh, problem.rhs_);
 
-    uh = problem.rhs_;
+    std::copy(problem.rhs_.begin(), problem.rhs_.end(), uh.begin());
 }
 
 int main(int argc, char **argv) {
 
+#ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
-    const double cpubegin = MPIcf::Wtime();
+#endif
+    auto t0 = std::chrono::high_resolution_clock::now();
 
     // OUTPUT FILE
     // =====================================================
@@ -116,14 +128,16 @@ int main(int argc, char **argv) {
     // =====================================================
     int nx = 50;
     int ny = 50;
-    Mesh Th(nx, ny, -1., -1., 2., 2.); // [-1,1]*[-1,1]
-    Space Vh(Th, DataFE<Mesh2>::P1dc);
+    mesh_t Th(nx, ny, -1., -1., 2., 2.); // [-1,1]*[-1,1]
+    space_t Vh(Th, DataFE<mesh_t>::P2dc);
+
+    int order = Vh.polynomialOrder;
 
     // DEFINITION OF SPACE AND TIME PARAMETERS
     // =====================================================
     double tid      = 0;
     double meshSize = 2. / nx;
-    double dt       = meshSize / 3 / sqrt(10) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
+    double dt       = meshSize / 3 / sqrt(10) / std::pow(2., order);
     double tend     = 0.5;
     int niteration  = tend / dt;
     dt              = tend / niteration;
@@ -134,31 +148,20 @@ int main(int argc, char **argv) {
 
     // DEFINITION OF THE LEVELSET
     // =====================================================
-    Space Lh(Th, DataFE<Mesh2>::P1);
-    Fun_h levelSet(Lh, fun_levelSet);
+    space_t Lh(Th, DataFE<Mesh2>::P1);
+    fct_t levelSet(Lh, fun_levelSet);
 
     // CONSTRUCTION INTERFACE AND CUTSPACE
     // =====================================================
-    InterfaceLevelSet<Mesh> interface(Th, levelSet);
-    ActiveMesh<Mesh> Khi(Th, interface);
-    CutSpace Wh(Khi, Vh);
+    InterfaceLevelSet<mesh_t> interface(Th, levelSet);
+    cutmesh_t Khi(Th, interface);
+    cutspace_t Wh(Khi, Vh);
 
     // DECLARATION OF THE VECTOR CONTAINING THE solution
     // =====================================================
-    Rn u0(Wh.NbDoF(), 0.);
+    std::vector<double> u0(Wh.NbDoF(), 0.);
     interpolate(Wh, u0, fun_solution, 0.);
-    Fun_h Un(Wh, u0);
-    Rn uh(u0);
-
-    // Fun2_h femSolh(Wh, uh);
-
-    // if(MPIcf::IamMaster()) {
-    //   Fun2_h solex(Wh, fun_solution, tid);
-    //   Fun2_h sol(Wh, uh);
-    //   Paraview2 writer(Wh, levelSet, "testDetector.vtk");
-    //   writer.add(sol  , "uh" , 0, 1);
-    //   // writer.add(levelSet, "levelSet", 0, 1);
-    // }
+    std::vector<double> uh(u0);
 
     // ASSEMBLY THE CONSTANT PART
     // ==================================================
@@ -167,29 +170,25 @@ int main(int argc, char **argv) {
 
     // RESOLUTION OF THE PROBLEM_MIXED_DARCY
     // ==================================================
+    std::vector<double> u1(Wh.NbDoF(), 0.);
     int ifig = 1;
     for (int i = 0; i < niteration; ++i) {
 
-        // EULER METHOD
-        // =================================================
-        // solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
-        // std::cout << uh << std::endl;
-        //
-        // uh *= dt;
-        // uh += u0;
-
-        Rn u1(u0);
-        Rn u2(Wh.NbDoF(), 0.);
+        std::fill(u1.begin(), u1.end(), 0.);
         // THIRD ORDER RK
         // =================================================
         solve_problem(Wh, interface, u0, uh, Ah, Mh, tid);
-        u1 += dt * uh;
-        u2 += 3. / 4 * u0 + 1. / 4 * u1;
+        Scheme::RK3::step1(u0.begin(), u0.end(), uh.begin(), dt, u1.begin());
+        // u1 += dt * uh;
+        // u2 += 3. / 4 * u0 + 1. / 4 * u1;
         solve_problem(Wh, interface, u1, uh, Ah, Mh, tid + dt);
-        u2 += 1. / 4 * dt * uh;
-        solve_problem(Wh, interface, u2, uh, Ah, Mh, tid + 0.5 * dt);
-        uh *= 2. / 3 * dt;
-        uh += 1. / 3 * u0 + 2. / 3 * u2;
+        Scheme::RK3::step2(u0.begin(), u0.end(), u1.begin(), uh.begin(), dt, u1.begin());
+
+        // u2 += 1. / 4 * dt * uh;
+        solve_problem(Wh, interface, u1, uh, Ah, Mh, tid + 0.5 * dt);
+        Scheme::RK3::step3(u0.begin(), u0.end(), u1.begin(), uh.begin(), dt, uh.begin());
+        // uh *= 2. / 3 * dt;
+        // uh += 1. / 3 * u0 + 2. / 3 * u2;
 
         u0 = uh;
         tid += dt;
@@ -197,44 +196,37 @@ int main(int argc, char **argv) {
         // COMPUTATION OF THE L2 ERROR
         // =================================================
         interpolate(Wh, u1, fun_solution, tid);
-        u1 -= uh;
-        Fun_h femErrh(Wh, u1);
-        Expression2 femErr(femErrh, 0, op_id);
 
-        R errU = sqrt(integral(Khi, femErr * femErr));
+        // u1 -= uh;
+        std::transform(u1.begin(), u1.end(), uh.begin(), u1.begin(), std::minus<double>());
+
+        fct_t femErrh(Wh, u1);
+        auto femErr = femErrh.expr();
+
+        double errU = sqrt(integral(Khi, femErr * femErr));
         errSum += errU;
-
-        // Expression2 femSol(femSolh, 0, op_id);
-        // R qu = integral(Khi, femSol);
 
         // PLOT THE SOLUTION
         // ==================================================
         if (MPIcf::IamMaster() && i % 10 == 0 || i + 1 == niteration) {
-            Fun2_h femSolh(Wh, uh);
-            // Fun2_h solex(Wh, fun_solution, tid);
-            for (int j = 0; j < uh.size(); ++j) {
-                if (fabs(uh(j)) < 1e-16)
-                    uh(j) = 0.;
-            }
-            Fun2_h sol(Wh, uh);
-            Paraview<Mesh> writer(Khi, "hyperbolicLawExample1_" + to_string(ifig++) + ".vtk");
+            fct_t femSolh(Wh, uh);
+
+            // fixe for paraview number format
+            std::transform(uh.begin(), uh.end(), uh.begin(), [](double x) { return (std::abs(x) < 1e-16) ? 0. : x; });
+            fct_t sol(Wh, uh);
+
+            Paraview<mesh_t> writer(Khi, "hyperbolicLawExample1_" + std::to_string(ifig++) + ".vtk");
             writer.add(sol, "uh", 0, 1);
-            // writer.add(solex, "uex", 0, 1);
+
+            fct_t solex(Wh, fun_solution, tid);
+            writer.add(solex, "uex", 0, 1);
         }
         std::cout << "Iteration " << i << " / " << niteration << " \t time = " << tid << " , || u-uex ||_2 = " << errU
                   << std::endl;
-        // outputData << i << "\t"
-        //            << tid << "\t"
-        //            << setprecision(16) << qu << "\t"
-        //            << setprecision(16) << fabs(qu-qu0) << "\t"
-        //            << setprecision(5) << std::endl;
-
-        // return 0;
     }
 
     std::cout << "Error  - sum || u ||_2 / N = " << errSum / niteration << std::endl;
-    std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin << std::endl;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::cout << " Time computation \t" << std::chrono::duration<double>(t1 - t0).count() << std::endl;
     return 0;
 }
-
-#endif

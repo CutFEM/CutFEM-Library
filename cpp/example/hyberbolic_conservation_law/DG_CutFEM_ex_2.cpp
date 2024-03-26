@@ -26,7 +26,7 @@ double fun_initial(const R2 P, int elementComp, int domain) {
 
 void assembly(const space_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah, MatMap &Mh) {
 
-    double t0 = MPIcf::Wtime();
+    auto t0 = std::chrono::high_resolution_clock::now();
     const cutmesh_t &Khi(Wh.get_mesh());
     CutFEM<Mesh2> problem(Wh);
     CutFEM_R2 beta({R2(3, 1), R2(1, 2)});
@@ -75,17 +75,16 @@ void assembly(const space_t &Wh, const Interface<mesh_t> &interface, MatMap &Ah,
                                  ,
                                  Khi);
 
-    std::cout << " Time assembly \t" << MPIcf::Wtime() - t0 << std::endl;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::cout << " Time assembly \t" << std::chrono::duration<double>(t1 - t0).count() << std::endl;
 }
-void solve_problem(const space_t &Wh, const Interface<mesh_t> &interface, const std::span<double> u0,
-                   std::span<double> uh, MatMap &Ah, MatMap &Mh, double tn) {
-
-    double t0 = MPIcf::Wtime();
+void solve_problem(const space_t &Wh, const Interface<mesh_t> &interface, std::span<double> u0, std::span<double> uh,
+                   MatMap &Ah, MatMap &Mh, double tn) {
 
     const cutmesh_t &Khi(Wh.get_mesh());
 
     ProblemOption optionProblem;
-    optionProblem.solver_name_  = "umfpack";
+    optionProblem.solver_name_  = "umfpack"; //"mumps";
     optionProblem.clear_matrix_ = false;
     CutFEM<Mesh2> problem(Wh, optionProblem);
 
@@ -114,16 +113,18 @@ int main(int argc, char **argv) {
 #ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
 #endif
-    const double cpubegin = MPIcf::Wtime();
+    CutFEMLogger::initialize("conservation_log.txt");
+
+    auto t0 = std::chrono::high_resolution_clock::now();
 
     // OUTPUT FILE
     // =====================================================
-    std::ofstream outputData("output_test.txt");
+    std::ofstream outputData("output_conservation.txt");
 
     // DEFINITION OF THE MESH and SPACE
     // =====================================================
-    int nx = 200;
-    int ny = 200;
+    int nx = 100;
+    int ny = 100;
     mesh_t Th(nx, ny, -1., -1., 2., 2.); // [-1,1]*[-1,1]
     space_t Vh(Th, DataFE<Mesh2>::P1dc);
 
@@ -131,7 +132,7 @@ int main(int argc, char **argv) {
     // =====================================================
     double tid      = 0;
     double meshSize = 2. / nx;
-    double dt       = meshSize / 5 / sqrt(10) * 0.5; // 0.3 * meshSize / 3 ;  // h /10
+    double dt       = meshSize / 5 / sqrt(10) * 0.5;
     double tend     = 0.4;
     int niteration  = tend / dt;
     dt              = tend / niteration;
@@ -206,8 +207,8 @@ int main(int argc, char **argv) {
         //         uh(j) = 0.;
         // }
         // Fun2_h sol(Wh, uh);
-        Paraview<mesh_t> writer(Khi, "conservation_" + std::to_string(ifig++) + ".vtk");
-        writer.add(fun_uh, "uh", 0, 1);
+        // Paraview<mesh_t> writer(Khi, "conservation_" + std::to_string(ifig++) + ".vtk");
+        // writer.add(fun_uh, "uh", 0, 1);
         // writer.add(solex, "uex", 0, 1);
         // }
         std::cout << "Iteration " << i + 1 << " / " << niteration << " \t time = " << tid << std::endl;
@@ -217,10 +218,9 @@ int main(int argc, char **argv) {
                   << std::endl;
         outputData << i << "\t" << tid << "\t" << std::setprecision(16) << qu << "\t" << std::setprecision(16)
                    << fabs(qu - qu0) << "\t" << std::setprecision(5) << std::endl;
-
-        return 0;
     }
 
-    std::cout << " Time computation \t" << MPIcf::Wtime() - cpubegin << std::endl;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::cout << " Time computation \t" << std::chrono::duration<double>(t1 - t0).count() << std::endl;
     return 0;
 }

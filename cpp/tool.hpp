@@ -18,6 +18,7 @@
 #include <concepts>
 #include <algorithm>
 #include <numeric>
+#include <numbers>
 
 #include "concept/function.hpp"
 #include "common/global.hpp"

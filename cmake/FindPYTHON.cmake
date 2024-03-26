@@ -50,12 +50,11 @@ if(PYTHON_INCLUDE_DIR AND NUMPY_INCLUDE_DIR AND PYTHON_LIBRARY_DIR)
   set(PYTHON_INCLUDES ${PYTHON_INCLUDE_DIR} ${NUMPY_INCLUDE_DIR})
 
   message( "-- PYTHON_library FOUND")
-  message( " PYTHON & NUMPY includes = ${PYTHON_INCLUDES}")
-  message( " PYTHON library = ${PYTHON_LIBRARIES}")
-
+  message( STATUS "PYTHON & NUMPY includes = ${PYTHON_INCLUDES}")
+  message( STATUS "PYTHON library = ${PYTHON_LIBRARIES}")
 
   else()
-    message( "PYTHON include dirs = ${PYHTON_INCLUDE_DIR}")
-    message( "PYTHON library = ${PYTHON_LIBRARIES}")
+    message( STATUS "PYTHON include dirs = ${PYHTON_INCLUDE_DIR}")
+    message( STATUS "PYTHON library = ${PYTHON_LIBRARIES}")
 endif()
 
