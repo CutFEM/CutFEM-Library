@@ -1,12 +1,12 @@
 find_package(PYTHON)
 
-add_executable(limiter_paper1_ex_1 hyberbolic_conservation_law/DG_CutFEM_ex_1.cpp)
-target_link_libraries( limiter_paper1_ex_1
+add_executable(DG_CutFEM_ex_1 hyberbolic_conservation_law/DG_CutFEM_ex_1.cpp)
+target_link_libraries(DG_CutFEM_ex_1
                         PRIVATE 
                         ${EXTRA_LIBS} )
 
-add_executable(limiter_paper1_ex_2 hyberbolic_conservation_law/DG_CutFEM_ex_2.cpp)
-target_link_libraries( limiter_paper1_ex_2
+add_executable(DG_CutFEM_ex_2 hyberbolic_conservation_law/DG_CutFEM_ex_2.cpp)
+target_link_libraries(DG_CutFEM_ex_2
                         PRIVATE 
                         ${EXTRA_LIBS} )
 
