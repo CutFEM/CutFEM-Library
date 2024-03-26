@@ -137,7 +137,7 @@ template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBas
         gather(this->mat_);
         Solver::solve(this->mat_[0], this->rhs_);
     }
-    // void solve(std::map<std::pair<int, int>, R> &A, Rn &b) { Solver::solve(A, b); }
+    void solve(std::map<std::pair<int, int>, R> &A, Rn &b) { Solver::solve(A, b); }
     // void solve(std::vector<Matrix> &A, Rn &b, std::string solverName) {
     //     gather(A);
     //     Solver::solve(A[0], b);

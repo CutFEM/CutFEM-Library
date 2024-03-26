@@ -814,8 +814,8 @@ int main(int argc, char **argv) {
 #ifdef ex1
     // Paths to store data
     ex = "example1";
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/henry/example1/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/henry/example1/paraview/";
+    const std::string path_output_data    = "../output_files/henry/example1/data/";
+    const std::string path_output_figures = "../output_files/henry/example1/paraview/";
 #elif defined(ex2)
     const std::string path_output_data    = "../output_files/henry/example2/data/";
     const std::string path_output_figures = "../output_files/henry/example2/paraview/";
@@ -1163,8 +1163,11 @@ int main(int argc, char **argv) {
             }
 #endif
 
-            convdiff.addBilinear(+ innerProduct(tau_G * grad(uS) * n, grad(vS) * n)
-                        + innerProduct(tau_G * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n), interface, In);
+            convdiff.addBilinear(
+                + innerProduct(tau_G * grad(uS) * n, grad(vS) * n)
+                + innerProduct(tau_G * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n)
+                , interface
+                , In);
 
 
             if (iter == total_number_iteration - 1) {

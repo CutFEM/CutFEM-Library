@@ -1762,7 +1762,8 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
             // Get current time
             auto tq = qtime.at(itq);
             //auto tq    = this->get_quadrature_time(itq);
-            double tid = (&In) ? (double)(&In)->map(tq) : 0.;
+            //double tid = (&In) ? (double)(&In)->map(tq) : 0.;
+            double tid = In.map(tq);
 
             phi.t = tid; // update time in level set function
 
@@ -1814,17 +1815,8 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
                     Cint *= VF[l].c;
                     Cint *= f(mip, VF[l].cv, tid);
 
-                    if (&In) {
-                        if (VF.isRHS())
-                            this->addToRHS(VF[l], In, FKv, fv, Cint);
-                        else
-                            this->addToMatrix(VF[l], In, FKu, FKv, fu, fv, Cint);
-                    } else {
-                        if (VF.isRHS())
-                            this->addToRHS(VF[l], FKv, fv, Cint);
-                        else
-                            this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
-                    }
+                    this->addToRHS(VF[l], In, FKv, fv, Cint);
+                    
                 }
             }
         }

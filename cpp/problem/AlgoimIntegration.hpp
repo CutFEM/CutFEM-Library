@@ -6,7 +6,7 @@
 
 #include "../common/AlgoimInterface.hpp"
 
-const int quadrature_order_integration = 14;
+const int quadrature_order_integration = 5;
 
 template <typename Mesh, typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(const R2, int i),
