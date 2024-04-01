@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
     double h = 0.5; // starting mesh size
 
-    const size_t iterations = 3;
+    const size_t iterations = 4;
 
     
 
@@ -344,24 +344,40 @@ int main(int argc, char **argv) {
                     , Thi
                     , In);
 
-                // Add Lagrange multipliers
-                CutFEM<Mesh2> lagrange(qTime, optionProblem);
-                lagrange.initSpace(Vhn, In);
-                lagrange.add(Phn, In);
+                // // Add Lagrange multipliers
+                // CutFEM<Mesh2> lagrange(qTime, optionProblem);
+                // lagrange.initSpace(Vhn, In);
+                // lagrange.add(Phn, In);
       
-                Rn lag_row(lagrange.rhs_.size(), 0.);
+                // Rn lag_row(lagrange.rhs_.size(), 0.);
 
-                // Add multipliers in first and last time quadrature point
+                // // Add multipliers in first and last time quadrature point
+                // for (int itq = 0; itq < 2; ++itq) {
+                //     lagrange.rhs_ = 0.;
+                //     lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
+                //     lag_row       = lagrange.rhs_;
+                //     lagrange.rhs_ = 0.;
+                //     lagrange.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq * last_quad_time, In);
+                //     //lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
+                //     navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagrange.rhs_, 0);
+                // }
+
+                CutFEM<mesh_t> lagr(qTime, optionProblem);
+                lagr.initSpace(Vhn, In);
+                lagr.add(Phn, In);
+
                 for (int itq = 0; itq < 2; ++itq) {
-                    lagrange.rhs_ = 0.;
-                    lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
-                    lag_row       = lagrange.rhs_;
-                    lagrange.rhs_ = 0.;
-                    lagrange.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq * last_quad_time, In);
-                    //lagrange.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
-                    navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagrange.rhs_, 0);
-                }
+                    lagr.rhs_ = 0.;
+                    lagr.addLinear(innerProduct(1., q), Thi, itq * last_quad_time, In);
+                    std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
+                    lagr.rhs_ = 0.;
+                    lagr.addLinear(innerProduct(1., v * n), Thi, INTEGRAL_BOUNDARY, itq * last_quad_time, In);
+                    //lagr.addLinear(innerProduct(1., p), active_mesh);
 
+                    navier_stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
+
+                }
+                
                 // Export matrix
                 if (iter == total_number_iteration - 1) {
                     matlab::Export(mat_NL[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");

@@ -28,7 +28,7 @@ using cutspace_t = CutFESpace<mesh_t>;
 
 // User-defined parameters
 const double nu  = 1.;
-const double Ra = 1e0;
+const double Ra = 1.;
 double boundary_penalty = 1e1;
 double tangential_penalty = 1e1;
 
@@ -96,7 +96,8 @@ int main(int argc, char **argv) {
         // int nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
         // mesh_t Th(nx, ny, x0, y0, lx, ly);
     
-        mesh_t Th(("../cpp/meshes/no_flow" + std::to_string(j) + ".msh").c_str());
+        mesh_t Th(("../cpp/meshes/no_flow_ps_" + std::to_string(j) + ".msh").c_str());
+        //mesh_t Th(("../cpp/meshes/no_flow_ct_" + std::to_string(j) + ".msh").c_str());
 
         //int nx = (int)std::sqrt(Th.nbElements()); 
         // h = std::sqrt(2./Th.nbElements());
@@ -124,7 +125,7 @@ int main(int argc, char **argv) {
     #elif defined(TAYLOR_HOOD)
         space_t V(Th, FEu);
         space_t P(Th, DataFE<mesh_t>::P1);
-    #elif defined(BDM)
+    #elif defined(BDM1_P0)
         space_t V(Th, DataFE<mesh_t>::BDM1);
         space_t P(Th, DataFE<mesh_t>::P0);
     #endif
@@ -173,7 +174,7 @@ int main(int argc, char **argv) {
             , active_mesh
             , INTEGRAL_BOUNDARY);
 
-        #ifdef BDM
+        #ifdef BDM1_P0
         no_flow.addBilinear(
             - innerProduct(average(nu * grad(u) * t * n, 0.5, 0.5), jump(v * t))
             - innerProduct(jump(u * t), average(nu * grad(v) * t * n, 0.5, 0.5))
@@ -199,18 +200,19 @@ int main(int argc, char **argv) {
         // no_flow.addLagrangeMultiplier(
         //     + innerProduct(1., p)
         //     , 0.
-        //     , Th
+        //     , active_mesh
         // );
 
         CutFEM<mesh_t> lagr(Vh);
         lagr.add(Ph);
         lagr.addLinear(innerProduct(1., p), active_mesh);
+        //lagr.addLinear(innerProduct(1., div(v)), active_mesh);
         std::vector<double> lag_row(lagr.rhs_.begin(), lagr.rhs_.end());
         lagr.rhs_ = 0.;
-        lagr.addLinear(innerProduct(1, v * n), active_mesh, INTEGRAL_BOUNDARY);
-        //lagr.addLinear(innerProduct(1, q), active_mesh);
+        lagr.addLinear(innerProduct(1., v * n), active_mesh, INTEGRAL_BOUNDARY);
+        //lagr.addLinear(innerProduct(1., p), active_mesh);
 
-        no_flow.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
+        no_flow.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0.);
 
         // Export matrix
         matlab::Export(no_flow.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
@@ -225,7 +227,7 @@ int main(int argc, char **argv) {
         fct_t uh(Vh, data_uh);
         fct_t ph(Ph, data_ph);
 
-        // [Post process pressure]
+        // Post process pressure
         // double meanP    = integral(Th, p_exact.expr(), 0);
         // double meanPfem = integral(Th, ph.expr(), 0);
         // FEM<mesh_t> post(Ph);
