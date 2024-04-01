@@ -1,9 +1,10 @@
 # Import required modules
 using LinearAlgebra, SparseArrays, DelimitedFiles
 
-path = "../output_files/paper/example2/data/"
+#path = "../output_files/paper/example2/data/"
+path = "/Users/sebastianmyrback/Documents/KTH/forskning/development/output_files/stokes/fictitious/data/"
 
-n = 6
+n = 4
 condition_numbers = zeros(n)
 
 for i=1:n
@@ -11,9 +12,9 @@ for i=1:n
     A = readdlm(path * "mat_" * string(i) * ".dat")
     A = sparse(A[:,1], A[:,2], A[:,3])
 
-    #condition_numbers[i] = cond(A, 1)           # condest norm
-    condition_numbers[i] = cond(Matrix(A), 2)   # spectral norm
-    println(string(condition_numbers[i]) * "\n")
+    condition_numbers[i] = cond(A, 1)           # condest norm
+    #condition_numbers[i] = cond(Matrix(A), 2)   # spectral norm
+    println("condition number = " * string(condition_numbers[i]) * "\n")
 end
 
 # Display the result

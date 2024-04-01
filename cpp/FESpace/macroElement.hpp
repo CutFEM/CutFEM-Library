@@ -1957,7 +1957,6 @@ void AlgoimMacroSurface<Mesh, L>::findSmallElement() {
             algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
 
             // Get current time
-
             GQuadraturePoint<R1> tq((this->qTime).at(itq));
             const double t = (this->In).mapToPhysicalElement(tq);
             (this->phi).t          = t;
@@ -1976,7 +1975,7 @@ void AlgoimMacroSurface<Mesh, L>::findSmallElement() {
                 //           << ", area_cut: " << cut_segment << ", |K|: " << this->measure_K << ", cut part %: " << part <<
                 //           "\n";
 
-                assert(0 < cut_segment/(this->measure_K) && cut_segment/(this->measure_K) <= 1+1e-10); // make sure cut area is not equal to element area if cut
+                assert(0 < cut_segment/(this->measure_K) && cut_segment/(this->measure_K) <= 2.); // cut segment can actually be larger than diagonal of element
                 is_large = true;
                 
             } else if ((cut_segment <= this->tol) && (!(this->Th).isInactive(k, itq))) {
