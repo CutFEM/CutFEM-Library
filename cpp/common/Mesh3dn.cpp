@@ -42,26 +42,65 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "Mesh3dn.hpp"
 #include "base_interface.hpp"
 
-Mesh3::Mesh3(const std::string filename) {
-    std::ifstream f(filename.c_str());
-    if (filename.rfind(".msh") == filename.length() - 4)
-        readmsh(f);
+// Mesh3::Mesh3(const std::string filename) {
+//     std::ifstream f(filename.c_str());
+//     if (filename.rfind(".msh") == filename.length() - 4)
+//         readmsh(f);
+//     else {
+//         std::cout << " not a good format" << std::endl;
+//     }
+
+//     BuildBound();
+//     if (nt > 0) {
+//         BuildAdj();
+//     }
+
+//     verbosity = 3;
+//     if (verbosity > 2)
+//         std::cout << "  -- End of read: mesure = " << mes << " border mesure " << mesb << std::endl;
+//     if (verbosity)
+//         std::cout << "  -- Mesh3 : " << filename << ", d " << 3 << ", n Tet " << nt << ", n Vtx " << nv << " n Bord "
+//                   << nbe << std::endl;
+//     ffassert(mes >= 0); // add F. Hecht sep 2009.
+// }
+
+Mesh3::Mesh3(const std::string filename, MeshFormat type_mesh) { // read the mesh
+
+    std::ifstream f(filename);
+    if (!f) {
+        std::cerr << "Mesh3::Mesh3 Erreur openning " << filename << std::endl;
+        exit(1);
+    }
+    if (verbosity)
+        std::cout << " Read On file \"" << filename << "\"" << std::endl;
+
+    // if (filename.rfind(".msh") == filename.length() - 4) {
+    //     if (verbosity)
+    //         std::cout << "  -- Read msh file " << std::endl;
+    //     readMsh(f);
+    //     // return;
+    // } else if (filename.rfind(".mesh") == filename.length() - 5) {
+    //     if (verbosity)
+    //         std::cout << "  -- Read mesh file " << std::endl;
+    //     readMesh(f);
+    // }
+    if (type_mesh == MeshFormat::mesh_gmsh)
+        readMeshGmsh(f);
+    else if (type_mesh == MeshFormat::mesh_freefem) {
+        //readMeshFreefem(f);
+        std::cerr << "No freefem implementation " << filename << std::endl;
+        exit(1);
+    }
     else {
-        std::cout << " not a good format" << std::endl;
+        std::cerr << "No mesh format specified " << filename << std::endl;
+        exit(1);
     }
 
     BuildBound();
-    if (nt > 0) {
-        BuildAdj();
-    }
+    BuildAdj();
 
-    verbosity = 3;
-    if (verbosity > 2)
-        std::cout << "  -- End of read: mesure = " << mes << " border mesure " << mesb << std::endl;
-    if (verbosity)
-        std::cout << "  -- Mesh3 : " << filename << ", d " << 3 << ", n Tet " << nt << ", n Vtx " << nv << " n Bord "
-                  << nbe << std::endl;
-    ffassert(mes >= 0); // add F. Hecht sep 2009.
+    // if (verbosity)
+    std::cout << "   - mesh mesure = " << mes << " border mesure: " << mesb << std::endl;
 }
 
 void Mesh3::readmsh(std::ifstream &f) {
@@ -95,6 +134,50 @@ void Mesh3::readmsh(std::ifstream &f) {
         mesb += K.measure();
     }
 }
+
+void Mesh3::readMeshGmsh(std::ifstream &f) {
+
+    std::string field;
+    while (std::getline(f, field)) {
+        if (field.find("Vertices") != std::string::npos) {
+            f >> nv;
+            std::cout << "  -- Nb of Vertex " << nv << std::endl;
+            assert(nv);
+            vertices = new Vertex3[nv];
+
+            R3 P;
+            for (int i = 0; i < nv; i++) {
+                f >> P >> vertices[i].lab;
+                (R3 &)vertices[i] = P;
+            }
+        }
+
+        if (field.find("Triangles") != std::string::npos) {
+            f >> nbe;
+            std::cout << "  -- Nb of border triangles " << nbe << std::endl;
+            assert(nbe);
+            borderelements = new Triangle3[nbe];
+            mesb           = 0.;
+            for (int i = 0; i < nbe; i++) {
+                this->be(i).Read1(f, this->vertices, nv);
+                mesb += be(i).measure();
+            }
+        }
+
+        if (field.find("Tetrahedra") != std::string::npos) {
+            f >> nt;
+            std::cout << "  -- Nb of Tetrahedra " << nt << std::endl;
+            assert(nt);
+            elements = new Tet[nt];
+            mes      = 0;
+            for (int i = 0; i < nt; i++) {
+                this->t(i).Read1(f, this->vertices, nv);
+                mes += t(i).measure();
+            }
+        }
+    }
+}
+
 
 Mesh3::Mesh3(int nnv, int nnt, int nnbe, Vertex3 *vv, Tet *tt, Triangle3 *bb) {
 
