@@ -1,6 +1,3 @@
-
-
-
 /**
  * @file stokes.cpp
  * @author Sebastian Myrbäck
@@ -29,7 +26,7 @@ using cutspace_t = CutFESpace<mesh_t>;
 using namespace globalVariable;
 
 // User-defined parameters
-double boundary_penalty = 4e5;
+double boundary_penalty = 4e3;
 double tangential_penalty = 1.;
 const double mu = 1.;
 double tau_u = 1.;
@@ -42,7 +39,7 @@ double radius = std::sqrt(0.2)-Epsilon;
 
 namespace fictitious {
 
-    const double C = 1e3;
+    const double K = 1e0;
 
     double fun_levelset(R2 P) { return std::sqrt((P.x - shift) * (P.x - shift) + (P.y - shift) * (P.y - shift)) - radius; }
 
@@ -51,11 +48,11 @@ namespace fictitious {
         R y = P.y;
         if (i == 0)
             //return 40 * x * x * x - 40 * x * y * y - 32 * y + 16;
-            return 40*C*x*(x*x - y*y) - 32*y + 16;
+            return 40*K*x*(x*x - y*y) - 32*y + 16;
 
         else
             //return -40 * x * x * y + 32 * x + 40 * y * y * y - 16;
-            return 32*x - 40*C*y*(x*x - y*y) - 16;
+            return 32*x - 40*K*y*(x*x - y*y) - 16;
 
     }
 
@@ -75,7 +72,7 @@ namespace fictitious {
         //return C * (x * x - y * y) * (x * x - y * y);
 
         double c = - 0.6702064327658224/(0.2*M_PI);     // normalizing constant
-        return C*(10 * (x * x - y * y) * (x * x - y * y) + c);
+        return K*(10 * (x * x - y * y) * (x * x - y * y) + c);
     }
 
     double fun_zero(R2 P, int i, int dom) { return 0.; }
@@ -91,8 +88,9 @@ int main(int argc, char **argv) {
     const size_t mesh_refinements = 5;
     double h = 0.1;     // not used if mesh is imported
     
-    const std::string path_output_data    = "../output_files/stokes/fictitious/data/";
-    const std::string path_output_figures = "../output_files/stokes/fictitious/paraview/";
+    std::string home(std::getenv("HOME"));
+    std::string path_output_data(home + "/output_files/stokes/fictitious/data/");
+    std::string path_output_figures(home + "/output_files/stokes/fictitious/paraview/");
 
     if (MPIcf::IamMaster()) {
         std::filesystem::create_directories(path_output_data);
@@ -112,7 +110,7 @@ int main(int argc, char **argv) {
 
         //mesh_t Th(("../cpp/meshes/no_flow_ps_" + std::to_string(j) + ".msh").c_str());
         //mesh_t Th(("../cpp/meshes/unit_square_" + std::to_string(j) + ".msh").c_str());
-        mesh_t Th(("../cpp/meshes/no_flow_ct_" + std::to_string(j) + ".msh").c_str());
+        mesh_t Th(("../cpp/mainFiles/meshes/no_flow_ct_" + std::to_string(j) + ".msh").c_str());
 
 
 
@@ -185,14 +183,17 @@ int main(int argc, char **argv) {
         
         // Bilinear form
         stokes.addBilinear(
-            + contractProduct(mu * grad(u), grad(v))
+            //+ contractProduct(mu * grad(u), grad(v))
+            + contractProduct(2*mu * Eps(u), Eps(v))
             - innerProduct(p, div(v)) 
             + innerProduct(div(u), q)
             , active_mesh);
 
         stokes.addBilinear(
-            - innerProduct(mu*grad(u)*n, v)
-            - innerProduct(u, mu*grad(v)*n) 
+            //- innerProduct(mu*grad(u)*n, v)
+            - innerProduct(2*mu*Eps(u)*n, v)
+            // - innerProduct(u, mu*grad(v)*n) 
+            - innerProduct(u, 2*mu*Eps(v)*n) 
             + innerProduct(boundary_penalty*mu/h*u, v)
             + innerProduct(p, v*n)
             //+ innerProduct(u, q*n)      // make problem block-symmetric
@@ -213,7 +214,8 @@ int main(int argc, char **argv) {
             , active_mesh);
 
         stokes.addLinear(
-            - innerProduct(gh.exprList(), mu*grad(v)*n) 
+            //- innerProduct(gh.exprList(), mu*grad(v)*n) 
+            - innerProduct(gh.exprList(), 2*mu*Eps(v)*n) 
             + innerProduct(gh.exprList(), boundary_penalty*mu/h*v)
             //+ innerProduct(gh.exprList(), q*n)  // compensate for added term
             , interface); 
@@ -408,4 +410,5 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
 
