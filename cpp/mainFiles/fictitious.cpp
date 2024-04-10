@@ -29,7 +29,7 @@ using cutspace_t = CutFESpace<mesh_t>;
 using namespace globalVariable;
 
 // User-defined parameters
-double boundary_penalty = 4e3;
+double boundary_penalty = 4e5;
 double tangential_penalty = 1.;
 const double mu = 1.;
 double tau_u = 1.;
@@ -42,15 +42,21 @@ double radius = std::sqrt(0.2)-Epsilon;
 
 namespace fictitious {
 
+    const double C = 1e3;
+
     double fun_levelset(R2 P) { return std::sqrt((P.x - shift) * (P.x - shift) + (P.y - shift) * (P.y - shift)) - radius; }
 
     double fun_rhs(R2 P, int i, int dom) {
         R x = P.x;
         R y = P.y;
         if (i == 0)
-            return 40 * x * x * x - 40 * x * y * y - 32 * y + 16;
+            //return 40 * x * x * x - 40 * x * y * y - 32 * y + 16;
+            return 40*C*x*(x*x - y*y) - 32*y + 16;
+
         else
-            return -40 * x * x * y + 32 * x + 40 * y * y * y - 16;
+            //return -40 * x * x * y + 32 * x + 40 * y * y * y - 16;
+            return 32*x - 40*C*y*(x*x - y*y) - 16;
+
     }
 
     double fun_u(R2 P, int i, int dom) {
@@ -65,8 +71,14 @@ namespace fictitious {
     double fun_p(R2 P, int i, int dom) {
         double x = P.x;
         double y = P.y;
-        return 10 * (x * x - y * y) * (x * x - y * y);
+        //return 10 * (x * x - y * y) * (x * x - y * y);
+        //return C * (x * x - y * y) * (x * x - y * y);
+
+        double c = - 0.6702064327658224/(0.2*M_PI);     // normalizing constant
+        return C*(10 * (x * x - y * y) * (x * x - y * y) + c);
     }
+
+    double fun_zero(R2 P, int i, int dom) { return 0.; }
 }
 
 using namespace fictitious;
@@ -88,6 +100,7 @@ int main(int argc, char **argv) {
     }
 
     std::array<double, mesh_refinements> L2_errors_u, L2_errors_p, pwise_div, H1_errors_u, hs, numb_elems;
+    std::array<double, mesh_refinements> mean_ps;
 
     for (int j = 0; j < mesh_refinements; ++j) {
 
@@ -127,8 +140,8 @@ int main(int argc, char **argv) {
         // Finite element spaces
         Lagrange2 FE_velocity(2); 
         Lagrange2 FE_velocity_int(4); 
-        space_t V_interpolation(Th, FE_velocity_int);
-        space_t P_interpolation(Th, DataFE<mesh_t>::P2);   
+        // space_t V_interpolation(Th, FE_velocity_int);
+        // space_t P_interpolation(Th, DataFE<mesh_t>::P4);   
         
         // Scott-Vogelius element pair
     #ifdef SCOTT_VOGELIUS
@@ -141,6 +154,9 @@ int main(int argc, char **argv) {
         space_t V(Th, DataFE<mesh_t>::BDM1);
         space_t P(Th, DataFE<mesh_t>::P0);
     #endif
+
+        space_t V_interpolation(Th, FE_velocity);
+        space_t P_interpolation(Th, DataFE<mesh_t>::P1dc);   
 
         // Cut finite element spaces
         cutspace_t Vh(active_mesh, V);
@@ -166,7 +182,6 @@ int main(int argc, char **argv) {
         fct_t p_exact(P_interpolation, fun_p);
         fct_t fh(V_interpolation, fun_rhs);     // rhs force
         fct_t gh(V_interpolation, fun_u);       // Dirichlet boundary condition
-
         
         // Bilinear form
         stokes.addBilinear(
@@ -177,7 +192,7 @@ int main(int argc, char **argv) {
 
         stokes.addBilinear(
             - innerProduct(mu*grad(u)*n, v)
-            + innerProduct(u, mu*grad(v)*n) 
+            - innerProduct(u, mu*grad(v)*n) 
             + innerProduct(boundary_penalty*mu/h*u, v)
             + innerProduct(p, v*n)
             //+ innerProduct(u, q*n)      // make problem block-symmetric
@@ -198,7 +213,7 @@ int main(int argc, char **argv) {
             , active_mesh);
 
         stokes.addLinear(
-            + innerProduct(gh.exprList(), mu*grad(v)*n) 
+            - innerProduct(gh.exprList(), mu*grad(v)*n) 
             + innerProduct(gh.exprList(), boundary_penalty*mu/h*v)
             //+ innerProduct(gh.exprList(), q*n)  // compensate for added term
             , interface); 
@@ -233,6 +248,8 @@ int main(int argc, char **argv) {
         //     , active_mesh
         // );
 
+        //double mean_p    = integral(active_mesh, p_exact, 0);
+
         CutFEM<mesh_t> lagr(Vh);
         lagr.add(Ph);
         lagr.addLinear(innerProduct(1., p), active_mesh);
@@ -242,7 +259,7 @@ int main(int argc, char **argv) {
         lagr.addLinear(innerProduct(1., v * n), interface);
         //lagr.addLinear(innerProduct(1., p), active_mesh);
 
-        stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0);
+        stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhsSpan(), 0.);
 
         // Export matrix
         matlab::Export(stokes.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
@@ -260,13 +277,16 @@ int main(int argc, char **argv) {
         fct_t ph(Ph, data_ph);
 
         // Post process pressure
-        double meanP    = integral(active_mesh, p_exact.expr(), 0);
+        double meanP    = integral(active_mesh, p_exact, 0);
+        mean_ps[j] = meanP;
+        std::cout << "Mean exact pressure = " << meanP << '\n';
         double meanPfem = integral(active_mesh, ph.expr(), 0);
-        CutFEM<mesh_t> post(Ph);
-        post.addLinear(innerProduct(1, q), active_mesh);
-        double area = post.rhs_.sum();
-        ph.v -= meanPfem / area;
-        ph.v += meanP / area;
+        std::cout << "Mean numerical pressure = " << meanPfem << '\n';
+        // CutFEM<mesh_t> post(Ph);
+        // post.addLinear(innerProduct(1, q), active_mesh);
+        // double area = post.rhs_.sum();
+        // ph.v -= meanPfem / area;
+        // ph.v += meanP / area;
 
         auto uh_0dx = dx(uh.expr(0));
         auto uh_1dy = dy(uh.expr(1));
