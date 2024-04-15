@@ -744,7 +744,7 @@ R fun_one(double *P, const int i) { return 1.; }
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define fullstab
+#define macro
 
 #define use_h    // to set mesh size using the h parameter. Write use_n to decide
                  // using nx, ny.
@@ -789,7 +789,7 @@ int main(int argc, char **argv) {
     const  double tfinal = .1;
 
     // Time integration quadrature
-    const size_t quadrature_order_time = 20;
+    const size_t quadrature_order_time = 9;
     const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
     const Uint nbTime       = qTime.n;
     const Uint lastQuadTime = nbTime - 1;
@@ -803,7 +803,7 @@ int main(int argc, char **argv) {
 
     // Global parameters
     const double tau_F_bulk = 1.;    // face stabilization
-    const double tau_F_surf = 1.;    // face stabilization
+    const double tau_F_surf = 5.;    // face stabilization
     const double tau_G = 1.;         // interface stabilization
     
     const double delta_bulk = 0.3;   // macro parameter
@@ -814,8 +814,8 @@ int main(int argc, char **argv) {
 #ifdef ex1
     // Paths to store data
     ex = "example1";
-    const std::string path_output_data    = "../output_files/henry/example1/data/";
-    const std::string path_output_figures = "../output_files/henry/example1/paraview/";
+    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/henry/example1/data/";
+    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/henry/example1/paraview/";
 #elif defined(ex2)
     const std::string path_output_data    = "../output_files/henry/example2/data/";
     const std::string path_output_figures = "../output_files/henry/example2/paraview/";
@@ -844,9 +844,9 @@ int main(int argc, char **argv) {
     
     output_data << method << ",\t";
     output_data << stab << ",\t";
-    output_data << "tau_F_bulk = " << tau_F_bulk << ",\t tau_F_surf = " << tau_F_surf << ",\t tau_G = " << tau_G << ",\t N = " << quadrature_order_time << ",\t T = " << tfinal << ",\t Example " << ex;
+    output_data << "tau_F_bulk = " << tau_F_bulk << ",\t tau_F_surf = " << tau_F_surf << ",\t tau_G = " << tau_G << ",\t N = " << quadrature_order_time << ",\t T = " << tfinal << ",\t Example: " << ex;
     output_data << "\n---------------------\n";
-    output_data << "h, \t dt, \t L2(Omega(T)), \t L2(Gamma(T)), \t L2(L2(Omega(t), 0, T)), \t L2(L2(Gamma(t)), 0, T))\n";
+    output_data << "h, \t dt,   L2(Omega(T)), L2(Gamma(T)), L2(Omega(t),0,T), L2(Gamma(t),0,T), e_c(T)\n";
     output_data.flush();
 
     // Data file to hold DOF indices
@@ -1163,11 +1163,8 @@ int main(int argc, char **argv) {
             }
 #endif
 
-            convdiff.addBilinear(
-                + innerProduct(tau_G * grad(uS) * n, grad(vS) * n)
-                + innerProduct(tau_G * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n)
-                , interface
-                , In);
+            convdiff.addBilinear(+ innerProduct(tau_G * grad(uS) * n, grad(vS) * n)
+                        + innerProduct(tau_G * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n), interface, In);
 
 
             if (iter == total_number_iteration - 1) {
@@ -1374,7 +1371,7 @@ int main(int argc, char **argv) {
         errors_T[j] = std::sqrt(error_I);
         errors_T_surf[j] = std::sqrt(error_I_surf);
 
-        output_data << h << "," << dT << "," << error_bulk << "," << error_surf << "," << errors_T[j] << "," << errors_T_surf[j] << "\n";
+        output_data << h << "\t" << dT << "\t" << error_bulk << "\t" << error_surf << "\t" << errors_T[j] << "\t" << errors_T_surf[j] << "\t" << global_conservation_errors[j] << "\n";
         output_data.flush();
 
         std::cout << "error_T = " << errors_T[j] << "\n";

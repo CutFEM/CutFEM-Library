@@ -751,7 +751,7 @@ R fun_rhs(double *P, const int cc, const R t) {
 // thesis. Irrelevant if "cg" is defined instead of "dg")
 #define conservative
 
-#define fullstab
+#define macro
 
 #define levelsetexact
 
@@ -809,7 +809,7 @@ int main(int argc, char **argv) {
     const  double tfinal = .1;
 
     // Time integration quadrature
-    const size_t quadrature_order_time = 20;
+    const size_t quadrature_order_time = 5;
     const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
     const Uint nbTime       = qTime.n;
     const Uint lastQuadTime = nbTime - 1;
@@ -817,12 +817,12 @@ int main(int argc, char **argv) {
     // Space integration quadrature 
     Levelset<2> phi;
     ProblemOption option;
-    const int quadrature_order_space       = 9;
+    const int quadrature_order_space       = 5;
     option.order_space_element_quadrature_ = quadrature_order_space;
     AlgoimCutFEM<Mesh, Levelset<2>> surfactant(qTime, phi, option);
 
     // Global parameters
-    const double tau_F = 1.;     // face stabilization
+    const double tau_F = 10.;     // face stabilization
     const double tau_G = 1.;     // interface stabilization
     const double delta = 0.5;   // macro parameter
     const double D = 1.;
@@ -890,7 +890,7 @@ int main(int argc, char **argv) {
     output_data << stab << ",\t";
     output_data << "tau_F = " << tau_F << ",\t tau_G = " << tau_G << ",\t N = " << quadrature_order_time << ",\t T = " << tfinal << ",\t Example " << ex;
     output_data << "\n---------------------\n";
-    output_data << "h, \t dt, \t L2(Gamma(T)), \t L2(L2(Gamma(t)), 0, T)\n"
+    output_data << "h, \t dt, \t L2(Gamma(T)), \t L2(L2(Gamma(t)), 0, T)\n";
     output_data.flush();
 
     // Arrays to hold data
@@ -984,13 +984,13 @@ int main(int argc, char **argv) {
         std::cout << "dT = " << dT << "\n";
 
         // Background FE Space, Time FE Space & Space-Time Space
-        FESpace Vh(Th, DataFE<Mesh>::P2);       // Background FE space
+        FESpace Vh(Th, DataFE<Mesh>::P1);       // Background FE space
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly);     // Time FE space
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly);     // Time FE space
         const Uint ndfTime      = Ih[0].NbDoF();
 
         // Velocity field
@@ -1127,11 +1127,17 @@ int main(int argc, char **argv) {
 
             // Stabilization
 #if defined(fullstab)
-            surfactant.addFaceStabilization(
-                + innerProduct(tau_F * jump(grad(u) * n), jump(grad(v) * n))
-                + innerProduct(h * h * tau_F * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+            // surfactant.addFaceStabilization(
+            //     + innerProduct(tau_F * jump(grad(u) * n), jump(grad(v) * n))
+            //     + innerProduct(h * h * tau_F * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+            //     , ThGamma
+            //     , In);
+
+            surfactant.addPatchStabilization(
+                + innerProduct(tau_F / h / h / h * jump(u), jump(v))
                 , ThGamma
-                , In);
+                , In
+            );
 #elif defined(macro)
 
             AlgoimMacroSurface<Mesh, Levelset<2>> TimeMacro(ThGamma, 0.5, phi, In, qTime);
@@ -1139,12 +1145,19 @@ int main(int argc, char **argv) {
             TimeMacro.createMacroElement();
             TimeMacro.setInnerEdges();
 
-            surfactant.addFaceStabilization(
-                + innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n))
-                + innerProduct(h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+            // surfactant.addFaceStabilization(
+            //     + innerProduct(tau1 * jump(grad(u) * n), jump(grad(v) * n))
+            //     + innerProduct(h * h * tau1 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+            //     , ThGamma
+            //     , In
+            //     , TimeMacro);
+
+            surfactant.addPatchStabilization(
+                + innerProduct(tau_F / h / h / h * jump(u), jump(v))
                 , ThGamma
                 , In
-                , TimeMacro);
+                , TimeMacro
+            );
 #endif
             surfactant.addBilinear(
                 + innerProduct(tau_G * grad(u) * n, grad(v) * n)
@@ -1335,6 +1348,15 @@ int main(int argc, char **argv) {
         std::cout << "Errors T = [";
         for (int i = 0; i < iterations; i++) {
             std::cout << errors_T.at(i);
+            if (i < iterations - 1) {
+                std::cout << ", ";
+            }
+        }
+        std::cout << "]\n";
+
+        std::cout << "Global conservation errors = [";
+        for (int i = 0; i < iterations; i++) {
+            std::cout << global_conservation_errors.at(i);
             if (i < iterations - 1) {
                 std::cout << ", ";
             }

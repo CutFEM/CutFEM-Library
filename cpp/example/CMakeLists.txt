@@ -39,6 +39,11 @@ target_link_libraries(NS_raisingDrop2D
                         PRIVATE 
                         ${EXTRA_LIBS} )
 
+add_executable(bulk convection_diffusion/bulk.cpp)
+target_link_libraries(bulk
+                        PRIVATE 
+                        ${EXTRA_LIBS} )
+
 # add_executable(NSS_ex_2 navier_stokes/navier_stokes_surfactant_example2.cpp)
 # target_link_libraries(NSS_ex_2
 #                         PRIVATE 
