@@ -41,6 +41,7 @@ find_path(MUMPS_LIBRARY_DIR
   /usr/local/MUMPS/lib
   /usr/local/lib
   /usr/lib/x86_64-linux-gnu
+  /usr/local/x86_64-linux-gnu
   /usr/lib
   ~/lib/lib)
 endif()
@@ -68,7 +69,7 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
     PATHS 
     /usr/lib
     /usr/local/Cellar/brewsci-parmetis/4.0.3_1/lib
-		/opt/homebrew/Cellar/brewsci-parmetis/4.0.3_1/lib
+    /opt/homebrew/Cellar/brewsci-parmetis/4.0.3_1/lib
     NO_DEFAULT_PATH)
 
 #  set(SCOTCH_LIBRARY_DIR /usr/lib )
@@ -79,18 +80,22 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
 
   find_library(SCOTCH_scotch_LIBRARY
     NAMES scotch scotch-6
-    PATHS /usr/lib
+    PATHS
+    /usr/lib
     /opt/homebrew/Cellar/scotch/7.0.2/lib
     /usr/lib/x86_64-linux-gnu
+    /usr/local/x86_64-linux-gnu
     /usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
 
   find_library(SCOTCH_scotcherr_LIBRARY
     NAMES scotcherr scotcherr-6
-    PATHS /usr/lib
+    PATHS 
+    /usr/lib
     /usr/lib/x86_64-linux-gnu
-		/opt/homebrew/Cellar/scotch/7.0.2/lib
-		/usr/local/Cellar/brewsci-scotch/6.0.4/lib
+    /usr/local/x86_64-linux-gnu
+    /opt/homebrew/Cellar/scotch/7.0.2/lib
+    /usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
 
   set(SCOTCH_LIBRARIES ${SCOTCH_scotcherr_LIBRARY} ${SCOTCH_scotch_LIBRARY})
