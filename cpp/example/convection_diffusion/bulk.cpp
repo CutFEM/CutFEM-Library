@@ -30,6 +30,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
  *  Two schemes are implemented:
  *  Classical scheme,
  *  Conservative scheme.
+ 
+ *  Two types of stabilization is possible: face-based ghost penalty and patch-based ghost penalty.
+ *  Moreover, each of them can be used with either full stabilization or macroelement stabilization.
 */
 
 // Dependencies
@@ -40,7 +43,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 using namespace globalVariable; // to access some globally defined constants
 
 // Numerical examples
-namespace Circle1 {
+namespace Circle {
 // A circle moving in a circular trajectory
 const double D        = 1.;
 const double R0       = 0.17;
@@ -107,20 +110,6 @@ R fun_velocity(double *P, const int i, const double t) {
 }
 
 R fun_one(double *P, const int i) { return 1.; }
-
-// // Normal x-direction
-// R n1(double *P, const R t) {
-//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-//    return (P[0] - xc) /
-//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-// }
-
-// // Normal y-direction
-// R n2(double *P, const R t) {
-//    R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-//    return (P[1] - yc) /
-//           (sqrt((P[1] - yc) * (P[1] - yc) + (P[0] - xc) * (P[0] - xc)));
-// }
 
 // Initial solution bulk
 R fun_uBulkInit(double *P, const int i) { return 0.; }
@@ -206,7 +195,7 @@ R fun_rhsBulk(double *P, const int i, const R t) {
                    (R0 * 1.0E+8));
 }
 
-} // namespace Circle 1
+} // namespace Circle
 
 namespace Kite {
 
@@ -342,144 +331,6 @@ R fun_uBulkD(double *P, const int i, const int d, const R t) {
 }
 } // namespace Kite
 
-namespace Circle2 {
-// N-sphere
-const double R0       = .5;
-const double D        = 1.;
-const double beta_max = 2.;
-
-double fun_one(double *P, const int i) { return 1.; }
-
-double rho(double *P, const double t) { return 1. / pi * sin(2 * pi * t); }
-
-double fun_levelSet(double *P, const int i, const double t) {
-    return (P[0] - rho(P, t)) * (P[0] - rho(P, t)) + P[1] * P[1] - R0 * R0;
-}
-
-template <int N> struct Levelset {
-
-    double t;
-
-    // level set function
-    template <typename V> typename V::value_type operator()(const V &P) const {
-        return (P[0] - 1. / pi * sin(2 * pi * t)) * (P[0] - 1. / pi * sin(2 * pi * t)) + P[1] * P[1] - R0 * R0;
-    }
-
-    // gradient of level set function
-    template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
-
-        return algoim::uvector<T, N>(2. * (x(0) - 1. / pi * sin(2 * pi * t)), 2. * x(1));
-    }
-
-    // normal = grad(phi)/norm(grad(phi))
-    R2 normal(std::span<double> P) const {
-        R norm = sqrt(4. * (P[0] - 1. / pi * sin(2 * pi * t)) * (P[0] - 1. / pi * sin(2 * pi * t)) + 4. * P[1] * P[1]);
-        // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
-        return R2(2. * (P[0] - 1. / pi * sin(2 * pi * t)) / norm, 2. * P[1] / norm);
-    }
-};
-
-R fun_rhsBulk(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-
-    return D * ((3.141592653589793 *
-                 sin((3.141592653589793 *
-                      sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                     R0) *
-                 sin(t * 3.141592653589793) * 1.0 /
-                 sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16) * 2.0) /
-                    R0 -
-                (3.141592653589793 *
-                 sin((3.141592653589793 *
-                      sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                     R0) *
-                 sin(t * 3.141592653589793) *
-                 pow(x * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1, 2.0) * 1.0 /
-                 pow(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16,
-                     3.0 / 2.0)) /
-                    (R0 * 4.0) +
-                (1.0 / (R0 * R0) * (y * y) * (3.141592653589793 * 3.141592653589793) *
-                 cos((3.141592653589793 *
-                      sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                     R0) *
-                 sin(t * 3.141592653589793)) /
-                    (pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16) +
-                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) *
-                 cos((3.141592653589793 *
-                      sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                     R0) *
-                 sin(t * 3.141592653589793) *
-                 pow(x * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1, 2.0)) /
-                    (pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) * 4.0 + (y * y) * 4.0 +
-                     4.0E-16) -
-                ((y * y) * 3.141592653589793 *
-                 sin((3.141592653589793 *
-                      sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                     R0) *
-                 sin(t * 3.141592653589793) * 1.0 /
-                 pow(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16,
-                     3.0 / 2.0)) /
-                    R0) +
-           3.141592653589793 *
-               cos((3.141592653589793 *
-                    sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                   R0) *
-               cos(t * 3.141592653589793) -
-           (3.141592653589793 *
-            sin((3.141592653589793 *
-                 sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                R0) *
-            cos(t * 3.141592653589793 * 2.0) * sin(t * 3.141592653589793) *
-            (x * 2.0 - sin(t * 3.141592653589793 * 2.0) * 6.366197723675814E-1) * 1.0 /
-            sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-               R0 +
-           ((3.141592653589793 * 3.141592653589793) *
-            sin((3.141592653589793 *
-                 sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16)) /
-                R0) *
-            cos(t * 3.141592653589793 * 2.0) * sin(t * 3.141592653589793) *
-            (x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1) * 1.0 /
-            sqrt(pow(x - sin(t * 3.141592653589793 * 2.0) * 3.183098861837907E-1, 2.0) + y * y + 1.0E-16) *
-            6.366197723675814E-1) /
-               R0;
-}
-
-// The rhs Neumann boundary condition
-R fun_neumann_Gamma(double *P, const int i, const R t) {
-    R x = P[0], y = P[1];
-
-    return 0.;
-}
-
-// Velocity field
-R fun_velocity(double *P, const int i, const double t) {
-    if (i == 0)
-        return 2 * cos(2 * pi * t);
-    else
-        return 0.;
-}
-
-// Initial solution bulk
-R fun_uBulkInit(double *P, const int i) { return 0.; }
-
-// Exact solution bulk
-R fun_uBulk(double *P, const int i, const R t) {
-    double x = P[0], y = P[1];
-
-    double rho = 1. / pi * sin(2 * pi * t);
-    double r   = std::sqrt((x - rho) * (x - rho) + y * y);
-    return cos(M_PI * r / R0) * sin(M_PI * t);
-}
-
-R fun_uBulkD(double *P, const int i, const int d, const R t) {
-    double x = P[0], y = P[1];
-
-    double rho = 1. / pi * sin(2 * pi * t);
-    double r   = std::sqrt((x - rho) * (x - rho) + y * y);
-    return cos(M_PI * r / R0) * sin(M_PI * t);
-}
-} // namespace N_sphere
-
 using mesh_t        = MeshQuad2;
 using fun_test_t    = TestFunction<mesh_t>;
 using fct_t         = FunFEM<mesh_t>;
@@ -491,7 +342,7 @@ std::string example, method, stabilization;
 
 // Define example, method and stabilization
 
-#define kite     // circle1/kite/circle2
+#define kite     // circle/kite
 #define conservative   // classical/conservative
 #define macro       // fullstab/macro
 
@@ -499,17 +350,14 @@ std::string example, method, stabilization;
 int main(int argc, char **argv) {
 
 // Do not touch
-#if defined(circle1)
-    example = "circle1";
-    using namespace Circle1;
+#if defined(circle)
+    example = "circle";
+    using namespace Circle;
 #elif defined(kite)
     example = "kite";
     using namespace Kite;
-#elif defined(circle2)
-    example = "circle2";
-    using namespace Circle2;
-#else 
-#error "No example defined"
+#else
+    #error "No example defined"
 #endif
 
 #if defined(classical)
@@ -517,7 +365,7 @@ int main(int argc, char **argv) {
 #elif defined(conservative)
     method = "conservative";
 #else
-#error "No method defined"
+    #error "No method defined"
 #endif
 
 #if defined(fullstab)
@@ -525,15 +373,15 @@ int main(int argc, char **argv) {
 #elif defined(macro)
     stabilization = "macro";
 #else
-#error "No stabilization defined"
+    #error "No stabilization defined"
 #endif
 
 #ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
 #endif
                                             
-    const  size_t iterations = 5;           // number of mesh refinements   
-    double h                = 0.45;          // starting mesh size
+    const  size_t iterations = 1;           // number of mesh refinements   
+    double h                = 0.1;          // starting mesh size
     int    nx, ny;                          
 
     const double cfl_number = 5./18;
@@ -550,6 +398,11 @@ int main(int argc, char **argv) {
     // Space integration quadrature 
     Levelset<2> phi;
     ProblemOption option;
+#ifdef USE_MPI
+    option.solver_name_ = "mumps";
+#else
+    option.solver_name_ = "umfpack";
+#endif
     const int quadrature_order_space       = 5;
     option.order_space_element_quadrature_ = quadrature_order_space;
     AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
@@ -583,7 +436,7 @@ int main(int argc, char **argv) {
     for (int j = 0; j < iterations; ++j) {       
 
         // Define background mesh
-        #if defined(circle1)
+        #if defined(circle)
         const double x0 = 0. - Epsilon, y0 = 0. - Epsilon;
         const double lx = 1., ly = 1.;
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
@@ -592,11 +445,7 @@ int main(int argc, char **argv) {
         const double x0 = -3.5-Epsilon, y0 = -1.5 - Epsilon;
         const double lx = 7., ly = 3.;
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
-        
-        #elif defined(circle2)
-        double x0 = -1. - Epsilon, y0 = -0.6 - Epsilon;
-        const double lx = 2., ly = 1.2;
-        nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
+
         #endif
 
         mesh_t Th(nx, ny, x0, y0, lx, ly);
@@ -800,7 +649,8 @@ int main(int argc, char **argv) {
             }
 
             // Solve linear system
-            convdiff.solve("mumps");
+            convdiff.solve();
+
 
             std::span<double> rhs = std::span<double>(convdiff.rhs_.data(), convdiff.get_nb_dof());
             data_all.assign(rhs.begin(), rhs.end());
@@ -877,9 +727,7 @@ int main(int argc, char **argv) {
                 writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, 2,
                                              path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
                                                  ".vtk");
-                // writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, 2,
-                //                              path_output_figures + "AlgoimQuadrature_1_" + std::to_string(iter + 1) +
-                //                                  ".vtk");
+
                 writer.writeAlgoimQuadrature(Thi, phi, In, qTime, lastQuadTime, 2,
                                              path_output_figures + "AlgoimQuadrature_N_" + std::to_string(iter + 1) +
                                                  ".vtk");
