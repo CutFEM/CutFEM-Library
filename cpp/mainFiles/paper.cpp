@@ -1134,17 +1134,17 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 } // namespace Example4
 
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
-#define ex3
+#define ex2
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define macro
+#define fullstab
 
 #define use_h    // to set mesh size using the h parameter. Write use_n to decide
                  // using nx, ny.
 #define use_tnot // write use_t to control dT manually. Otherwise it is set
                  // proportional to h.
-#define conservation
+#define conservationnot
 
 #define reynoldnot
 
@@ -1178,9 +1178,9 @@ int main(int argc, char **argv) {
     MPIcf cfMPI(argc, argv);
 
                                             // Mesh settings and data objects
-    const  size_t iterations = 5;           // number of mesh refinements   
+    const  size_t iterations = 1;           // number of mesh refinements   
     int    nx, ny;                               // number of elements in x and y direction
-    double h                = 0.45;  // starting mesh size
+    double h                = 0.05625;  // starting mesh size
     double dT               = 0.25;
 
     int total_number_iteration;
@@ -1189,7 +1189,7 @@ int main(int argc, char **argv) {
     const  double tfinal = .5;
 
     // Time integration quadrature
-    const size_t quadrature_order_time = 3;
+    const size_t quadrature_order_time = 9;
     const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
     const Uint nbTime       = qTime.n;
     const Uint lastQuadTime = nbTime - 1;
@@ -1197,44 +1197,49 @@ int main(int argc, char **argv) {
     // Space integration quadrature 
     Levelset<2> phi;
     ProblemOption option;
-    const int quadrature_order_space       = 3;
+    const int quadrature_order_space       = 9;
     option.order_space_element_quadrature_ = quadrature_order_space;
     AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
     // Global parameters
-    const double tau = 0.1;     // stabilization constant
+    const double tau = 10;     // stabilization constant
     const double delta = 0.3;   // macro parameter
 
     // FE Space approximation
 
+    std::string home(std::getenv("HOME"));
+    // std::string path_output_data(home + "/output_files/langmuir/" + example + "/data/");
+    // std::string path_output_figures(home + "/output_files/langmuir/" + example + "/paraview/");
+
+
     std::string ex, method, stab;
 #ifdef ex1
     // Paths to store data
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example1/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example1/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/example1/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/example1/paraview/";
     ex = "1";
 #elif defined(ex2)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example2/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example2/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/kite/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/kite/paraview/";
     ex = "2";
 #elif defined(ex3)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example3/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example3/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/circle2/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/circle2/paraview/";
     ex = "3";
 #elif defined(ex4)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example4/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example4/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/circle1/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/circle1/paraview/";
     ex = "4";
 #elif defined(preuss)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/preuss/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/preuss/paraview/";
+    const std::string path_output_data    = home + "/output_files/paper/preuss/data/";
+    const std::string path_output_figures = home + "/output_files/paper/preuss/paraview/";
 #endif
 
     // Create directory if not already existent
-    // if (MPIcf::IamMaster()) {
-    // std::filesystem::create_directories(path_output_data);
-    // std::filesystem::create_directories(path_output_figures);
-    // }
+    if (MPIcf::IamMaster()) {
+    std::filesystem::create_directories(path_output_data);
+    std::filesystem::create_directories(path_output_figures);
+    }
 
     // Data file to hold problem data
     #ifdef conservative
@@ -1279,6 +1284,7 @@ int main(int argc, char **argv) {
 #elif defined(ex2)
         //const double lx = 6. * Example2::R0, ly = 6. * Example2::R0, x0 = -3.01 * Example2::R0, y0 = -3.01 * Example2::R0;
         const double lx = 7., ly = 3., x0 = -3.5-Epsilon, y0 = -1.5 - Epsilon; // like paper
+        //const double lx = 3.5+h, ly = 3., x0 = -1.5-Epsilon, y0 = -1.5-Epsilon;   // for visualization
         //const double lx = 6., ly = 4., x0 = -2.-Epsilon, y0 = -2. - Epsilon;     // works like the above
         //const double lx = 6., ly = 6., x0 = -3.-Epsilon, y0 = -3. - Epsilon;    // works better? for some reason
 #ifdef use_h
@@ -1335,8 +1341,11 @@ int main(int argc, char **argv) {
 #else
         //const double prop_to_h = 1./3;
         const double prop_to_h = 5./18;
+        //const double prop_to_h = .5;
 
         dT = prop_to_h*h;
+        //dT = tfinal/4;
+        //dT = 0.001666666666666667;
         //dT = 0.0078125 / std::sqrt(2);
 
         //dT = 0.5 * std::pow(2, -j-1 - 1);
@@ -1368,14 +1377,14 @@ int main(int argc, char **argv) {
 
         // const double D = N_sphere::D;
 
-        FESpace Vh(Th, DataFE<Mesh>::P1); // Background FE Space
+        FESpace Vh(Th, DataFE<Mesh>::P3); // Background FE Space
         // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
         // 1D Time mesh
         double final_time = total_number_iteration * time_step;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P1Poly); // FE Space in time
+        FESpace1 Ih(Qh, DataFE<Mesh1>::P3Poly); // FE Space in time
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
         const Uint ndfTime      = Ih[0].NbDoF();
 
@@ -1688,10 +1697,10 @@ int main(int argc, char **argv) {
 
 #endif
 
-            if ((iterations == 1) && (h > 0.01)) {
+            if ((iterations == 1) && (h > 0.001)) {
                 //Fun_h sol_h(Wh, sol);
-                Paraview<Mesh> writerTh(Th, path_output_figures + "Th.vtk");
-                Paraview<Mesh> writer(Thi, path_output_figures + "bulk_" + std::to_string(iter + 1) + ".vtk");
+                Paraview<Mesh> writerTh(Th, path_output_figures + "Th_coarse.vtk");
+                Paraview<Mesh> writer(Thi, path_output_figures + "bulk_coarse_" + std::to_string(iter + 1) + ".vtk");
                 writer.add(b0h, "bulk_0", 0, 1);
                 writer.add(funuh, "bulk_N", 0, 1);
 
