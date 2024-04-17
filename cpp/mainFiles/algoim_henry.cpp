@@ -743,7 +743,7 @@ R fun_one(double *P, const int i) { return 1.; }
 //* Set scheme for the method (options: "classical", "conservative")
 #define conservative
 //* Set stabilization method (options: "fullstab", "macro")
-#define fullstab
+#define macro
 
 #define use_h    // to set mesh size using the h parameter. Write use_n to decide
                  // using nx, ny.
@@ -773,10 +773,10 @@ using namespace Preuss;
 #endif
 
 int main(int argc, char **argv) {
-    //MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
     // Mesh settings and data objects
-    const size_t iterations = 5; // number of mesh refinements   (set to 1 to run
+    const size_t iterations = 6; // number of mesh refinements   (set to 1 to run
                                  // only once and plot to paraview)
     int nx = 15, ny = 15;        // starting mesh size
     double h  = 0.1;             // starting mesh size
@@ -785,9 +785,34 @@ int main(int argc, char **argv) {
     int total_number_iteration;
     double time_step;
     double t0 = 0.;
+    const  double tfinal = .1;
+
+    // Time integration quadrature
+    const size_t quadrature_order_time = 9;
+    const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
+    const Uint nbTime       = qTime.n;
+    const Uint lastQuadTime = nbTime - 1;
+
+    // Space integration quadrature 
+    Levelset<2> phi;
+    ProblemOption option;
+    const int quadrature_order_space       = 9;
+    option.order_space_element_quadrature_ = quadrature_order_space;
+    AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
+
+    // Global parameters
+    const double tau_F_bulk = 1.;    // face stabilization
+    const double tau_F_surf = 5.;    // face stabilization
+    const double tau_G = 1.;         // interface stabilization
+    
+    const double delta_bulk = 0.3;   // macro parameter
+    const double delta_surf = 0.5;   // macro parameter
+    
+    std::string ex, method, stab;
 
 #ifdef ex1
     // Paths to store data
+    ex = "example1";
     const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/henry/example1/data/";
     const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/henry/example1/paraview/";
 #elif defined(ex2)
@@ -802,7 +827,27 @@ int main(int argc, char **argv) {
     // }
 
     // Data file to hold problem data
-    std::ofstream output_data(path_output_data + "data.dat", std::ofstream::out);
+    #ifdef conservative
+    method = "conservative";
+    #else
+    method = "non_conservative";
+    #endif
+
+    #ifdef fullstab
+    stab = "full";
+    #else
+    stab = "macro_dsurf_" + std::to_string(delta_surf);
+    #endif
+
+    std::ofstream output_data(path_output_data + "data_" + method + "_" + stab + ".dat", std::ofstream::out);
+    
+    output_data << method << ",\t";
+    output_data << stab << ",\t";
+    output_data << "tau_F_bulk = " << tau_F_bulk << ",\t tau_F_surf = " << tau_F_surf << ",\t tau_G = " << tau_G << ",\t N = " << quadrature_order_time << ",\t T = " << tfinal << ",\t Example: " << ex;
+    output_data << "\n---------------------\n";
+    output_data << "h, \t dt,   L2(Omega(T)), L2(Gamma(T)), L2(Omega(t),0,T), L2(Gamma(t),0,T), e_c(T)\n";
+    output_data.flush();
+
     // Data file to hold DOF indices
     std::ofstream indices(path_output_data + "indices.dat", std::ofstream::out);
 
@@ -828,15 +873,13 @@ int main(int argc, char **argv) {
 
         const Mesh Th(nx, ny, x0 - Epsilon, y0 - Epsilon, lx, ly);
 
-        // Parameters
-        const double tfinal = .1; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
         const int divisionMeshSize = 4;
 
-        double dT = h / divisionMeshSize;
+        dT = h / divisionMeshSize;
 
         // double dT = tfinal / 32;
         // double dT = 0.5*std::pow(2, -j-1);
@@ -865,9 +908,6 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
         std::cout << "dT = " << dT << '\n';
 
-        // CG stabilization parameter
-        const double tau = 0.1;
-
         FESpace Vh(Th, DataFE<Mesh>::P2); // Background FE Space
 
         // 1D Time mesh
@@ -875,12 +915,7 @@ int main(int argc, char **argv) {
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
-
-        // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
-        const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
-        const Uint lastQuadTime = nbTime - 1;
 
         // Velocity field
         LagrangeQuad2 FEvelocity(2);
@@ -894,12 +929,6 @@ int main(int argc, char **argv) {
         FESpace Lh(Th, DataFE<Mesh>::P1);
         double dt_levelSet = dT / (nbTime - 1);
         std::vector<Fun_h> ls(nbTime);
-
-        Levelset<2> phi;
-        ProblemOption option;
-        const int quadrature_order_space       = 7;
-        option.order_space_element_quadrature_ = quadrature_order_space;
-        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
@@ -1043,30 +1072,72 @@ int main(int argc, char **argv) {
 #if defined(fullstab)
 
             // convdiff.addFaceStabilization(
-            //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
-            //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+            //     + innerProduct(h * tau_F_bulk * jump(grad(u) * n), jump(grad(v) * n)) 
+            //     + innerProduct(h * h * h * tau_F_bulk * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
             //     Thi, In);
 
-            convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In);
-            convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(uS), jump(vS)), ThGamma, In);
+            convdiff.addPatchStabilization(
+                + innerProduct(tau_F_bulk / h / h * jump(u), jump(v))
+                , Thi
+                , In
+            );
 
-            //! TRY THIS:
-            convdiff.addBilinear(+ innerProduct(tau * h * h * grad(uS) * n, grad(vS) * n)
-                                   + innerProduct(tau * h * h * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n), interface, In);
+            // convdiff.addFaceStabilization(
+            //     + innerProduct(tau_F_surf * jump(grad(uS) * n), jump(grad(vS) * n)) 
+            //     + innerProduct(h * h * tau_F_surf * jump(grad(grad(uS) * n) * n), jump(grad(grad(vS) * n) * n)),
+            //     ThGamma, In);
+
+            convdiff.addPatchStabilization(
+                + innerProduct(tau_F_surf / h / h / h * jump(uS), jump(vS))
+                , ThGamma
+                , In
+            );
+
+            // convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In);
+            // convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(uS), jump(vS)), ThGamma, In);
 
 #elif defined(macro)
             // MacroElementPartition<Mesh> TimeMacro(Thi, 0.3);
             // std::cout << TimeMacro.number_of_stabilized_edges << "\n";
             // std::cout << "number of stabilized edges: " << convdiff.get_number_of_stabilized_edges() << "\n";
 
-            AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
+            AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.4, phi, In, qTime);
+            TimeMacro.findSmallElement();
+            TimeMacro.createMacroElement();
+            TimeMacro.setInnerEdges();
+
+            AlgoimMacroSurface<Mesh, Levelset<2>> TimeMacroSurf(ThGamma, 0.5, phi, In, qTime);
+            TimeMacroSurf.findSmallElement();
+            TimeMacroSurf.createMacroElement();
+            TimeMacroSurf.setInnerEdges();
 
             // convdiff.addFaceStabilization(
-            //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
-            //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
-            //     Thi, In, TimeMacro);
+            //     + innerProduct(h * tau_F * jump(grad(u) * n), jump(grad(v) * n)) 
+            //     + innerProduct(h * h * h * tau_F * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n))
+            //     , Thi
+            //     , In
+            //     , TimeMacro);
 
-            convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
+            convdiff.addPatchStabilization(
+                + innerProduct(tau_F_bulk / h / h * jump(u), jump(v))
+                , Thi
+                , In
+                , TimeMacro
+            );
+
+            // convdiff.addFaceStabilization(
+            //     + innerProduct(tau_F * jump(grad(uS) * n), jump(grad(vS) * n)) 
+            //     + innerProduct(h * h * tau_F * jump(grad(grad(uS) * n) * n), jump(grad(grad(vS) * n) * n))
+            //     , ThGamma
+            //     , In
+            //     , TimeMacroSurf);
+
+            convdiff.addPatchStabilization(
+                + innerProduct(tau_F_surf / h / h / h * jump(uS), jump(vS))
+                , ThGamma
+                , In
+                , TimeMacroSurf
+            );
 
             if (iterations == 1 && h > 0.1) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
@@ -1091,6 +1162,10 @@ int main(int argc, char **argv) {
             }
 #endif
 
+            convdiff.addBilinear(+ innerProduct(tau_G * grad(uS) * n, grad(vS) * n)
+                        + innerProduct(tau_G * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n), interface, In);
+
+
             if (iter == total_number_iteration - 1) {
 
                 matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
@@ -1101,7 +1176,7 @@ int main(int argc, char **argv) {
             }
 
             // Solve linear system
-            convdiff.solve("umfpack");
+            convdiff.solve("mumps");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -1295,7 +1370,7 @@ int main(int argc, char **argv) {
         errors_T[j] = std::sqrt(error_I);
         errors_T_surf[j] = std::sqrt(error_I_surf);
 
-        output_data << h << "," << dT << "," << error_bulk << "," << error_surf << "," << errors_T[j] << "," << errors_T_surf[j] << "\n";
+        output_data << h << "\t" << dT << "\t" << error_bulk << "\t" << error_surf << "\t" << errors_T[j] << "\t" << errors_T_surf[j] << "\t" << global_conservation_errors[j] << "\n";
         output_data.flush();
 
         std::cout << "error_T = " << errors_T[j] << "\n";

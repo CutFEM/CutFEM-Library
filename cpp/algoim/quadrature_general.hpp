@@ -557,7 +557,7 @@ namespace algoim
         }
 
         // Evaluate an integral applied to a given functional
-        template<typename F, typename R = typename std::result_of<F(const uvector<real,N>&)>::type>
+        template<typename F, typename R = typename std::invoke_result<F(const uvector<real,N>&)>::type>
         R operator()(const F& f) const
         {
             R sum = 0;

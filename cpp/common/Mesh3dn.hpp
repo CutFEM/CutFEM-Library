@@ -45,13 +45,15 @@ class Mesh3 : public GenericMesh<Tet, Triangle3, Vertex3> {
     static const int D = 3;
 
     Mesh3() {}
-    Mesh3(const std::string);
+    //Mesh3(const std::string);
+    Mesh3(const std::string filename, MeshFormat type_mesh);
     Mesh3(int nnv, int nnt, int nnbe, Vertex3 *vv, Tet *tt, Triangle3 *bb);
     Mesh3(int nnv, int nnbe, Vertex3 *vv, Triangle3 *bb); // surface mesh
     Mesh3(int nx, int ny, int nz, R orx, R ory, R orz, R lx, R ly, R lz);
 
   private:
     void readmsh(std::ifstream &f);
+    void readMeshGmsh(std::ifstream &f);
 
     Mesh3(const Mesh3 &);          // pas de construction par copie
     void operator=(const Mesh3 &); // pas affectation par copy

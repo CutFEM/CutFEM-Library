@@ -102,7 +102,7 @@ double fun_p_d(R2 P, int i, int dom, const double t) {
 }
 
 #define TAYLOR_HOODnot
-#define weak
+#define weaknot
 
 int main(int argc, char **argv) {
 
@@ -110,10 +110,10 @@ int main(int argc, char **argv) {
 
     const size_t iterations = 3;
 
-    //MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/navier_stokes/stationary_vortex/paraview/";
+    const std::string path_output_data    = "../output_files/navier_stokes/stationary_vortex/data/";
+    const std::string path_output_figures = "../output_files/navier_stokes/stationary_vortex/paraview/";
 
     // if (MPIcf::IamMaster()) {
     //     std::filesystem::create_directories(path_output_data);
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
         const Uint last_quad_time = nb_quad_time - 1;
 
         ProblemOption optionProblem;
-        optionProblem.solver_name_  = "umfpack";
+        optionProblem.solver_name_  = "mumps";
         optionProblem.clear_matrix_ = true;
         std::vector<std::map<std::pair<int, int>, double>> mat_NL(1);
 
@@ -284,8 +284,10 @@ int main(int argc, char **argv) {
             fct_t uh(Vhn, In, data_uh);
             fct_t ph(Phn_interpolation, In, data_ph);
 
+            #ifndef weak
             auto boundary_dof = getBoundaryDof(Vhn, In);
             setBoundaryDof(boundary_dof, gh, data_uh);          
+            #endif
 
             // Newton's method
             int newton_iterations = 0;
@@ -313,8 +315,8 @@ int main(int argc, char **argv) {
                     #if defined(weak)
                     navier_stokes.addBilinear(
                         - innerProduct(grad(du) * n, 1./Re*v) 
-                        // - innerProduct(du, 1./Re*grad(v) * n) 
-                        + innerProduct(lambda_boundary * du*t, v*t) 
+                        - innerProduct(du, 1./Re*grad(v) * n) 
+                        + innerProduct(lambda_boundary * du, v) 
                         + innerProduct(dp, 1./Re * v * n)
                     #if defined(TAYLOR_HOOD)
                         - innerProduct(du * n, 1./Re * q)    // added for block-anti-symmetry in the B(u,q) matrix
@@ -324,7 +326,9 @@ int main(int argc, char **argv) {
                         , In);
                     #else
                     navier_stokes.addBilinear(
+                        - innerProduct(grad(du) * n, 1./Re*v) 
                         + innerProduct(lambda_boundary_tangent * du*t, v*t) 
+                        + innerProduct(dp, 1./Re * v * n)
                         , Thi
                         , INTEGRAL_BOUNDARY
                         , In);
@@ -357,8 +361,8 @@ int main(int argc, char **argv) {
                 #if defined(weak)
                 // Terms from Nitsche's method
                 navier_stokes.addLinear(
-                    //+ innerProduct(gh.exprList(), 1./Re*grad(v) * n) 
-                    - innerProduct(gh.exprList(), lambda_boundary * v * t * t)
+                    + innerProduct(gh.exprList(), 1./Re*grad(v) * n) 
+                    - innerProduct(gh.exprList(), lambda_boundary * v)
                 #if defined(TAYLOR_HOOD)
                     + innerProduct(gh.exprList(), 1./Re*q*n)      // compensate for added symmetry term
                 #endif
@@ -373,10 +377,12 @@ int main(int argc, char **argv) {
                     , In);
                 #endif
 
+            #ifndef weak
                 //navier_stokes.setDirichlet(gh, Thi, In);
 
                 // setBoundaryDof(boundary_dof, 0. , navier_stokes.rhs_);  
                 setBoundaryDof(navier_stokes.rhs_.size(), boundary_dof, 1. , navier_stokes.mat_[0]); 
+            #endif
 
                 navier_stokes.gather_map();
                 navier_stokes.addMatMul(data_all); // add B(uh^k, vh) to rhs
@@ -406,8 +412,10 @@ int main(int argc, char **argv) {
                     , Thi
                     , In);
 
+                #ifndef weak
                 setBoundaryDof(boundary_dof, 0. , navier_stokes.rhs_);  
                 setBoundaryDof(navier_stokes.rhs_.size(), boundary_dof, 1. , mat_NL[0]);  
+                #endif 
 
                 #if defined(weak)
                 // Add Lagrange multipliers
@@ -443,8 +451,6 @@ int main(int argc, char **argv) {
                 //     matlab::Export(mat_NL[0], path_output_data + "mat_" + std::to_string(j + 1) + ".dat");
                 // }
 
-          
-                
 
                 navier_stokes.solve(mat_NL[0], navier_stokes.rhs_);
 

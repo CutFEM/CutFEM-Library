@@ -53,6 +53,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/redirectOutput.hpp"
 #include "paraview.hpp"
 #include "../problem/AlgoimIntegration.hpp"
+#include <string>
 
 using namespace globalVariable; // to access some globally defined constants
 
@@ -1132,9 +1133,9 @@ R fun_rhsBulk(double *P, const int i, const R t) {
 } // namespace Example4
 
 //* Set numerical example (options: "ex1", "ex2", or "ex3")
-#define ex1
+#define ex2
 //* Set scheme for the method (options: "classical", "conservative")
-#define classical
+#define conservative
 //* Set stabilization method (options: "fullstab", "macro")
 #define fullstab
 
@@ -1173,46 +1174,92 @@ using namespace Example4;
 #endif
 
 int main(int argc, char **argv) {
-    // MPIcf cfMPI(argc, argv);
+    MPIcf cfMPI(argc, argv);
 
-    // Mesh settings and data objects
-    const size_t iterations = 1;         // number of mesh refinements   (set to 1 to run
-                                         // only once and plot to paraview)
-    int nx = 15, ny = 15;                // starting mesh size
-    double h  = 0.1/2; // starting mesh size
-    double dT = 0.25;
+                                            // Mesh settings and data objects
+    const  size_t iterations = 1;           // number of mesh refinements   
+    int    nx, ny;                               // number of elements in x and y direction
+    double h                = 0.05625;  // starting mesh size
+    double dT               = 0.25;
 
     int total_number_iteration;
     double time_step;
-    double t0 = 0.;
+    double t0            = 0.;
+    const  double tfinal = .5;
 
+    // Time integration quadrature
+    const size_t quadrature_order_time = 9;
+    const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
+    const Uint nbTime       = qTime.n;
+    const Uint lastQuadTime = nbTime - 1;
+
+    // Space integration quadrature 
+    Levelset<2> phi;
+    ProblemOption option;
+    const int quadrature_order_space       = 9;
+    option.order_space_element_quadrature_ = quadrature_order_space;
+    AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
+
+    // Global parameters
+    const double tau = 10;     // stabilization constant
+    const double delta = 0.3;   // macro parameter
+
+    // FE Space approximation
+
+    std::string home(std::getenv("HOME"));
+    // std::string path_output_data(home + "/output_files/langmuir/" + example + "/data/");
+    // std::string path_output_figures(home + "/output_files/langmuir/" + example + "/paraview/");
+
+
+    std::string ex, method, stab;
 #ifdef ex1
     // Paths to store data
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example1/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example1/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/example1/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/example1/paraview/";
+    ex = "1";
 #elif defined(ex2)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example2/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example2/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/kite/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/kite/paraview/";
+    ex = "2";
 #elif defined(ex3)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example3/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example3/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/circle2/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/circle2/paraview/";
+    ex = "3";
 #elif defined(ex4)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/example4/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/example4/paraview/";
+    const std::string path_output_data    = home + "/output_files/surfactant/circle1/data/";
+    const std::string path_output_figures = home + "/output_files/surfactant/circle1/paraview/";
+    ex = "4";
 #elif defined(preuss)
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/preuss/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/preuss/paraview/";
-
+    const std::string path_output_data    = home + "/output_files/paper/preuss/data/";
+    const std::string path_output_figures = home + "/output_files/paper/preuss/paraview/";
 #endif
 
     // Create directory if not already existent
-    // if (MPIcf::IamMaster()) {
-    // std::filesystem::create_directories(path_output_data);
-    // std::filesystem::create_directories(path_output_figures);
-    // }
+    if (MPIcf::IamMaster()) {
+    std::filesystem::create_directories(path_output_data);
+    std::filesystem::create_directories(path_output_figures);
+    }
 
     // Data file to hold problem data
-    std::ofstream output_data(path_output_data + "data_temp.dat", std::ofstream::out);
+    #ifdef conservative
+    method = "conservative";
+    #else
+    method = "non_conservative";
+    #endif
+
+    #ifdef fullstab
+    stab = "full";
+    #else
+    stab = "macro_d_" + std::to_string(delta);
+    #endif
+
+    std::ofstream output_data(path_output_data + "data_" + method + "_" + stab + ".dat", std::ofstream::out);
+
+    output_data << method << ",\t";
+    output_data << stab << ",\t";
+    output_data << "tau = " << tau << ",\t N = " << quadrature_order_time << ",\t T = " << tfinal << ",\t Example " << ex;
+    output_data << "\n---------------------\n";
+    output_data.flush();
 
     // Arrays to hold data
     std::array<double, iterations> errors, errors_T, hs, nxs, ns_active, dts, omega, gamma, global_conservation_errors,
@@ -1236,6 +1283,7 @@ int main(int argc, char **argv) {
 #elif defined(ex2)
         //const double lx = 6. * Example2::R0, ly = 6. * Example2::R0, x0 = -3.01 * Example2::R0, y0 = -3.01 * Example2::R0;
         const double lx = 7., ly = 3., x0 = -3.5-Epsilon, y0 = -1.5 - Epsilon; // like paper
+        //const double lx = 3.5+h, ly = 3., x0 = -1.5-Epsilon, y0 = -1.5-Epsilon;   // for visualization
         //const double lx = 6., ly = 4., x0 = -2.-Epsilon, y0 = -2. - Epsilon;     // works like the above
         //const double lx = 6., ly = 6., x0 = -3.-Epsilon, y0 = -3. - Epsilon;    // works better? for some reason
 #ifdef use_h
@@ -1286,16 +1334,17 @@ int main(int argc, char **argv) {
 
         Mesh Th(nx, ny, x0, y0, lx, ly);
 
-        // Parameters
-        const double tfinal = .5; // Final time
-                                  // const double tfinal = .5; // Final time
 
 #ifdef use_t
         total_number_iteration = int(tfinal / dT);
 #else
-        const int divisionMeshSize = 3;
+        //const double prop_to_h = 1./3;
+        const double prop_to_h = 5./18;
+        //const double prop_to_h = .5;
 
-        double dT = h / divisionMeshSize;
+        dT = prop_to_h*h;
+        //dT = tfinal/4;
+        //dT = 0.001666666666666667;
         //dT = 0.0078125 / std::sqrt(2);
 
         //dT = 0.5 * std::pow(2, -j-1 - 1);
@@ -1327,10 +1376,6 @@ int main(int argc, char **argv) {
 
         // const double D = N_sphere::D;
 
-        // CG stabilization parameter
-        // const double tau1 = 0.1 * (D + beta_max), tau2 = 0.1 * (D + beta_max);
-        const double tau1 = .1, tau2 = 0.1;
-
         FESpace Vh(Th, DataFE<Mesh>::P3); // Background FE Space
         // FESpace Vh_interpolation(Th, DataFE<Mesh>::P3); // for interpolating data
 
@@ -1340,12 +1385,7 @@ int main(int argc, char **argv) {
         // 1D Time space
         FESpace1 Ih(Qh, DataFE<Mesh1>::P3Poly); // FE Space in time
         // FESpace1 Ih_interpolation(Qh, DataFE<Mesh1>::P3Poly); // for interpolating data
-
-        // Quadrature data
-        const QuadratureFormular1d &qTime(*Lobatto(7)); // specify order of quadrature in time
-        const Uint nbTime       = qTime.n;
         const Uint ndfTime      = Ih[0].NbDoF();
-        const Uint lastQuadTime = nbTime - 1;
 
         // Velocity field
         LagrangeQuad2 FEvelocity(2);
@@ -1360,16 +1400,10 @@ int main(int argc, char **argv) {
         double dt_levelSet = dT / (nbTime - 1);
         std::vector<Fun_h> ls(nbTime);
 
-        Levelset<2> phi;
-        ProblemOption option;
-        const int quadrature_order_space       = 9;
-        option.order_space_element_quadrature_ = quadrature_order_space;
-        AlgoimCutFEM<Mesh, Levelset<2>> convdiff(qTime, phi, option);
-
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
         int iter = 0;
-        double mass_last_previous, mass_initial;
+        double mass_last_previous = 0., mass_initial = 0., mass_last = 0.;
         double intF = 0, int_outflow = 0, intG = 0, intF_total = 0,
                intG_total                = 0; // hold integrals of rhs and Neumann bcs
         double global_conservation_error = 0, local_conservation_error = 0, errBulk = 0., error_I = 0.;
@@ -1401,6 +1435,7 @@ int main(int argc, char **argv) {
                 interface.init(i, Th, phi);
 
                 ls[i].init(Lh, fun_levelSet, tt);
+
             }
 
             // Create active meshes
@@ -1493,7 +1528,7 @@ int main(int argc, char **argv) {
             //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
             //     Thi, In);
 
-            convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In);
+            convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In);
             // convdiff.addPatchStabilization(+innerProduct(tau1 / 10000 / h * jump(u), jump(v)), Thi, In, 0);
 
 #elif defined(macro)
@@ -1501,13 +1536,17 @@ int main(int argc, char **argv) {
             // std::cout << TimeMacro.number_of_stabilized_edges << "\n";
             // std::cout << "number of stabilized edges: " << convdiff.get_number_of_stabilized_edges() << "\n";
 
-            AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, 0.5, phi, In, qTime);
+            AlgoimMacro<Mesh, Levelset<2>> TimeMacro(Thi, delta, phi, In, qTime);
+            TimeMacro.findSmallElement();
+            TimeMacro.createMacroElement();
+            TimeMacro.setInnerEdges();
+
             // convdiff.addFaceStabilization(
             //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
             //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
             //     Thi, In, TimeMacro);
 
-            convdiff.addPatchStabilization(+innerProduct(tau1 / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
+            convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
 
             if (iterations == 1 && h > 0.1) {
                 Paraview<Mesh> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
@@ -1537,7 +1576,7 @@ int main(int argc, char **argv) {
             }
 
             // Solve linear system
-            convdiff.solve("umfpack");
+            convdiff.solve("mumps");
 
             data_u0 = convdiff.rhs_;
             convdiff.saveSolution(data_u0);
@@ -1628,7 +1667,7 @@ int main(int argc, char **argv) {
             // intF = integral_algoim(f, 0, Thi, phi, In, qTime);        // integrate source over In
             // intG = integral_algoim(g_Neumann, In, interface, phi, 0); // integrate flux across boundary over In
 
-            double mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime,
+            mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime,
                                                quadrature_order_space); // mass in last quad point
 
             if (iter == 0) {
@@ -1658,20 +1697,22 @@ int main(int argc, char **argv) {
 
 #endif
 
-            if ((iterations == 1) && (h > 0.01)) {
-                Fun_h sol_h(Wh, sol);
-                Paraview<Mesh> writerTh(Th, path_output_figures + "Th.vtk");
-                Paraview<Mesh> writer(Thi, path_output_figures + "bulk_" + std::to_string(iter + 1) + ".vtk");
-                writer.add(b0h, "bulk", 0, 1);
-                writer.add(sol_h, "bulk_end", 0, 1);
+            if ((iterations == 1) && (h > 0.001)) {
+                //Fun_h sol_h(Wh, sol);
+                Paraview<Mesh> writerTh(Th, path_output_figures + "Th_coarse.vtk");
+                Paraview<Mesh> writer(Thi, path_output_figures + "bulk_coarse_" + std::to_string(iter + 1) + ".vtk");
+                writer.add(b0h, "bulk_0", 0, 1);
+                writer.add(funuh, "bulk_N", 0, 1);
 
                 Fun_h uBex(Wh, fun_uBulk, current_time);
+                Fun_h uBex_N(Wh, fun_uBulk, current_time+dT);
                 Fun_h fB(Wh, fun_rhsBulk, current_time);
 
                 writer.add(uBex, "bulk_exact", 0, 1);
                 writer.add(fB, "bulk_rhs", 0, 1);
                 // writer.add(g_Neumann, "neumann", 0, 1);
-                writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
+                writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error_0");
+                writer.add(fabs(funuh.expr() - uBex_N.expr()), "bulk_error_N");
                 writer.add(ls[0], "levelSet0", 0, 1);
                 writer.add(ls[1], "levelSet1", 0, 1);
                 writer.add(ls[2], "levelSet2", 0, 1);
@@ -1681,11 +1722,11 @@ int main(int argc, char **argv) {
                 writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, 2,
                                              path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
                                                  ".vtk");
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, 2,
-                                             path_output_figures + "AlgoimQuadrature_1_" + std::to_string(iter + 1) +
-                                                 ".vtk");
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 2, 2,
-                                             path_output_figures + "AlgoimQuadrature_2_" + std::to_string(iter + 1) +
+                // writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, 2,
+                //                              path_output_figures + "AlgoimQuadrature_1_" + std::to_string(iter + 1) +
+                //                                  ".vtk");
+                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, lastQuadTime, 2,
+                                             path_output_figures + "AlgoimQuadrature_N_" + std::to_string(iter + 1) +
                                                  ".vtk");
             }
 

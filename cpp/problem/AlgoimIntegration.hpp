@@ -6,7 +6,7 @@
 
 #include "../common/AlgoimInterface.hpp"
 
-const int quadrature_order_integration = 14;
+const int quadrature_order_integration = 5;
 
 template <typename Mesh, typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(const R2, int i),
@@ -212,7 +212,7 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t)
     return sqrt(val);
 }
 
-// L2(In x Omega)
+// L2(In x Gamma)
 template <typename L, typename fct_t>
 double L2_norm_surf_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInterface<MeshQuad2> &gamma, const TimeSlab &In,
                  const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
@@ -816,8 +816,8 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
 
             if (domain != Th.get_domain_element(k))
                 continue;
-            if (Th.isInactive(k, itq))
-                continue;
+            // if (Th.isInactive(k, itq))
+            //     continue;
 
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
@@ -834,7 +834,10 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
                 algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
 
             // Loop over quadrature in space
-            assert(q.nodes.size() != 0);
+            //assert(q.nodes.size() != 0);
+            if (q.nodes.size()==0)
+                continue;
+
             for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
 
                 Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));

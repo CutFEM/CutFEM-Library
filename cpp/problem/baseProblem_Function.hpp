@@ -1895,4 +1895,24 @@ void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Ele
     }
 }
 
+
+template <typename M>
+void BaseFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, const std::span<double> vecCol,
+                                              const R val_rhs) {
+    int ndf = this->rhs_.size();
+    this->rhs_.resize(ndf + 1);
+    this->rhs_(ndf) = val_rhs;
+
+    this->index_j0_[0] = 0;
+    this->index_i0_[0] = 0;
+
+    for (int idx = 0; idx < vecRow.size(); idx++) {
+        // for (int idx = 0; idx < ndf; idx++) {
+        //  this->mat_[0][std::make_pair(idx, ndf)] = vecCol[idx];
+        //  this->mat_[0][std::make_pair(ndf, idx)] = vecRow[idx];
+        (*this)(idx, ndf) += vecCol[idx];
+        (*this)(ndf, idx) += vecRow[idx];
+    }
+}
+
 ///

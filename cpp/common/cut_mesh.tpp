@@ -829,9 +829,9 @@ template <typename Mesh> bool ActiveMesh<Mesh>::isInactive(int k, int t) const {
     // Get the local element index within that domain
     int kloc   = idxK_in_domain(k, domain);
     // Search for the element in the active mesh at time t
-    auto it    = in_active_mesh_[domain][t].find(kloc);
+    auto it    = in_active_mesh_[domain].at(t).find(kloc);
     // If the element was found, return true; otherwise, return false
-    if (it == in_active_mesh_[domain][t].end())
+    if (it == in_active_mesh_[domain].at(t).end())
         return false;
     return true;
 }
@@ -842,9 +842,9 @@ template <typename Mesh> const Interface<Mesh> &ActiveMesh<Mesh>::get_interface(
     // Find the local index of the element k in the domain
     int kloc   = idxK_in_domain(k, domain);
     // Find the iterator to the interface_id_ map for the time instance t
-    auto it    = interface_id_[t].find(std::make_pair(domain, kloc));
+    auto it    = interface_id_.at(t).find(std::make_pair(domain, kloc));
     // Make sure we found the interface_id_ map for the time instance t
-    assert(it != interface_id_[t].end());
+    assert(it != interface_id_.at(t).end());
     // Return the first interface in the list associated with the iterator it
     return *(it->second.at(0).first);
 }
