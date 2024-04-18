@@ -147,12 +147,13 @@ template <typename Mesh> class ShapeOfProblem {
     void init(int n) {
         nb_dof_ = n;
         // rhs_.init(nb_dof_);
-        rhs_.resize(nb_dof_);
+        std::fill(rhs_.begin(), rhs_.end(), 0.);
+        rhs_.resize(nb_dof_, 0.);
     }
     void init(int n, int nt) {
         nb_dof_      = n;
         nb_dof_time_ = nt;
-        // rhs_.init(nb_dof_);
+        std::fill(rhs_.begin(), rhs_.end(), 0.);
         rhs_.resize(nb_dof_);
     }
     // void init_nb_thread(int nn) {
