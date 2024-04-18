@@ -34,12 +34,6 @@ target_link_libraries(_pyCutFEM PUBLIC ${EXTRA_LIBS})
 endif()
 
 
-if(${CUTFEM_BUILD_FORCE_PROJECT})
-add_subdirectory(force_project)
-# list(APPEND EXTRA_LIBS force_project)
-endif()
-
-
 
 if(${CUTFEM_BUILD_EXAMPLE})
 add_subdirectory(example/)

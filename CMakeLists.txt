@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.16)
-cmake_minimum_required(VERSION 3.16)
 project(libCutFEM VERSION 0.1 LANGUAGES CXX)
 
 ## ##############################
@@ -21,6 +20,7 @@ option(CUTFEM_CREATE_DOCS "Build library documentation (requires Doxygen and Gra
 option(CUTFEM_RAPID_YAML "Use rapid yaml" OFF)
 
 configure_file(cutFEMConfig.in cutFEMConfig.h)
+configure_file(cutFEMConfig.in ../cpp/cutFEMConfig.h)
 
 
 ## ##############################
