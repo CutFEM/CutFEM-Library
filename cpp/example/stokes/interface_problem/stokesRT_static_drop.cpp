@@ -14,8 +14,8 @@ You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 
-#include "../../../tool.hpp"
-#include "../../../matplotlib-cpp/matplotlibcpp.h"
+#include "../cutfem.hpp"
+#include "matplotlibcpp.h"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;

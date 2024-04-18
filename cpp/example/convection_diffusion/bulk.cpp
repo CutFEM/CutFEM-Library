@@ -36,7 +36,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 
 // Dependencies
-#include "../tool.hpp"
+#include "../cutfem.hpp"
 #include "../problem/AlgoimIntegration.hpp"
 #include "../num/matlab.hpp"
 #include <string>

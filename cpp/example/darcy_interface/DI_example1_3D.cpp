@@ -1,4 +1,4 @@
-#include "../tool.hpp"
+#include "../cutfem.hpp"
 
 using mesh_t     = Mesh3;
 using funtest_t  = TestFunction<mesh_t>;

@@ -13,11 +13,26 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
-#include "lib_darcy.hpp"
+#ifndef PARALLEL_DUMMY_CFMPI_HPP
+#define PARALLEL_DUMMY_CFMPI_HPP
 
-extern "C" {
+#include "../num/util.hpp"
 
-Darcy2 *Darcy2_new(Darcy2 *darcy) { return new Darcy2(); }
+// Dummy mpi class for seq compilation
+class MPIcf {
+  public:
+    MPIcf(int &argc, char **&argv) {}
+    MPIcf(){}
 
-void Darcy2_add_natural_BC(Darcy2 *darcy, double (*f)(double *, int, int)) { darcy->add_natural_BC(f); }
-}
+    static int my_rank() { return 0; }
+    static int size() { return 1; }
+
+    static bool IamMaster() { return true; }
+    static int Master() { return 0; } 
+
+    static inline double Wtime() { return CPUtime(); };
+};
+#endif // PARALLEL_DUMMY_CFMPI_HPP
+
+
+

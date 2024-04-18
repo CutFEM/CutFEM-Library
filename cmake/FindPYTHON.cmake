@@ -13,14 +13,23 @@ find_path (PYTHON_INCLUDE_DIR
   NAMES Python.h
   PATHS
     /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/include/python3.10/
+    /opt/homebrew/opt/python@3.10/Frameworks/Python.framework/Versions/3.10/include/python3.10
     /usr/include/python3.8/
   )
+
+  find_path(MATPLOTLIBCPP_DIR 
+    NAMES
+        matplotlibcpp.h
+    PATHS
+        /Users/thomasfrachon/lib/matplotlib-cpp
+)
 
 find_path (NUMPY_INCLUDE_DIR
   NAMES numpy/arrayobject.h
   PATHS
     /usr/local/lib/python3.10/site-packages/numpy/core/include
     /usr/lib/python3/dist-packages/numpy/core/include/
+    /opt/homebrew/lib/python3.10/site-packages/numpy/core/include
 )
 
 find_path(PYTHON_LIBRARY_DIR
@@ -30,6 +39,7 @@ find_path(PYTHON_LIBRARY_DIR
   PATHS
     /usr/lib/x86_64-linux-gnu/
     /usr/local/Cellar/python@3.10/3.10.9/Frameworks/Python.framework/Versions/3.10/lib/
+    /opt/homebrew/opt/python@3.10/Frameworks/Python.framework/Versions/3.10/lib
 )
 
 
@@ -47,7 +57,7 @@ if(PYTHON_INCLUDE_DIR AND NUMPY_INCLUDE_DIR AND PYTHON_LIBRARY_DIR)
 
   set(PYTHON_LIBRARIES ${PYTHON_LIBRARY} )
 
-  set(PYTHON_INCLUDES ${PYTHON_INCLUDE_DIR} ${NUMPY_INCLUDE_DIR})
+  set(PYTHON_INCLUDES ${PYTHON_INCLUDE_DIR} ${NUMPY_INCLUDE_DIR} ${MATPLOTLIBCPP_DIR})
 
   message( "-- PYTHON_library FOUND")
   message( STATUS "PYTHON & NUMPY includes = ${PYTHON_INCLUDES}")

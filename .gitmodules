@@ -1,15 +1,6 @@
 [submodule "SuiteSparse"]
 	path = SuiteSparse
 	url = https://github.com/DrTimothyAldenDavis/SuiteSparse.git
-[submodule "mumps"]
-	path = mumps
-	url = https://github.com/scivision/mumps.git
-[submodule "cpp/test/Catch2"]
-	path = cpp/test/Catch2
-	url = https://github.com/catchorg/Catch2.git
-[submodule "rapidyaml"]
-	path = rapidyaml
-	url = https://github.com/biojppm/rapidyaml.git
 [submodule "matplotlib-cpp"]
 	path = matplotlib-cpp
 	url = https://github.com/Cryoris/matplotlib-cpp.git

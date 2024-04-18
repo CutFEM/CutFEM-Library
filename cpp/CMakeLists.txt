@@ -2,7 +2,6 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++20 -fPIC -O3")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++2a -fPIC -O3")
 
 if(USE_MPI)
@@ -12,26 +11,18 @@ if(USE_MPI)
   include_directories(${MPI_CXX_INCLUDE_PATH})
 
   add_subdirectory(parallel)
-  list(APPEND EXTRA_LIBS parallel)
+  list(APPEND CUTFEM_LIBS parallel)
 endif()
 
 add_subdirectory(common)
-list(APPEND EXTRA_LIBS common)
+list(APPEND CUTFEM_LIBS common)
 add_subdirectory(FESpace)
-list(APPEND EXTRA_LIBS FESpace)
+list(APPEND CUTFEM_LIBS FESpace)
 add_subdirectory(solver)
-list(APPEND EXTRA_LIBS solver)
+list(APPEND CUTFEM_LIBS solver)
 add_subdirectory(problem)
-list(APPEND EXTRA_LIBS problem)
+list(APPEND CUTFEM_LIBS problem)
 
-
-if(${CUTFEM_BUILD_PYTHON_WRAPPER})
-add_library(_pyCutFEM SHARED 
-                            wrap_lib/lib_cutfem.cpp
-                            wrap_lib/lib_darcy.cpp
-                            wrap_lib/lib_stokes.cpp)
-target_link_libraries(_pyCutFEM PUBLIC ${EXTRA_LIBS})
-endif()
 
 
 
@@ -39,7 +30,3 @@ if(${CUTFEM_BUILD_EXAMPLE})
 add_subdirectory(example/)
 endif()
 
-
-if(${CUTFEM_BUILD_TESTS})
-add_subdirectory(test/)
-endif()

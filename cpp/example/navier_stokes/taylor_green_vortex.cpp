@@ -13,7 +13,7 @@
  */
 
 #include "../num/matlab.hpp"
-#include "../tool.hpp"
+#include "../cutfem.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
