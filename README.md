@@ -9,7 +9,7 @@ This library aim to implement and test CutFEM algorithms on simple examples.
 3. Set the option of the building procedure
 4. "cd build; cmake ..; make -j4;"
 
-# Running the example using Python
+# Reproducing the results in "A divergence preserving cut finite element method for Darcy flow" using Python
 To create the Darcy problem to reproduce results using Python:
 1 - All option can be OFF appart from CUTFEM_BUILD_PYTHON_WRAPPER
 2. "cmake ..; make -j4;"
