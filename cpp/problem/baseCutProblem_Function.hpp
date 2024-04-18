@@ -2356,9 +2356,7 @@ void BaseCutFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, co
  */
 
 template <typename M>
-template <typename V>
-    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
-void BaseCutFEM<M>::initialSolution(V &u0) {
+void BaseCutFEM<M>::initialSolution(std::span<double> u0) {
     // Note: this method changes the input vector u0
 
     // Get the number of degrees of freedom in time
@@ -2452,9 +2450,7 @@ void BaseCutFEM<M>::initialSolution(V &u0) {
  * @requires V to be a NonAllocVector or a vector with element type KN<typename V::element_type>.
  */
 template <typename M>
-template <typename V>
-    requires NonAllocVector<V> || std::is_same_v<V, KN<typename V::element_type>>
-void BaseCutFEM<M>::saveSolution(const V sol) {
+void BaseCutFEM<M>::saveSolution(std::span<double> sol) {
     // Note: this method doesn't change the input sol
 
     this->mapU0_.clear(); // Clear the map of coefficients.

@@ -550,13 +550,12 @@ int main(int argc, char **argv) {
             fun_test_t u(Wh, 1), v(Wh, 1);
 
             std::vector<double> data_init(convdiff.get_nb_dof(), 0.); // initial data total
-            std::span<double> data_init_span(data_init);
             std::span<double> data_uh0 = std::span<double>(data_init.data(), Wh.NbDoF());
 
             if (iter == 0) {
                 interpolate(Wh, data_uh0, fun_uBulkInit);
             } else {
-                convdiff.initialSolution(data_init_span);
+                convdiff.initialSolution(data_init);
             }
 
             std::vector<double> data_all(data_init);
@@ -659,8 +658,7 @@ int main(int argc, char **argv) {
 
             std::span<double> rhs = std::span<double>(convdiff.rhs_.data(), convdiff.get_nb_dof());
             data_all.assign(rhs.begin(), rhs.end());
-            std::span<double> data_all_span(data_all);
-            convdiff.saveSolution(data_all_span);
+            convdiff.saveSolution(data_all);
 
             // Compute (int_In ||u-uex||^2 dt)^2
             fct_t uh_t(Wh, In, data_all);
