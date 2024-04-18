@@ -615,7 +615,8 @@ int main(int argc, char **argv) {
 
                 // Reset the rhs vector
                 convdiff.rhs_.resize(convdiff.get_nb_dof());
-                convdiff.rhs_ = 0.0; 
+                std::fill(convdiff.rhs_.begin(), convdiff.rhs_.end(), 0.);
+
 
                 newton_iterations++;
 
