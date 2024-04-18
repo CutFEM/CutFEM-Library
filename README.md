@@ -19,10 +19,10 @@ This library contains implementations of CutFEM algorithms on simple numerical e
     cmake ..
     ```
 4. **Compile** \
-    If you want to compile all files in the [cpp/example](cpp/example) folder, write ```make``` or ```make -jX``` for building with ```X``` processors. 
+    If you want to compile all files in the [cpp/example](cpp/example) folder, write ```make``` or ```make -jX``` for building with ```X``` processors. Note that this may not work unless you configure using USE_MUMPS and USE_PARALLEL, since some codes require MPI.
 
 5. **Other settings** \
-    If you want to configure the library enabling other settings, such as being able to use mumps for solving linear systems, you can change the settings in the [CMakeLists.txt](CMakeLists.txt) file.
+    If you want to configure the library with other settings, such as being able to use mumps for solving linear systems, you can change the settings in the [CMakeLists.txt](CMakeLists.txt) file.
 
 
 # Reproducing data
@@ -37,18 +37,16 @@ To run them you first need to build them, by writing e.g. ```make -j4 bulk```, u
 
 To execute and run the files, there are several options to choose from:
 
-* **Example**: ```circle/kite```
-* **Method**: ```conservative/non_conservative```
-* **Polynomial order in space**: ```1/2/3```
-* **Polynomial order in time**: ```1/2/3```
-* **Ghost-penalty stabilization technique**: ```fullstab/macro```
-
-Other used-defined parameters, such as quadrature order in space and time, macroelement parameter $\delta$, and patch stabilization constant $\tau$ have to be modified in the source code. 
-
-You can then run the code like this:
+1. **Example**: ```circle/kite```
+2. **Method**: ```conservative/non_conservative```
+3. **Polynomial order in space**: ```1/2/3```
+4. **Polynomial order in time**: ```1/2/3```
+5. **Ghost-penalty stabilization technique**: ```fullstab/macro```
+1., 2., 4., and 5. have to be specified in the source code (bulk.cpp/coupled.cpp), but the polynomial order is decided during execution as follows:
 ```
-./bin/bulk circle conservative 2 2 macro
+./bin/bulk 2 2
 ```
+where the first 2 denotes the order of polynomial degree in space, and the second 2 denotes the polynomial order in time. 
 
 ### *A divergence preserving cut finite element method for Darcy flow*, 2024, Thomas Frachon, Erik Nilsson, Sara Zahedi
 To create the Darcy problem to reproduce results using Python:
