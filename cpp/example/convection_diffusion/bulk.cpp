@@ -30,7 +30,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
  *  Two schemes are implemented:
  *  Classical scheme,
  *  Conservative scheme.
- 
+
  *  Two types of stabilization is possible: face-based ghost penalty and patch-based ghost penalty.
  *  Moreover, each of them can be used with either full stabilization or macroelement stabilization.
 */
@@ -342,10 +342,13 @@ std::string example, method, stabilization;
 
 // Define example, method and stabilization
 
-#define kite     // circle/kite
-#define conservative   // classical/conservative
-#define macro       // fullstab/macro
+#define kite         // circle/kite
+#define conservative // classical/conservative
+#define macro        // fullstab/macro
 
+std::vector<const GTypeOfFE<mesh_t> *> FE_space = {&DataFE<mesh_t>::P1, &DataFE<mesh_t>::P2, &DataFE<mesh_t>::P3};
+std::vector<const GTypeOfFE<Mesh1> *> FE_time   = {&DataFE<Mesh1>::P1Poly, &DataFE<Mesh1>::P2Poly,
+                                                   &DataFE<Mesh1>::P3Poly};
 
 int main(int argc, char **argv) {
 
@@ -357,45 +360,48 @@ int main(int argc, char **argv) {
     example = "kite";
     using namespace Kite;
 #else
-    #error "No example defined"
+#error "No example defined"
 #endif
 
 #if defined(classical)
     method = "classical";
 #elif defined(conservative)
-    method = "conservative";
+    method              = "conservative";
 #else
-    #error "No method defined"
+#error "No method defined"
 #endif
 
 #if defined(fullstab)
     stabilization = "fullstab";
 #elif defined(macro)
-    stabilization = "macro";
+    stabilization       = "macro";
 #else
-    #error "No stabilization defined"
+#error "No stabilization defined"
 #endif
 
 #ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
 #endif
-                                            
-    const  size_t iterations = 1;           // number of mesh refinements   
-    double h                = 0.1;          // starting mesh size
-    int    nx, ny;                          
 
-    const double cfl_number = 5./18;
+    int k = std::atoi(argv[1]);
+    int m = std::atoi(argv[2]);
+
+    const size_t iterations = 1;   // number of mesh refinements
+    double h                = 0.1; // starting mesh size
+    int nx, ny;
+
+    const double cfl_number = 5. / 18;
     int total_number_iteration;
-    double dT = 0.1;
+    double dT       = 0.1;
     const double t0 = 0., tfinal = .5;
 
     // Time integration quadrature
     const size_t quadrature_order_time = 5;
-    const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
+    const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time)); // specify order of quadrature in time
     const Uint nbTime       = qTime.n;
     const Uint lastQuadTime = nbTime - 1;
 
-    // Space integration quadrature 
+    // Space integration quadrature
     Levelset<2> phi;
     ProblemOption option;
 #ifdef USE_MPI
@@ -408,9 +414,9 @@ int main(int argc, char **argv) {
     AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
 
     // Method parameters
-    const double tau = 1.;     // stabilization constant
-    const double delta = 0.5;   // macro parameter
-    
+    const double tau   = 1.;  // stabilization constant
+    const double delta = 0.5; // macro parameter
+
     // Paths to store data
     const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/" + example + "/data/";
     const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/" + example + "/paraview/";
@@ -419,11 +425,11 @@ int main(int argc, char **argv) {
     std::ofstream output_data(path_output_data + "data_" + method + "_" + stabilization + ".dat", std::ofstream::out);
     output_data << "example, method, stabilization, delta, tau, N_time, N_space, T\n";
     output_data << example << ", " << method << ", " << stabilization << ", ";
-    #if defined(macro)
-        output_data << delta << ", ";
-    #else
-        output_data << "0, ";
-    #endif
+#if defined(macro)
+    output_data << delta << ", ";
+#else
+    output_data << "0, ";
+#endif
     output_data << tau << ", " << quadrature_order_time << ", " << quadrature_order_space << ", " << tfinal;
     output_data << "\n---------------------\n";
     output_data << "h, dt, L2(Omega(T)), L2(L2(Omega(t), 0, T)), e_c(T)\n";
@@ -433,26 +439,26 @@ int main(int argc, char **argv) {
     std::array<double, iterations> hs, dts, errors, errors_T, global_conservation_errors;
 
     // Iterate over mesh sizes
-    for (int j = 0; j < iterations; ++j) {       
+    for (int j = 0; j < iterations; ++j) {
 
-        // Define background mesh
-        #if defined(circle)
+// Define background mesh
+#if defined(circle)
         const double x0 = 0. - Epsilon, y0 = 0. - Epsilon;
         const double lx = 1., ly = 1.;
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 
-        #elif defined(kite)
-        const double x0 = -3.5-Epsilon, y0 = -1.5 - Epsilon;
+#elif defined(kite)
+        const double x0 = -3.5 - Epsilon, y0 = -1.5 - Epsilon;
         const double lx = 7., ly = 3.;
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
 
-        #endif
+#endif
 
         mesh_t Th(nx, ny, x0, y0, lx, ly);
 
-        dT = cfl_number*h;
+        dT                     = cfl_number * h;
         total_number_iteration = int(tfinal / dT);
-        dT        = tfinal / total_number_iteration;
+        dT                     = tfinal / total_number_iteration;
 
         hs.at(j)  = h;
         dts.at(j) = dT;
@@ -468,14 +474,15 @@ int main(int argc, char **argv) {
         std::cout << "h  = " << h << '\n';
         std::cout << "dT = " << dT << '\n';
 
-        fespace_t Vh(Th, DataFE<mesh_t>::P2);       // Background FE Space
-
+        // fespace_t Vh(Th, DataFE<mesh_t>::P2); // Background FE Space
+        fespace_t Vh(Th, *FE_space[k - 1]);
         // 1D Time mesh
         double final_time = total_number_iteration * dT;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
-        
+
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
+        // FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
+        FESpace1 Ih(Qh, *FE_time[m - 1]);
         const Uint ndof_time_slab = Ih[0].NbDoF();
 
         // Velocity field
@@ -493,7 +500,7 @@ int main(int argc, char **argv) {
 
         std::cout << "Number of time slabs \t : \t " << total_number_iteration << '\n';
 
-        int iter = 0;
+        int iter                  = 0;
         double mass_last_previous = 0., mass_initial = 0., mass_last = 0.;
         double intF = 0, intG = 0, intF_total = 0, intG_total = 0;
         double global_conservation_error = 0, errBulk = 0., error_I = 0.;
@@ -523,7 +530,6 @@ int main(int argc, char **argv) {
                 interface.init(i, Th, phi);
 
                 ls[i].init(Lh, fun_levelSet, tt);
-
             }
 
             // Create active meshes
@@ -554,103 +560,102 @@ int main(int argc, char **argv) {
             }
 
             std::vector<double> data_all(data_init);
-            std::span<double> data_uh = std::span<double>(data_all.data(), Wh.NbDoF()*In.NbDoF());
+            std::span<double> data_uh = std::span<double>(data_all.data(), Wh.NbDoF() * In.NbDoF());
 
             fct_t uh0(Wh, data_uh0);
             fct_t uh(Wh, In, data_uh);
 
-            // Variational formulation
-            #if defined(classical)
-                convdiff.addBilinear(+innerProduct(u, v), Thi, 0, In);
-                // Impose initial condition
-                if (iter == 0) {
-                    convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
-                } else {
-                    convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
-                }
-                convdiff.addBilinear(+innerProduct(dt(u), v) + innerProduct(D * grad(u), grad(v)), Thi, In);
+// Variational formulation
+#if defined(classical)
+            convdiff.addBilinear(+innerProduct(u, v), Thi, 0, In);
+            // Impose initial condition
+            if (iter == 0) {
+                convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+            } else {
+                convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
+            }
+            convdiff.addBilinear(+innerProduct(dt(u), v) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
-                for (int i = 0; i < nbTime; ++i) {
-                    convdiff.addBilinear(+innerProduct((vel[i].exprList() * grad(u)), v), Thi, In, i);
-                }
+            for (int i = 0; i < nbTime; ++i) {
+                convdiff.addBilinear(+innerProduct((vel[i].exprList() * grad(u)), v), Thi, In, i);
+            }
 
-            #elif defined(conservative)
-                convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
+#elif defined(conservative)
+            convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
 
-                // Impose initial condition
-                if (iter == 0) {
-                    convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
-                } else {
-                    convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
-                }
+            // Impose initial condition
+            if (iter == 0) {
+                convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+            } else {
+                convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
+            }
 
-                convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
+            convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
-                for (int i = 0; i < nbTime; ++i) {
-                    convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
-                }
-            #endif
+            for (int i = 0; i < nbTime; ++i) {
+                convdiff.addBilinear(-innerProduct(u, (vel[i].exprList() * grad(v))), Thi, In, i);
+            }
+#endif
 
             // Source function
             convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
 
             // Stabilization
 
-            #if defined(fullstab)
+#if defined(fullstab)
 
-                // convdiff.addFaceStabilization(
-                //     +innerProduct(h * tau * jump(grad(u) * n), jump(grad(v) * n)) +
-                //         innerProduct(h * h * h * tau * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
-                //     Thi, In);
+            // convdiff.addFaceStabilization(
+            //     +innerProduct(h * tau * jump(grad(u) * n), jump(grad(v) * n)) +
+            //         innerProduct(h * h * h * tau * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+            //     Thi, In);
 
-                convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In);
-            
+            convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In);
 
-            #elif defined(macro)
+#elif defined(macro)
 
-                AlgoimMacro<mesh_t, Levelset<2>> TimeMacro(Thi, delta, phi, In, qTime);
-                TimeMacro.findSmallElement();
-                TimeMacro.createMacroElement();
-                TimeMacro.setInnerEdges();
+            AlgoimMacro<mesh_t, Levelset<2>> TimeMacro(Thi, delta, phi, In, qTime);
+            TimeMacro.findSmallElement();
+            TimeMacro.createMacroElement();
+            TimeMacro.setInnerEdges();
 
-                // convdiff.addFaceStabilization(
-                //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
-                //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
-                //     Thi, In, TimeMacro);
+            // convdiff.addFaceStabilization(
+            //     +innerProduct(h * tau1 * jump(grad(u) * n), jump(grad(v) * n)) +
+            //         innerProduct(h * h * h * tau2 * jump(grad(grad(u) * n) * n), jump(grad(grad(v) * n) * n)),
+            //     Thi, In, TimeMacro);
 
-                convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
+            convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
 
-                if (iterations == 1 && h > 0.1) {
-                    Paraview<mesh_t> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
-                    writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
-                    writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
-                    writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
+            if (iterations == 1 && h > 0.1) {
+                Paraview<mesh_t> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
+                writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
+                writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
 
-                    // domain = 0
+                // domain = 0
 
-                    writerMacro.writeFaceStab(
-                        Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
-                    writerMacro.writeActiveMesh(Thi,
-                                                path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-                    writerMacro.writeMacroElement(TimeMacro, 0,
-                                                path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
-                    writerMacro.writeMacroInnerEdge(
-                        TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
-                    writerMacro.writeMacroOutterEdge(
-                        TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
-                    writerMacro.writeSmallElements(
-                        TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
-                }
+                writerMacro.writeFaceStab(
+                    Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeActiveMesh(Thi,
+                                            path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeMacroElement(TimeMacro, 0,
+                                              path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeMacroInnerEdge(
+                    TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeMacroOutterEdge(
+                    TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
+                writerMacro.writeSmallElements(
+                    TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
+            }
 
-            #endif
+#endif
 
             if (iter == total_number_iteration - 1) {
-                matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + "_" + method + "_" + stabilization  +  ".dat");
+                matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + "_" + method +
+                                                     "_" + stabilization + ".dat");
             }
 
             // Solve linear system
             convdiff.solve();
-
 
             std::span<double> rhs = std::span<double>(convdiff.rhs_.data(), convdiff.get_nb_dof());
             data_all.assign(rhs.begin(), rhs.end());
@@ -658,7 +663,7 @@ int main(int argc, char **argv) {
             convdiff.saveSolution(data_all_span);
 
             // Compute (int_In ||u-uex||^2 dt)^2
-            fct_t uh_t(Wh, In, data_all); 
+            fct_t uh_t(Wh, In, data_all);
             error_I += L2_norm_T(uh_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
             std::cout << " t_n -> || u-uex||_(In x Omega)^2 = " << error_I << '\n';
 
@@ -666,8 +671,10 @@ int main(int argc, char **argv) {
             std::vector<double> sol(Wh.get_nb_dof());
 
             for (int n = 0; n < ndof_time_slab; n++) {
-                std::vector<double> u_dof_n(data_uh.begin() + n * Wh.get_nb_dof(), data_uh.begin() + (n + 1) * Wh.get_nb_dof());
-                std::transform(sol.begin(), sol.end(), u_dof_n.begin(), sol.begin(), std::plus<double>()); // sum up all dofs
+                std::vector<double> u_dof_n(data_uh.begin() + n * Wh.get_nb_dof(),
+                                            data_uh.begin() + (n + 1) * Wh.get_nb_dof());
+                std::transform(sol.begin(), sol.end(), u_dof_n.begin(), sol.begin(),
+                               std::plus<double>()); // sum up all dofs
             }
 
             fct_t funuh(Wh, sol);
@@ -711,7 +718,7 @@ int main(int argc, char **argv) {
                 writer.add(funuh, "bulk_N", 0, 1);
 
                 fct_t uBex(Wh, fun_uBulk, current_time);
-                fct_t uBex_N(Wh, fun_uBulk, current_time+dT);
+                fct_t uBex_N(Wh, fun_uBulk, current_time + dT);
                 fct_t fB(Wh, fun_rhsBulk, current_time);
 
                 writer.add(uBex, "bulk_exact", 0, 1);
@@ -734,13 +741,13 @@ int main(int argc, char **argv) {
             }
 
             iter++;
-
         }
 
         errors_T[j] = std::sqrt(error_I);
 
         if (iterations > 1) {
-            output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << "," << global_conservation_errors[j] << '\n';
+            output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << ","
+                        << global_conservation_errors[j] << '\n';
             output_data.flush();
         }
 
@@ -759,8 +766,7 @@ int main(int argc, char **argv) {
         }
 
         h *= 0.5;
-        //dT *= 0.5;
-
+        // dT *= 0.5;
     }
 
     std::cout << std::setprecision(16);
