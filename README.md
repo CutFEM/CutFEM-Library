@@ -6,7 +6,7 @@ This library contains implementations of CutFEM algorithms on simple numerical e
 
 1. **Install dependencies**
     * For default configuration, you need to install UMFPACK. 
-    * To use e.g. MUMPS, you need to install mumps, ...
+    * To use e.g. MUMPS, you need to install mumps and mpi.
 
 2. **Clone**
     ```
