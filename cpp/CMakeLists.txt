@@ -10,10 +10,10 @@ if(USE_MPI)
   set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
   include_directories(${MPI_CXX_INCLUDE_PATH})
 
-  add_subdirectory(parallel)
-  list(APPEND CUTFEM_LIBS parallel)
 endif()
 
+add_subdirectory(parallel)
+list(APPEND CUTFEM_LIBS parallel)
 add_subdirectory(common)
 list(APPEND CUTFEM_LIBS common)
 add_subdirectory(FESpace)

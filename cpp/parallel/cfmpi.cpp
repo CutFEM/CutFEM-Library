@@ -14,9 +14,8 @@ You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 #include "cfmpi.hpp"
-// #include "cutFEMConfig.h"
 
-// #include "petsc.h"
+#if USE_MPI
 
 //----------------- Static Members ---------------------------
 int MPIcf::my_rank_                  = 0;
@@ -65,3 +64,5 @@ MPIcf::~MPIcf() {
     RecoverStdOstreams();
     delete mute_;
 }
+
+#endif
