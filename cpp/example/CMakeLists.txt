@@ -1,12 +1,14 @@
 
 find_package(PYTHON)
 
+message(${CMAKE_SOURCE_DIR})
 
 function(add_example FULL_NAME)
     get_filename_component(EXE_NAME ${FULL_NAME} NAME_WLE )
     add_executable(${EXE_NAME} ${FULL_NAME})
     target_link_libraries(${EXE_NAME} PRIVATE   ${CUTFEM_LIBS}  ${PYTHON_LIBRARIES})
     target_include_directories(${EXE_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
+                                                    ${CMAKE_SOURCE_DIR}
                                                     ${PYTHON_INCLUDES})
 endfunction()
 

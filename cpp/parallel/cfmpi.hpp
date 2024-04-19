@@ -16,6 +16,11 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef _CF_MPI_HPP_
 #define _CF_MPI_HPP_
 
+#include "../cutFEMConfig.h"
+#ifndef USE_MPI
+#include "dummy_cfmpi.hpp"
+#else 
+
 #include "mpi.h"
 #include "../num/util.hpp"
 #include "../common/RNM.hpp"
@@ -219,4 +224,5 @@ class MPIcf {
 
 #include "cfmpi.tpp"
 
+#endif 
 #endif

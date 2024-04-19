@@ -1,5 +1,5 @@
 
-#include "../cutfem.hpp"
+#include "cpp/cutfem.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -110,9 +110,8 @@ void solve_problem(const space_t &Wh, const Interface<mesh_t> &interface, std::s
 
 int main(int argc, char **argv) {
 
-#ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
-#endif
+
     CutFEMLogger::initialize("conservation_log.txt");
 
     auto t0 = std::chrono::high_resolution_clock::now();

@@ -245,7 +245,6 @@ template <typename Mesh> class ActiveMesh {
 
     void info() const;
 
-#ifdef USE_MPI
     virtual int first_element() const { return MPIcf::first_element(this->get_nb_element()); }
     virtual int next_element() const { return MPIcf::next_element(this->get_nb_element()); }
     virtual int last_element() const { return MPIcf::last_element(this->get_nb_element()); }
@@ -253,15 +252,7 @@ template <typename Mesh> class ActiveMesh {
     virtual int first_boundary_element() const { return MPIcf::my_rank(); }
     virtual int next_boundary_element() const { return MPIcf::size(); }
     virtual int last_boundary_element() const { return this->Th.nbBrdElmts(); }
-#else
-    virtual int first_element() const { return 0; }
-    virtual int next_element() const { return 1; }
-    virtual int last_element() const { return this->get_nb_element(); }
 
-    virtual int first_boundary_element() const { return 0; }
-    virtual int next_boundary_element() const { return 1; }
-    virtual int last_boundary_element() const { return this->Th.nbBrdElmts(); }
-#endif
 
     // Private Member Functions
   private:

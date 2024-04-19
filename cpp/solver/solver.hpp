@@ -16,11 +16,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef SOLVER_HPP_
 #define SOLVER_HPP_
 #include <cassert>
-#include "cutFEMConfig.h"
+#include "../cutFEMConfig.h"
 #include "../num/util.hpp"
-#ifdef USE_MPI
 #include "../parallel/cfmpi.hpp"
-#endif
 
 struct ProblemOption {
     int order_space_element_quadrature_ = 5;
@@ -40,11 +38,7 @@ void LAPACK(Rnm &a, Rn &b);
 } // namespace solver
 class Solver {
 
-#ifdef USE_MPI
     double get_Time() const { return MPIcf::Wtime(); }
-#else
-    double get_Time() const { return CPUtime(); }
-#endif
 
   public:
     int verbose_             = 0;

@@ -53,10 +53,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../common/cut_mesh.hpp"
 #include "QuadratureFormular.hpp"
 
-#include "cutFEMConfig.h"
-#ifdef USE_MPI
 #include "../parallel/cfmpi.hpp"
-#endif
+
 
 template <class Mesh> class GFESpace;
 template <class Mesh> class GFElement;
@@ -402,32 +400,15 @@ template <class MMesh> class GFESpace : public DataFENodeDF {
     int get_nb_dof() const { return this->nbDoF; }
 
 // int NbInnerFaces() const { return Th.nbInnerFaces();}
-#ifdef USE_MPI
+
     virtual int first_element() const { return MPIcf::first_element(this->nbElement); }
     virtual int next_element() const { return MPIcf::next_element(this->nbElement); }
     virtual int last_element() const { return MPIcf::last_element(this->nbElement); }
 
-    // virtual int first_face() const { return
-    // MPIcf::first_element(this->NbInnerFaces());} virtual int next_face()
-    // const {  return MPIcf::next_element(this->NbInnerFaces());} virtual int
-    // last_face() const {  return MPIcf::last_element(this->NbInnerFaces());}
-
     virtual int first_boundary_element() const { return MPIcf::my_rank(); }
     virtual int next_boundary_element() const { return MPIcf::size(); }
     virtual int last_boundary_element() const { return this->Th.nbBrdElmts(); }
-#else
-    virtual int first_element() const { return 0; }
-    virtual int next_element() const { return 1; }
-    virtual int last_element() const { return this->nbElement; }
 
-    // virtual int first_face() const { return 0;}
-    // virtual int next_face() const {return 1;}
-    // virtual int last_face() const { return this->NbInnerFaces();}
-
-    virtual int first_boundary_element() const { return 0; }
-    virtual int next_boundary_element() const { return 1; }
-    virtual int last_boundary_element() const { return this->Th.nbBrdElmts(); }
-#endif
 
     virtual void info() const {
         // std::cout << "FESpace \t" << this << std::endl;

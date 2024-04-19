@@ -1,4 +1,4 @@
-#include "../cutfem.hpp"
+#include "cpp/cutfem.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -27,9 +27,8 @@ double fun_exact_p(R2 P, int compInd, int dom) { return -0.5 * (P.x * P.x - P.x 
 int main(int argc, char **argv) {
 
     globalVariable::verbose = 0;
-#ifdef USE_MPI
+
     MPIcf cfMPI(argc, argv);
-#endif
 
     int nx = 11;
 
@@ -218,8 +217,7 @@ int main(int argc, char **argv) {
               // << std::setw(15) << std::setfill(' ') << "err_new divu"
               // << std::setw(15) << std::setfill(' ') << "convLoc divu"
               << std::setw(15) << std::setfill(' ') << "err maxdivu" << std::setw(15) << std::setfill(' ')
-              << "conv maxdivu"
-              << "\n"
+              << "conv maxdivu" << "\n"
               << std::endl;
     for (int i = 0; i < uPrint.size(); ++i) {
         std::cout << std::left << std::setprecision(5) << std::setw(10) << std::setfill(' ') << h[i] << std::setw(15)

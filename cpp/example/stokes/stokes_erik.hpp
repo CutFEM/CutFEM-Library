@@ -4,9 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include "../util/cputime.h"
-#ifdef USE_MPI
 #include "cfmpi.hpp"
-#endif
 
 #include "finiteElement.hpp"
 #include "baseProblem.hpp"
@@ -4688,8 +4686,7 @@ int main(int argc, char **argv) {
               // << std::setw(15) << std::setfill(' ') << "err_new divu"
               // << std::setw(15) << std::setfill(' ') << "convLoc divu"
               << std::setw(15) << std::setfill(' ') << "err maxdivu" << std::setw(15) << std::setfill(' ')
-              << "err gradu"
-              << "\n"
+              << "err gradu" << "\n"
               << std::endl;
     for (int i = 0; i < h.size(); ++i) {
         std::cout << std::left << std::setw(10) << std::setfill(' ') << h[i] << std::setw(15) << std::setfill(' ')
@@ -4973,8 +4970,7 @@ int main(int argc, char **argv) {
               // << std::setw(15) << std::setfill(' ') << "err_new divu"
               // << std::setw(15) << std::setfill(' ') << "convLoc divu"
               << std::setw(15) << std::setfill(' ') << "err maxdivu" << std::setw(15) << std::setfill(' ')
-              << "conv err gradu"
-              << "\n"
+              << "conv err gradu" << "\n"
               << std::endl;
     for (int i = 0; i < h.size(); ++i) {
         std::cout << std::left << std::setw(10) << std::setfill(' ') << h[i] << std::setw(15) << std::setfill(' ')

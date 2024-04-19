@@ -379,9 +379,7 @@ int main(int argc, char **argv) {
 #error "No stabilization defined"
 #endif
 
-#ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
-#endif
 
     int k = std::atoi(argv[1]);
     int m = std::atoi(argv[2]);

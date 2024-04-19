@@ -1,4 +1,4 @@
-#include "../cutfem.hpp"
+#include "cpp/cutfem.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -263,10 +263,7 @@ int main(int argc, char **argv) {
             std::cout << min_u1_t << " < u1_{h,1,t} < " << max_u1_t << std::endl;
             // fct_t fun_indicator(Eh, indicator);
 
-#ifdef USE_MPI
-            if (MPIcf::IamMaster())
-#endif
-            {
+            if (MPIcf::IamMaster()) {
                 Paraview<mesh_t> writer(Khi, "checkErrorDiscontinuous.vtk");
                 writer.add(fun_u1, "uh", 0, 1);
                 // writer.add(fun_u1_macro0, "uh_extend0", 0, 1);

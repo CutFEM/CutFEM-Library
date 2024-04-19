@@ -45,10 +45,9 @@ extern long verbosity;
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
 #include "../num/sort_array.hpp"
-#include "cutFEMConfig.h"
-#ifdef USE_MPI
+
 #include "../parallel/cfmpi.hpp"
-#endif
+
 
 enum class MeshFormat { mesh_gmsh, mesh_freefem };
 
@@ -152,7 +151,6 @@ template <typename T, typename B, typename V> class GenericMesh {
         assert(nv > 0 && vertices);
     }
 
-#ifdef USE_MPI
     virtual int first_element() const { return MPIcf::first_element(this->nbElements()); }
     virtual int next_element() const { return MPIcf::next_element(this->nbElements()); }
     virtual int last_element() const { return MPIcf::last_element(this->nbElements()); }
@@ -160,15 +158,7 @@ template <typename T, typename B, typename V> class GenericMesh {
     virtual int first_boundary_element() const { return MPIcf::my_rank(); }
     virtual int next_boundary_element() const { return MPIcf::size(); }
     virtual int last_boundary_element() const { return this->nbBrdElmts(); }
-#else
-    virtual int first_element() const { return 0; }
-    virtual int next_element() const { return 1; }
-    virtual int last_element() const { return this->nbElements(); }
 
-    virtual int first_boundary_element() const { return 0; }
-    virtual int next_boundary_element() const { return 1; }
-    virtual int last_boundary_element() const { return this->nbBrdElmts(); }
-#endif
 
     int operator()(const T &tt) const { return CheckT(&tt - elements); }
     int operator()(const T *tt) const { return CheckT(tt - elements); }

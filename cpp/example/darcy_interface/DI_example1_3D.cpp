@@ -1,4 +1,4 @@
-#include "../cutfem.hpp"
+#include "cpp/cutfem.hpp"
 
 using mesh_t     = Mesh3;
 using funtest_t  = TestFunction<mesh_t>;
@@ -7,11 +7,9 @@ using cutmesh_t  = ActiveMesh<mesh_t>;
 using space_t    = GFESpace<mesh_t>;
 using cutspace_t = CutFESpace<mesh_t>;
 
-
-
 double shift        = 0.5;
-double interfaceRad = 0.25001;               
-double mu_G         = 2. / 3 * interfaceRad; 
+double interfaceRad = 0.25001;
+double mu_G         = 2. / 3 * interfaceRad;
 
 R fun_radius2(const R3 P) {
     return (P[0] - shift) * (P[0] - shift) + (P[1] - shift) * (P[1] - shift) + (P.z - shift) * (P.z - shift);
@@ -39,9 +37,9 @@ R fun_div(const R3 P, int compInd, int dom) { // is also exact divergence
 R fun_exact_u(const R3 P, int compInd, int dom) {
     DA<R, 3> X(P[0], 0), Y(P[1], 1), Z(P.z, 2);
     DA<R, 3> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift) + (Z - shift) * (Z - shift);
-    R radius2      = interfaceRad * interfaceRad;
-    R cst          = (dom == 0) * 3. / 2;
-    R mul          = (dom == 0) * 2 + (dom == 1) * 1;
+    R radius2    = interfaceRad * interfaceRad;
+    R cst        = (dom == 0) * 3. / 2;
+    R mul        = (dom == 0) * 2 + (dom == 1) * 1;
     DA<R, 3> val = r2 / (mul * radius2) + cst;
     return -val.d[compInd];
 
@@ -50,9 +48,9 @@ R fun_exact_u(const R3 P, int compInd, int dom) {
 R fun_exact_p(const R3 P, int compInd, int dom) {
     DA<R, 3> X(P[0], 0), Y(P[1], 1), Z(P.z, 2);
     DA<R, 3> r2  = (X - shift) * (X - shift) + (Y - shift) * (Y - shift) + (Z - shift) * (Z - shift);
-    R radius2      = interfaceRad * interfaceRad;
-    R cst          = (dom == 0) * 3. / 2;
-    R mul          = (dom == 0) * 2 + (dom == 1) * 1;
+    R radius2    = interfaceRad * interfaceRad;
+    R cst        = (dom == 0) * 3. / 2;
+    R mul        = (dom == 0) * 2 + (dom == 1) * 1;
     DA<R, 3> val = r2 / (mul * radius2) + cst;
     return val.val;
 }
@@ -60,14 +58,13 @@ R fun_interfacePr(const R3 P, int compInd) { return 19. / 12; }
 
 int main(int argc, char **argv) {
 
-
-/// MUMPS allow to solve for lower mesh sizes but the divergence error inrcreses 
-/// while umfpack gives good divergence error but fails for lower mesh sizes
-    #ifndef USE_MPI
+    /// MUMPS allow to solve for lower mesh sizes but the divergence error inrcreses
+    /// while umfpack gives good divergence error but fails for lower mesh sizes
+#ifndef USE_MPI
     assert(0 && " need mpi for mumps");
-    #else
+#endif
     MPIcf cfMPI(argc, argv);
-    #endif
+
     int nx = 11;
 
     std::vector<double> uPrint, pPrint, divPrint, divPrintLoc, maxDivPrint, h, convuPr, convpPr, convdivPr,
@@ -102,42 +99,35 @@ int main(int argc, char **argv) {
         fct_t p0(Lh, fun_neumann);
         fct_t phat(Ph, fun_interfacePr);
 
-
         Normal n;
         Tangent t;
         funtest_t p(Ph, 1), q(Ph, 1), u(Wh, 3), v(Wh, 3);
 
-        double uPenParam = 1e0; 
-        double pPenParam = 1e0; 
+        double uPenParam = 1e0;
+        double pPenParam = 1e0;
         double jumpParam = 1e0;
 
         darcy.addBilinear(innerProduct(u, v) - innerProduct(p, div(v)) + innerProduct(div(u), q), Kh_i);
         darcy.addBilinear(innerProduct(mu_G * average(u * n), average(v * n)) +
-                              innerProduct(xi0 * mu_G * jump(u * n), jump(v * n)) 
-                          ,interface);
+                              innerProduct(xi0 * mu_G * jump(u * n), jump(v * n)),
+                          interface);
 
         darcy.addLinear(-innerProduct(phat.expr(), jump(v * n)), interface);
         darcy.addLinear(innerProduct(fq.expr(), q), Kh_i);
 
-        darcy.addLinear(
-            -innerProduct(p0.expr(), v * n)
-            ,
-            Kh_i, INTEGRAL_BOUNDARY);
+        darcy.addLinear(-innerProduct(p0.expr(), v * n), Kh_i, INTEGRAL_BOUNDARY);
 
         funtest_t grad2un = grad(grad(u) * n) * n;
-        darcy.addFaceStabilization( 
-            innerProduct(uPenParam * pow(h_i, 1) * jump(u), jump(v)) 
-                + innerProduct(uPenParam * pow(h_i, 3) * jump(grad(u) * n), jump(grad(v) * n))
-                - innerProduct(pPenParam * h_i * jump(p), jump(div(v))) +
-                innerProduct(pPenParam * h_i * jump(div(u)), jump(q))
-            ,
-            Kh_i
-        );
+        darcy.addFaceStabilization(innerProduct(uPenParam * pow(h_i, 1) * jump(u), jump(v)) +
+                                       innerProduct(uPenParam * pow(h_i, 3) * jump(grad(u) * n), jump(grad(v) * n)) -
+                                       innerProduct(pPenParam * h_i * jump(p), jump(div(v))) +
+                                       innerProduct(pPenParam * h_i * jump(div(u)), jump(q)),
+                                   Kh_i);
 
         darcy.solve("mumps");
 
         // EXTRACT SOLUTION
-        int idx0_s  = Wh.get_nb_dof();
+        int idx0_s = Wh.get_nb_dof();
         std::span<double> data_uh{std::span(darcy.rhs_.data(), Wh.get_nb_dof())};
         std::span<double> data_ph{std::span(darcy.rhs_.data() + Wh.get_nb_dof(), Ph.get_nb_dof())};
         fct_t uh(Wh, data_uh);
@@ -154,23 +144,19 @@ int main(int argc, char **argv) {
         R maxErrDiv = maxNormCut(femSol_0dx + femSol_1dy + femSol_1dz, fun_div, Kh_i);
 
         // [PLOTTING]
-        #ifdef USE_MPI
-        if(MPIcf::IamMaster())
-        #endif
-        {
-          fct_t solh(Wh, fun_exact_u);
-          fct_t solph(Ph, fun_exact_p);
-          fct_t divSolh(Ph, fun_div);
-          auto femDiv = divSolh.expr();
-          Paraview<mesh_t> writer(Kh_i, "darcy_example1_3D_"+std::to_string(i)+".vtk");
-        
-          writer.add(uh, "velocity" , 0, 3);
-          writer.add(solh, "velocityExact" , 0, 3);
-          writer.add(ph, "pressure" , 0, 1);
-          writer.add(solph, "pressureExact" , 0, 1);
-          writer.add(femSol_0dx+femSol_1dy, "divergence");
-          writer.add(fabs((femSol_0dx+femSol_1dy+femSol_1dz)-femDiv),
-          "divergenceError");
+        if (MPIcf::IamMaster()) {
+            fct_t solh(Wh, fun_exact_u);
+            fct_t solph(Ph, fun_exact_p);
+            fct_t divSolh(Ph, fun_div);
+            auto femDiv = divSolh.expr();
+            Paraview<mesh_t> writer(Kh_i, "darcy_example1_3D_" + std::to_string(i) + ".vtk");
+
+            writer.add(uh, "velocity", 0, 3);
+            writer.add(solh, "velocityExact", 0, 3);
+            writer.add(ph, "pressure", 0, 1);
+            writer.add(solph, "pressureExact", 0, 1);
+            writer.add(femSol_0dx + femSol_1dy, "divergence");
+            writer.add(fabs((femSol_0dx + femSol_1dy + femSol_1dz) - femDiv), "divergenceError");
         }
 
         pPrint.push_back(errP);

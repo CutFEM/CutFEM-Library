@@ -22,17 +22,18 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 class MPIcf {
   public:
     MPIcf(int &argc, char **&argv) {}
-    MPIcf(){}
+    MPIcf() {}
 
     static int my_rank() { return 0; }
     static int size() { return 1; }
 
     static bool IamMaster() { return true; }
-    static int Master() { return 0; } 
+    static int Master() { return 0; }
 
     static inline double Wtime() { return CPUtime(); };
+
+    static inline const int first_element(int n) { return 0; }
+    static inline const int next_element(int n) { return 1; }
+    static inline const int last_element(int n) { return n; }
 };
 #endif // PARALLEL_DUMMY_CFMPI_HPP
-
-
-

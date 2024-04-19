@@ -38,9 +38,7 @@ double fun_exact_p(R2 P, int i, int dom) {
 
 int main(int argc, char **argv) {
 
-#ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
-#endif
 
     int nx              = 11;
     double penaltyParam = 4e3;

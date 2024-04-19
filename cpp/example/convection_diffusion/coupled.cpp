@@ -163,9 +163,9 @@ using namespace Example1;
 
 
 int main(int argc, char **argv) {
-#ifdef USE_MPI
+
     MPIcf cfMPI(argc, argv);
-#endif
+
 
     // Mesh 
     const size_t iterations = 1;                        // number of mesh refinements   

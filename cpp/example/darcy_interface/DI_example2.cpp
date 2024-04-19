@@ -85,9 +85,8 @@ double fun_interfacePr(R2 P) { return (-1. / 8 * mu_G + c / (2. * 1e2)); }
 int main(int argc, char **argv) {
 
     globalVariable::verbose = 0;
-#ifdef USE_MPI
+
     MPIcf cfMPI(argc, argv);
-#endif
 
     int nx = 11;
 
@@ -184,10 +183,8 @@ int main(int argc, char **argv) {
         double errDiv    = L2normCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         double maxErrDiv = maxNormCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         // [PLOTTING]
-        #ifdef USE_MPI
-        if (MPIcf::IamMaster()) 
-        #endif
-        {
+
+        if (MPIcf::IamMaster()) {
             fct_t solh(Wh, fun_exact_u);
             fct_t divSolh(Ph, fun_div);
 
@@ -231,8 +228,7 @@ int main(int argc, char **argv) {
               // << std::setw(15) << std::setfill(' ') << "err_new divu"
               // << std::setw(15) << std::setfill(' ') << "convLoc divu"
               << std::setw(15) << std::setfill(' ') << "err maxdivu" << std::setw(15) << std::setfill(' ')
-              << "conv maxdivu"
-              << "\n"
+              << "conv maxdivu" << "\n"
               << std::endl;
     for (int i = 0; i < uPrint.size(); ++i) {
         std::cout << std::left << std::setprecision(5) << std::setw(10) << std::setfill(' ') << h[i] << std::setw(15)

@@ -1,8 +1,4 @@
-#ifdef USE_MPI
 #include "parallel/cfmpi.hpp"
-#else
-#include "parallel/dummy_cfmpi.hpp"
-#endif
 #ifdef USE_OMP
 #include "/usr/local/opt/libomp/include/omp.h"
 #endif

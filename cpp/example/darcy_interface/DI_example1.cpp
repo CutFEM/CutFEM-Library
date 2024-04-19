@@ -1,4 +1,4 @@
-#include "../cutfem.hpp"
+#include "cpp/cutfem.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -55,9 +55,8 @@ double fun_interfacePr(R2 P, int compInd) { return 19. / 12; }
 int main(int argc, char **argv) {
 
     globalVariable::verbose = 0;
-#ifdef USE_MPI
+
     MPIcf cfMPI(argc, argv);
-#endif
 
     int nx = 11;
 
@@ -148,19 +147,16 @@ int main(int argc, char **argv) {
         double errDiv    = L2normCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         double maxErrDiv = maxNormCut(femSol_0dx + femSol_1dy, fun_div, Kh_i);
         // [PLOTTING]
-        #ifdef USE_MPI
-        if (MPIcf::IamMaster())
-        #endif
-        {
-           fct_t divSolh(Ph, fun_div);
+
+        if (MPIcf::IamMaster()) {
+            fct_t divSolh(Ph, fun_div);
             auto femDiv = divSolh.expr();
 
-           Paraview<mesh_t> writer(Kh_i, "darcy_example1_2D_" + std::to_string(i) + ".vtk");
-           writer.add(uh, "velocity", 0, 2);
-           writer.add(ph, "pressure", 0, 1);
-           writer.add(femSol_0dx + femSol_1dy, "divergence");
-           writer.add(fabs((femSol_0dx + femSol_1dy) - femDiv),
-                      "divergence_error");
+            Paraview<mesh_t> writer(Kh_i, "darcy_example1_2D_" + std::to_string(i) + ".vtk");
+            writer.add(uh, "velocity", 0, 2);
+            writer.add(ph, "pressure", 0, 1);
+            writer.add(femSol_0dx + femSol_1dy, "divergence");
+            writer.add(fabs((femSol_0dx + femSol_1dy) - femDiv), "divergence_error");
         }
 
         pPrint.push_back(errP);
@@ -193,8 +189,7 @@ int main(int argc, char **argv) {
               // << std::setw(15) << std::setfill(' ') << "err_new divu"
               // << std::setw(15) << std::setfill(' ') << "convLoc divu"
               << std::setw(15) << std::setfill(' ') << "err maxdivu" << std::setw(15) << std::setfill(' ')
-              << "conv maxdivu"
-              << "\n"
+              << "conv maxdivu" << "\n"
               << std::endl;
     for (int i = 0; i < uPrint.size(); ++i) {
         std::cout << std::left << std::setprecision(5) << std::setw(10) << std::setfill(' ') << h[i] << std::setw(15)

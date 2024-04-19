@@ -1,4 +1,4 @@
-#include "../cutfem.hpp"
+#include "cpp/cutfem.hpp"
 
 using mesh_t     = Mesh2;
 using funtest_t  = TestFunction<mesh_t>;
@@ -150,9 +150,8 @@ void solve_problem(const space_t &Wh, const Interface<mesh_t> &interface, const 
 
 int main(int argc, char **argv) {
 
-#ifdef USE_MPI
     MPIcf cfMPI(argc, argv);
-#endif
+
     const double cpubegin = getTime();
 
     // OUTPUT FILE
@@ -308,11 +307,8 @@ int main(int argc, char **argv) {
 
         // PLOT THE SOLUTION
         // ==================================================
-#ifdef USE_MPI
+
         if (MPIcf::IamMaster() && i % 10000 == 0 || i + 1 == niteration) {
-#else
-        if (i % 1 == 0 || i + 1 == niteration) {
-#endif
 
             Paraview<mesh_t> writer(Khi, "test_accuracyP0_" + std::to_string(ifig++) + ".vtk");
             writer.add(fun_uh, "uhNoLimiter", 0, 1);

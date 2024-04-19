@@ -30,10 +30,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "Mesh3dn.hpp"
 #include "cut_method.hpp"
 
-#include "cutFEMConfig.h"
-#ifdef USE_MPI
+
 #include "../parallel/cfmpi.hpp"
-#endif
+
 #include "../FESpace/QuadratureFormular.hpp"
 
 template <int N> struct FaceInterface {};
@@ -130,16 +129,12 @@ template <typeMesh M> class Interface {
 
     virtual size_t size() const = 0;
 
-#ifdef USE_MPI
+
     size_t first_element() const { return MPIcf::first_element(size()); }
     size_t next_element() const { return MPIcf::next_element(size()); }
     size_t last_element() const { return MPIcf::last_element(size()); }
 
-#else
-    size_t first_element() const { return 0; }
-    size_t next_element() const { return 1; }
-    size_t last_element() const { return size(); }
-#endif
+
 
     virtual R measure(int i) const = 0;
 

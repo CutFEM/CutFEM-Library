@@ -25,11 +25,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "Mesh2dn.hpp"
 #include "Mesh3dn.hpp"
 #include "cut_method.hpp"
-
-#include "cutFEMConfig.h"
-#ifdef USE_MPI
 #include "../parallel/cfmpi.hpp"
-#endif
+
+
 
 struct CutData2 {
    typedef typename Mesh2::Element Element;
@@ -286,10 +284,8 @@ template <typename M> class GenericInterface {
    }
    const_vertex_iterator vertex_end() const { return (vertices_.end()).base(); }
 
-#ifdef USE_MPI
-   // int first_element() const { return MPIcf::my_rank();}
-   // int next_element() const {return MPIcf::size();}
-   // int last_element() const { return faces_.size();}
+
+
    virtual int first_element() const {
       return MPIcf::first_element(faces_.size());
    }
@@ -300,11 +296,6 @@ template <typename M> class GenericInterface {
       return MPIcf::last_element(faces_.size());
    }
 
-#else
-   int first_element() const { return 0; }
-   int next_element() const { return 1; }
-   int last_element() const { return faces_.size(); }
-#endif
 
    double distance(Rd P) const;
    // int getNeighborElement()
