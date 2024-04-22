@@ -35,22 +35,41 @@ The files are located in [cpp/example/convection_diffusion](cpp/example/convecti
 
 To run them you first need to build them, by writing e.g. ```make -j4 bulk```, unless you've already built them when installing the library above.
 
-To execute and run the files, there are several options to choose from:
+To execute and run the files, there are several options/parameters to choose from:
+
+#### Bulk
 
 1. **Example**: ```circle/kite```
 2. **Method**: ```conservative/non_conservative```
 3. **Polynomial order in space**: ```1/2/3```
-4. **Polynomial order in time**: ```1/2/3```
+4. **Polynomial order in time**: ```0/1/2/3```
 5. **Ghost-penalty stabilization technique**: ```fullstab/macro```
-1., 2., 4., and 5. have to be specified in the source code (bulk.cpp/coupled.cpp), but the polynomial order is decided during execution as follows:
+
+These options are set by defining preprocessor variables before the main function, e.g. ```#define circle```. Other user variables, such as stabilization constant, macroelement parameter, and number of quadrature nodes in time and space, are changed inside the main function. The code is then executed as:
+
 ```
-./bin/bulk 2 2
+./bin/bulk
 ```
-where the first 2 denotes the order of polynomial degree in space, and the second 2 denotes the polynomial order in time. 
+
+
+#### Coupled
+
+1. **Method**: ```conservative/non_conservative```
+2. **Polynomial order in space**: ```1/2```
+3. **Polynomial order in time**: ```0/1/2/3```
+4. **Ghost-penalty stabilization technique**: ```fullstab/macro```
+
+Stabilization constants, macroelement parameters, number of quadrature nodes in time and space, etc, are changed inside the main function. The code is then executed as:
+
+```
+./bin/coupled
+```
+Convergence history is printed both in the terminal and in the files "output_bulk.dat" and "output_coupled.dat". 
+
 
 ### *A divergence preserving cut finite element method for Darcy flow*, 2024, Thomas Frachon, Erik Nilsson, Sara Zahedi
 To create the Darcy problem to reproduce results using Python:
-1 - All option can be OFF appart from CUTFEM_BUILD_PYTHON_WRAPPER
+1 - All options can be OFF apart from CUTFEM_BUILD_PYTHON_WRAPPER
 2. "cmake ..; make -j4;"
 2 - Go to the python folder
 "cd ../../python/darcy;"
@@ -58,9 +77,9 @@ To create the Darcy problem to reproduce results using Python:
 4 - run darcy.py
 
 
-Note : It is important to turn off the options for finding libraries if they are not installed, otherwise the compilation will not succeed.
+Note: It is important to turn off the options for finding libraries if they are not installed, otherwise the compilation will not succeed.
 
-Note : When compiling the python library, the MPI option should be turned off.
+Note: When compiling the python library, the MPI option should be turned off.
 
 On another hand, to update all modules (test, solver etc) one can do
 "git submodule update --init --recursive"

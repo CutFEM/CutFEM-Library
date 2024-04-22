@@ -1,4 +1,3 @@
-Example: example1
 Method: conservative
 Polynomial order time: 1
 Polynomial order space: 1
@@ -13,7 +12,7 @@ Quadrature order space: 3
 Tfinal: 0.1
 
 ---------------------
-h, 	 dt, 		 L2(Omega(T)), 	 L2(Gamma(T)), 	 L2(L2(Omega(t), 0, T)), 	 L2(L2(Gamma(t)), 0, T))	 e_c(T)
+h, dt, L2(Omega(T)), L2(Gamma(T)), L2(L2(Omega(t), 0, T)), L2(L2(Gamma(t)), 0, T)), e_c(T)
 0.1,0.025,0.00143697,0.00543796,0.00028384,0.00135848,1.65146e-15
 0.05,0.0125,0.000339975,0.00151374,8.06397e-05,0.000372689,4.14252e-15
 0.025,0.00625,7.92832e-05,0.000358961,1.88237e-05,0.000103941,2.04489e-14

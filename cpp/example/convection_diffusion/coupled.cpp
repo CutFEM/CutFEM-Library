@@ -162,9 +162,7 @@ std::vector<const GTypeOfFE<Mesh1> *> FE_time   = {&DataFE<Mesh1>::P0Poly, &Data
 using namespace Example1;
 
 
-// Define example, method, stabilization, and polynomial order
-
-#define EXAMPLE example1
+// Define method, stabilization, and polynomial order
 #define METHOD conservative     // method (conservative/non_conservative)
 #define STABILIZATION macro     // stabilization (fullstab/macro)
 #define K 1                     // polynomial order in time (0/1/2)
@@ -180,7 +178,7 @@ int main(int argc, char **argv) {
     const int k = K;
     const int m = M;
 
-    assert(k >= 0 && k <= 2);
+    assert(k >= 0 && k <= 3);
     assert(m >= 1 && m <= 2);
 
     // Mesh 
@@ -223,14 +221,12 @@ int main(int argc, char **argv) {
     const double delta_bulk = 0.7;   // macro parameter
     const double delta_surf = 0.5;   // macro parameter
 
-    std::string example(TOSTRING(EXAMPLE));
     std::string method(TOSTRING(METHOD));
     std::string stabilization(TOSTRING(STABILIZATION));
 
     // Data file to hold problem data
     
     std::ofstream output_data("../cpp/example/convection_diffusion/output_coupled.dat", std::ofstream::out);
-    output_data << "Example: " << example << "\n";
     output_data << "Method: " << method << "\n";
     output_data << "Polynomial order time: " << k << "\n";
     output_data << "Polynomial order space: " << m << "\n";
@@ -246,7 +242,7 @@ int main(int argc, char **argv) {
     output_data << "Quadrature order space: " << quadrature_order_space << "\n";
     output_data << "Tfinal: " << tfinal << "\n";
     output_data << "\n---------------------\n";
-    output_data << "h, \t dt, \t\t L2(Omega(T)), \t L2(Gamma(T)), \t L2(L2(Omega(t), 0, T)), \t L2(L2(Gamma(t)), 0, T))\t e_c(T)\n";
+    output_data << "h, dt, L2(Omega(T)), L2(Gamma(T)), L2(L2(Omega(t), 0, T)), L2(L2(Gamma(t)), 0, T)), e_c(T)\n";
     output_data.flush();
 
     // Arrays to hold data
