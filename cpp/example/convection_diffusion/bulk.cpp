@@ -28,7 +28,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
     A space-time Cutfem.
 
  *  Two schemes are implemented:
- *  Classical scheme,
+ *  Non-conservative scheme,
  *  Conservative scheme.
 
  *  Two types of stabilization is possible: face-based ghost penalty and patch-based ghost penalty.
@@ -338,19 +338,23 @@ using activemesh_t  = ActiveMesh<mesh_t>;
 using fespace_t     = GFESpace<mesh_t>;
 using cut_fespace_t = CutFESpace<mesh_t>;
 
-std::string example, method, stabilization;
-
-// Define example, method and stabilization
-
-#define kite         // circle/kite
-#define conservative // classical/conservative
-#define macro        // fullstab/macro
-
 std::vector<const GTypeOfFE<mesh_t> *> FE_space = {&DataFE<mesh_t>::P1, &DataFE<mesh_t>::P2, &DataFE<mesh_t>::P3};
-std::vector<const GTypeOfFE<Mesh1> *> FE_time   = {&DataFE<Mesh1>::P1Poly, &DataFE<Mesh1>::P2Poly,
+std::vector<const GTypeOfFE<Mesh1> *> FE_time   = {&DataFE<Mesh1>::P0Poly, &DataFE<Mesh1>::P1Poly, &DataFE<Mesh1>::P2Poly,
                                                    &DataFE<Mesh1>::P3Poly};
 
+
+// Define example, method and stabilization, and polynomial order in time and space
+
+#define circle         // example (circle/kite)
+#define conservative // method (conservative/non_conservative)
+#define macro        // stabilization (fullstab/macro)
+#define K 2          // polynomial order in time (0/1/2/3)
+#define M 2          // polynomial order in space (1/2/3)
+
+
 int main(int argc, char **argv) {
+
+    std::string example, method, stabilization;
 
 // Do not touch
 #if defined(circle)
@@ -363,8 +367,8 @@ int main(int argc, char **argv) {
 #error "No example defined"
 #endif
 
-#if defined(classical)
-    method = "classical";
+#if defined(non_conservative)
+    method = "non_conservative";
 #elif defined(conservative)
     method              = "conservative";
 #else
@@ -381,17 +385,20 @@ int main(int argc, char **argv) {
 
     MPIcf cfMPI(argc, argv);
 
-    int k = std::atoi(argv[1]);
-    int m = std::atoi(argv[2]);
+    const int k = K;
+    const int m = M;
 
-    const size_t iterations = 1;   // number of mesh refinements
+    assert(k >= 0 && k <= 3);
+    assert(m >= 1 && m <= 3);
+
+    const size_t iterations = 3;   // number of mesh refinements
     double h                = 0.1; // starting mesh size
     int nx, ny;
 
-    const double cfl_number = 5. / 18;
+    const double cfl_number = 1./3;
     int total_number_iteration;
     double dT       = 0.1;
-    const double t0 = 0., tfinal = .5;
+    const double t0 = 0., tfinal = .1;
 
     // Time integration quadrature
     const size_t quadrature_order_time = 5;
@@ -415,20 +422,22 @@ int main(int argc, char **argv) {
     const double tau   = 1.;  // stabilization constant
     const double delta = 0.5; // macro parameter
 
-    // Paths to store data
-    const std::string path_output_data    = "/NOBACKUP/smyrback/output_files/paper/" + example + "/data/";
-    const std::string path_output_figures = "/NOBACKUP/smyrback/output_files/paper/" + example + "/paraview/";
-
+    assert(tau > 0.);
+    assert(delta > 0. && delta <= 1.);
+    
     // Data file to hold problem data
-    std::ofstream output_data(path_output_data + "data_" + method + "_" + stabilization + ".dat", std::ofstream::out);
-    output_data << "example, method, stabilization, delta, tau, N_time, N_space, T\n";
-    output_data << example << ", " << method << ", " << stabilization << ", ";
-#if defined(macro)
-    output_data << delta << ", ";
-#else
-    output_data << "0, ";
-#endif
-    output_data << tau << ", " << quadrature_order_time << ", " << quadrature_order_space << ", " << tfinal;
+    std::ofstream output_data("../cpp/example/convection_diffusion/output_bulk.dat", std::ofstream::out);
+    output_data << "Example: " << example << "\n";
+    output_data << "Method: " << method << "\n";
+    output_data << "Polynomial order time: " << k << "\n";
+    output_data << "Polynomial order space: " << m << "\n";
+    output_data << "Stabilization: " << stabilization << "\n";
+    if (stabilization == "macro")
+        output_data << "Macroelement parameter: " << delta << "\n";
+    output_data << "Stabilization constant: " << tau << "\n";
+    output_data << "Quadrature order time: " << quadrature_order_time << "\n";
+    output_data << "Quadrature order space: " << quadrature_order_space << "\n";
+    output_data << "Tfinal: " << tfinal << "\n";
     output_data << "\n---------------------\n";
     output_data << "h, dt, L2(Omega(T)), L2(L2(Omega(t), 0, T)), e_c(T)\n";
     output_data.flush();
@@ -472,15 +481,13 @@ int main(int argc, char **argv) {
         std::cout << "h  = " << h << '\n';
         std::cout << "dT = " << dT << '\n';
 
-        // fespace_t Vh(Th, DataFE<mesh_t>::P2); // Background FE Space
-        fespace_t Vh(Th, *FE_space[k - 1]);
+        fespace_t Vh(Th, *FE_space[m-1]);
         // 1D Time mesh
         double final_time = total_number_iteration * dT;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
 
         // 1D Time space
-        // FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
-        FESpace1 Ih(Qh, *FE_time[m - 1]);
+        FESpace1 Ih(Qh, *FE_time[k]);
         const Uint ndof_time_slab = Ih[0].NbDoF();
 
         // Velocity field
@@ -563,7 +570,7 @@ int main(int argc, char **argv) {
             fct_t uh(Wh, In, data_uh);
 
 // Variational formulation
-#if defined(classical)
+#if defined(non_conservative)
             convdiff.addBilinear(+innerProduct(u, v), Thi, 0, In);
             // Impose initial condition
             if (iter == 0) {
@@ -622,34 +629,34 @@ int main(int argc, char **argv) {
 
             convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
 
-            if (iterations == 1 && h > 0.1) {
-                Paraview<mesh_t> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
-                writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
-                writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
+            // if (iterations == 1 && h > 0.1) {
+            //     Paraview<mesh_t> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
+            //     writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
+            //     writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
+            //     writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
 
-                // domain = 0
+            //     // domain = 0
 
-                writerMacro.writeFaceStab(
-                    Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeActiveMesh(Thi,
-                                            path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeMacroElement(TimeMacro, 0,
-                                              path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeMacroInnerEdge(
-                    TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeMacroOutterEdge(
-                    TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
-                writerMacro.writeSmallElements(
-                    TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
-            }
+            //     writerMacro.writeFaceStab(
+            //         Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
+            //     writerMacro.writeActiveMesh(Thi,
+            //                                 path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+            //     writerMacro.writeMacroElement(TimeMacro, 0,
+            //                                   path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
+            //     writerMacro.writeMacroInnerEdge(
+            //         TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
+            //     writerMacro.writeMacroOutterEdge(
+            //         TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
+            //     writerMacro.writeSmallElements(
+            //         TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
+            // }
 
 #endif
 
-            if (iter == total_number_iteration - 1) {
-                matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + "_" + method +
-                                                     "_" + stabilization + ".dat");
-            }
+            // if (iter == total_number_iteration - 1) {
+            //     matlab::Export(convdiff.mat_[0], path_output_data + "mat_" + std::to_string(j + 1) + "_" + method +
+            //                                          "_" + stabilization + ".dat");
+            // }
 
             // Solve linear system
             convdiff.solve();
@@ -706,46 +713,45 @@ int main(int argc, char **argv) {
             global_conservation_errors[j] = std::fabs(global_conservation_error);
             global_conservation_errors_t.push_back(std::fabs(global_conservation_error));
 
-            // Write paraview files
-            if ((iterations == 1) && (h > 0.01)) {
-                Paraview<mesh_t> writerTh(Th, path_output_figures + "Th.vtk");
-                Paraview<mesh_t> writer(Thi, path_output_figures + "bulk_" + std::to_string(iter + 1) + ".vtk");
-                writer.add(uh0, "bulk_0", 0, 1);
-                writer.add(funuh, "bulk_N", 0, 1);
+            // // Write paraview files
+            // if ((iterations == 1) && (h > 0.01)) {
+            //     Paraview<mesh_t> writerTh(Th, path_output_figures + "Th.vtk");
+            //     Paraview<mesh_t> writer(Thi, path_output_figures + "bulk_" + std::to_string(iter + 1) + ".vtk");
+            //     writer.add(uh0, "bulk_0", 0, 1);
+            //     writer.add(funuh, "bulk_N", 0, 1);
 
-                fct_t uBex(Wh, fun_uBulk, current_time);
-                fct_t uBex_N(Wh, fun_uBulk, current_time + dT);
-                fct_t fB(Wh, fun_rhsBulk, current_time);
+            //     fct_t uBex(Wh, fun_uBulk, current_time);
+            //     fct_t uBex_N(Wh, fun_uBulk, current_time + dT);
+            //     fct_t fB(Wh, fun_rhsBulk, current_time);
 
-                writer.add(uBex, "bulk_exact", 0, 1);
-                writer.add(fB, "bulk_rhs", 0, 1);
-                writer.add(fabs(uh0.expr() - uBex.expr()), "bulk_error_0");
-                writer.add(fabs(funuh.expr() - uBex_N.expr()), "bulk_error_N");
-                writer.add(ls[0], "levelSet0", 0, 1);
-                writer.add(ls[1], "levelSet1", 0, 1);
-                writer.add(ls[2], "levelSet2", 0, 1);
-                writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-                writer.writeFaceStab(Thi, 0, path_output_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
+            //     writer.add(uBex, "bulk_exact", 0, 1);
+            //     writer.add(fB, "bulk_rhs", 0, 1);
+            //     writer.add(fabs(uh0.expr() - uBex.expr()), "bulk_error_0");
+            //     writer.add(fabs(funuh.expr() - uBex_N.expr()), "bulk_error_N");
+            //     writer.add(ls[0], "levelSet0", 0, 1);
+            //     writer.add(ls[1], "levelSet1", 0, 1);
+            //     writer.add(ls[2], "levelSet2", 0, 1);
+            //     writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+            //     writer.writeFaceStab(Thi, 0, path_output_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
 
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, 2,
-                                             path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
-                                                 ".vtk");
+            //     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, 2,
+            //                                  path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
+            //                                      ".vtk");
 
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, lastQuadTime, 2,
-                                             path_output_figures + "AlgoimQuadrature_N_" + std::to_string(iter + 1) +
-                                                 ".vtk");
-            }
+            //     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, lastQuadTime, 2,
+            //                                  path_output_figures + "AlgoimQuadrature_N_" + std::to_string(iter + 1) +
+            //                                      ".vtk");
+            // }
 
             iter++;
         }
 
         errors_T[j] = std::sqrt(error_I);
 
-        if (iterations > 1) {
-            output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << ","
-                        << global_conservation_errors[j] << '\n';
-            output_data.flush();
-        }
+        
+        output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << "," << global_conservation_errors[j] << '\n';
+        output_data.flush();
+        
 
         std::cout << "error_T = " << errors_T[j] << "\n";
 

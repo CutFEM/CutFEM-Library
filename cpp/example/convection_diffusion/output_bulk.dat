@@ -1,0 +1,16 @@
+Example: circle
+Method: conservative
+Polynomial order time: 0
+Polynomial order space: 1
+Stabilization: macro
+Macroelement parameter: 0.5
+Stabilization constant: 1
+Quadrature order time: 5
+Quadrature order space: 5
+Tfinal: 0.1
+
+---------------------
+h, dt, L2(Omega(T)), L2(L2(Omega(t), 0, T)), e_c(T)
+0.1,0.0333333,0.0227338,0.00424586,8.1532e-17
+0.05,0.0166667,0.0100769,0.00179262,5.37764e-17
+0.025,0.00833333,0.0044488,0.000821237,0

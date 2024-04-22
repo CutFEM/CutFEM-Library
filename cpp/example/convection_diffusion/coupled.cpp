@@ -145,10 +145,6 @@ R fun_one(double *P, const int i) { return 1.; }
 } // namespace Example1
 
 
-#define EXAMPLE example1
-#define METHOD conservative     // classical/conservative
-#define STABILIZATION macro     // fullstab/macro
-
 // Setup two-dimensional class types
 const int d = 2;
 
@@ -159,16 +155,36 @@ using activemesh_t  = ActiveMesh<mesh_t>;
 using fespace_t     = GFESpace<mesh_t>;
 using cut_fespace_t = CutFESpace<mesh_t>;
 
+std::vector<const GTypeOfFE<mesh_t> *> FE_space = {&DataFE<mesh_t>::P1, &DataFE<mesh_t>::P2, &DataFE<mesh_t>::P3};
+std::vector<const GTypeOfFE<Mesh1> *> FE_time   = {&DataFE<Mesh1>::P0Poly, &DataFE<Mesh1>::P1Poly, &DataFE<Mesh1>::P2Poly,
+                                                   &DataFE<Mesh1>::P3Poly};
+
 using namespace Example1;
+
+
+// Define example, method, stabilization, and polynomial order
+
+#define EXAMPLE example1
+#define METHOD conservative     // method (conservative/non_conservative)
+#define STABILIZATION macro     // stabilization (fullstab/macro)
+#define K 1                     // polynomial order in time (0/1/2)
+#define M 1                     // polynomial order in space (1/2)
+
+
 
 
 int main(int argc, char **argv) {
 
     MPIcf cfMPI(argc, argv);
 
+    const int k = K;
+    const int m = M;
+
+    assert(k >= 0 && k <= 2);
+    assert(m >= 1 && m <= 2);
 
     // Mesh 
-    const size_t iterations = 1;                        // number of mesh refinements   
+    const size_t iterations = 3;                        // number of mesh refinements   
     const double x0 = 0., y0 = 0., lx = 1., ly = 1.;    // background domain 
     double h  = 0.1;                                    // starting mesh size
     int nx, ny;                     
@@ -176,10 +192,10 @@ int main(int argc, char **argv) {
     const double cfl_number = 1./4;
     double dT;
     int total_number_iteration; 
-    const double t0 = 0., tfinal = 1.;
+    const double t0 = 0., tfinal = .1;
 
     // Time integration quadrature
-    const size_t quadrature_order_time = 5;
+    const size_t quadrature_order_time = 3;
     const QuadratureFormular1d &qTime(*Lobatto(quadrature_order_time));  // specify order of quadrature in time
     const Uint nbTime       = qTime.n;
     const Uint lastQuadTime = nbTime - 1;
@@ -195,7 +211,7 @@ int main(int argc, char **argv) {
 #else
     option.solver_name_ = "umfpack";
 #endif
-    const int quadrature_order_space       = 5;         // in each space dimension -> quadrature_order_space^2 quadrature points per element
+    const int quadrature_order_space       = 3;         // in each space dimension -> quadrature_order_space^2 quadrature points per element
     option.order_space_element_quadrature_ = quadrature_order_space;
     AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
 
@@ -211,38 +227,24 @@ int main(int argc, char **argv) {
     std::string method(TOSTRING(METHOD));
     std::string stabilization(TOSTRING(STABILIZATION));
 
-    // Set paths for data and paraview files
-    std::string path_output_data(".");
-    std::string path_output_figures(".");
-
-    //// Create output directory in user's home directory (works for mac)
-    //// std::string home(std::getenv("HOME"));
-    //// std::string path_output_data(home + "/output_files/langmuir/" + example + "/data/");
-    //// std::string path_output_figures(home + "/output_files/langmuir/" + example + "/paraview/");
-
-    //// // Create directory if not already existent
-    //// if (MPIcf::IamMaster()) {
-    ////     std::filesystem::create_directories(path_output_data);
-    ////     std::filesystem::create_directories(path_output_figures);
-    //// }
-
-
-    std::ofstream output_data(path_output_data + "data_" + method + "_" + stabilization + ".dat", std::ofstream::out);
+    // Data file to hold problem data
     
-    // Write problem data to output file
-    output_data << example << ", ";
-    output_data << method << ", ";
-    output_data << stabilization << ", ";
-    if (stabilization == "macro") {
-        output_data << "delta_bulk = " << delta_bulk << ", ";
-        output_data << "delta_surf = " << delta_surf << ", ";
-    }
-    output_data << "tau_F_bulk = " << tau_F_bulk << ", ";
-    output_data << "tau_F_surf = " << tau_F_surf << ", ";
-    output_data << "tau_G = " << tau_G << ", ";
-    output_data << "N_time = " << quadrature_order_time << ", ";
-    output_data << "N_space = " << quadrature_order_space << ", ";
-    output_data << "T = " << tfinal;
+    std::ofstream output_data("../cpp/example/convection_diffusion/output_coupled.dat", std::ofstream::out);
+    output_data << "Example: " << example << "\n";
+    output_data << "Method: " << method << "\n";
+    output_data << "Polynomial order time: " << k << "\n";
+    output_data << "Polynomial order space: " << m << "\n";
+    output_data << "Stabilization: " << stabilization << "\n";
+    if (stabilization == "macro")
+        output_data << "delta_bulk: " << delta_bulk << "\n";
+        output_data << "delta_surf: " << delta_surf << "\n";
+
+    output_data << "tau_F_bulk: " << tau_F_bulk << "\n";
+    output_data << "tau_F_surf: " << tau_F_surf << "\n";
+    output_data << "tau_G: " << tau_G << "\n";
+    output_data << "Quadrature order time: " << quadrature_order_time << "\n";
+    output_data << "Quadrature order space: " << quadrature_order_space << "\n";
+    output_data << "Tfinal: " << tfinal << "\n";
     output_data << "\n---------------------\n";
     output_data << "h, \t dt, \t\t L2(Omega(T)), \t L2(Gamma(T)), \t L2(L2(Omega(t), 0, T)), \t L2(L2(Gamma(t)), 0, T))\t e_c(T)\n";
     output_data.flush();
@@ -279,13 +281,13 @@ int main(int argc, char **argv) {
         std::cout << "ny = " << ny << '\n';
         std::cout << "dT = " << dT << '\n';
 
-        fespace_t Vh(Th, DataFE<mesh_t>::P2); // Background FE Space
+        fespace_t Vh(Th, *FE_space[m-1]); // Background FE Space
 
         // 1D Time mesh
         double final_time = total_number_iteration * dT;
         Mesh1 Qh(total_number_iteration + 1, t0, final_time);
         // 1D Time space
-        FESpace1 Ih(Qh, DataFE<Mesh1>::P2Poly); // FE Space in time
+        FESpace1 Ih(Qh, *FE_time[k]); // FE Space in time
         const Uint ndf_time_slab      = Ih[0].NbDoF();
 
         // Velocity field
@@ -414,7 +416,7 @@ int main(int argc, char **argv) {
                                             interface, In);
 
                     }
-                    else if (method == "classical") {
+                    else if (method == "non_conservative") {
 
                         // Time derivative terms
                         convdiff.addBilinear(+innerProduct(dt(uB), vB), Thi, In);
@@ -514,27 +516,27 @@ int main(int argc, char **argv) {
 
                     
 
-                        if (iterations == 1 && h >= 0.01) {
-                            Paraview<mesh_t> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
-                            writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
-                            writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
-                            writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
+                        // if (iterations == 1 && h >= 0.01) {
+                        //     Paraview<mesh_t> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
+                        //     writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
+                        //     writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
+                        //     writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
 
-                            // domain = 0,
+                        //     // domain = 0,
 
-                            writerMacro.writeFaceStab(
-                                Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
-                            writerMacro.writeActiveMesh(Thi,
-                                                        path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-                            writerMacro.writeMacroElement(TimeMacro, 0,
-                                                        path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
-                            writerMacro.writeMacroInnerEdge(
-                                TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
-                            writerMacro.writeMacroOutterEdge(
-                                TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
-                            writerMacro.writeSmallElements(
-                                TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
-                        }
+                        //     writerMacro.writeFaceStab(
+                        //         Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
+                        //     writerMacro.writeActiveMesh(Thi,
+                        //                                 path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+                        //     writerMacro.writeMacroElement(TimeMacro, 0,
+                        //                                 path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
+                        //     writerMacro.writeMacroInnerEdge(
+                        //         TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
+                        //     writerMacro.writeMacroOutterEdge(
+                        //         TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
+                        //     writerMacro.writeSmallElements(
+                        //         TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
+                        // }
 
                     }
 
@@ -708,55 +710,55 @@ int main(int argc, char **argv) {
             local_conservation_errors.push_back(std::fabs(local_conservation_error));
             global_conservation_errors_t.push_back(std::fabs(global_conservation_error));
 
-            // Write numerical solutions to paraview if iterations == 1
-            if ((iterations == 1) && (h >= 0.01)) {
+            // // Write numerical solutions to paraview if iterations == 1
+            // if ((iterations == 1) && (h >= 0.01)) {
                 
-                Paraview<mesh_t> writerTh(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
-                writerTh.add(ls[0], "levelSet0", 0, 1);
-                writerTh.add(ls[1], "levelSet1", 0, 1);
-                writerTh.add(ls[2], "levelSet2", 0, 1);
+            //     Paraview<mesh_t> writerTh(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
+            //     writerTh.add(ls[0], "levelSet0", 0, 1);
+            //     writerTh.add(ls[1], "levelSet1", 0, 1);
+            //     writerTh.add(ls[2], "levelSet2", 0, 1);
                 
-                Paraview<mesh_t> writer(Thi, path_output_figures + "bulk_" + std::to_string(iter + 1) + ".vtk");
-                Paraview<mesh_t> writer_surf(ThGamma, path_output_figures + "surf_" + std::to_string(iter + 1) + ".vtk");
-                // writer.add(b0h, "bulk", 0, 1);
-                // writer.add(sol_h, "bulk_end", 0, 1);
+            //     Paraview<mesh_t> writer(Thi, path_output_figures + "bulk_" + std::to_string(iter + 1) + ".vtk");
+            //     Paraview<mesh_t> writer_surf(ThGamma, path_output_figures + "surf_" + std::to_string(iter + 1) + ".vtk");
+            //     // writer.add(b0h, "bulk", 0, 1);
+            //     // writer.add(sol_h, "bulk_end", 0, 1);
 
-                writer.add(fun_uhB, "bulk", 0, 1);
-                writer_surf.add(fun_uhS, "surf", 0, 1);
-                writer_surf.add(ls[0], "levelSet0", 0, 1);
-                writer_surf.add(ls[1], "levelSet1", 0, 1);
-                writer_surf.add(ls[2], "levelSet2", 0, 1);
+            //     writer.add(fun_uhB, "bulk", 0, 1);
+            //     writer_surf.add(fun_uhS, "surf", 0, 1);
+            //     writer_surf.add(ls[0], "levelSet0", 0, 1);
+            //     writer_surf.add(ls[1], "levelSet1", 0, 1);
+            //     writer_surf.add(ls[2], "levelSet2", 0, 1);
 
-                fct_t uBex(Wh, fun_uBulk, current_time);
-                fct_t fB(Wh, fun_rhsBulk, current_time);
+            //     fct_t uBex(Wh, fun_uBulk, current_time);
+            //     fct_t fB(Wh, fun_rhsBulk, current_time);
                 
-                fct_t uSex(WhGamma, fun_uSurf, current_time);
-                fct_t fS(WhGamma, fun_rhsSurf, current_time);
+            //     fct_t uSex(WhGamma, fun_uSurf, current_time);
+            //     fct_t fS(WhGamma, fun_rhsSurf, current_time);
 
-                writer.add(uBex, "bulk_exact", 0, 1);
-                writer.add(fB, "bulk_rhs", 0, 1);
+            //     writer.add(uBex, "bulk_exact", 0, 1);
+            //     writer.add(fB, "bulk_rhs", 0, 1);
 
-                writer_surf.add(uSex, "surf_exact", 0, 1);
-                writer_surf.add(fS, "surf_rhs", 0, 1);
+            //     writer_surf.add(uSex, "surf_exact", 0, 1);
+            //     writer_surf.add(fS, "surf_rhs", 0, 1);
 
-                //writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
-                writer.add(fabs(fun_uhB.expr() - uBex.expr()), "bulk_error");
-                writer_surf.add(fabs(fun_uhS.expr() - uSex.expr()), "surf_error");
+            //     //writer.add(fabs(b0h.expr() - uBex.expr()), "bulk_error");
+            //     writer.add(fabs(fun_uhB.expr() - uBex.expr()), "bulk_error");
+            //     writer_surf.add(fabs(fun_uhS.expr() - uSex.expr()), "surf_error");
                 
                 
-                writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-                writer.writeFaceStab(Thi, 0, path_output_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
+            //     writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
+            //     writer.writeFaceStab(Thi, 0, path_output_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
 
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, 2,
-                                             path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
-                                                 ".vtk");
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, 2,
-                                             path_output_figures + "AlgoimQuadrature_1_" + std::to_string(iter + 1) +
-                                                 ".vtk");
-                writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 2, 2,
-                                             path_output_figures + "AlgoimQuadrature_2_" + std::to_string(iter + 1) +
-                                                 ".vtk");
-            }
+            //     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, 2,
+            //                                  path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
+            //                                      ".vtk");
+            //     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 1, 2,
+            //                                  path_output_figures + "AlgoimQuadrature_1_" + std::to_string(iter + 1) +
+            //                                      ".vtk");
+            //     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 2, 2,
+            //                                  path_output_figures + "AlgoimQuadrature_2_" + std::to_string(iter + 1) +
+            //                                      ".vtk");
+            // }
 
             iter++;
         }
@@ -765,7 +767,7 @@ int main(int argc, char **argv) {
         errors_T_surf[j] = std::sqrt(error_I_surf);
 
         // Write data to output file
-        output_data << h << "\t " << dT << "\t\t" << error_bulk << "\t" << error_surf << "\t" << errors_T[j] << "\t\t" << errors_T_surf[j] << "\t\t" << global_conservation_errors[j] << "\n";
+        output_data << h << "," << dT << "," << error_bulk << "," << error_surf << "," << errors_T[j] << "," << errors_T_surf[j] << "," << global_conservation_errors[j] << "\n";
         output_data.flush();
 
         std::cout << "error_T = " << errors_T[j] << "\n";
