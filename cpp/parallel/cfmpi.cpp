@@ -15,7 +15,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 #include "cfmpi.hpp"
 
-#if USE_MPI
+#if defined(USE_MPI)
 
 //----------------- Static Members ---------------------------
 int MPIcf::my_rank_                  = 0;
