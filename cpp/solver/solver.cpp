@@ -38,7 +38,7 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
 #ifndef USE_MUMPS
     if (solver_name_ == "mumps") {
         solver_name_ = "umfpack";
-        // std::cout << " MUMPS not linked" << std::endl;
+        std::cout << " MUMPS chosen but not linked, using UMFPACK" << std::endl;
         // exit(EXIT_FAILURE);
     }
 #endif
