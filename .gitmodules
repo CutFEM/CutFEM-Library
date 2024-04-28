@@ -1,6 +1,3 @@
 [submodule "SuiteSparse"]
 	path = SuiteSparse
 	url = https://github.com/DrTimothyAldenDavis/SuiteSparse.git
-[submodule "matplotlib-cpp"]
-	path = matplotlib-cpp
-	url = https://github.com/Cryoris/matplotlib-cpp.git

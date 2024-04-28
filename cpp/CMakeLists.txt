@@ -24,7 +24,15 @@ add_subdirectory(problem)
 list(APPEND CUTFEM_LIBS problem)
 
 
-
+add_library(cutfem INTERFACE)
+target_link_libraries(cutfem INTERFACE
+  parallel
+  common
+  FESpace
+  solver
+  problem
+)
+# install(TARGETS geo FILE_SET HEADERS)
 
 if(${CUTFEM_BUILD_EXAMPLE})
 add_subdirectory(example/)
