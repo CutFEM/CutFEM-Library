@@ -20,7 +20,7 @@ else()
 endif()
 endif()
 if(${USE_MUMPS})
-find_package(MUMPS)
+find_package(MUMPS REQUIRED)
 
 if(MUMPS_LIBRARIES AND USE_MPI)
   include_directories(${MUMPS_INCLUDES})

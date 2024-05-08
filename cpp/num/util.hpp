@@ -48,11 +48,9 @@ typedef KN<R> RN;
 typedef KNM_<R> RNM_;
 typedef KNMK_<R> RNMK_;
 
-
 inline std::tuple<size_t, size_t> size(const std::map<std::pair<int, int>, double> &mat) {
-  return (mat.size() == 0 ? std::make_pair(0, 0)
-                          : std::make_pair(mat.rbegin()->first.first + 1,
-                                           mat.rbegin()->first.second + 1));
+    return (mat.size() == 0 ? std::make_pair(0, 0)
+                            : std::make_pair(mat.rbegin()->first.first + 1, mat.rbegin()->first.second + 1));
 }
 
 namespace util {
@@ -102,7 +100,6 @@ static bool contain(const std::list<int> &v, int x) {
             return true;
     return false;
 }
-
 
 } // namespace util
 
@@ -170,61 +167,82 @@ class MuteStdOstream {
 
 class progress {
 
+    using time_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
   private:
     const char *title;
     const int length;
     int it;
     int prg;
-    clock_t t0;
+    time_t t_start;
+    // clock_t t0;
     int verbose;
 
   public:
     progress(const char *aff, const int &l, int v) : title(aff), length(l) {
-        t0      = clock();
+        t_start = std::chrono::high_resolution_clock::now();
+        // t0 = clock();
         it      = 0;
         prg     = 0;
         verbose = v;
 
         if (verbose > 1) {
-            std::cout << "\r";
-            std::cout << title << ": \t";
-            std::cout << 0 << "%";
-            std::cout.flush();
+#pragma omp single
+            {
+                std::cout << "\r";
+                std::cout << title << ": \t";
+                std::cout << 0 << "%";
+                std::cout.flush();
+            }
         }
     }
-    progress(const char *aff, const int &l, int v, int np) : progress(aff, l / np, v) {}
+    // progress(const char *aff, const int &l, int v, int np) : progress(aff, l / np, v) {}
 
     void operator++(int n) {
+#pragma omp atomic
         it++;
 
-        if (int(it * 100. / length) > prg & verbose > 1) {
-            prg = int(it * 100. / length);
-            std::cout << "\r";
-            std::cout << title << ": \t";
-            std::cout << prg << "%";
-            std::cout.flush();
+#pragma omp single
+        {
+            if (int(it * 100. / length) > prg & verbose > 1) {
+                prg = int(it * 100. / length);
+                std::cout << "\r";
+                std::cout << title << ": \t";
+                std::cout << prg << "%";
+                std::cout.flush();
+            }
         }
     }
-    void operator+=(int n) {
-        it += n;
 
-        if (int(it * 100. / length) > prg & verbose > 1) {
-            prg = int(it * 100. / length);
-            std::cout << "\r";
-            std::cout << title << ": \t";
-            std::cout << prg << "%";
-            std::cout.flush();
+    void operator+=(int n) {
+#pragma omp atomic
+        it += n;
+#pragma omp single
+        {
+            if (int(it * 100. / length) > prg & verbose > 1) {
+                prg = int(it * 100. / length);
+                std::cout << "\r";
+                std::cout << title << ": \t";
+                std::cout << prg << "%";
+                std::cout.flush();
+            }
         }
     }
 
     void end() {
-        t0 = clock() - t0;
-        time_t now;
-        time(&now);
-        if (verbose > 1) {
-            std::cout << "\r";
-            std::cout << title << ": \t";
-            std::cout << ((float)t0) / CLOCKS_PER_SEC << " sec." << std::endl;
+#pragma omp single
+        {
+            auto t_end  = std::chrono::high_resolution_clock::now();
+            double time = std::chrono::duration<double>(t_end - t_start).count();
+            // t0         = clock() - t0;
+            // time_t now;
+            // time(&now);
+
+            if (verbose > 1) {
+                std::cout << "\r";
+                std::cout << title << ": \t";
+                std::cout << time << " sec." << std::endl;
+            }
         }
     }
 };

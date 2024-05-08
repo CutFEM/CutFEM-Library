@@ -73,13 +73,28 @@ int main(int argc, char **argv) {
     };
     auto Gamma = [rad](R2 P, int i) { return sqrt(P[0] * P[0] + P[1] * P[1]) - rad; };
 
-    int n_iter = 1;
-    int nx     = 20;
-    std::cout << " How many iteration? " << std::endl;
-    std::cin >> n_iter;
-    std::cout << " Save solution in vtk file for paraview? [0/1]?" << std::endl;
-    int save_vtk = 0;
-    std::cin >> save_vtk;
+    int n_iter      = 1;
+    int nx          = 20;
+    int num_threads = 1;
+    int save_vtk    = 0;
+    if (MPIcf::IamMaster()) {
+        std::cout << " How many iteration? " << std::endl;
+        std::cin >> n_iter;
+        std::cout << " Save solution in vtk file for paraview? [0/1]?" << std::endl;
+        std::cin >> save_vtk;
+        std::cout << " How many threads? " << std::endl;
+        std::cin >> num_threads;
+    }
+    MPIcf::Bcast(n_iter, MPIcf::Master(), 1);
+    MPIcf::Bcast(num_threads, MPIcf::Master(), 1);
+
+    omp_set_num_threads(num_threads);
+    std::cout << "Number of threads set: " << num_threads << std::endl;
+    std::cout << "OMP Number of threads: " << omp_get_max_threads() << std::endl;
+    assert(num_threads > 0 && num_threads == omp_get_max_threads());
+
+    auto t_start            = std::chrono::high_resolution_clock::now();
+    globalVariable::verbose = 2;
 
     std::vector<double> h;
     std::vector<double> error_u;
@@ -147,31 +162,38 @@ int main(int argc, char **argv) {
     LOG_INFO << "L2 error div : \n " << error_div << logger::endl;
     LOG_INFO << "Max error div : \n " << max_div << logger::endl;
 
-    std::vector<double> h2(h);
-    std::transform(h.begin(), h.end(), h2.begin(), [](double x) { return x * x; });
+    auto t_end  = std::chrono::high_resolution_clock::now();
+    double time = std::chrono::duration<double>(t_end - t_start).count();
+    LOG_INFO << "Time: " << time << " sec." << logger::endl;
 
-    plt::figure();
-    plt::title("Stokes: Static drop - Pressure");
-    plt::loglog(h, error_p, {{"label", "$|| p_h - p_{ex}||_{L^2}$"}, {"marker", "+"}});
-    plt::loglog(h, h, "k--", {{"label", "$h$"}});
-    plt::legend();
-    plt::tight_layout();
+    if (MPIcf::IamMaster()) {
 
-    std::transform(h.begin(), h.end(), h2.begin(), [](double x) { return 1e-1 * x * x; });
-    plt::figure();
-    plt::title("Stokes: Static drop - Velocity");
-    plt::loglog(h, error_u, {{"label", "$|| u_h - u_{ex}||_{L^2}$"}, {"marker", "*"}});
-    plt::loglog(h, h2, "k--", {{"label", "$h^2$"}});
-    plt::xlabel("mesh size h");
-    plt::legend();
-    plt::tight_layout();
+        std::vector<double> h2(h);
+        std::transform(h.begin(), h.end(), h2.begin(), [](double x) { return x * x; });
 
-    plt::figure();
-    plt::title("Stokes: Static drop - Divergence");
-    plt::loglog(h, error_div, {{"label", "$|| div(u_h)||_{L^2}$"}, {"marker", "o"}});
-    plt::loglog(h, max_div, {{"label", "max($div(u_h)$)"}, {"marker", "d"}});
-    plt::xlabel("mesh size h");
-    plt::legend();
-    plt::tight_layout();
-    plt::show();
+        plt::figure();
+        plt::title("Stokes: Static drop - Pressure");
+        plt::loglog(h, error_p, {{"label", "$|| p_h - p_{ex}||_{L^2}$"}, {"marker", "+"}});
+        plt::loglog(h, h, "k--", {{"label", "$h$"}});
+        plt::legend();
+        plt::tight_layout();
+
+        std::transform(h.begin(), h.end(), h2.begin(), [](double x) { return 1e-1 * x * x; });
+        plt::figure();
+        plt::title("Stokes: Static drop - Velocity");
+        plt::loglog(h, error_u, {{"label", "$|| u_h - u_{ex}||_{L^2}$"}, {"marker", "*"}});
+        plt::loglog(h, h2, "k--", {{"label", "$h^2$"}});
+        plt::xlabel("mesh size h");
+        plt::legend();
+        plt::tight_layout();
+
+        plt::figure();
+        plt::title("Stokes: Static drop - Divergence");
+        plt::loglog(h, error_div, {{"label", "$|| div(u_h)||_{L^2}$"}, {"marker", "o"}});
+        plt::loglog(h, max_div, {{"label", "max($div(u_h)$)"}, {"marker", "d"}});
+        plt::xlabel("mesh size h");
+        plt::legend();
+        plt::tight_layout();
+        plt::show();
+    }
 }

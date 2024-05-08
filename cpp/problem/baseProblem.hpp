@@ -42,10 +42,10 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     long offset_bf_time  = 0;
 
   public:
-    BaseFEM(const ProblemOption &option, int np) : ShapeOfProblem<Mesh>(np), QuadratureOfProblem<Mesh>(option) {}
-    BaseFEM(const QuadratureFormular1d &qt, const ProblemOption &option, int np)
-        : ShapeOfProblem<Mesh>(np), QuadratureOfProblem<Mesh>(qt, option) {}
-    BaseFEM(const FESpace &vh, const ProblemOption &option, int np) : BaseFEM<Mesh>(option, np) {
+    BaseFEM(const ProblemOption &option) : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(option) {}
+    BaseFEM(const QuadratureFormular1d &qt, const ProblemOption &option)
+        : ShapeOfProblem<Mesh>(), QuadratureOfProblem<Mesh>(qt, option) {}
+    BaseFEM(const FESpace &vh, const ProblemOption &option) : BaseFEM<Mesh>(option) {
         this->mapIdx0_.clear();
         this->mapIdx0_[&vh] = 0;
         int ndf             = vh.NbDoF();
@@ -236,7 +236,6 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
                                        const TimeSlab *In, int itq, double cst_time);
 
     void addLagrangeVecToRowAndCol(const std::span<double> vecRow, const std::span<double> vecCol, const R val_rhs);
-
 };
 
 template <typename Mesh> class FEM : public BaseFEM<Mesh>, public Solver {
@@ -245,14 +244,9 @@ template <typename Mesh> class FEM : public BaseFEM<Mesh>, public Solver {
 
   public:
     FEM(const QuadratureFormular1d &qt, const ProblemOption &option = defaultProblemOption)
-        : BaseFEM<Mesh>(qt, option, 1), Solver(option) {}
+        : BaseFEM<Mesh>(qt, option), Solver(option) {}
     FEM(const FESpace &vh, const ProblemOption &option = defaultProblemOption)
-        : BaseFEM<Mesh>(vh, option, 1), Solver(option) {}
-
-    FEM(const QuadratureFormular1d &qt, int np, const ProblemOption &option = defaultProblemOption)
-        : BaseFEM<Mesh>(qt, option, np), Solver(option) {}
-    FEM(const FESpace &vh, int np, const ProblemOption &option = defaultProblemOption)
-        : BaseFEM<Mesh>(vh, option, np), Solver(option) {}
+        : BaseFEM<Mesh>(vh, option), Solver(option) {}
 
     void solve() { Solver::solve(this->mat_[0], this->rhs_); }
     void solve(std::string solverName) {
