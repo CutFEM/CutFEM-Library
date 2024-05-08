@@ -38,44 +38,107 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "RNM.hpp"
 #include "libmesh5.h"
 
-Mesh2::Mesh2(const char *filename) { // read the mesh
+Mesh2::Mesh2(const std::string filename, MeshFormat type_mesh) { // read the mesh
 
-    int nt, nv, nbe;
-    int ok = 1; // load(filename);
-    if (ok) {
-        std::ifstream f(filename);
-        if (!f) {
-            std::cerr << "Mesh2::Mesh2 Erreur openning " << filename << std::endl;
-            exit(1);
-        }
-        if (verbosity)
-            std::cout << " Read On file \"" << filename << "\"" << std::endl;
-        f >> nv >> nt >> nbe;
-        this->set(nv, nt, nbe);
-        if (verbosity)
-            std::cout << "  -- Nb of Vertex " << nv << " "
-                      << " Nb of Triangles " << nt << " , Nb of border edges " << nbe << std::endl;
-        assert(f.good() && nt && nv);
-        for (int i = 0; i < nv; i++) {
-            f >> this->vertices[i];
-            assert(f.good());
-        }
-        mes = 0;
-        for (int i = 0; i < nt; i++) {
-            this->t(i).Read1(f, this->vertices, nv);
-            mes += t(i).measure();
-        }
-        mesb = 0.;
-        for (int i = 0; i < nbe; i++) {
-            this->be(i).Read1(f, this->vertices, nv);
-            mesb += be(i).measure();
-        }
+    std::ifstream f(filename);
+    if (!f) {
+        std::cerr << "Mesh2::Mesh2 Erreur openning " << filename << std::endl;
+        exit(1);
     }
+    if (verbosity)
+        std::cout << " Read On file \"" << filename << "\"" << std::endl;
+
+    // if (filename.rfind(".msh") == filename.length() - 4) {
+    //     if (verbosity)
+    //         std::cout << "  -- Read msh file " << std::endl;
+    //     readMsh(f);
+    //     // return;
+    // } else if (filename.rfind(".mesh") == filename.length() - 5) {
+    //     if (verbosity)
+    //         std::cout << "  -- Read mesh file " << std::endl;
+    //     readMesh(f);
+    // }
+    if (type_mesh == MeshFormat::mesh_gmsh)
+        readMeshGmsh(f);
+    else if (type_mesh == MeshFormat::mesh_freefem)
+        readMeshFreefem(f);
+    else {
+        std::cerr << "Mesh2::Mesh2 Erreur openning " << filename << std::endl;
+        exit(1);
+    }
+
     BuildBound();
     BuildAdj();
 
+    // if (verbosity)
+    std::cout << "   - mesh mesure = " << mes << " border mesure: " << mesb << std::endl;
+}
+
+void Mesh2::readMeshGmsh(std::ifstream &f) {
+
+    std::string field;
+    while (std::getline(f, field)) {
+        if (field.find("Vertices") != std::string::npos) {
+            f >> nv;
+            std::cout << "  -- Nb of Vertex " << nv << std::endl;
+            assert(nv);
+            vertices = new Vertex2[nv];
+            double Pz;
+            R2 P;
+            for (int i = 0; i < nv; i++) {
+                f >> P >> Pz >> vertices[i].lab;
+                (R2 &)vertices[i] = P;
+            }
+        }
+
+        if (field.find("Edges") != std::string::npos) {
+            f >> nbe;
+            std::cout << "  -- Nb of border edges " << nbe << std::endl;
+            assert(nbe);
+            borderelements = new BoundaryEdge2[nbe];
+            mesb           = 0.;
+            for (int i = 0; i < nbe; i++) {
+                this->be(i).Read1(f, this->vertices, nv);
+                mesb += be(i).measure();
+            }
+        }
+
+        if (field.find("Triangles") != std::string::npos) {
+            f >> nt;
+            std::cout << "  -- Nb of Triangles " << nt << std::endl;
+            assert(nt);
+            elements = new Triangle2[nt];
+            mes      = 0;
+            for (int i = 0; i < nt; i++) {
+                this->t(i).Read1(f, this->vertices, nv);
+                mes += t(i).measure();
+            }
+        }
+    }
+}
+
+void Mesh2::readMeshFreefem(std::ifstream &f) {
+
+    f >> nv >> nt >> nbe;
+    this->set(nv, nt, nbe);
     if (verbosity)
-        std::cout << "   - mesh mesure = " << mes << " border mesure: " << mesb << std::endl;
+        std::cout << "  -- Nb of Vertex " << nv << " " << " Nb of Triangles " << nt << " , Nb of border edges " << nbe
+                  << std::endl;
+    assert(f.good() && nt && nv);
+    for (int i = 0; i < nv; i++) {
+        f >> this->vertices[i];
+        assert(f.good());
+    }
+    mes = 0;
+    for (int i = 0; i < nt; i++) {
+        this->t(i).Read1(f, this->vertices, nv);
+        mes += t(i).measure();
+    }
+    mesb = 0.;
+    for (int i = 0; i < nbe; i++) {
+        this->be(i).Read1(f, this->vertices, nv);
+        mesb += be(i).measure();
+    }
 }
 
 Mesh2::Mesh2(int nx, int ny, R orx, R ory, R lx, R ly) { this->init(nx, ny, orx, ory, lx, ly); }

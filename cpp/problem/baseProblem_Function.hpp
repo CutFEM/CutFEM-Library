@@ -22,11 +22,7 @@ template <typename M>
 void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const FElement &FKu, const FElement &FKv, const RNMK_ &fu,
                              const RNMK_ &fv, double Cint) {
     // Get the current thread ID
-#ifdef USE_OMP
     int thread_id = omp_get_thread_num();
-#else
-    int thread_id = 0;
-#endif
 
     // For each local DOF in the test function, i
     for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
@@ -60,11 +56,7 @@ template <typename M>
 void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const TimeSlab &In, const FElement &FKu, const FElement &FKv,
                              const RNMK_ &fu, const RNMK_ &fv, double Cint) {
     // Get the thread id
-#ifdef USE_OMP
     int thread_id = omp_get_thread_num();
-#else
-    int thread_id = 0;
-#endif
 
     // Get the offset
     long offset = thread_id * this->offset_bf_time;
@@ -97,11 +89,7 @@ void BaseFEM<M>::addToMatrixSpecial(const itemVF_t &VFi, const TimeSlab &In, con
                                     const RNMK_ &fu, const RNMK_ &fv, double Cint, int from_time_dof_u,
                                     int from_time_dof_v) {
     // Get the thread id
-#ifdef USE_OMP
     int thread_id = omp_get_thread_num();
-#else
-    int thread_id = 0;
-#endif
 
     // Get the offset
     long offset = thread_id * this->offset_bf_time;
@@ -287,11 +275,7 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
     double h    = K.get_h();
     int domain  = FK.get_domain();
     int kb      = Vh.idxElementInBackMesh(k);
-#ifdef USE_OMP
-    int iam = omp_get_thread_num();
-#else
-    int iam       = 0;
-#endif
+    int iam     = omp_get_thread_num();
 
     // GET THE QUADRATURE RULE
     const QF &qf(this->get_quadrature_formular_K());
@@ -426,6 +410,7 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
     int domain   = FKi.get_domain();
     Rd normal    = Ki.N(ifac);
 
+    int thread_id = omp_get_thread_num();
     // GET THE QUADRATURE RULE
     const QFB &qfb(this->get_quadrature_formular_dK());
 
@@ -454,8 +439,9 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
         bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
         int lastop = getLastop(VF[l].du, VF[l].dv);
 
-        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
-        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        long offset = thread_id * this->offset_bf_;
+        RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
         What_d Fop = Fwhatd(lastop);
 
         // COMPUTE COEFFICIENT
@@ -835,7 +821,6 @@ void BaseFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element &K,
     double meas  = K.mesureBord(ifac);
     double h     = K.get_h();
     Rd normal    = K.N(ifac);
-
 
     // U and V HAS TO BE ON THE SAME MESH
     const FESpace &Vh(VF.get_spaceV(0));
@@ -1895,10 +1880,9 @@ void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Ele
     }
 }
 
-
 template <typename M>
 void BaseFEM<M>::addLagrangeVecToRowAndCol(const std::span<double> vecRow, const std::span<double> vecCol,
-                                              const R val_rhs) {
+                                           const R val_rhs) {
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_[ndf] = val_rhs;
