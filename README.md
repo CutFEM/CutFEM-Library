@@ -5,7 +5,7 @@ This library contains implementations of CutFEM algorithms on simple numerical e
 # Installing the CutFEM Library
 
 1. **Install dependencies**
-    * For default configuration, you need to install UMFPACK. 
+    * For default configuration, you need to install Cmake and UMFPACK. You need to be able to run C++20, so make sure you have a compatible compiler.
     * To use e.g. MUMPS, you need to install mumps and mpi.
 
 2. **Clone**
