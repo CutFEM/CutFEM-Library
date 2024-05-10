@@ -23,15 +23,18 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
   public:
     // Integrals over cut domains
 
-    //void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
-    // void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
-    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);                           
-    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);    // without scaling in time
-    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In, const int itq);    // with scaling in time
+    // void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+    //  void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
+    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq,
+                           const TimeSlab &In); // without scaling in time
+    void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In,
+                           const int itq); // with scaling in time
     template <typename Fct>
     void addLinearAlgoim(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
     template <typename Fct>
-    void addLinearAlgoim(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
+    void addLinearAlgoim(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq,
+                         const TimeSlab &In);
     void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq, const TimeSlab &In);
 
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
@@ -40,7 +43,7 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     template <typename Fct>
     void addElementContributionExact(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                      double cst_time);
-    
+
     template <typename Fct>
     void addElementContributionExact(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                      const QuadratureFormular1d &qtime, double cst_time);
@@ -52,24 +55,26 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
 
     template <typename Fct>
-    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In, const QuadratureFormular1d &qtime);
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In,
+                        const QuadratureFormular1d &qtime);
 
     template <typename Fct>
-    void addLinearExactSensitive(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
+    void addLinearExactSensitive(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th,
+                                 const TimeSlab &In);
 
     template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const int itq,
                         const TimeSlab &In, const double scaling_time = 1.);
 
     template <typename Fct>
-    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th,
-                                            const TimeSlab &In, const int itq);
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In,
+                        const int itq);
 
-    void addElementContributionSensitive(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, const QuadratureFormular1d &qtime,
-                                double cst_time);      
+    void addElementContributionSensitive(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
+                                         const QuadratureFormular1d &qtime, double cst_time);
     template <typename Fct>
-    void addElementContributionExactSensitive(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, const QuadratureFormular1d &qtime,
-                                double cst_time);               
+    void addElementContributionExactSensitive(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In,
+                                              int itq, const QuadratureFormular1d &qtime, double cst_time);
     void addBilinearSensitive(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
 
     // Integrals over interfaces
@@ -91,19 +96,20 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In);
 
     template <typename Fct>
-    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const Interface<M> &gamma, const TimeSlab &In, const int itq);
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const Interface<M> &gamma, const TimeSlab &In,
+                        const int itq);
 
     template <typename Fct>
-    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In, const int itq);
-    
+    void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
+                        const int itq);
 
     // Constructors
 
-    AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option, int np)
-        : BaseCutFEM<mesh_t>(qt, option, np), phi(phi_), quadrature_order(option.order_space_element_quadrature_) {}
+    AlgoimBaseCutFEM(const QuadratureFormular1d &qt, L &phi_, const ProblemOption &option)
+        : BaseCutFEM<mesh_t>(qt, option), phi(phi_), quadrature_order(option.order_space_element_quadrature_) {}
 
-    AlgoimBaseCutFEM(const fespace_t &vh, L &phi_, const ProblemOption &option, int np)
-        : BaseCutFEM<mesh_t>(vh, option, np), phi(phi_), quadrature_order(option.order_space_element_quadrature_) {}
+    AlgoimBaseCutFEM(const fespace_t &vh, L &phi_, const ProblemOption &option)
+        : BaseCutFEM<mesh_t>(vh, option), phi(phi_), quadrature_order(option.order_space_element_quadrature_) {}
 };
 
 template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBaseCutFEM<M, L>, public Solver {
@@ -115,10 +121,10 @@ template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBas
     // {}
 
     AlgoimCutFEM(const QuadratureFormular1d &qt, L &phi, const ProblemOption &option = defaultProblemOption)
-        : AlgoimBaseCutFEM<M, L>(qt, phi, option, 1), Solver(option) {}
+        : AlgoimBaseCutFEM<M, L>(qt, phi, option), Solver(option) {}
 
     AlgoimCutFEM(const fespace_t &vh, L &phi, const ProblemOption &option = defaultProblemOption)
-        : AlgoimBaseCutFEM<M, L>(vh, phi, option, 1), Solver(option) {}
+        : AlgoimBaseCutFEM<M, L>(vh, phi, option), Solver(option) {}
 
     // AlgoimCutFEM(const QuadratureFormular1d &qt, int np, const ProblemOption &option = defaultProblemOption)
     //     : BaseCutFEM<mesh_t>(qt, option, np), Solver(option) {}
