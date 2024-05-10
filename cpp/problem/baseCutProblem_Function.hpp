@@ -111,7 +111,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const
 
         // Create a progress bar for this thread
         std::string title = " Add Bilinear CutMesh, In(" + std::to_string(itq) + ")";
-        progress bar(title.c_str(), Th.last_element(), globalVariable::verbose, this->get_nb_thread());
+        progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
 
         // Loop over all elements in the active mesh
 #pragma omp for
