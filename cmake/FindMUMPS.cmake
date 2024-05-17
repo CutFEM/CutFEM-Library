@@ -1,4 +1,3 @@
-
 #
 # Module to find the library MUMPS
 #
@@ -23,6 +22,8 @@ find_path (MUMPS_INCLUDE_DIR
   PATHS
   /usr/local/Cellar/brewsci-mumps/5.2.1/include
   /opt/homebrew/Cellar/brewsci-mumps/5.3.5/include
+  # /Users/thomasfrachon/lib/MUMPS_5.6.2/include
+  /opt/homebrew/Cellar/brewsci-mumps/5.6.2/include
   /usr/local/MUMPS/include
   /usr/local/include
   /opt/MUMPS/include
@@ -30,25 +31,52 @@ find_path (MUMPS_INCLUDE_DIR
   /usr/include
   ~/lib/include)
 
+if(USE_MPI)
+message(" Search for MPI MUMPS")
 find_path(MUMPS_LIBRARY_DIR
-  #NAMES libmumps_common.dylib libdmumps.dylib libpord.dylib    ### FOR MAC
-  NAMES libmumps_common.a libdmumps.a libpord.a    ### FOR SERVERS
+  NAMES libmumps_common.dylib libdmumps.dylib libpord.dylib
+  libmumps_common.a libdmumps.a libpord.a
+#  NAMES libmumps_common.a libdmumps.a libpord.a
 
   PATHS
   /usr/local/Cellar/brewsci-mumps/5.2.1/lib
   /opt/homebrew/Cellar/brewsci-mumps/5.3.5/lib
+  # /Users/thomasfrachon/lib/MUMPS_5.6.2/lib
+  /opt/homebrew/Cellar/brewsci-mumps/5.6.2/lib
   /opt/MUMPS/lib
   /usr/local/MUMPS/lib
   /usr/local/lib
   /usr/lib/x86_64-linux-gnu
-  /usr/local/x86_64-linux-gnu
   /usr/lib
   ~/lib/lib)
+else()
+message(" Search for SEQ MUMPS")
+find_path(MUMPS_LIBRARY_DIR
+  NAMES 
+  libmumps_common.a libdmumps.a libpord.a
+# libmumps_common.a libdmumps.a libpord.a
+  PATHS
+  /usr/local/Cellar/brewsci-mumps/5.2.1/lib
+  /opt/homebrew/Cellar/brewsci-mumps/5.3.5/lib
+  # /Users/thomasfrachon/lib/MUMPS_5.6.2/libs
+  /opt/homebrew/Cellar/brewsci-mumps/5.6.2/lib
+  /opt/MUMPS/lib
+  /usr/local/MUMPS/lib
+  /usr/local/lib
+  /usr/lib/x86_64-linux-gnu/
+  /usr/lib
+  ~/lib/lib)
+
+  message(" library directory = ${MUMPS_LIBRARY_DIR}")
+
+endif()
+
 endif()
 
 if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
   set(MUMPS_FOUND YES)
 
+  if(USE_MPI)
   find_library(MUMPS_COMMON_LIBRARY
     NAMES mumps_common
     PATHS ${MUMPS_LIBRARY_DIR}
@@ -58,18 +86,38 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
     NAMES dmumps
     PATHS ${MUMPS_LIBRARY_DIR}
     NO_DEFAULT_PATH)
-
   find_library(MUMPS_PORD_LIBRARY
     NAMES pord
     PATHS ${MUMPS_LIBRARY_DIR}
+    /usr/lib/x86_64-linux-gnu
+    NO_DEFAULT_PATH)    
+  else()
+  find_library(MUMPS_COMMON_LIBRARY
+    NAMES mumps_common
+    PATHS ${MUMPS_LIBRARY_DIR}
+    /usr/lib/x86_64-linux-gnu
     NO_DEFAULT_PATH)
+
+  find_library(MUMPS_D_LIBRARY
+    NAMES dmumps
+    PATHS ${MUMPS_LIBRARY_DIR}
+    /usr/lib/x86_64-linux-gnu
+    NO_DEFAULT_PATH)
+  find_library(MUMPS_PORD_LIBRARY
+    NAMES pord
+    PATHS ${MUMPS_LIBRARY_DIR}
+    /usr/lib/x86_64-linux-gnu
+    NO_DEFAULT_PATH)
+  endif()
+
 
   find_library(MUMPS_PARMETIS_LIBRARY
     NAMES parmetis
     PATHS 
     /usr/lib
+    /usr/lib/x86_64-linux-gnu
     /usr/local/Cellar/brewsci-parmetis/4.0.3_1/lib
-    /opt/homebrew/Cellar/brewsci-parmetis/4.0.3_1/lib
+		/opt/homebrew/Cellar/brewsci-parmetis/4.0.3_1/lib
     NO_DEFAULT_PATH)
 
 #  set(SCOTCH_LIBRARY_DIR /usr/lib )
@@ -80,22 +128,20 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
 
   find_library(SCOTCH_scotch_LIBRARY
     NAMES scotch scotch-6
-    PATHS
-    /usr/lib
+    PATHS /usr/lib
     /opt/homebrew/Cellar/scotch/7.0.2/lib
+		/opt/homebrew/Cellar/scotch/7.0.4/lib
     /usr/lib/x86_64-linux-gnu
-    /usr/local/x86_64-linux-gnu
     /usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
 
   find_library(SCOTCH_scotcherr_LIBRARY
     NAMES scotcherr scotcherr-6
-    PATHS 
-    /usr/lib
+    PATHS /usr/lib
     /usr/lib/x86_64-linux-gnu
-    /usr/local/x86_64-linux-gnu
-    /opt/homebrew/Cellar/scotch/7.0.2/lib
-    /usr/local/Cellar/brewsci-scotch/6.0.4/lib
+		/opt/homebrew/Cellar/scotch/7.0.2/lib
+		/opt/homebrew/Cellar/scotch/7.0.4/lib
+		/usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
 
   set(SCOTCH_LIBRARIES ${SCOTCH_scotcherr_LIBRARY} ${SCOTCH_scotch_LIBRARY})
