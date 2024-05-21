@@ -204,46 +204,46 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, int i
  * @param Th 
  * @param t
  */
-template <typename M>
-void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const double t, const TimeSlab &In) {
-    // Assert that the input is not a RHS
-    assert(!VF.isRHS());
+// template <typename M>
+// void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const double t, const TimeSlab &In) {
+//     // Assert that the input is not a RHS
+//     assert(!VF.isRHS());
 
-    // Allocate memory for the time-dependent basis functions
-    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+//     // Allocate memory for the time-dependent basis functions
+//     RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
 
-    // Compute the time basic functions
-    In.BF(tq.x, bf_time);
+//     // Compute the time basic functions
+//     In.BF(tq.x, bf_time);
 
-    // Set the title for the progress bar
-    std::string title = " Add Bilinear Kh, In(" + std::to_string(itq) + ")";
+//     // Set the title for the progress bar
+//     std::string title = " Add Bilinear Kh, In(" + std::to_string(itq) + ")";
 
-    // Initialize the progress bar
-    progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
+//     // Initialize the progress bar
+//     progress bar(title.c_str(), Th.last_element(), globalVariable::verbose);
 
-    // Loop over each element of the active mesh
-    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
-        // Increment the progress bar
-        bar += Th.next_element();
+//     // Loop over each element of the active mesh
+//     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+//         // Increment the progress bar
+//         bar += Th.next_element();
 
-        // Skip the element if it is inactive at iteration "itq"
-        if (Th.isInactive(k, itq))
-            continue;
+//         // Skip the element if it is inactive at iteration "itq"
+//         if (Th.isInactive(k, itq))
+//             continue;
 
-        // If the element is cut, add its contribution using BaseCutFEM
-        if (Th.isCut(k, itq))
-            addElementContribution(VF, k, &In, itq, 1.);
-        // Else, add its contribution using BaseFEM
-        else
-            BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+//         // If the element is cut, add its contribution using BaseCutFEM
+//         if (Th.isCut(k, itq))
+//             addElementContribution(VF, k, &In, itq, 1.);
+//         // Else, add its contribution using BaseFEM
+//         else
+//             BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
 
-        // Add the local contribution
-        this->addLocalContribution();
-    }
+//         // Add the local contribution
+//         this->addLocalContribution();
+//     }
 
-    // End the progress bar
-    bar.end();
-}
+//     // End the progress bar
+//     bar.end();
+// }
 
 
 template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th) {

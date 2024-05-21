@@ -138,60 +138,60 @@ R fun_rhsBulk(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
 
     // automatic
-    return D * ((3.141592653589793 *
-                 sin((3.141592653589793 *
-                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+    return D * ((M_PI *
+                 sin((M_PI *
+                      sqrt(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
                      (R0 * 1.0E+8)) *
-                 sin(t * 3.141592653589793) * 1.0 /
-                 sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                      pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0) *
+                 sin(t * M_PI) * 1.0 /
+                 sqrt(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                      pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0) *
                  2.0E+8) /
                     R0 +
-                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) * sin(t * 3.141592653589793) *
-                 cos((3.141592653589793 *
-                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                (1.0 / (R0 * R0) * (M_PI * M_PI) * sin(t * M_PI) *
+                 cos((M_PI *
+                      sqrt(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
                      (R0 * 1.0E+8)) *
-                 pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12) /
-                    (pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                     pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0) -
-                (3.141592653589793 *
-                 sin((3.141592653589793 *
-                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                 pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12) /
+                    (pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                     pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0) -
+                (M_PI *
+                 sin((M_PI *
+                      sqrt(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
                      (R0 * 1.0E+8)) *
-                 sin(t * 3.141592653589793) * pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) *
+                 sin(t * M_PI) * pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) *
                  1.0 /
-                 pow(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                         pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0,
+                 pow(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                         pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0,
                      3.0 / 2.0) *
                  4.0E+20) /
                     R0 -
-                (3.141592653589793 *
-                 sin((3.141592653589793 *
-                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                (M_PI *
+                 sin((M_PI *
+                      sqrt(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
                      (R0 * 1.0E+8)) *
-                 sin(t * 3.141592653589793) * pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) *
+                 sin(t * M_PI) * pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) *
                  1.0 /
-                 pow(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                         pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0,
+                 pow(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                         pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0,
                      3.0 / 2.0) *
                  4.0E+20) /
                     R0 +
-                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) * sin(t * 3.141592653589793) *
-                 cos((3.141592653589793 *
-                      sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                           pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                (1.0 / (R0 * R0) * (M_PI * M_PI) * sin(t * M_PI) *
+                 cos((M_PI *
+                      sqrt(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                           pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
                      (R0 * 1.0E+8)) *
-                 pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12) /
-                    (pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                     pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) +
-           3.141592653589793 * cos(t * 3.141592653589793) *
-               cos((3.141592653589793 *
-                    sqrt(pow(y * 5.0E+1 + cos(t * 3.141592653589793) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
-                         pow(x * -5.0E+1 + sin(t * 3.141592653589793) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
+                 pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12) /
+                    (pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                     pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) +
+           M_PI * cos(t * M_PI) *
+               cos((M_PI *
+                    sqrt(pow(y * 5.0E+1 + cos(t * M_PI) * 1.4E+1 - 2.5E+1, 2.0) * 4.0E+12 +
+                         pow(x * -5.0E+1 + sin(t * M_PI) * 1.4E+1 + 2.5E+1, 2.0) * 4.0E+12 + 1.0)) /
                    (R0 * 1.0E+8));
 }
 
@@ -242,44 +242,44 @@ template <int N> struct Levelset {
 R fun_rhsBulk(double *P, const int i, const R t) {
     R x = P[0], y = P[1];
 
-    return D * ((3.141592653589793 *
-                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-                 sin(t * 3.141592653589793) * 1.0 / sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) /
+    return D * ((M_PI *
+                 sin((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * M_PI) * 1.0 / sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) /
                     R0 +
-                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) *
-                 cos((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-                 sin(t * 3.141592653589793) * pow(x * 2.0 - t * (W - C * (y * y)) * 2.0, 2.0)) /
+                (1.0 / (R0 * R0) * (M_PI * M_PI) *
+                 cos((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * M_PI) * pow(x * 2.0 - t * (W - C * (y * y)) * 2.0, 2.0)) /
                     (pow(x - t * (W - C * (y * y)), 2.0) * 4.0 + (y * y) * 4.0 + 4.0E-16) +
-                (3.141592653589793 *
-                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-                 sin(t * 3.141592653589793) * 1.0 / sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16) *
+                (M_PI *
+                 sin((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * M_PI) * 1.0 / sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16) *
                  ((C * C) * (t * t) * (y * y) * 8.0 + C * t * (x - t * (W - C * (y * y))) * 4.0 + 2.0)) /
                     (R0 * 2.0) -
-                (3.141592653589793 *
-                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-                 sin(t * 3.141592653589793) * pow(y * 2.0 + C * t * y * (x - t * (W - C * (y * y))) * 4.0, 2.0) * 1.0 /
+                (M_PI *
+                 sin((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * M_PI) * pow(y * 2.0 + C * t * y * (x - t * (W - C * (y * y))) * 4.0, 2.0) * 1.0 /
                  pow(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16, 3.0 / 2.0)) /
                     (R0 * 4.0) +
-                (1.0 / (R0 * R0) * (3.141592653589793 * 3.141592653589793) *
-                 cos((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-                 sin(t * 3.141592653589793) * pow(y * 2.0 + C * t * y * (x - t * (W - C * (y * y))) * 4.0, 2.0)) /
+                (1.0 / (R0 * R0) * (M_PI * M_PI) *
+                 cos((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * M_PI) * pow(y * 2.0 + C * t * y * (x - t * (W - C * (y * y))) * 4.0, 2.0)) /
                     (pow(x - t * (W - C * (y * y)), 2.0) * 4.0 + (y * y) * 4.0 + 4.0E-16) -
-                (3.141592653589793 *
-                 sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-                 sin(t * 3.141592653589793) * pow(x * 2.0 - t * (W - C * (y * y)) * 2.0, 2.0) * 1.0 /
+                (M_PI *
+                 sin((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+                 sin(t * M_PI) * pow(x * 2.0 - t * (W - C * (y * y)) * 2.0, 2.0) * 1.0 /
                  pow(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16, 3.0 / 2.0)) /
                     (R0 * 4.0)) +
-           3.141592653589793 *
-               cos((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-               cos(t * 3.141592653589793) +
-           (3.141592653589793 *
-            sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-            sin(t * 3.141592653589793) * (W - C * (y * y)) * (x - t * (W - C * (y * y))) * 1.0 /
+           M_PI *
+               cos((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+               cos(t * M_PI) +
+           (M_PI *
+            sin((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+            sin(t * M_PI) * (W - C * (y * y)) * (x - t * (W - C * (y * y))) * 1.0 /
             sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) /
                R0 -
-           (3.141592653589793 *
-            sin((3.141592653589793 * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
-            sin(t * 3.141592653589793) * (W - C * (y * y)) * (x * 2.0 - t * (W - C * (y * y)) * 2.0) * 1.0 /
+           (M_PI *
+            sin((M_PI * sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) / R0) *
+            sin(t * M_PI) * (W - C * (y * y)) * (x * 2.0 - t * (W - C * (y * y)) * 2.0) * 1.0 /
             sqrt(pow(x - t * (W - C * (y * y)), 2.0) + y * y + 1.0E-16)) /
                (R0 * 2.0);
 }
@@ -443,7 +443,7 @@ int main(int argc, char **argv) {
     output_data.flush();
 
     // Arrays to hold data
-    std::array<double, iterations> hs, dts, errors, errors_T, global_conservation_errors;
+    std::array<double, iterations> hs, dts, L2_errors, H1_errors, L2L2_errors, L2H1_errors, global_conservation_errors;
 
     // Iterate over mesh sizes
     for (int j = 0; j < iterations; ++j) {
@@ -508,8 +508,8 @@ int main(int argc, char **argv) {
         int iter                  = 0;
         double mass_last_previous = 0., mass_initial = 0., mass_last = 0.;
         double intF = 0, intG = 0, intF_total = 0, intG_total = 0;
-        double global_conservation_error = 0, errBulk = 0., error_I = 0.;
-        std::vector<double> global_conservation_errors_t;
+        double global_conservation_error = 0, L2_error = 0., H1_error = 0., L2L2_error = 0., L2H1_error = 0.;
+        std::vector<double> global_conservation_errors_t, L2_errors_t, H1_errors_t;
 
         // Iterate over time-slabs
         while (iter < total_number_iteration) {
@@ -629,28 +629,6 @@ int main(int argc, char **argv) {
 
             convdiff.addPatchStabilization(+innerProduct(tau / h / h * jump(u), jump(v)), Thi, In, TimeMacro);
 
-            // if (iterations == 1 && h > 0.1) {
-            //     Paraview<mesh_t> writerMacro(Th, path_output_figures + "Th" + std::to_string(iter + 1) + ".vtk");
-            //     writerMacro.add(ls[0], "levelSet0.vtk", 0, 1);
-            //     writerMacro.add(ls[1], "levelSet1.vtk", 0, 1);
-            //     writerMacro.add(ls[2], "levelSet2.vtk", 0, 1);
-
-            //     // domain = 0
-
-            //     writerMacro.writeFaceStab(
-            //         Thi, 0, path_output_figures + "FullStabilization" + std::to_string(iter + 1) + ".vtk");
-            //     writerMacro.writeActiveMesh(Thi,
-            //                                 path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-            //     writerMacro.writeMacroElement(TimeMacro, 0,
-            //                                   path_output_figures + "macro" + std::to_string(iter + 1) + ".vtk");
-            //     writerMacro.writeMacroInnerEdge(
-            //         TimeMacro, 0, path_output_figures + "macro_inner_edge" + std::to_string(iter + 1) + ".vtk");
-            //     writerMacro.writeMacroOutterEdge(
-            //         TimeMacro, 0, path_output_figures + "macro_outer_edge" + std::to_string(iter + 1) + ".vtk");
-            //     writerMacro.writeSmallElements(
-            //         TimeMacro, 0, path_output_figures + "small_element" + std::to_string(iter + 1) + ".vtk");
-            // }
-
 #endif
 
             // if (iter == total_number_iteration - 1) {
@@ -667,8 +645,13 @@ int main(int argc, char **argv) {
 
             // Compute (int_In ||u-uex||^2 dt)^2
             fct_t uh_t(Wh, In, data_all);
-            error_I += L2_norm_T(uh_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
-            std::cout << " t_n -> || u-uex||_(In x Omega)^2 = " << error_I << '\n';
+            fct_t u_t(Wh, In, fun_uBulk);
+
+            L2L2_error += L2L2_norm(uh_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
+            std::cout << " t_n -> || u-uex||_(L2L2)^2 = " << L2L2_error << '\n';
+
+            L2H1_error += L2H1_norm(uh_t, u_t, Thi, In, qTime, phi, quadrature_order_space);
+            std::cout << " t_n -> || u-uex||_(L2H1)^2 = " << L2H1_error << '\n';
 
             // Compute error of numerical solution
             std::vector<double> sol(Wh.get_nb_dof());
@@ -682,10 +665,26 @@ int main(int argc, char **argv) {
 
             fct_t funuh(Wh, sol);
 
-            errBulk = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1, quadrature_order_space);
-            std::cout << " t_n -> || u-uex||_2 = " << errBulk << '\n';
+            auto uhdx = dx(funuh.expr());
+            auto uhdy = dy(funuh.expr());
 
-            errors[j] = errBulk;
+            fct_t u_exact(Wh, fun_uBulkD, current_time + dT);
+            auto udx = dx(u_exact.expr());
+            auto udy = dy(u_exact.expr());
+
+            L2_error = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1, quadrature_order_space);
+            std::cout << " t_n -> || u-uex||_L2 = " << L2_error << '\n';
+
+            L2_errors[j] = L2_error;
+            L2_errors_t.push_back(L2_error);
+
+            // H1 error
+            H1_error = std::sqrt(integral_algoim((funuh.expr() - u_exact.expr())*(funuh.expr() - u_exact.expr()) + (uhdx - udx)*(uhdx - udx) + (uhdy-udy)*(uhdy-udy), Thi, phi, In, qTime, lastQuadTime, quadrature_order_space));
+            
+            H1_errors[j] = H1_error;
+            H1_errors_t.push_back(H1_error);
+
+            std::cout << " t_n -> || u-uex||_H1 = " << H1_error << '\n';
 
             // Compute conservation error
             intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime,
@@ -708,54 +707,45 @@ int main(int argc, char **argv) {
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
 
             mass_last_previous = mass_last; // set current last to previous last for next time slab
-                                            //}
 
             global_conservation_errors[j] = std::fabs(global_conservation_error);
             global_conservation_errors_t.push_back(std::fabs(global_conservation_error));
 
-            // // Write paraview files
-            // if ((iterations == 1) && (h > 0.01)) {
-            //     Paraview<mesh_t> writerTh(Th, path_output_figures + "Th.vtk");
-            //     Paraview<mesh_t> writer(Thi, path_output_figures + "bulk_" + std::to_string(iter + 1) + ".vtk");
-            //     writer.add(uh0, "bulk_0", 0, 1);
-            //     writer.add(funuh, "bulk_N", 0, 1);
-
-            //     fct_t uBex(Wh, fun_uBulk, current_time);
-            //     fct_t uBex_N(Wh, fun_uBulk, current_time + dT);
-            //     fct_t fB(Wh, fun_rhsBulk, current_time);
-
-            //     writer.add(uBex, "bulk_exact", 0, 1);
-            //     writer.add(fB, "bulk_rhs", 0, 1);
-            //     writer.add(fabs(uh0.expr() - uBex.expr()), "bulk_error_0");
-            //     writer.add(fabs(funuh.expr() - uBex_N.expr()), "bulk_error_N");
-            //     writer.add(ls[0], "levelSet0", 0, 1);
-            //     writer.add(ls[1], "levelSet1", 0, 1);
-            //     writer.add(ls[2], "levelSet2", 0, 1);
-            //     writer.writeActiveMesh(Thi, path_output_figures + "ActiveMesh" + std::to_string(iter + 1) + ".vtk");
-            //     writer.writeFaceStab(Thi, 0, path_output_figures + "Edges" + std::to_string(iter + 1) + ".vtk");
-
-            //     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, 0, 2,
-            //                                  path_output_figures + "AlgoimQuadrature_0_" + std::to_string(iter + 1) +
-            //                                      ".vtk");
-
-            //     writer.writeAlgoimQuadrature(Thi, phi, In, qTime, lastQuadTime, 2,
-            //                                  path_output_figures + "AlgoimQuadrature_N_" + std::to_string(iter + 1) +
-            //                                      ".vtk");
-            // }
-
             iter++;
         }
 
-        errors_T[j] = std::sqrt(error_I);
+        L2L2_errors[j] = std::sqrt(L2L2_error);
+
+        L2H1_errors[j] = std::sqrt(L2H1_error);
 
         
-        output_data << h << "," << dT << "," << errBulk << "," << errors_T[j] << "," << global_conservation_errors[j] << '\n';
+        output_data << h << "," << dT << "," << L2_error << "," << H1_error << "," << L2L2_errors[j] << "," << global_conservation_errors[j] << '\n';
         output_data.flush();
         
-
-        std::cout << "error_T = " << errors_T[j] << "\n";
+        std::cout << "error_L2L2 = " << L2L2_errors[j] << "\n";
+        std::cout << "error_L2H1 = " << L2H1_errors[j] << "\n";
 
         if (iterations == 1) {
+            std::cout << "\n";
+            std::cout << "L2 errors = [";
+            for (auto &err : L2_errors_t) {
+
+                std::cout << err;
+
+                std::cout << ", ";
+            }
+            std::cout << "]\n";
+
+            std::cout << "\n";
+            std::cout << "H1 errors = [";
+            for (auto &err : H1_errors_t) {
+
+                std::cout << err;
+
+                std::cout << ", ";
+            }
+            std::cout << "]\n";
+            
             std::cout << "\n";
             std::cout << "Global conservation errors = [";
             for (auto &err : global_conservation_errors_t) {
@@ -773,10 +763,10 @@ int main(int argc, char **argv) {
 
     std::cout << std::setprecision(16);
     std::cout << '\n';
-    std::cout << "Errors Bulk = [";
+    std::cout << "L2 Errors = [";
     for (int i = 0; i < iterations; i++) {
 
-        std::cout << errors.at(i);
+        std::cout << L2_errors.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }
@@ -785,16 +775,41 @@ int main(int argc, char **argv) {
     std::cout << '\n';
 
     std::cout << '\n';
-    std::cout << "Errors In= [";
+    std::cout << "H1 Errors = [";
     for (int i = 0; i < iterations; i++) {
 
-        std::cout << errors_T.at(i);
+        std::cout << H1_errors.at(i);
         if (i < iterations - 1) {
             std::cout << ", ";
         }
     }
     std::cout << "]" << '\n';
     std::cout << '\n';
+
+    std::cout << '\n';
+    std::cout << "L2L2 Errors = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << L2L2_errors.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    std::cout << '\n';
+
+    std::cout << '\n';
+    std::cout << "L2H1 Errors = [";
+    for (int i = 0; i < iterations; i++) {
+
+        std::cout << L2H1_errors.at(i);
+        if (i < iterations - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << '\n';
+    std::cout << '\n';
+
 
     std::cout << '\n';
     std::cout << "Global Conservation Errors = [";
