@@ -279,9 +279,9 @@ double L2_norm_surf_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInt
 }
 
 
-// L2(In x Omega)
+// L2(L2(Omega(t)), 0, T)
 template <typename L, typename fct_t>
-double L2_norm_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
+double L2L2_norm(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
                  const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
@@ -344,6 +344,91 @@ double L2_norm_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<M
             weight_space += weight_K;
         }
         val += weight_space * weight_time;
+    }
+
+    return val; // return \int_{I_n} ||u(t)-uh(t)||_{L^2(Omega(t))}^2 dt
+}
+
+
+// L2(H1(Omega(t)), 0, T)
+template <typename L>
+double L2H1_norm(const FunFEM<MeshQuad2> &fh, const FunFEM<MeshQuad2> &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
+                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
+    using mesh_t    = MeshQuad2;
+    using fespace_t = GFESpace<mesh_t>;
+    using FElement  = typename fespace_t::FElement;
+    using Rd        = typename FElement::Rd;
+    using Element   = typename mesh_t::Element;
+
+    double val = 0.;
+
+    const int domain = 0; // do only for main domain
+
+    const auto &dfhx = dx(fh.expr());
+    const auto &dfhy = dy(fh.expr());
+    const auto &dfx = dx(f.expr());
+    const auto &dfy = dy(f.expr());
+
+    // Loop in time
+    for (int itq = 0; itq < qTime.n; ++itq) {
+
+        // Get quadrature points in time
+        GQuadraturePoint<R1> tq((qTime)[itq]);
+        const double t = In.mapToPhysicalElement(tq);
+        phi.t          = t;
+
+        double weight_time = In.T.measure() * tq.a;
+
+        // Loop in space
+        double weight_space = 0.;
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+            if (domain != Th.get_domain_element(k))
+                continue;
+
+            if (Th.isInactive(k, itq))
+                continue;
+
+            const Element &K(Th[k]);
+            int kb = Th.idxElementInBackMesh(k);
+
+            // Get coordinates of current quadrilateral
+            const auto &V0(K.at(0)); // vertex 0
+            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+            // Get quadrature rule
+            algoim::QuadratureRule<2> q =
+                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
+
+            // Loop over quadrature in space
+            assert(q.nodes.size() != 0);
+
+            double weight_K = 0.;
+            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+
+                const R weight = q.nodes.at(ipq).w;
+
+        
+                //double derrx = dfhx->eval(kb, mip, nullptr) - dfx->eval(kb, mip, nullptr);
+                //double derry = dfhy->eval(kb, mip, nullptr) - dfy->eval(kb, mip, nullptr);
+                double derrx = dfhx->evalOnBackMesh(kb, domain, mip, t, nullptr) - dfx->evalOnBackMesh(kb, domain, mip, t, nullptr);
+                double derry = dfhy->evalOnBackMesh(kb, domain, mip, t, nullptr) - dfy->evalOnBackMesh(kb, domain, mip, t, nullptr);
+
+                weight_K += weight * (derrx * derrx + derry * derry);
+
+            }
+
+            weight_space += weight_K;
+            
+        }
+        val += weight_space * weight_time;
+
+        
     }
 
     return val; // return \int_{I_n} ||u(t)-uh(t)||_{L^2(Omega(t))}^2 dt
@@ -850,7 +935,7 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
                     val += Cint * fh.evalOnBackMesh(kb, domain, mip, t, cu, 0, 0);
 
                 } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
-                    val += Cint * fh->evalOnBackMesh(kb, domain, mip, t);
+                    val += Cint * fh->evalOnBackMesh(kb, domain, mip, t, 0);
                 } else {
                     val += Cint * fh(mip, domain, t);
                 }
@@ -883,7 +968,7 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
  * @note This integral does NOT scale with dT. It loops over all defined subdomains in the active mesh.
  */
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
+double integral_algoim(const fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
                        const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
 
     const int number_of_domains = Th.get_nb_domain();
@@ -901,7 +986,7 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const
  *
  */
 template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi, const TimeSlab &In,
+double integral_algoim(const fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi, const TimeSlab &In,
                        const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
 
     using mesh_t    = MeshQuad2;
@@ -949,8 +1034,8 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int dom
 
             if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
                 val += weight * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
-            } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
-                val += weight * fh->evalOnBackMesh(kb, domain, mip);
+            } else if constexpr ((std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) || (std::is_same_v<fct_t, std::shared_ptr<ExpressionSum>>)) {
+                val += weight * fh->evalOnBackMesh(kb, domain, mip, t, 0);
             } else {
                 val += weight * fh(mip, domain, t);
             }

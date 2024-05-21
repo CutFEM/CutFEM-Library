@@ -611,14 +611,15 @@ template <typename Mesh> int TimeMacroElementSurface<Mesh>::number_of_inner_edge
  * @param tol Tolerance determining if an element is small or not
  * @note This class is used to generate a macro element partition of the active mesh
  * in both time dependent and stationary problems. Since the quadrature rule in time
- * is given by the active mesh object, the input arguments need only be the active mesh
- * and the tolerance parameter in both cases
+ * is given by the active mesh object, the input arguments only need be the active mesh
+ * and the tolerance parameter in both cases.
  */
 template <typename Mesh> class MacroElementPartition : public GMacro {
 
   public:
     const ActiveMesh<Mesh> &Th;
-    R tol;
+    double tol, C;
+
     int nb_element_0,
         nb_element_1; // number of small elements in outer and inner domain respectively w.r.t level-set function
                       // sign
@@ -646,21 +647,20 @@ template <typename Mesh> double MacroElementPartition<Mesh>::get_area(int k) con
         assert(0);
 }
 
-// MacroElementPartition
 template <typename Mesh>
-MacroElementPartition<Mesh>::MacroElementPartition(const ActiveMesh<Mesh> &Th_, const double C_) : Th(Th_) {
+MacroElementPartition<Mesh>::MacroElementPartition(const ActiveMesh<Mesh> &Th_, const double C_) : Th(Th_), C(C_) {
 
-    double h       = Th[0].lenEdge(1); // catheter of triangle
+    //double h       = Th[0].lenEdge(1); // catheter of triangle
     double measure = Th[0].measure();  // measure = h^2/2
 
     nb_element_0 = 0;
     nb_element_1 = 0;
-    tol          = C_ * measure;
+    tol          = C * measure;
 
-    std::cout << "Tolerance: \t" << tol << std::endl;
+    std::cout << "Tolerance ratio: \t" << C << std::endl;
     findSmallElement();
-    std::cout << nb_element_0 << " \t in Omega 1 " << std::endl;
-    std::cout << nb_element_1 << " \t in Omega 2 " << std::endl;
+    std::cout << nb_element_0 << " \t small elements in Omega 1 " << std::endl;
+    std::cout << nb_element_1 << " \t small elements in Omega 2 " << std::endl;
     createMacroElement();
     std::cout << "Macro element created\n";
     setInnerEdges();
@@ -694,33 +694,37 @@ template <typename Mesh> void MacroElementPartition<Mesh>::findSmallElement() {
             double part    = areaCut / K.measure();
 
             if ((areaCut > tol) && (!Th.isInactive(k, itq))) {
+
+                // element can be cut or not cut, but must be active in itq
+                assert(0 < part && part < 1+1e-10); 
+
                 is_large = true;
-                // std::cout << "LARGE: kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: " << k
-                //           << ", area_cut: " << areaCut << ", |K|: " << K.measure() << ", cut part %: " << part <<
-                //           "\n";
+                
             } else if ((areaCut <= tol) && (!Th.isInactive(k, itq))) {
+
+                // element must be cut and active in itq
+                assert(0 <= part && part < C); // make sure cut area is not equal to element area if cut
+
                 is_small = true;
-                // std::cout << "SMALL: kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: " << k
-                //           << ", area_cut: " << areaCut << ", |K|: " << K.measure() << ", cut part %: " << part <<
-                //           "\n";
             }
 
-            if (Th.isInactive(k, itq)) {
+            else {
+                // element lies entirely outside the domain in itq
+                
+                assert((Th.isInactive(k, itq)));
+                assert(part == 1);  // if an element is inactive in itq, its size will be set to the full element size (unintuitively)
+
                 is_inactive = true;
-                // std::cout << "INACTIVE. kb: " << Th.idx_in_background_mesh_[0][k] << ", itq: " << itq << ", k: "
-                //<< k
-                // << "\n";
+        
             }
 
-            // if (Th.isInactive(k, itq))
-            //     ++numb_times_inactive;
         }
 
-        // if (!is_large || is_inactive) { // method 1
-        if (is_small || is_inactive) { // method 2
-            // if (!is_large || numb_times_inactive >= 2) {
+        if (is_small || is_inactive) { 
+            
             small_element[k] = SmallElement(k);
-            // small_element[k].area = areaCut;
+            //small_element[k].area = areaCut;
+            
             if (domain == 0)
                 nb_element_0++;
             else
@@ -779,8 +783,7 @@ template <typename Mesh> void MacroElementPartition<Mesh>::createMacroElement() 
                 int kk      = (k < kn) ? k : kn;
 
                 if (it != macro_element.end()) { // already exist
-                    // it->second.add(k, std::make_pair(kk, ie), Ks.area);
-                    // number_of_stabilized_edges += 1;
+
                     it->second.add(k, Ks.area);
 
                 } else {
@@ -790,10 +793,7 @@ template <typename Mesh> void MacroElementPartition<Mesh>::createMacroElement() 
 
                     macro_element[root_id] = MElement(root_id, areaCut, this);
 
-                    // macro_element[root_id].add(k, std::make_pair(kk, ie), Ks.area);
-                    // number_of_stabilized_edges += 1;
-
-                    macro_element[root_id].add(k, Ks.area);
+                    macro_element[root_id].add(k, Ks.area);     // add element to the macroelement
                 }
 
                 // remove small element from the list
@@ -826,7 +826,7 @@ template <typename Mesh> void MacroElementPartition<Mesh>::setInnerEdges() {
                     // will be added twice
                     if (ki < kn) {
                         MK.inner_edge.push_back(std::make_pair(ki, ie));
-                        number_of_stabilized_edges += 1;
+                        number_of_stabilized_edges++;
                     }
                 }
             }
@@ -1199,6 +1199,8 @@ template <typename Mesh> int TimeMacroElement2<Mesh>::number_of_inner_edges() {
     }
     return num_of_inner_edges;
 }
+
+
 
 // template <typename Mesh> class AlgoimBaseMacro : public GMacro {
 
