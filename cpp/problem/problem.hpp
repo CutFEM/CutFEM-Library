@@ -19,6 +19,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <string>
 #include <map>
 #include <list>
+
+#include "../parallel/cfmpi.hpp"
+#include "../parallel/cfomp.hpp"
 #include "../common/geometry.hpp"
 #include "../common/interface_levelSet.hpp"
 #include "../common/SparseMatMap.hpp"
@@ -54,7 +57,7 @@ template <typename Mesh> class ShapeOfProblem {
     // Matrix mat_;
 
     // For openmp;
-    const int thread_count_max_;
+    int thread_count_max_;
     std::vector<Matrix> mat_;
     std::vector<int> index_i0_{0};
     std::vector<int> index_j0_{0};
@@ -94,20 +97,12 @@ template <typename Mesh> class ShapeOfProblem {
     // int index_i0_ = 0, index_j0_ = 0;
 
   public:
-    ShapeOfProblem() : nb_dof_(0), nb_dof_time_(1), thread_count_max_(1) { set_multithreading_tool(); };
-    ShapeOfProblem(int np) : nb_dof_(0), nb_dof_time_(1), thread_count_max_(np) {
-        // omp_set_dynamic(0);     // Explicitly disable dynamic teams
-        // #pragma omp parallel
-        // {
-        //  std::cout << omp_get_num_threads() << std::endl;
-        // }
-        //  getchar();
+    ShapeOfProblem() : nb_dof_(0), nb_dof_time_(1), thread_count_max_(omp_get_max_threads()) {
         set_multithreading_tool();
-    }
+    };
 
   private:
     void set_multithreading_tool() {
-        // thread_count_max_ = np;
         mat_.resize(thread_count_max_);
         local_contribution_matrix_.resize(thread_count_max_);
         index_i0_.resize(thread_count_max_);
@@ -119,7 +114,12 @@ template <typename Mesh> class ShapeOfProblem {
     long get_size() const { return nb_dof_; }
     long get_nb_dof() const { return nb_dof_; }
     long get_nb_dof_time() const { return nb_dof_time_; }
-    int get_nb_thread() const { return thread_count_max_; }
+    int get_num_threads() const { return thread_count_max_; }
+
+    void set_num_thread(int nn) {
+        thread_count_max_ = nn;
+        set_multithreading_tool();
+    }
 
     void set_map(Matrix &A) {
         assert(thread_count_max_ == 1 && " There are multiple threads. You cannot set only one matrix");
@@ -162,11 +162,7 @@ template <typename Mesh> class ShapeOfProblem {
     // }
 
     void initIndex(const FElement &FKu, const FElement &FKv) {
-#ifdef USE_OMP
-        int thread_id = omp_get_thread_num();
-#else
-        int thread_id = 0;
-#endif
+        int thread_id              = omp_get_thread_num();
         this->index_i0_[thread_id] = mapIdx0_[&FKv.Vh];
         this->index_j0_[thread_id] = mapIdx0_[&FKu.Vh];
     }
@@ -203,7 +199,7 @@ template <typename Mesh> class ShapeOfProblem {
         return local_contribution_matrix_[0][std::make_pair(i + index_i0_[0], j + index_j0_[0])];
     }
 
-    double &addToLocalContribution_Opt(int i, int j) { return loc_mat(i, j); }
+    // double &addToLocalContribution_Opt(int i, int j) { return loc_mat(i, j); }
 
     // This function returns a reference to a double value in the local
     // contribution matrix. The purpose of this function is to allow
@@ -223,16 +219,10 @@ template <typename Mesh> class ShapeOfProblem {
     double &addToLocalContribution(int i, int j, int thread_id) {
         return local_contribution_matrix_[thread_id]
                                          [std::make_pair(i + index_i0_[thread_id], j + index_j0_[thread_id])];
-        // return
-        // (*pmat_[thread_id])[std::make_pair(i+index_i0_[thread_id],j+index_j0_[thread_id])];
     }
 
     void addLocalContribution() {
-#ifdef USE_OMP
-        int thread_id = omp_get_thread_num();
-#else
-        int thread_id = 0;
-#endif
+        int thread_id              = omp_get_thread_num();
         this->index_i0_[thread_id] = 0;
         this->index_j0_[thread_id] = 0;
         auto &A(*pmat_[thread_id]);
@@ -253,15 +243,15 @@ template <typename Mesh> class ShapeOfProblem {
     //   return
     //   openmp_mat_[id_thread][std::make_pair(i+openmp_index_i0_[id_thread],j+openmp_index_j0_[id_thread])];
     // }
-    void addLocalContribution_Opt(const FElement &FK) {
-        for (int i = 0; i < FK.NbDoF(); ++i) {
-            for (int j = 0; j < FK.NbDoF(); ++j) {
-                (*this)(FK.loc2glb(i), FK.loc2glb(j)) += loc_mat(i, j);
-            }
-        }
-        this->index_i0_[0] = 0;
-        this->index_j0_[0] = 0;
-    }
+    // void addLocalContribution_Opt(const FElement &FK) {
+    //     for (int i = 0; i < FK.NbDoF(); ++i) {
+    //         for (int j = 0; j < FK.NbDoF(); ++j) {
+    //             (*this)(FK.loc2glb(i), FK.loc2glb(j)) += loc_mat(i, j);
+    //         }
+    //     }
+    //     this->index_i0_[0] = 0;
+    //     this->index_j0_[0] = 0;
+    // }
     void addLocalContributionLagrange(int nend) {
         this->index_j0_[0] = 0;
         this->index_i0_[0] = 0;

@@ -2,14 +2,17 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -std=c++2a -fPIC -O3")
+if(USE_OMP)
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -fopenmp -std=c++2a -fPIC -O3")
+else()
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}   -std=c++2a -fPIC -O3")
+endif()
+
 
 if(USE_MPI)
   find_package(MPI REQUIRED)
-  
+  include_directories(${MPI_CXX_INCLUDE_DIR})
   set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
-  include_directories(${MPI_CXX_INCLUDE_PATH})
-
 endif()
 
 add_subdirectory(parallel)
@@ -32,7 +35,6 @@ target_link_libraries(cutfem INTERFACE
   solver
   problem
 )
-# install(TARGETS geo FILE_SET HEADERS)
 
 if(${CUTFEM_BUILD_EXAMPLE})
 add_subdirectory(example/)

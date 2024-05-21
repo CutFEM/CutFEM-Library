@@ -40,9 +40,9 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     int number_of_stabilized_edges;
 
   public:
-    BaseCutFEM(const ProblemOption &option, int np) : BaseFEM<Mesh>(option, np) {}
-    BaseCutFEM(const QuadratureFormular1d &qt, const ProblemOption &option, int np) : BaseFEM<Mesh>(qt, option, np) {}
-    BaseCutFEM(const FESpace &vh, const ProblemOption &option, int np) : BaseFEM<Mesh>(vh, option, np) {}
+    BaseCutFEM(const ProblemOption &option) : BaseFEM<Mesh>(option) {}
+    BaseCutFEM(const QuadratureFormular1d &qt, const ProblemOption &option) : BaseFEM<Mesh>(qt, option) {}
+    BaseCutFEM(const FESpace &vh, const ProblemOption &option) : BaseFEM<Mesh>(vh, option) {}
 
     // Integral on K
     void addBilinear(const itemVFlist_t &, const CutMesh &);
@@ -81,7 +81,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                    std::list<int> label = {});
     void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, const TimeSlab &In, int itq,
                    std::list<int> label = {});
-    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, int itq, const TimeSlab &In, 
+    void addLinear(const itemVFlist_t &VF, const CutMesh &, const CBorder &b, int itq, const TimeSlab &In,
                    std::list<int> label = {});
     virtual void addBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
@@ -134,7 +134,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
     template <typename L>
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
-                              const AlgoimMacro<Mesh, L> &);
+                               const AlgoimMacro<Mesh, L> &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const MacroElement<Mesh> &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In);
@@ -144,7 +144,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &, const int k);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In);
-    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, int itq, const TimeSlab &In, 
+    void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, int itq, const TimeSlab &In,
                                bool init = true);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In, int itq,
                                bool init = true);
@@ -179,19 +179,13 @@ template <typename Mesh> class CutFEM : public BaseCutFEM<Mesh>, public Solver {
     typedef std::map<std::pair<int, int>, R> Matrix;
 
   public:
-    CutFEM(const ProblemOption &option = defaultProblemOption) : BaseCutFEM<Mesh>(option, 1), Solver(option) {}
+    CutFEM(const ProblemOption &option = defaultProblemOption) : BaseCutFEM<Mesh>(option), Solver(option) {}
 
     CutFEM(const QuadratureFormular1d &qt, const ProblemOption &option = defaultProblemOption)
-        : BaseCutFEM<Mesh>(qt, option, 1), Solver(option) {}
+        : BaseCutFEM<Mesh>(qt, option), Solver(option) {}
 
     CutFEM(const FESpace &vh, const ProblemOption &option = defaultProblemOption)
-        : BaseCutFEM<Mesh>(vh, option, 1), Solver(option) {}
-
-    CutFEM(const QuadratureFormular1d &qt, int np, const ProblemOption &option = defaultProblemOption)
-        : BaseCutFEM<Mesh>(qt, option, np), Solver(option) {}
-
-    CutFEM(const FESpace &vh, int np, const ProblemOption &option = defaultProblemOption)
-        : BaseCutFEM<Mesh>(vh, option, np), Solver(option) {}
+        : BaseCutFEM<Mesh>(vh, option), Solver(option) {}
 
     void solve() {
         gather(this->mat_);
