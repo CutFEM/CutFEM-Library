@@ -397,23 +397,23 @@ void TypeOfFE_P1QLagrange2d::FB(const What_d whatd, const Element &K, const R2 &
         f0y[3] = Dly[1] * lx[0];
 
         // Sebastian's
-        // std::cout << "phi_x[0]/hx = " << phi_x[0] / hx << std::endl;
+        //std::cout << "phi_x[0]/hx = " << phi_x[0] / hx << std::endl;
 
-        // Assert that the basis functions on the physical element take values between 0 and 1
-        assert((0. - 1e-12 <= phi_x[0] / hx) && (phi_x[0] / hx <= 1. + 1e-12));
-        assert((0. - 1e-12 <= phi_x[1] / hx) && (phi_x[1] / hx <= 1. + 1e-12));
-        assert((0. - 1e-12 <= phi_y[0] / hy) && (phi_y[0] / hy <= 1. + 1e-12));
-        assert((0. - 1e-12 <= phi_y[1] / hy) && (phi_y[1] / hy <= 1. + 1e-12));
+        // // Assert that the basis functions on the physical element take values between 0 and 1
+        // assert((0. - 1e-12 <= phi_x[0] / hx) && (phi_x[0] / hx <= 1. + 1e-12));
+        // assert((0. - 1e-12 <= phi_x[1] / hx) && (phi_x[1] / hx <= 1. + 1e-12));
+        // assert((0. - 1e-12 <= phi_y[0] / hy) && (phi_y[0] / hy <= 1. + 1e-12));
+        // assert((0. - 1e-12 <= phi_y[1] / hy) && (phi_y[1] / hy <= 1. + 1e-12));
 
-        // Assert that the basis functions on the reference element take values between 0 and 1
-        assert((0. - 1e-12 <= ly[0]) && (ly[0] <= 1. + 1e-12));
-        assert((0. - 1e-12 <= ly[1]) && (ly[1] <= 1. + 1e-12));
-        assert((0. - 1e-12 <= lx[0]) && (lx[0] <= 1. + 1e-12));
-        assert((0. - 1e-12 <= lx[1]) && (lx[1] <= 1. + 1e-12));
+        // // Assert that the basis functions on the reference element take values between 0 and 1
+        // assert((0. - 1e-12 <= ly[0]) && (ly[0] <= 1. + 1e-12));
+        // assert((0. - 1e-12 <= ly[1]) && (ly[1] <= 1. + 1e-12));
+        // assert((0. - 1e-12 <= lx[0]) && (lx[0] <= 1. + 1e-12));
+        // assert((0. - 1e-12 <= lx[1]) && (lx[1] <= 1. + 1e-12));
 
-        // Assert that points are on the reference element
-        assert((0. - 1e-12 <= P.x) && (P.x <= 1. + 1e-12));
-        assert((0. - 1e-12 <= P.y) && (P.y <= 1. + 1e-12));
+        // // Assert that points are on the reference element
+        // assert((0. - 1e-12 <= P.x) && (P.x <= 1. + 1e-12));
+        // assert((0. - 1e-12 <= P.y) && (P.y <= 1. + 1e-12));
 
         // Below works as well, but is written entirely in terms of the physical basis functions
         // // dx

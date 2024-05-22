@@ -1425,7 +1425,7 @@ template <class M> class Paraview {
 
         template <typename L>
         void buildAlgoimQuadrature(const ActiveMesh<M> &cutTh, L &phi, const TimeSlab &In,
-                                   const QuadratureFormular1d &qTime, const int itq, const int algoim_domain) {
+                                   const QuadratureFormular1d &qTime, const int itq, const int algoim_domain, const int side) {
             using mesh_t    = M;
             using fespace_t = GFESpace<mesh_t>;
             using FElement  = typename fespace_t::FElement;
@@ -1435,7 +1435,9 @@ template <class M> class Paraview {
             // algoim_domain = -1 -> integrate {phi < 0} \cap K
             // algoim_domain = 2 -> integrate {phi = 0} \cap K
 
-            assert(algoim_domain == -1 || algoim_domain == 2);
+            //assert(algoim_domain == -1 || algoim_domain == 2);
+            if (algoim_domain == 0 || algoim_domain == 1)
+                assert(side == 0 || side == 1); 
 
             const int quadrature_order = 5;
             const int domain           = 0; // only for one subdomain
@@ -1476,7 +1478,7 @@ template <class M> class Paraview {
                 algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
 
                 algoim::QuadratureRule<2> q = algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax),
-                                                                 algoim_domain, -1, quadrature_order);
+                                                                 algoim_domain, side, quadrature_order);
 
                 // if (algoim_domain == 2)
                 //     assert((q.nodes.size() == quadrature_order) ||
@@ -1899,10 +1901,10 @@ template <class M> class Paraview {
 
     template <typename L>
     void writeAlgoimQuadrature(const ActiveMesh<M> &cutTh, L &phi, const TimeSlab &In,
-                               const QuadratureFormular1d &qTime, const int itq, const int algoim_domain,
+                               const QuadratureFormular1d &qTime, const int itq, const int algoim_domain, const int side,
                                std::string name) {
         outFile_ = name;
-        mesh_data.template buildAlgoimQuadrature<L>(cutTh, phi, In, qTime, itq, algoim_domain);
+        mesh_data.template buildAlgoimQuadrature<L>(cutTh, phi, In, qTime, itq, algoim_domain, side);
         this->writeFileMesh();
         this->writeFileCell();
     }
