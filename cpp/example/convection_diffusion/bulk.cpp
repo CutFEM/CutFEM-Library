@@ -383,7 +383,7 @@ int main(int argc, char **argv) {
 #error "No stabilization defined"
 #endif
 
-    MPIcf cfMPI(argc, argv);
+    //MPIcf cfMPI(argc, argv);
 
     const int k = K;
     const int m = M;
@@ -412,7 +412,8 @@ int main(int argc, char **argv) {
 #ifdef USE_MPI
     option.solver_name_ = "mumps";
 #else
-    option.solver_name_ = "umfpack";
+    //option.solver_name_ = "umfpack";
+    option.solver_name_ = "mumps";
 #endif
     const int quadrature_order_space       = 5;
     option.order_space_element_quadrature_ = quadrature_order_space;
