@@ -17,6 +17,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #define UTIL_HPP_
 
 #include <vector>
+#include <chrono>
 #include <sstream>
 #include <iostream>
 #include <stack>

@@ -35,5 +35,7 @@ class MPIcf {
     static inline const int first_element(int n) { return 0; }
     static inline const int next_element(int n) { return 1; }
     static inline const int last_element(int n) { return n; }
+
+    template <typename T> static inline void Bcast(T &a, int who, int size) {}
 };
 #endif // PARALLEL_DUMMY_CFMPI_HPP
