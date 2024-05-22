@@ -437,9 +437,9 @@ int main(int argc, char **argv) {
     output_data << "Stabilization constant: " << tau << "\n";
     output_data << "Quadrature order time: " << quadrature_order_time << "\n";
     output_data << "Quadrature order space: " << quadrature_order_space << "\n";
-    output_data << "Tfinal: " << tfinal << "\n";
-    output_data << "\n---------------------\n";
-    output_data << "h, dt, L2(Omega(T)), L2(L2(Omega(t), 0, T)), e_c(T)\n";
+    output_data << "Tfinal: " << tfinal << "\n\n";
+    output_data << "h" << ",\t\t\t\t\t\t" <<  "dt" << ",\t\t\t\t\t\t" << "L2(Omega(T))" << ",\t\t\t" << "H1(Omega(T))" << ",\t\t\t" << "L2(L2(Omega(t), 0, T))" << ",\t" << "L2(H1(Omega(t), 0, T))" << ",\t" << "e_c(T)\n";
+
     output_data.flush();
 
     // Arrays to hold data
@@ -648,9 +648,8 @@ int main(int argc, char **argv) {
             fct_t u_t(Wh, In, fun_uBulk);
 
             L2L2_error += L2L2_norm(uh_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
-            std::cout << " t_n -> || u-uex||_(L2L2)^2 = " << L2L2_error << '\n';
-
             L2H1_error += L2H1_norm(uh_t, u_t, Thi, In, qTime, phi, quadrature_order_space);
+            std::cout << " t_n -> || u-uex||_(L2L2)^2 = " << L2L2_error << '\n';
             std::cout << " t_n -> || u-uex||_(L2H1)^2 = " << L2H1_error << '\n';
 
             // Compute error of numerical solution
@@ -673,17 +672,14 @@ int main(int argc, char **argv) {
             auto udy = dy(u_exact.expr());
 
             L2_error = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1, quadrature_order_space);
-            std::cout << " t_n -> || u-uex||_L2 = " << L2_error << '\n';
+            H1_error = std::sqrt(integral_algoim((funuh.expr() - u_exact.expr())*(funuh.expr() - u_exact.expr()) + (uhdx - udx)*(uhdx - udx) + (uhdy-udy)*(uhdy-udy), Thi, phi, In, qTime, lastQuadTime, quadrature_order_space));
 
             L2_errors[j] = L2_error;
-            L2_errors_t.push_back(L2_error);
-
-            // H1 error
-            H1_error = std::sqrt(integral_algoim((funuh.expr() - u_exact.expr())*(funuh.expr() - u_exact.expr()) + (uhdx - udx)*(uhdx - udx) + (uhdy-udy)*(uhdy-udy), Thi, phi, In, qTime, lastQuadTime, quadrature_order_space));
-            
             H1_errors[j] = H1_error;
+            L2_errors_t.push_back(L2_error);            
             H1_errors_t.push_back(H1_error);
 
+            std::cout << " t_n -> || u-uex||_L2 = " << L2_error << '\n';
             std::cout << " t_n -> || u-uex||_H1 = " << H1_error << '\n';
 
             // Compute conservation error
@@ -715,11 +711,9 @@ int main(int argc, char **argv) {
         }
 
         L2L2_errors[j] = std::sqrt(L2L2_error);
-
         L2H1_errors[j] = std::sqrt(L2H1_error);
 
-        
-        output_data << h << "," << dT << "," << L2_error << "," << H1_error << "," << L2L2_errors[j] << "," << global_conservation_errors[j] << '\n';
+        output_data << std::fixed << std::setprecision(16) << h << ",\t\t" << dT << ",\t\t" << L2_error << ",\t\t" << H1_error << ",\t\t" << L2L2_errors[j] << ",\t\t" << L2H1_errors[j] << ",\t\t" << std::scientific << global_conservation_errors[j] << '\n';
         output_data.flush();
         
         std::cout << "error_L2L2 = " << L2L2_errors[j] << "\n";

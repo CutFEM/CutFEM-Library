@@ -214,7 +214,7 @@ double L2_norm_surface(const FunFEM<Mesh> &fh, R(fex)(double *, int i, double t)
 
 // L2(In x Gamma)
 template <typename L, typename fct_t>
-double L2_norm_surf_T(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInterface<MeshQuad2> &gamma, const TimeSlab &In,
+double L2L2_norm_surf(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInterface<MeshQuad2> &gamma, const TimeSlab &In,
                  const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
     using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;

@@ -637,8 +637,8 @@ int main(int argc, char **argv) {
             // Compute L2(Omega(t), 0, T) and L2(Gamma(t), 0, T)     
             fct_t fun_uhB_t(Wh, In, data_uhB);
             fct_t fun_uhS_t(WhGamma, In, data_uhS);
-            error_I += L2_norm_T(fun_uhB_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
-            error_I_surf += L2_norm_surf_T(fun_uhS_t, fun_uSurf, interface, In, qTime, phi, quadrature_order_space); 
+            error_I      += L2L2_norm(fun_uhB_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
+            error_I_surf += L2L2_norm_surf(fun_uhS_t, fun_uSurf, interface, In, qTime, phi, quadrature_order_space); 
 
             // Compute L2(Omega(T)) and L2(Gamma(T))
             std::vector<double> sol_uhB(Wh.get_nb_dof());
@@ -671,25 +671,24 @@ int main(int argc, char **argv) {
             errors_surf[j] = error_surf;
 
             // Compute conservation error
-            intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime,
+            intF      = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime,
                                    quadrature_order_space); // integrate source over In
             intF_surf = integral_algoim(fun_rhsSurf, In, interface, phi, 0,
                                    quadrature_order_space); // integrate flux boundary over In
 
-            intF_total += intF;
+            intF_total      += intF;
             intF_surf_total += intF_surf;
 
-            double mass_last = integral_algoim(fun_uhB, Thi, phi, In, qTime, lastQuadTime,
+            double mass_last      = integral_algoim(fun_uhB, Thi, phi, In, qTime, lastQuadTime,
                                                quadrature_order_space); // mass in last quad point
-
             double mass_last_surf = integral_algoim(fun_uhS, *interface(lastQuadTime), 0, phi, In, qTime,
                                                     lastQuadTime, quadrature_order_space);
 
             if (iter == 0) {
                 mass_initial       = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0, quadrature_order_space);
-                mass_initial_surf = integral_algoim(fun_uSurf, *interface(0), 0, phi, In, qTime,
+                mass_initial_surf  = integral_algoim(fun_uSurf, *interface(0), 0, phi, In, qTime,
                                                     0, quadrature_order_space);
-                mass_last_previous = mass_initial;
+                mass_last_previous      = mass_initial;
                 mass_last_previous_surf = mass_initial_surf;
             }
 
@@ -697,9 +696,9 @@ int main(int argc, char **argv) {
             global_conservation_error = mass_last + mass_last_surf - mass_initial - mass_initial_surf - intF_total - intF_surf_total;
 
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
-            std::cout << "local_conservation_error: " << local_conservation_error << "\n";
+            std::cout << "local_conservation_error: "  << local_conservation_error << "\n";
 
-            mass_last_previous = mass_last; 
+            mass_last_previous      = mass_last; 
             mass_last_previous_surf = mass_last_surf;
 
             global_conservation_errors[j] = std::fabs(global_conservation_error);
