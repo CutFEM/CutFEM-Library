@@ -51,8 +51,9 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
     CutFEM<Mesh2> stokes(Vh);
     stokes.add(Ph);
 
-    LOG_INFO << " Stokes has " << stokes.get_nb_dof() << " dofs" << logger::endl;
-
+    if (globalVariable::verbose > 0) {
+        LOG_INFO << " Stokes has " << stokes.get_nb_dof() << " dofs" << logger::endl;
+    }
     auto t0 = std::chrono::high_resolution_clock::now();
 
     Normal n;
@@ -76,11 +77,27 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
                            Khi, INTEGRAL_INNER_EDGE_2D);
     }
 
+    // stokes.addBilinear(
+    //     innerProduct(boundary_penalty * u, v)      // Weak enforcement for u \cdot t = g \cdot t on the boundary
+    //         - innerProduct(2 * mu * Eps(u) * n, v) // natural
+    //         + innerProduct(u, 2 * mu * Eps(v) * n) // natural
+    //         + innerProduct(p, v * n)               // natural
+    //     ,
+    //     Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
+
+    stokes.addBilinear(
+        // innerProduct(boundary_penalty * u, v)      // Weak enforcement for u \cdot t = g \cdot t on the boundary
+        -innerProduct(2 * mu * Eps(u) * n, v) // natural
+                                              // + innerProduct(u, 2 * mu * Eps(v) * n) // natural
+            + innerProduct(p, v * n)          // natural
+        ,
+        Khi, INTEGRAL_BOUNDARY);
+
     stokes.addBilinear(
         innerProduct(boundary_penalty * u, v)      // Weak enforcement for u \cdot t = g \cdot t on the boundary
-            - innerProduct(2 * mu * Eps(u) * n, v) // natural
+                                                   // - innerProduct(2 * mu * Eps(u) * n, v) // natural
             + innerProduct(u, 2 * mu * Eps(v) * n) // natural
-            + innerProduct(p, v * n)               // natural
+        // + innerProduct(p, v * n)               // natural
         ,
         Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
 
@@ -117,9 +134,10 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
-    LOG_INFO << "Time to assembly: " << std::chrono::duration<double>(t1 - t0).count() << " sec." << logger::endl;
-    LOG_INFO << "Time to solve: " << std::chrono::duration<double>(t2 - t1).count() << " sec." << logger::endl;
-
+    if (globalVariable::verbose > 0) {
+        LOG_INFO << "Time to assembly: " << std::chrono::duration<double>(t1 - t0).count() << " sec." << logger::endl;
+        LOG_INFO << "Time to solve: " << std::chrono::duration<double>(t2 - t1).count() << " sec." << logger::endl;
+    }
     return stokes.rhs_;
 }
 
