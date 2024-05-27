@@ -242,6 +242,94 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
 
 } // namespace stokes
 } // namespace cutfem
+
+namespace fem {
+
+namespace stokes {
+
+/// @brief Solve the Stokes interface problem
+/// @param Vh Velocity space
+/// @param Ph Pressure space
+/// @param interface The interface
+/// @param gh boundary function
+/// @param fh force function
+/// @param mu viscosity
+/// @param surface_tension surface tension force
+/// @param delta macro element delta parameter
+/// @return vector containing data of the velocity and the pressure
+std::vector<double> solve(GFESpace<Mesh2> &Vh, GFESpace<Mesh2> &Ph, FunFEM<Mesh2> &gh, FunFEM<Mesh2> &fh, double mu,
+                          std::list<int> dirichlet_labels = std::list<int>()) {
+
+    const auto &Kh            = Vh.Th;
+    double hi                 = Kh[0].hElement();
+    double boundary_penalty   = 1. / hi;
+    double tangential_penalty = 1. / hi;
+    double kappa1             = 0.5;
+    double kappa2             = 0.5;
+
+    FEM<Mesh2> stokes(Vh);
+    stokes.add(Ph);
+
+    if (globalVariable::verbose > 0) {
+        LOG_INFO << " Stokes has " << stokes.get_nb_dof() << " dofs" << logger::endl;
+    }
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    Normal n;
+    Tangent t;
+    TestFunction<Mesh2> u(Vh, 2, 0), p(Ph, 1, 0), v(Vh, 2, 0), q(Ph, 1, 0);
+    TestFunction<Mesh2> grad2un = grad(grad(u) * n) * n;
+
+    // Matrix assembly
+    stokes.addBilinear(contractProduct(2 * mu * Eps(u), Eps(v)) - innerProduct(p, div(v)) + innerProduct(div(u), q),
+                       Kh);
+
+    if (Vh.basisFctType == BasisFctType::BDM1 || Vh.basisFctType == BasisFctType::RT0 ||
+        Vh.basisFctType == BasisFctType::RT1) {
+        stokes.addBilinear(-innerProduct(average(2 * mu * Eps(u) * t * n, kappa1, kappa2), jump(v * t)) +
+                               innerProduct(jump(u * t), average(2 * mu * Eps(v) * t * n, kappa1, kappa2)) +
+                               innerProduct(tangential_penalty * (jump(u * t)), jump(v * t)),
+                           Kh, INTEGRAL_INNER_EDGE_2D);
+    }
+
+    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Kh, INTEGRAL_BOUNDARY);
+
+    stokes.addBilinear(innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n), Kh,
+                       INTEGRAL_BOUNDARY, dirichlet_labels);
+
+    stokes.addLinear(innerProduct(fh.exprList(), v), Kh);
+
+    stokes.addLinear(innerProduct(gh.exprList(), boundary_penalty * v) +
+                         innerProduct(gh.exprList(), 2 * mu * Eps(v) * n),
+                     Kh, INTEGRAL_BOUNDARY, dirichlet_labels);
+
+    // Lagrange multiplier
+    FEM<Mesh2> lagr(Vh);
+    lagr.add(Ph);
+    lagr.addLinear(innerProduct(1., p), Kh);
+    // stokes.addLagrangeVecToRowAndCol(lagr.rhs_, lagr.rhs_, 0);
+    std::vector<double> lag_row(lagr.rhs_);
+    std::fill(lagr.rhs_.begin(), lagr.rhs_.end(), 0.);
+    lagr.addLinear(innerProduct(1, v * n), Kh, INTEGRAL_BOUNDARY);
+    stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhs_, 0);
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    stokes.solve();
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    if (globalVariable::verbose > 0) {
+        LOG_INFO << "Time to assembly: " << std::chrono::duration<double>(t1 - t0).count() << " sec." << logger::endl;
+        LOG_INFO << "Time to solve: " << std::chrono::duration<double>(t2 - t1).count() << " sec." << logger::endl;
+    }
+    return stokes.rhs_;
+}
+
+} // namespace stokes
+
+} // namespace fem
+
 } // namespace solver
 
 #endif
