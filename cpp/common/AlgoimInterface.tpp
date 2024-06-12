@@ -138,4 +138,43 @@ AlgoimInterface<M, L>::mapToPhysicalFace(int ifac, const typename AlgoimInterfac
 template <typeMesh M, typename L> bool AlgoimInterface<M, L>::isCut(int k) const {
     return (cut_elements.find(k) != cut_elements.end());
 }
+
+template <typeMesh M, typename L> bool AlgoimInterface<M, L>::isCutFace(int k, int ifac) const {
+
+    // const M &Th = *(this->backMesh); // background mesh
+
+    // const Element &K(Th[k]);
+
+    // // Get coordinates of current quadrilateral
+    // const auto &V0(K.at(0)); // vertex 0
+    // const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+    // algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+    // algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+    // int dim = -1, side = -1;
+    
+    // if (ifac % 2 == 0) {
+    //     dim = 1;
+    //     side = 1;    // vertical direction, top face
+    // }
+    // else {
+    //     dim = 0;
+    //     side = 1;    // horizontal direction, right face 
+    // }
+
+    // assert(dim != -1 || side != -1);
+
+    // algoim::QuadratureRule<2> q =
+    //         algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), dim, side, quadrature_order);
+
+    // if (q.nodes.size() == 0) {
+    //     // K is not cut
+    //     return false;
+    // }
+
+    return true;
+}
+
+
 #endif

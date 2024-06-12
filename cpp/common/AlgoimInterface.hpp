@@ -41,10 +41,7 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     double measure(const Face &f) const override;
 
-    bool isCutFace(int k, int ifac) const override {
-        assert(0);
-        return 0;
-    };
+    bool isCutFace(int k, int ifac) const override;
 
     bool isCut(int k) const override;
 
