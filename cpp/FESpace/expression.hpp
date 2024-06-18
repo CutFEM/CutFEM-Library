@@ -784,6 +784,65 @@ std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Norm
 std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Tangent &n);
 std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Conormal &n);
 
+class ExpressionNormal2Q : public ExpressionVirtual {
+    typedef MeshQuad2 M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> uxnx, uyny;
+    double c0 = 1;
+
+  public:
+    ExpressionNormal2Q(const FunFEM<M> &fh1, const Normal n)
+        : fun(fh1), uxnx(fh1, 0, op_id, 0, 0), uyny(fh1, 1, op_id, 0, 0) {
+        assert(fh1.Vh->N != 1);
+        uxnx.addNormal(0);
+        uyny.addNormal(1);
+    }
+    ExpressionNormal2Q(const FunFEM<M> &fh1, const Tangent t)
+        : fun(fh1), uxnx(fh1, 0, op_id, 0, 0), uyny(fh1, 1, op_id, 0, 0) {
+        assert(fh1.Vh->N != 1);
+        uxnx.addNormal(1);
+        uyny.addNormal(0);
+        c0 = -1;
+    }
+    ExpressionNormal2Q(const FunFEM<M> &fh1, const Conormal n)
+        : fun(fh1), uxnx(fh1, 0, op_id, 0, 0), uyny(fh1, 1, op_id, 0, 0) {
+        assert(fh1.Vh->N != 1);
+        uxnx.addNormal(0);
+        uyny.addNormal(1);
+    }
+
+    R operator()(long i) const {
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return c0 * uxnx.evalOnBackMesh(k, dom, x, normal) + uyny.evalOnBackMesh(k, dom, x, normal);
+    }
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return c0 * uxnx.evalOnBackMesh(k, dom, x, t, normal) + uyny.evalOnBackMesh(k, dom, x, t, normal);
+    }
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+    ~ExpressionNormal2Q() {}
+};
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Normal &n);
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Tangent &n);
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Conormal &n);
+
+
 class ExpressionNormal3 : public ExpressionVirtual {
     typedef Mesh3 M;
     const FunFEM<M> &fun;
@@ -1010,7 +1069,8 @@ class ExpressionNormalCrossZ3 : public ExpressionVirtual {
 //     ~ExpressionNormalCross3() {}
 // };
 
-std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
+//std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
+std::vector<std::shared_ptr<ExpressionVirtual>> cross(const Normal &n, const FunFEM<Mesh3> &f1);
 
 // divS for 2d
 template <typeMesh M> class ExpressionDSx2 : public ExpressionVirtual {

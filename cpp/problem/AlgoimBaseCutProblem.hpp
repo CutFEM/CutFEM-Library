@@ -30,6 +30,7 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
                            const TimeSlab &In); // without scaling in time
     void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In,
                            const int itq); // with scaling in time
+    void addBilinearAlgoim(const itemVFlist_t &, const ActiveMesh<mesh_t> &, const CFacet &); // with scaling in time
     template <typename Fct>
     void addLinearAlgoim(const Fct &f, const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th, const TimeSlab &In);
     template <typename Fct>
@@ -102,6 +103,9 @@ template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> 
     template <typename Fct>
     void addLinearExact(const Fct &f, const itemVFlist_t &VF, const TimeInterface<M> &gamma, const TimeSlab &In,
                         const int itq);
+
+    void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1,
+                             const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) override;
 
     // Constructors
 

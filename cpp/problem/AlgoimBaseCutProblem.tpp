@@ -5,10 +5,10 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
                                                     double cst_time) {
 
     // Get finite element space and element, active mesh, and mesh element
-    const fespace_t &Vh(VF.get_spaceV(0));
+    const fespace_t     &Vh(VF.get_spaceV(0));
     const ActiveMesh<M> &Th(Vh.get_mesh());
-    const FElement &FK(Vh[k]);
-    const Element &K(FK.T);
+    const FElement      &FK(Vh[k]);
+    const Element       &K(FK.T);
 
     // double meas = K.measure();
     // double h    = K.get_h();
@@ -819,6 +819,159 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
         addElementContributionExact(f, VF, k, &In, itq, cst_time);
     }
 }
+
+
+
+// Face contribution
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1,
+                             const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
+
+    // CHECK IF IT IS FOR RHS OR MATRIX
+    // CONVENTION ki < kj
+    bool to_rhs = VF.isRHS();
+    int k = e1.first, ifac = e1.second;    
+    int kn = e2.first, jfac = e2.second;
+
+    // Compute parameter coonected to the mesh.
+    // on can take the one from the first test function
+    const fespace_t     &Vh(VF.get_spaceV(0));
+    const ActiveMesh<M> &Th(Vh.get_mesh());
+    const FElement      &FK(Vh[k]);
+    //const FElement      &FKj(Vh[kn]);
+    const Element       &K(FK.T);
+    //const Element       &Kj(FKj.T);
+    int domain = FK.get_domain();
+
+
+    const auto &V0(K[0]); // vertex 0
+    const auto &V2(K[2]); // vertex 2 (diagonally opposed)
+
+    algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
+    algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+
+    int dim = -1, side = -1;
+    
+    if (ifac % 2 == 0) {
+        dim = 1;
+        side = 1;    // vertical direction, top face
+    }
+    else {
+        dim = 0;
+        side = 1;    // horizontal direction, right face 
+    }
+
+    assert(dim != -1 || side != -1);
+
+    algoim::QuadratureRule<2> q =
+            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), dim, side, quadrature_order);
+
+    int thread_id = omp_get_thread_num();
+    
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    phi.t = tid;
+
+    //assert(q.nodes.size() != 0);
+
+    // Loop over the variational formulation items
+    for (int l = 0; l < VF.size(); ++l) {
+        if (!VF[l].on(domain))
+            continue;
+
+        // FINITE ELEMENT SPACES && ELEMENTS
+        const fespace_t &Vhv(VF.get_spaceV(l));
+        const fespace_t &Vhu(VF.get_spaceU(l));
+        assert(Vhv.get_nb_element() == Vhu.get_nb_element());
+        const int kv = VF[l].onWhatElementIsTestFunction(k, kn);
+        const int ku = VF[l].onWhatElementIsTrialFunction(k, kn);
+
+        int kbv = Vhv.idxElementInBackMesh(kv);
+        int kbu = Vhu.idxElementInBackMesh(ku);
+
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
+        this->initIndex(FKu, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
+        // Calculate the offset for the current thread
+
+        long offset = thread_id * this->offset_bf_;
+
+        RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // LOOP OVER QUADRATURE IN SPACE
+        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+
+            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+            const R weight = q.nodes.at(ipq).w;
+            double Cint    = weight * cst_time;
+            assert(weight > 0);
+
+            const Rd normal(phi.normal(mip));
+            double coef = VF[l].computeCoefFromNormal(normal);
+
+            assert(fabs(normal.norm() - 1) < 1e-14);
+
+            // EVALUATE THE BASIS FUNCTIONS
+            FKv.BF(Fop, FKv.T.mapToReferenceElement(mip), fv);
+            if (!same)
+                FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
+            //   VF[l].applyFunNL(fu,fv);
+
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu, kbv), std::make_pair(domain, domain),
+                                                            mip, tid, normal);
+            Cint *= coef * VF[l].c;
+
+            if (In) {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+        
+    }
+}
+
+template <typename M, typename L>
+void AlgoimBaseCutFEM<M, L>::addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const CFacet &b) {
+    assert(!VF.isRHS());
+    progress bar(" Add Bilinear Face", Th.last_element(), globalVariable::verbose);
+
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        // bar += Th.next_element();
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if (kn == -1 || kn < k)
+                continue;
+
+            std::pair<int, int> e1 = std::make_pair(k, ifac);
+            std::pair<int, int> e2 = std::make_pair(kn, jfac);
+            
+            addFaceContribution(VF, e1, e2, nullptr, 0, 1.);
+            
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+
 
 // Interface integrals
 
