@@ -88,6 +88,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
     void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
     void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, const TimeSlab &In, std::list<int> label = {});
+    void setDirichletHcurl(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
+
 
     // integral on interface
     using BaseFEM<Mesh>::addBilinear;
