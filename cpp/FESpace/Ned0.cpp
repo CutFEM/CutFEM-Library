@@ -59,7 +59,22 @@ TypeOfFE_Ned0_kind1::TypeOfFE_Ned0_kind1()
     }
     assert(kkk == 36);
     assert(i == 12);
+    // int i=0,p=0;
+    // for (int e=0;e<6;e++) {
+    //   for(int q=0;q<QFE.n;++q,++p) {
+    //     for (int c=0;c<3;c++,i++) {
+    //       ipj_Pi_h[i] = IPJ(e, i, c);
 
+    //       this->pInterpolation[i]=p;
+    //       this->cInterpolation[i]=c;
+    //       this->dofInterpolation[i]=e;
+    //       this->coefInterpolation[i]=0.;
+
+    //       ipj_Pi_h[i] = IPJ(p,e,c);
+    //     }
+    //   }
+    // }
+    // cout <<  " ++ TypeOfFE_Ned0_kind1():"<< this->PtInterpolation << endl;
 }
 
 void TypeOfFE_Ned0_kind1::get_Coef_Pi_h(const GbaseFElement<Mesh> &K,
@@ -69,11 +84,28 @@ void TypeOfFE_Ned0_kind1::get_Coef_Pi_h(const GbaseFElement<Mesh> &K,
     const Element &T = K.T;
     int i = 0, p = 0; // int i=ocoef,p=0;
     for (int e = 0; e < 6; ++e) {
+
+        //! Added
+        // int idx_face = T.faceOfEdge[e][0];
+        // if (T.EdgeOrientation(e) < 0) {     
+        //     idx_face = T.faceOfEdge[e][1];
+        // }
+        // R cc = T.N_notNormalized(idx_face).norm(); // area of face 0
+        
         R3 E = T.EdgeOrientation(e) * T.Edge(e); //  exterior and  ||N|| = 2* area f
+        R cc = T.Edge(e).norm();
+        // R cc = 1.;
+
         for (int q = 0; q < QFE.n; ++q, ++p) {
             for (int c = 0; c < 3; c++, i++) {
-                v[i] = E[c] * QFE[q].a;   //! Original
-                // v[i] = E[c] * QFE[q].a / (T.N_notNormalized(0).norm() / 2);      //! Mine
+                //v[i] = E[c] * QFE[q].a;   //! Original
+
+                int idx_face = T.faceOfEdge[i][0];
+
+                //v[i] = E[c] * QFE[q].a / (T.N_notNormalized(0).norm() / 2);      //! Mine
+                v[i] = E[c] * QFE[q].a / cc;      //! Mine
+                
+                
             }
         }
         // ffassert(i==M.ncoef && M.np == p );
@@ -85,9 +117,9 @@ void TypeOfFE_Ned0_kind1::FB(const What_d whatd, const Element &K, const R3 &PHa
     assert(bfMat.M() == 3);
     R l[] = {1. - PHat.sum(), PHat.x, PHat.y, PHat.z};
     R3 D[4];
-    K.Gradlambda(D);
+    K.Gradlambda(D);    // this seems to divide by 6*volume(K)  (6 = 2*dim)
 
-    // wi = signe * (x - qi)/ (volume*d)
+    // wi = signe * (x - qi) / (volume*d)
     bfMat = 0;
     //  i,j : l1 grad lj - lj grad lj
     // int_i^j  grad lj . t_ij = 1
@@ -95,17 +127,30 @@ void TypeOfFE_Ned0_kind1::FB(const What_d whatd, const Element &K, const R3 &PHa
     int se[] = {K.EdgeOrientation(0), K.EdgeOrientation(1), K.EdgeOrientation(2),
                 K.EdgeOrientation(3), K.EdgeOrientation(4), K.EdgeOrientation(5)};
 
-    R cc = K.N_notNormalized(0).norm() / 2; // area of face 0
+    //R cc = K.N_notNormalized(0).norm() / 2; // area of face 0
+    R cc = 1.;
 
     if (whatd & Fop_D0) {
         R3 X = K(PHat);
         // int k=0;
         for (int i = 0; i < 6; ++i) {
             int i0 = Element::nvedge[i][0], i1 = Element::nvedge[i][1];
-            if (se[i] < 0)
-                std::swap(i0, i1);
-            R3 wi              = l[i0] * D[i1] - l[i1] * D[i0];   //! Original
+            if (se[i] < 0) 
+                std::swap(i0, i1);   //! Original
+            
+            // int idx_face = K.faceOfEdge[i][0];
+            // if (se[i] < 0) {    //! Mine
+            //     std::swap(i0, i1);   
+            //     idx_face = K.faceOfEdge[i][1];
+            // }
+            
+            //R3 wi              = l[i0] * D[i1] - l[i1] * D[i0];   //! Original
+            
+            //R cc = K.N_notNormalized(idx_face).norm(); // area of face 0 (should not divide by 2 since we divide by 2 in K.gradLambda)
+            // std::cout << "cc in FB: " << cc << "\n";
+            // std::cout << "face 0: " << K.N_notNormalized(0).norm() << "\n";
             // R3 wi              = (l[i0] * D[i1] - l[i1] * D[i0]) * cc; //! Mine
+            R3 wi              = (l[i0] * D[i1] - l[i1] * D[i0]) * K.Edge(i).norm(); //! Mine
             bfMat(i, 0, op_id) = wi.x;
             bfMat(i, 1, op_id) = wi.y;
             bfMat(i, 2, op_id) = wi.z;
@@ -116,25 +161,37 @@ void TypeOfFE_Ned0_kind1::FB(const What_d whatd, const Element &K, const R3 &PHa
     if (whatd & Fop_D1) {
         for (int i = 0; i < 6; ++i) {
             int i0 = Element::nvedge[i][0], i1 = Element::nvedge[i][1];
-            if (se[i] < 0)
-                std::swap(i0, i1);
+            
+            //! Original
+            // if (se[i] < 0)
+            //     std::swap(i0, i1);
+
+            //! Mine
+            int idx_face = K.faceOfEdge[i][0];
+            if (se[i] < 0) {    
+                std::swap(i0, i1);   
+                idx_face = K.faceOfEdge[i][1];
+            }
+            //R cc = K.N_notNormalized(idx_face).norm(); // area of face 0
+            R cc = K.Edge(i).norm();
+
             if (whatd & Fop_dx) {
-                R3 wi              = D[i0].x * D[i1] - D[i1].x * D[i0];   //! Original
-                // R3 wi              = (D[i0].x * D[i1] - D[i1].x * D[i0]) * cc; // ! Mine
+                //R3 wi              = D[i0].x * D[i1] - D[i1].x * D[i0];   //! Original
+                R3 wi              = (D[i0].x * D[i1] - D[i1].x * D[i0]) * cc; // ! Mine
                 bfMat(i, 0, op_dx) = wi.x;
                 bfMat(i, 1, op_dx) = wi.y;
                 bfMat(i, 2, op_dx) = wi.z;
             }
             if (whatd & Fop_dy) {
-                R3 wi              = D[i0].y * D[i1] - D[i1].y * D[i0];  //! Original
-                // R3 wi              = (D[i0].y * D[i1] - D[i1].y * D[i0]) * cc; //! Mine
+                //R3 wi              = D[i0].y * D[i1] - D[i1].y * D[i0];  //! Original
+                R3 wi              = (D[i0].y * D[i1] - D[i1].y * D[i0]) * cc; //! Mine
                 bfMat(i, 0, op_dy) = wi.x;
                 bfMat(i, 1, op_dy) = wi.y;
                 bfMat(i, 2, op_dy) = wi.z;
             }
             if (whatd & Fop_dz) {
-                R3 wi              = D[i0].z * D[i1] - D[i1].z * D[i0];  //! Original
-                // R3 wi              = (D[i0].z * D[i1] - D[i1].z * D[i0]) * cc; //! Mine
+                //R3 wi              = D[i0].z * D[i1] - D[i1].z * D[i0];  //! Original
+                R3 wi              = (D[i0].z * D[i1] - D[i1].z * D[i0]) * cc; //! Mine
                 bfMat(i, 0, op_dz) = wi.x;
                 bfMat(i, 1, op_dz) = wi.y;
                 bfMat(i, 2, op_dz) = wi.z;
@@ -146,7 +203,6 @@ void TypeOfFE_Ned0_kind1::FB(const What_d whatd, const Element &K, const R3 &PHa
 static TypeOfFE_Ned0_kind1 Ned0_kind1;
 GTypeOfFE<Mesh3> &Ned0kind1(Ned0_kind1);
 template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::Ned0 = Ned0kind1;
-
 
 
 
