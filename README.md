@@ -16,12 +16,16 @@ This library contains implementations of CutFEM algorithms on simple numerical e
     ```
     cd CutFEM-Library
     mkdir build
+    cd build
     cmake ..
     ```
 4. **Compile** \
     If you want to compile all files in the [cpp/example](cpp/example) folder, write ```make```.
 
-5. **Other settings** \
+5. **Run**
+   Compiling creates an executable file in the ```build/bin``` folder. Then, for example, run the code for the bulk equation by writing ```./bin/bulk```.
+
+7. **Other settings** \
     If you want to configure the library with other settings, such as being able to use mumps for solving linear systems, you can change the settings in the [CMakeLists.txt](CMakeLists.txt) file.
 
 
