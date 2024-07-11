@@ -180,7 +180,7 @@ template <class R> void MatriceMap<R>::addMatMul(std::span<R> x, std::span<R> Ax
 
 template <class R>
 SparseMatrixRC<R>::SparseMatrixRC(int nn, int mm, const std::map<std::pair<int, int>, R> &M)
-    : VirtualMatrice<R>(nn, mm), n(nn), m(mm), nbcoef(M.size()), p(new long long[nn + 1]), j(new long long[nbcoef]),
+    : VirtualMatrice<R>(nn, mm), n(nn), m(mm), nbcoef(M.size()), p(new int64_t[nn + 1]), j(new int64_t[nbcoef]),
       a(new R[nbcoef]) {
     R cmm = 0;
 

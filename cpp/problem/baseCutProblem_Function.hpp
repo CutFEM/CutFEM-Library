@@ -40,29 +40,7 @@ template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, co
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
         // bar += Th.next_element();
-
-        // print the element number and coordinates
-        std::cout << "Element: " << k << std::endl;
-        // print out the coordinates of K
-        const auto &K = Th[k];
-        std::cout << "Coordinates of K:" << std::endl;
-        // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0)); // vertex 0
-        const auto &V1(K.at(1)); // vertex 0
-        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
-
-        if ((V0[0] <= 0.003) || (V1[0] <= 0.003) || (V2[0] <= 0.003)) {
-            std::cout << "V0: " << V0 << std::endl;
-            std::cout << "V1: " << V1 << std::endl;
-            std::cout << "V2: " << V2 << std::endl;
-            getchar();
-        }
-
-        
-
-
-        
-
+    
         if (Th.isCut(k, 0)) {
             addElementContribution(VF, k, nullptr, 0, 1.);
         } else {
