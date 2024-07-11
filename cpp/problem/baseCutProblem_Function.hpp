@@ -41,6 +41,28 @@ template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, co
 
         // bar += Th.next_element();
 
+        // print the element number and coordinates
+        std::cout << "Element: " << k << std::endl;
+        // print out the coordinates of K
+        const auto &K = Th[k];
+        std::cout << "Coordinates of K:" << std::endl;
+        // Get coordinates of current quadrilateral
+        const auto &V0(K.at(0)); // vertex 0
+        const auto &V1(K.at(1)); // vertex 0
+        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+
+        if ((V0[0] <= 0.003) || (V1[0] <= 0.003) || (V2[0] <= 0.003)) {
+            std::cout << "V0: " << V0 << std::endl;
+            std::cout << "V1: " << V1 << std::endl;
+            std::cout << "V2: " << V2 << std::endl;
+            getchar();
+        }
+
+        
+
+
+        
+
         if (Th.isCut(k, 0)) {
             addElementContribution(VF, k, nullptr, 0, 1.);
         } else {
@@ -265,6 +287,25 @@ template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, cons
     bar.end();
 }
 
+template <typename M> 
+template <typename Fct>
+void BaseCutFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(VF.isRHS());
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isCut(k, 0)) {
+            addElementContribution(f, VF, k, nullptr, 0, 1.);
+        } else {
+            BaseFEM<M>::addElementContribution(f, VF, k, nullptr, 0, 1.);
+        }
+        // if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF,
+        // k,nullptr, 0, 1.); else BaseFEM<M>::addElementContribution(VF,
+        // k,nullptr, 0, 1.);
+    }
+
+}
+
 template <typename M>
 void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
     assert(VF.isRHS());
@@ -406,6 +447,101 @@ void BaseCutFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, 
             }
         }
     }
+}
+
+template <typename M>
+template <typename Fct>
+void BaseCutFEM<M>::addElementContribution(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
+                                double cst_time) {
+
+    // GET CUT AND COMPUTE PARAMETERS
+    const FESpace &Vh(VF.get_spaceV(0));
+    const CutMesh &Th(Vh.get_mesh());
+    const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
+    const FElement &FK(Vh[k]);
+    const Element &K(FK.T);
+
+    if (cutK.multi_interface()) {
+        assert(0);
+    } // not handled yet
+
+    double meas = K.measure();
+    double h    = K.get_h();
+    int domain  = FK.get_domain();
+    int kb      = Vh.idxElementInBackMesh(k);
+    int iam     = omp_get_thread_num();
+    // GET THE QUADRATURE RULE
+    const QF &qf(this->get_quadrature_formular_cutK());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER ELEMENTS IN THE CUT
+    for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+
+        double meas_cut = cutK.measure(it);
+        // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+        for (int l = 0; l < VF.size(); ++l) {
+            if (!VF[l].on(domain))
+                continue;
+
+            // FINTE ELEMENT SPACES && ELEMENTS
+            const FESpace &Vhv(VF.get_spaceV(l));
+            const FESpace &Vhu(VF.get_spaceU(l));
+            const FElement &FKv(Vhv[k]);
+            const FElement &FKu(Vhu[k]);
+            this->initIndex(FKu, FKv);
+
+            // BF MEMORY MANAGEMENT -
+            bool same   = (&Vhu == &Vhv);
+            int lastop  = getLastop(VF[l].du, VF[l].dv);
+            // RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for
+            // basic fonction RNMK_ fu(this->databf_+ (same
+            // ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the
+            // value for basic fonction
+            long offset = iam * this->offset_bf_;
+            RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
+                     lastop); //  the value for basic function
+            RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N,
+                     lastop); //  the value for basic function
+            What_d Fop = Fwhatd(lastop);
+
+            // COMPUTE COEFFICIENT
+            double coef = VF[l].computeCoefElement(h, meas_cut, meas, meas_cut, domain);
+
+            // LOOP OVER QUADRATURE IN SPACE
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+                typename QF::QuadraturePoint ip(qf[ipq]);
+                Rd mip      = cutK.mapToPhysicalElement(it, ip); // to the physical cut part
+                Rd cut_ip   = K.mapToReferenceElement(mip);      // back to the cut part in reference element
+                double Cint = meas_cut * ip.getWeight() * cst_time;
+
+                // EVALUATE THE BASIS FUNCTIONS
+                FKv.BF(Fop, cut_ip, fv);
+                if (!same)
+                    FKu.BF(Fop, cut_ip, fu);
+                //   VF[l].applyFunNL(fu,fv);
+
+                // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
+                Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+                Cint *= coef * VF[l].c;
+                Cint *= f(mip, VF[l].cv, domain);
+
+                if (In) {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+                } else {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+                }
+            }
+        }
+    }
+
 }
 
 template <typename M>

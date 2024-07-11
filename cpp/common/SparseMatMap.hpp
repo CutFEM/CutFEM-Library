@@ -89,8 +89,10 @@ template <class R> struct VirtualMatrice {
 template <class R> class SparseMatrixRC : public VirtualMatrice<R> {
   public:
     int n, m, nbcoef;
-    int32_t *p;
-    int32_t *j;
+    // int32_t *p;
+    // int32_t *j;
+    int64_t *p;
+    int64_t *j;
     double *a;
     SparseMatrixRC(int nn, int mm, const std::map<std::pair<int, int>, R> &M);
 
@@ -178,7 +180,7 @@ template <class R> void MatriceMap<R>::addMatMul(std::span<R> x, std::span<R> Ax
 
 template <class R>
 SparseMatrixRC<R>::SparseMatrixRC(int nn, int mm, const std::map<std::pair<int, int>, R> &M)
-    : VirtualMatrice<R>(nn, mm), n(nn), m(mm), nbcoef(M.size()), p(new int[nn + 1]), j(new int[nbcoef]),
+    : VirtualMatrice<R>(nn, mm), n(nn), m(mm), nbcoef(M.size()), p(new long long[nn + 1]), j(new long long[nbcoef]),
       a(new R[nbcoef]) {
     R cmm = 0;
 
@@ -199,7 +201,7 @@ SparseMatrixRC<R>::SparseMatrixRC(int nn, int mm, const std::map<std::pair<int, 
 
 template <class R>
 SparseMatrixRC<R>::SparseMatrixRC(const SparseMatrixRC<R> &A)
-    : VirtualMatrice<R>(A.n, A.m), n(A.n), m(A.m), nbcoef(A.nbcoef), p(new int[n + 1]), j(new int[nbcoef]),
+    : VirtualMatrice<R>(A.n, A.m), n(A.n), m(A.m), nbcoef(A.nbcoef), p(new long long[n + 1]), j(new long long[nbcoef]),
       a(new R[nbcoef]) {
     R cmm = 0;
 
