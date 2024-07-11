@@ -165,6 +165,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addBilinear(const itemVFlist_t &VF, const CutMesh &);
     void addLinear(const itemVFlist_t &VF, const Mesh &);
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
+    template <typename Fct>
+    void addElementContribution(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
     // integral on innerFace
     void addBilinear(const itemVFlist_t &VF, const Mesh &, const CFacet &b);
@@ -207,6 +209,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
                                   double tid, const TimeSlab *In, double cst_time, int itq);
 
     void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {});
+    template <typename Fct>
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {});
     void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
                    std::list<int> label = {});
     template <typename Fct>
