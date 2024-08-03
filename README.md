@@ -20,7 +20,7 @@ This library contains implementations of CutFEM algorithms on simple numerical e
     cmake ..
     ```
 4. **Compile** \
-    If you want to compile all files in the [cpp/example](cpp/example) folder, write ```make``` or ```make -jX``` for building with ```X``` processors. Note that this may not work unless you configure using USE_MUMPS and USE_PARALLEL, since some codes require MPI.
+    If you want to compile all files in the [cpp/example](cpp/example) folder, write ```make``` or ```make -jX``` for building with ```X``` processors. 
 
 5. **Other settings** \
     If you want to configure the library with other settings, such as being able to use mumps for solving linear systems, you can change the settings in the [CMakeLists.txt](CMakeLists.txt) file.
