@@ -16,6 +16,7 @@ This library contains implementations of CutFEM algorithms on simple numerical e
     ```
     cd CutFEM-Library
     mkdir build
+    cd build
     cmake ..
     ```
 4. **Compile** \
