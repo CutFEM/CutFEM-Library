@@ -28,7 +28,7 @@ This library contains implementations of CutFEM algorithms on simple numerical e
 
 # Reproducing data
 
-### *A High-Order Conservative Cut Finite Element Method for Problems in Time-Dependent Domains*, 2024, S. Myrbäck, S. Zahedi.
+### *A High-Order Conservative Cut Finite Element Method for Problems in Time-Dependent Domains*, 2024, S. Myrbäck, S. Zahedi. [Link here](https://www.sciencedirect.com/science/article/pii/S0045782524005012)
 
 This paper presents a conservative space-time CutFEM for solving convection-diffusion equations in bulk, or bulk-surface domains.
 
