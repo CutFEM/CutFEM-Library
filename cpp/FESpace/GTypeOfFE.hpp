@@ -207,6 +207,7 @@ template <class mesh> struct DataFE {
     static GTypeOfFE<mesh> &BDM1;
     static GTypeOfFE<mesh> &BDM2;
     static GTypeOfFE<mesh> &Ned0;
+    static GTypeOfFE<mesh> &Ned0_scaled_edge;
     static GTypeOfFE<mesh> &Ned0_scaled;
     static GTypeOfFE<mesh> &P2BR;
 

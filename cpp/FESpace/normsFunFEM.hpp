@@ -14,6 +14,17 @@ You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
 
+
+template <typeMesh mesh_t, FunctionDomain fct>
+double L2normCut(const std::vector<std::shared_ptr<ExpressionVirtual>>& components, fct fex, const ActiveMesh<mesh_t> &Th, const MacroElement<mesh_t> *macro = nullptr) {
+    double val = 0;
+    for (const auto& component : components) {
+        val += L2normCut_2(component, fex, Th, macro);
+    }
+    return sqrt(val);
+}
+
+
 template <typename M>
 double L2normCut(const FunFEM<M> &fh, R(fex)(double *, int i, int dom, double tt), double t, int c0, int num_comp,
                  const MacroElement<M> *macro = nullptr) {
@@ -701,6 +712,16 @@ template <typename M> double L2norm(const ExpressionVirtual &fh, const M &Th) {
 
     return sqrt(val);
 }
+
+template <typeMesh mesh_t, typename fct>
+double L2norm(const std::vector<std::shared_ptr<ExpressionVirtual>>& components, fct fex, const mesh_t &Th) {
+    double val = 0;
+    for (const auto& component : components) {
+        val += L2norm_2(component, fex, Th);
+    }
+    return sqrt(val);
+}
+
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------

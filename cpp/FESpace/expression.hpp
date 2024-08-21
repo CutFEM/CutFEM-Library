@@ -726,6 +726,8 @@ std::shared_ptr<ExpressionSum> operator+(const std::shared_ptr<ExpressionVirtual
 std::shared_ptr<ExpressionSum> operator-(const std::shared_ptr<ExpressionVirtual> &f1,
                                          const std::shared_ptr<ExpressionVirtual> &f2);
 
+
+
 class ExpressionNormal2 : public ExpressionVirtual {
     typedef Mesh2 M;
     const FunFEM<M> &fun;
@@ -1071,6 +1073,35 @@ class ExpressionNormalCrossZ3 : public ExpressionVirtual {
 
 //std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
 std::vector<std::shared_ptr<ExpressionVirtual>> cross(const Normal &n, const FunFEM<Mesh3> &f1);
+
+
+
+/* 3D Curl of a FunFEM */
+class ExpressionCurl3D {
+public:
+    typedef Mesh3 M;
+    const FunFEM<M> &fun;
+
+    ExpressionCurl3D(const FunFEM<M> &fh1)
+        : fun(fh1)
+    {}
+
+    std::vector<std::shared_ptr<ExpressionVirtual>> operator()() const {
+        return {
+            dy(fun.expr(2)) - dz(fun.expr(1)),  // d/dy(u_z) - d/dz(u_y)
+            dz(fun.expr(0)) - dx(fun.expr(2)),  // d/dz(u_x) - d/dx(u_z)
+            dx(fun.expr(1)) - dy(fun.expr(0))   // d/dx(u_y) - d/dy(u_x)
+        };
+    }
+};
+
+// Function to create and return the curl components directly
+std::vector<std::shared_ptr<ExpressionVirtual>> curl(const FunFEM<Mesh3>& uh);
+
+
+
+
+
 
 // divS for 2d
 template <typeMesh M> class ExpressionDSx2 : public ExpressionVirtual {
