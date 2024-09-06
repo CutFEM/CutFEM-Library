@@ -387,8 +387,8 @@ template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::RT0 = RT03d;
 
 
 
-
-class TypeOfFE_RT0_scaled_3d : public GTypeOfFE<Mesh3> {
+// v -> |K|*v
+class TypeOfFE_RT0_3d_scaled_volume : public GTypeOfFE<Mesh3> {
   public:
     typedef Mesh3 Mesh;
     typedef typename Mesh::Element Element;
@@ -396,7 +396,7 @@ class TypeOfFE_RT0_scaled_3d : public GTypeOfFE<Mesh3> {
 
     static int dfon[];
     static const int d = Mesh::Rd::d;
-    TypeOfFE_RT0_scaled_3d();
+    TypeOfFE_RT0_3d_scaled_volume();
     // int edgeface[4][3] ;
     static int Data[];
 
@@ -404,8 +404,8 @@ class TypeOfFE_RT0_scaled_3d : public GTypeOfFE<Mesh3> {
     void get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v) const;
 };
 
-int TypeOfFE_RT0_scaled_3d::dfon[] = {0, 0, 1, 0};
-int TypeOfFE_RT0_scaled_3d::Data[]{
+int TypeOfFE_RT0_3d_scaled_volume::dfon[] = {0, 0, 1, 0};
+int TypeOfFE_RT0_3d_scaled_volume::Data[]{
     // geometry=vertex,edge,face,volume; 0,1,2 vertices, 3,4,5 edges, 6 face
     10, 11, 12, 13, // on what hard coded geometry the dofs are located
     0,  0,  0,  0,  // the (number of the dof - 1) on corresponding geometry/node (here each edge has 1 dof)
@@ -417,7 +417,7 @@ int TypeOfFE_RT0_scaled_3d::Data[]{
     4               // end_dfcomp (=total number of dof in one element)
 };
 
-TypeOfFE_RT0_scaled_3d::TypeOfFE_RT0_scaled_3d() : GTypeOfFE<Mesh3>(4, 3, Data, 12, 4) {
+TypeOfFE_RT0_3d_scaled_volume::TypeOfFE_RT0_3d_scaled_volume() : GTypeOfFE<Mesh3>(4, 3, Data, 12, 4) {
 
     GTypeOfFE<Mesh>::basisFctType    = BasisFctType::RT0;
     GTypeOfFE<Mesh>::polynomialOrder = 0;
@@ -438,7 +438,7 @@ TypeOfFE_RT0_scaled_3d::TypeOfFE_RT0_scaled_3d() : GTypeOfFE<Mesh3>(4, 3, Data, 
     }
 }
 
-void TypeOfFE_RT0_scaled_3d::get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v) const {
+void TypeOfFE_RT0_3d_scaled_volume::get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v) const {
     const Element &T = K.T;
     for (int f = 0, k = 0; f < 4; f++) {
         R3 N = T.N_notNormalized(f); //  exterior and  ||N|| = 2* area f
@@ -449,7 +449,7 @@ void TypeOfFE_RT0_scaled_3d::get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<dou
         v[k++] = N.z;
     }
 }
-void TypeOfFE_RT0_scaled_3d::FB(const What_d whatd, const Element &K, const R3 &PHat, RNMK_ &bfMat) const {
+void TypeOfFE_RT0_3d_scaled_volume::FB(const What_d whatd, const Element &K, const R3 &PHat, RNMK_ &bfMat) const {
     assert(bfMat.N() >= 4);
     assert(bfMat.M() == 3);
     // wi = signe * (x - qi)/ (volume*d)
@@ -486,6 +486,108 @@ void TypeOfFE_RT0_scaled_3d::FB(const What_d whatd, const Element &K, const R3 &
     }
 }
 
-static TypeOfFE_RT0_scaled_3d RT0_scaled_3d;
-GTypeOfFE<Mesh3> &RT0_scaled3d(RT0_scaled_3d);
-template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::RT0_scaled = RT0_scaled3d;
+static TypeOfFE_RT0_3d_scaled_volume RT0_3d_scaled_volume;
+GTypeOfFE<Mesh3> &RT03dscaledvolume(RT0_3d_scaled_volume);
+template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::RT0_scaled_volume = RT03dscaledvolume;
+
+
+
+
+// v -> h*v
+class TypeOfFE_RT0_3d_scaled_edge : public GTypeOfFE<Mesh3> {
+  public:
+    typedef Mesh3 Mesh;
+    typedef typename Mesh::Element Element;
+    // typedef GFElement<Mesh3> FElement;
+
+    static int dfon[];
+    static const int d = Mesh::Rd::d;
+    TypeOfFE_RT0_3d_scaled_edge();
+    // int edgeface[4][3] ;
+    static int Data[];
+
+    void FB(const What_d whatd, const Element &K, const R3 &PHat, RNMK_ &bfMat) const;
+    void get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v) const;
+};
+
+int TypeOfFE_RT0_3d_scaled_edge::dfon[] = {0, 0, 1, 0};
+int TypeOfFE_RT0_3d_scaled_edge::Data[]{
+    // geometry=vertex,edge,face,volume; 0,1,2 vertices, 3,4,5 edges, 6 face
+    10, 11, 12, 13, // on what hard coded geometry the dofs are located
+    0,  0,  0,  0,  // the (number of the dof - 1) on corresponding geometry/node (here each edge has 1 dof)
+    0,  1,  2,  3,  // the geometry(vertex) of the basis fcn corresponding to the dof
+    0,  1,  2,  3,  // the dof of the sub FE (default 0,1,2) [???]
+    0,  0,  1,  0,  // which geometry=vertex,edge,face,volume contains dofs
+    0,              // for each component $j=0,N-1$ it give the sub FE associated [???]
+    0,              // begin_dfcomp
+    4               // end_dfcomp (=total number of dof in one element)
+};
+
+TypeOfFE_RT0_3d_scaled_edge::TypeOfFE_RT0_3d_scaled_edge() : GTypeOfFE<Mesh3>(4, 3, Data, 12, 4) {
+
+    GTypeOfFE<Mesh>::basisFctType    = BasisFctType::RT0;
+    GTypeOfFE<Mesh>::polynomialOrder = 0;
+
+    R3 Pt[] = {R3(0., 0., 0.), R3(1., 0., 0.), R3(0., 1., 0.), R3(0., 0., 1.)};
+    for (int i = 0; i < Element::nf; ++i) {
+        this->Pt_Pi_h[i] = (Pt[Element::nvface[i][0]] + Pt[Element::nvface[i][1]] + Pt[Element::nvface[i][2]]) / 3.;
+    }
+    int i = 0;
+    for (int f = 0; f < 4; f++) {
+        for (int c = 0; c < 3; c++, i++) {
+            // this->pInterpolation[i]=e;
+            // this->cInterpolation[i]=c;
+            // this->dofInterpolation[i]=f;
+            // this->coefInterpolation[i]=0.;
+            ipj_Pi_h[i] = IPJ(f, f, c); // defines in order: i_k, l_k, j_k
+        }
+    }
+}
+
+void TypeOfFE_RT0_3d_scaled_edge::get_Coef_Pi_h(const GbaseFElement<Mesh> &K, KN_<double> &v) const {
+    const Element &T = K.T;
+    for (int f = 0, k = 0; f < 4; f++) {
+        R3 N = T.N_notNormalized(f); //  exterior and  ||N|| = 2* area f
+        N *= T.faceOrient(f) / 2.;
+        N *= 1. / T.Edge(0).norm();
+        v[k++] = N.x;
+        v[k++] = N.y;
+        v[k++] = N.z;
+    }
+}
+void TypeOfFE_RT0_3d_scaled_edge::FB(const What_d whatd, const Element &K, const R3 &PHat, RNMK_ &bfMat) const {
+    assert(bfMat.N() >= 4);
+    assert(bfMat.M() == 3);
+    // wi = signe * (x - qi)/ (volume*d)
+    bfMat   = 0;
+    
+    R cc    = 1. / (d * K.measure());   //! Original
+    cc      *= K.Edge(0).norm();
+    R ci[4] = {cc * K.faceOrient(0), cc * K.faceOrient(1), cc * K.faceOrient(2), cc * K.faceOrient(3)};   //! Original
+
+
+    if (whatd & Fop_D0) {
+        R3 X  = K(PHat);
+        int k = 0;
+        for (int i = 0; i < 4; ++i) {
+            R3 wi              = (X - K[i]) * ci[i];
+            bfMat(i, 0, op_id) = wi.x;
+            bfMat(i, 1, op_id) = wi.y;
+            bfMat(i, 2, op_id) = wi.z;
+        }
+    }
+
+    if (whatd & Fop_D1) {
+        RN_ Ci(ci, 4);
+        if (whatd & Fop_dx)
+            bfMat('.', 0, op_dx) = Ci;
+        if (whatd & Fop_dy)
+            bfMat('.', 1, op_dy) = Ci;
+        if (whatd & Fop_dz)
+            bfMat('.', 2, op_dz) = Ci;
+    }
+}
+
+static TypeOfFE_RT0_3d_scaled_edge RT0_3d_scaled_edge;
+GTypeOfFE<Mesh3> &RT03dscalededge(RT0_3d_scaled_edge);
+template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::RT0_scaled_edge = RT03dscalededge;
