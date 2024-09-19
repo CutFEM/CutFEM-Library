@@ -76,10 +76,12 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
 
     if (solver_name_ == "mumps") {
 #ifdef USE_MUMPS
+        std::cout << "Using MUMPS\n";
         MUMPS(*this, A, b);
 #endif
     } else if (solver_name_ == "umfpack") {
 #ifdef USE_UMFPACK
+        std::cout << "Using UMFPACK\n";
         solver::umfpack(A, b, clearMatrix_);
 #endif
     }
