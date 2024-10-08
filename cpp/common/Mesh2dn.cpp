@@ -304,3 +304,215 @@ MeshQuad2::MeshQuad2(int nx, int ny, R orx, R ory, R lx, R ly) {
     BuildBound();
     BuildAdj();
 }
+
+Mesh2 refine(const Mesh2 &Th) {
+    using Element       = typename Mesh2::Element;
+    using BorderElement = typename Mesh2::BorderElement;
+    using Key           = std::pair<size_t, size_t>;
+    int idx_ref[4][3]   = {{0, 5, 4}, {1, 3, 5}, {2, 4, 3}, {5, 3, 4}};
+
+    Mesh2 Th2;
+
+    // Euler characteristic V-E+F = 1
+    size_t E = Th.nv + Th.nt - 1;
+
+    int mt  = 4 * Th.nt;
+    int mv  = Th.nv + E;
+    int mbe = Th.nbe * 2;
+    Th2.set(mv, mt, mbe);
+
+    std::cout << "  -- Nb of Vertex " << mv << " " << " Nb of Triangles " << mt << " , Nb of border edges " << mbe
+              << std::endl;
+
+    size_t tinfty = -1;
+    std::map<Key, size_t> new_nodes;
+
+    //   int kt = 0;
+    size_t iv = 0;
+    for (int k = 0; k < Th.nt; ++k) {
+        const Element &K(Th[k]); // the element
+        std::array<int, 6> idxK;
+        int ivl = 0;
+        // loop over the nodes
+        for (int i = 0; i < 3; ++i) {
+            int iv_glob = Th(K[i]);
+            Key ki(iv_glob, tinfty);
+
+            auto pk = new_nodes.find(ki);
+            if (pk == new_nodes.end()) {
+                idxK[ivl++]        = iv;
+                new_nodes[ki]      = iv;
+                R2 P               = K[i];
+                Th2.vertices[iv].x = P.x;
+                Th2.vertices[iv].y = P.y;
+                iv++;
+            } else {
+                idxK[ivl++] = pk->second;
+            }
+        }
+
+        for (int i = 0; i < Element::ne; ++i) {
+            int i0  = Element::nvedge[i][0];
+            int i1  = Element::nvedge[i][1];
+            Key ki  = (Th(K[i0]) < Th(K[i1])) ? Key(Th(K[i0]), Th(K[i1])) : Key(Th(K[i1]), Th(K[i0]));
+            auto pk = new_nodes.find(ki);
+            if (pk == new_nodes.end()) {
+                idxK[ivl++]        = iv;
+                new_nodes[ki]      = iv;
+                R2 P               = 0.5 * (K[i0] + K[i1]);
+                Th2.vertices[iv].x = P.x;
+                Th2.vertices[iv].y = P.y;
+                iv++;
+            } else {
+                idxK[ivl++] = pk->second;
+            }
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            std::array<int, 3> indT = {idxK[idx_ref[i][0]], idxK[idx_ref[i][1]], idxK[idx_ref[i][2]]};
+            Th2.elements[4 * k + i].set(Th2.vertices, indT.data(), 0);
+        }
+    }
+
+    int n = 0;
+    for (int ke = 0; ke < Th.nbe; ++ke) { // loop over boundary element
+        int kf;
+        int k = Th.BoundaryElement(ke, kf);
+        const Element &K(Th[k]);
+        const BorderElement &Be(Th.be(ke));
+
+        std::array<int, 3> idxBE;
+
+        Key k0(Th(K[Element::nvedge[kf][0]]), tinfty);
+        auto pk = new_nodes.find(k0);
+        if (pk == new_nodes.end()) {
+            std::cout << "Error: node not found" << std::endl;
+            exit(1);
+        }
+        idxBE[0] = pk->second;
+
+        Key k1(Th(K[Element::nvedge[kf][1]]), tinfty);
+        pk = new_nodes.find(k1);
+        if (pk == new_nodes.end()) {
+            std::cout << "Error: node not found" << std::endl;
+            exit(1);
+        }
+        idxBE[2] = pk->second;
+
+        int iv0 = Th(Be[0]);
+        int iv1 = Th(Be[1]);
+        Key ki  = (iv0 < iv1) ? Key(iv0, iv1) : Key(iv1, iv0);
+        pk      = new_nodes.find(ki);
+        if (pk == new_nodes.end()) {
+            std::cout << "Error: node not found" << std::endl;
+            exit(1);
+        }
+        idxBE[1] = pk->second;
+
+        Th2.borderelements[n++].set(Th2.vertices, idxBE.data(), Be.lab);
+        Th2.borderelements[n++].set(Th2.vertices, idxBE.data() + 1, Be.lab);
+    }
+
+    Th2.BuildBound();
+    Th2.BuildAdj();
+
+    return Th2;
+}
+
+Mesh2 refine_barycentric(const Mesh2 &Th) {
+    using Element       = typename Mesh2::Element;
+    using BorderElement = typename Mesh2::BorderElement;
+    using Key           = std::pair<size_t, size_t>;
+    int idx_ref[3][3]   = {{0, 1, 3}, {1, 2, 3}, {2, 0, 3}};
+
+    Mesh2 Th2;
+    size_t E = Th.nt;
+    int mt   = 3 * Th.nt;
+    int mv   = Th.nv + E;
+    int mbe  = Th.nbe;
+    Th2.set(mv, mt, mbe);
+
+    std::cout << "  -- Nb of Vertex " << mv << " " << " Nb of Triangles " << mt << " , Nb of border edges " << mbe
+              << std::endl;
+
+    size_t tinfty = -1;
+    std::map<Key, size_t> new_nodes;
+
+    //   int kt = 0;
+    size_t iv  = 0;
+    size_t if0 = Th.nv + 1;
+    for (int k = 0; k < Th.nt; ++k) {
+        const Element &K(Th[k]); // the element
+        std::array<int, 6> idxK;
+        int ivl = 0;
+        int iv_glob;
+        // loop over the nodes
+        for (int i = 0; i < 3; ++i) {
+            iv_glob = Th(K[i]);
+            Key ki(iv_glob, tinfty);
+
+            auto pk = new_nodes.find(ki);
+            if (pk == new_nodes.end()) {
+                idxK[ivl++]        = iv;
+                new_nodes[ki]      = iv;
+                R2 P               = K[i];
+                Th2.vertices[iv].x = P.x;
+                Th2.vertices[iv].y = P.y;
+                iv++;
+            } else {
+                idxK[ivl++] = pk->second;
+            }
+        }
+
+        iv_glob = k + if0;
+        Key ki(iv_glob, tinfty);
+        auto pk = new_nodes.find(ki);
+        if (pk == new_nodes.end()) {
+            idxK[ivl++]        = iv;
+            new_nodes[ki]      = iv;
+            R2 P               = 1. / 3 * (K[0] + K[1] + K[2]);
+            Th2.vertices[iv].x = P.x;
+            Th2.vertices[iv].y = P.y;
+            iv++;
+        } else {
+            idxK[ivl++] = pk->second;
+        }
+
+        for (int i = 0; i < 3; ++i) {
+            std::array<int, 3> indT = {idxK[idx_ref[i][0]], idxK[idx_ref[i][1]], idxK[idx_ref[i][2]]};
+            Th2.elements[3 * k + i].set(Th2.vertices, indT.data(), 0);
+        }
+    }
+
+    int n = 0;
+    for (int ke = 0; ke < Th.nbe; ++ke) { // loop over boundary element
+        int kf;
+        int k = Th.BoundaryElement(ke, kf);
+        const Element &K(Th[k]);
+        const BorderElement &Be(Th.be(ke));
+
+        std::array<int, 2> idxBE;
+
+        Key k0(Th(K[Element::nvedge[kf][0]]), tinfty);
+        auto pk = new_nodes.find(k0);
+        if (pk == new_nodes.end()) {
+            std::cout << "Error: node not found" << std::endl;
+            exit(1);
+        }
+        idxBE[0] = pk->second;
+        Key k1(Th(K[Element::nvedge[kf][1]]), tinfty);
+        pk = new_nodes.find(k1);
+        if (pk == new_nodes.end()) {
+            std::cout << "Error: node not found" << std::endl;
+            exit(1);
+        }
+        idxBE[1] = pk->second;
+
+        Th2.borderelements[n++].set(Th2.vertices, idxBE.data(), Be.lab);
+    }
+
+    Th2.BuildBound();
+    Th2.BuildAdj();
+
+    return Th2;
+}
