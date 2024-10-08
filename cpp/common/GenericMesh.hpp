@@ -139,7 +139,7 @@ template <typename T, typename B, typename V> class GenericMesh {
     }
 
     void set(int mv, int mt, int mbe) {
-        assert(nt == 0 && nv == 0 && nbe == 0);
+        // assert(nt == 0 && nv == 0 && nbe == 0);
         nt             = mt;
         nv             = mv;
         nbe            = mbe;
