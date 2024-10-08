@@ -35,7 +35,7 @@ namespace stokes {
 /// @return vector containing data of the velocity and the pressure
 std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, InterfaceLevelSet<Mesh2> &interface,
                           FunFEM<Mesh2> &gh, FunFEM<Mesh2> &fh, CutFEMParameter mu, double surface_tension,
-                          double delta, std::list<int> dirichlet_labels = std::list<int>()) {
+                          double delta, std::list<int> dirichlet_labels, std::list<int> neumann_labels) {
 
     const auto &Khi           = Vh.get_mesh();
     double hi                 = Khi[0].hElement();
@@ -77,16 +77,19 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
                            Khi, INTEGRAL_INNER_EDGE_2D);
     }
 
-    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) // natural
-                           + innerProduct(p, v * n)          // natural
-                       ,
-                       Khi, INTEGRAL_BOUNDARY);
+    if (!neumann_labels.empty()) {
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Khi, INTEGRAL_BOUNDARY,
+                           neumann_labels);
+    }
 
-    stokes.addBilinear(
-        innerProduct(boundary_penalty * u, v)      // Weak enforcement for u \cdot t = g \cdot t on the boundary
-            + innerProduct(u, 2 * mu * Eps(v) * n) // natural
-        ,
-        Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
+    if (!dirichlet_labels.empty()) {
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n) +
+                               innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n),
+                           Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
+        stokes.addLinear(innerProduct(gh.exprList(), boundary_penalty * v) +
+                             innerProduct(gh.exprList(), 2 * mu * Eps(v) * n),
+                         Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
+    }
 
     stokes.addFaceStabilization(                                      // [h^(2k+1) h^(2k+1)]
         +innerProduct(ghost_penalty * pow(hi, -1) * jump(u), jump(v)) // [Method 1: Remove jump in vel]
@@ -102,10 +105,6 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
     stokes.addLinear(innerProduct(fh.exprList(), v), Khi);
 
     stokes.addLinear(innerProduct(surface_tension, average(v * n, kappa2, kappa1)), interface);
-
-    stokes.addLinear(innerProduct(gh.exprList(), boundary_penalty * v) +
-                         innerProduct(gh.exprList(), 2 * mu * Eps(v) * n),
-                     Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
 
     CutFEM<Mesh2> lagr(Vh);
     lagr.add(Ph);
@@ -140,7 +139,8 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
 /// @return vector containing data of the velocity and the pressure
 std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, InterfaceLevelSet<Mesh2> &interface,
                           FunFEM<Mesh2> &gh, FunFEM<Mesh2> &fh, CutFEMParameter mu, double sigma,
-                          const FunFEM<Mesh2> &H, double delta, std::list<int> dirichlet_labels = std::list<int>()) {
+                          const FunFEM<Mesh2> &H, double delta, std::list<int> dirichlet_labels,
+                          std::list<int> neumann_labels) {
 
     const auto &Khi           = Vh.get_mesh();
     double hi                 = Khi[0].hElement();
@@ -181,16 +181,20 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
                            Khi, INTEGRAL_INNER_EDGE_2D);
     }
 
-    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) // natural
-                           + innerProduct(p, v * n)          // natural
-                       ,
-                       Khi, INTEGRAL_BOUNDARY);
+    if (!neumann_labels.empty()) {
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Khi, INTEGRAL_BOUNDARY,
+                           neumann_labels);
+    }
 
-    stokes.addBilinear(
-        innerProduct(boundary_penalty * u, v)      // Weak enforcement for u \cdot t = g \cdot t on the boundary
-            + innerProduct(u, 2 * mu * Eps(v) * n) // natural
-        ,
-        Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
+    if (!dirichlet_labels.empty()) {
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n) +
+                               innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n),
+                           Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
+
+        stokes.addLinear(innerProduct(gh.exprList(), boundary_penalty * v) +
+                             innerProduct(gh.exprList(), 2 * mu * Eps(v) * n),
+                         Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
+    }
 
     stokes.addFaceStabilization(                                      // [h^(2k+1) h^(2k+1)]
         +innerProduct(ghost_penalty * pow(hi, -1) * jump(u), jump(v)) // [Method 1: Remove jump in vel]
@@ -205,10 +209,6 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
     stokes.addLinear(innerProduct(fh.exprList(), v), Khi);
 
     stokes.addLinear(innerProduct(H.exprList(2), sigma * average(v, kappa2, kappa1)), interface);
-
-    stokes.addLinear(innerProduct(gh.exprList(), boundary_penalty * v) +
-                         innerProduct(gh.exprList(), 2 * mu * Eps(v) * n),
-                     Khi, INTEGRAL_BOUNDARY, dirichlet_labels);
 
     CutFEM<Mesh2> lagr(Vh);
     lagr.add(Ph);
@@ -242,7 +242,8 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
 /// @return vector containing data of the velocity and the pressure
 std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, InterfaceLevelSet<Mesh2> &interface,
                           FunFEM<Mesh2> &fh, CutFEMParameter mu, double sigma, const FunFEM<Mesh2> &H, double delta,
-                          std::vector<std::pair<FunFEM<Mesh2> *, std::list<int> *>> &bc) {
+                          std::vector<std::pair<FunFEM<Mesh2> *, std::list<int> *>> &bc,
+                          std::list<int> neumann_labels) {
 
     const auto &Khi           = Vh.get_mesh();
     double hi                 = Khi[0].hElement();
@@ -296,13 +297,15 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
 
     stokes.addLinear(innerProduct(H.exprList(2), sigma * average(v, kappa2, kappa1)), interface);
 
-    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) // natural
-                           + innerProduct(p, v * n)          // natural
-                       ,
-                       Khi, INTEGRAL_BOUNDARY);
+    if (!neumann_labels.empty()) {
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Khi, INTEGRAL_BOUNDARY,
+                           neumann_labels);
+    }
+
     for (auto [gh, dirichlet_labels] : bc) {
-        stokes.addBilinear(innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n), Khi,
-                           INTEGRAL_BOUNDARY, *dirichlet_labels);
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n) +
+                               innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n),
+                           Khi, INTEGRAL_BOUNDARY, *dirichlet_labels);
         stokes.addLinear(innerProduct(gh->exprList(), boundary_penalty * v) +
                              innerProduct(gh->exprList(), 2 * mu * Eps(v) * n),
                          Khi, INTEGRAL_BOUNDARY, *dirichlet_labels);
@@ -313,7 +316,13 @@ std::vector<double> solve(CutFESpace<Mesh2> &Vh, CutFESpace<Mesh2> &Ph, Interfac
     lagr.addLinear(innerProduct(1., p1), Khi);
     std::vector<double> lag_row(lagr.rhs_);
     std::fill(lagr.rhs_.begin(), lagr.rhs_.end(), 0.);
-    lagr.addLinear(innerProduct(1, v * n), Khi, INTEGRAL_BOUNDARY);
+    for (auto [gh, dirichlet_labels] : bc) {
+        lagr.addLinear(innerProduct(1, v * n), Khi, INTEGRAL_BOUNDARY, *dirichlet_labels);
+    }
+    if (!neumann_labels.empty()) {
+        lagr.addLinear(innerProduct(1, v * n), Khi, INTEGRAL_BOUNDARY, neumann_labels);
+    }
+
     stokes.addLagrangeVecToRowAndCol(lag_row, lagr.rhs_, 0);
 
     auto t1 = std::chrono::high_resolution_clock::now();
@@ -346,7 +355,7 @@ namespace stokes {
 /// @param delta macro element delta parameter
 /// @return vector containing data of the velocity and the pressure
 std::vector<double> solve(GFESpace<Mesh2> &Vh, GFESpace<Mesh2> &Ph, FunFEM<Mesh2> &gh, FunFEM<Mesh2> &fh, double mu,
-                          std::list<int> dirichlet_labels = std::list<int>()
+                          std::list<int> dirichlet_labels, std::list<int> neumann_labels
 
 ) {
 
@@ -382,10 +391,11 @@ std::vector<double> solve(GFESpace<Mesh2> &Vh, GFESpace<Mesh2> &Ph, FunFEM<Mesh2
                            Kh, INTEGRAL_INNER_EDGE_2D);
     }
 
-    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Kh, INTEGRAL_BOUNDARY);
-
-    stokes.addBilinear(innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n), Kh,
-                       INTEGRAL_BOUNDARY, dirichlet_labels);
+    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n) +
+                           innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n),
+                       Kh, INTEGRAL_BOUNDARY, dirichlet_labels);
+    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Kh, INTEGRAL_BOUNDARY,
+                       neumann_labels);
 
     stokes.addLinear(innerProduct(fh.exprList(), v), Kh);
 
@@ -427,7 +437,7 @@ std::vector<double> solve(GFESpace<Mesh2> &Vh, GFESpace<Mesh2> &Ph, FunFEM<Mesh2
 /// @param delta macro element delta parameter
 /// @return vector containing data of the velocity and the pressure
 std::vector<double> solve(GFESpace<Mesh2> &Vh, GFESpace<Mesh2> &Ph, FunFEM<Mesh2> &fh, double mu,
-                          std::vector<std::pair<FunFEM<Mesh2> *, std::list<int> *>> &bc
+                          std::vector<std::pair<FunFEM<Mesh2> *, std::list<int> *>> &bc, std::list<int> neumann_labels
 
 ) {
 
@@ -463,13 +473,17 @@ std::vector<double> solve(GFESpace<Mesh2> &Vh, GFESpace<Mesh2> &Ph, FunFEM<Mesh2
                            Kh, INTEGRAL_INNER_EDGE_2D);
     }
 
-    stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Kh, INTEGRAL_BOUNDARY);
-
     stokes.addLinear(innerProduct(fh.exprList(), v), Kh);
 
+    if (!neumann_labels.empty()) {
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n), Kh, INTEGRAL_BOUNDARY,
+                           neumann_labels);
+    }
     for (auto [gh, dirichlet_labels] : bc) {
-        stokes.addBilinear(innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n), Kh,
-                           INTEGRAL_BOUNDARY, *dirichlet_labels);
+
+        stokes.addBilinear(-innerProduct(2 * mu * Eps(u) * n, v) + innerProduct(p, v * n) +
+                               innerProduct(boundary_penalty * u, v) + innerProduct(u, 2 * mu * Eps(v) * n),
+                           Kh, INTEGRAL_BOUNDARY, *dirichlet_labels);
         stokes.addLinear(innerProduct(gh->exprList(), boundary_penalty * v) +
                              innerProduct(gh->exprList(), 2 * mu * Eps(v) * n),
                          Kh, INTEGRAL_BOUNDARY, *dirichlet_labels);

@@ -81,6 +81,9 @@ class FunFEMVirtual {
     double *data_ = nullptr; ///< data //?
     KN_<double> v;           ///< coefficients in the degrees of freedom
 
+    // std::vector<double> allocated_data;
+    // std::span<double> accesor_data;
+
     FunFEMVirtual() : v(data_, 0) {}
     FunFEMVirtual(int df) : data_(new double[df]), v(data_, df) { v = 0.; }
     FunFEMVirtual(KN_<double> &u) : v(u) {}
@@ -110,6 +113,7 @@ class FunFEMVirtual {
     const KN_<double> &getArray() const { return v; }
     const KN_<double> &array() const { return v; }
     const double *data() const { return v.data(); }
+    // const double *data() const { return v.data(); }
 };
 
 /**
@@ -172,7 +176,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
         : FunFEMVirtual(vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
         interpolate(*Vh, this->v, f, tid);
     }
-    
+
     // template <typename fun_t>
     // FunFEM(const FESpace &vh, const TimeSlab &in, fun_t f)
     // // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
@@ -183,7 +187,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     template <typename fct_t>
         requires FunctionLevelSetTime<fct_t> || FunctionDomainTime<fct_t> || FunctionScalar<fct_t>
     FunFEM(const FESpace &vh, const TimeSlab &in, fct_t f)
-    // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
+        // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
         : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), alloc(true), Vh(&vh), In(&in),
           databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
         interpolate(*Vh, *In, this->v, f);
@@ -842,7 +846,6 @@ std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const
 std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Tangent &n);
 std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Conormal &n);
 
-
 class ExpressionNormal3 : public ExpressionVirtual {
     typedef Mesh3 M;
     const FunFEM<M> &fun;
@@ -1069,7 +1072,7 @@ class ExpressionNormalCrossZ3 : public ExpressionVirtual {
 //     ~ExpressionNormalCross3() {}
 // };
 
-//std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
+// std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
 std::vector<std::shared_ptr<ExpressionVirtual>> cross(const Normal &n, const FunFEM<Mesh3> &f1);
 
 // divS for 2d

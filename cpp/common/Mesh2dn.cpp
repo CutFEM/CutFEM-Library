@@ -118,12 +118,13 @@ void Mesh2::readMeshGmsh(std::ifstream &f) {
 }
 
 void Mesh2::readMeshFreefem(std::ifstream &f) {
-
-    f >> nv >> nt >> nbe;
-    this->set(nv, nt, nbe);
+    int mv, mt, mbe;
+    f >> mv >> mt >> mbe;
     if (verbosity)
-        std::cout << "  -- Nb of Vertex " << nv << " " << " Nb of Triangles " << nt << " , Nb of border edges " << nbe
+        std::cout << "  -- Nb of Vertex " << mv << " " << " Nb of Triangles " << mt << " , Nb of border edges " << mbe
                   << std::endl;
+    this->set(mv, mt, mbe);
+
     assert(f.good() && nt && nv);
     for (int i = 0; i < nv; i++) {
         f >> this->vertices[i];
