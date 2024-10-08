@@ -32,14 +32,11 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
-
-    double t0 = MPIcf::Wtime();
-
     progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
 #pragma omp parallel for num_threads(this->get_num_threads())
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
-        // bar += Th.next_element();
+        bar += Th.next_element();
 
         if (Th.isCut(k, 0)) {
             addElementContribution(VF, k, nullptr, 0, 1.);
@@ -197,11 +194,11 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, int i
 }
 
 /**
- * @brief Add bilinear in specific time 
- * 
- * @tparam M 
- * @param VF 
- * @param Th 
+ * @brief Add bilinear in specific time
+ *
+ * @tparam M
+ * @param VF
+ * @param Th
  * @param t
  */
 // template <typename M>
@@ -244,7 +241,6 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, int i
 //     // End the progress bar
 //     bar.end();
 // }
-
 
 template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(VF.isRHS());
@@ -1377,6 +1373,7 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_
     assert(!VF.isRHS());
     progress bar(" Add Face Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
 
+#pragma omp parallel for num_threads(this->get_num_threads())
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
 

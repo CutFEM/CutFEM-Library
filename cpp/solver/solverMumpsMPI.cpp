@@ -19,8 +19,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/print_container.hpp"
 #include "../common/logger.hpp"
 
-#define ICNTL(I) icntl[(I)-1]
-#define INFO(I) info[(I)-1]
+#define ICNTL(I) icntl[(I) - 1]
+#define INFO(I) info[(I) - 1]
 
 MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
     :
@@ -30,7 +30,7 @@ MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
       mat(AA), rhs(bb), cleanMatrix(s.clearMatrix_) {
 
     //    if(MPIcf::size() > 1) assert(0);
-    // LOG_INFO << "MUMPS solver is used" << logger::endl;
+    LOG_INFO << "MUMPS solver is used" << logger::endl;
     initializeSetting();
     setDoF();
     saveMatrixToCSR();
