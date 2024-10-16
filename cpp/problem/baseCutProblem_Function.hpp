@@ -280,24 +280,6 @@ void BaseCutFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const CutMes
 }
 
 template <typename M>
-template <typename Fct>
-void BaseCutFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const CutMesh &Th) {
-    assert(VF.isRHS());
-
-    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
-
-        if (Th.isCut(k, 0)) {
-            addElementContribution(f, VF, k, nullptr, 0, 1.);
-        } else {
-            BaseFEM<M>::addElementContribution(f, VF, k, nullptr, 0, 1.);
-        }
-        // if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF,
-        // k,nullptr, 0, 1.); else BaseFEM<M>::addElementContribution(VF,
-        // k,nullptr, 0, 1.);
-    }
-}
-
-template <typename M>
 void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
     assert(VF.isRHS());
     auto tq    = this->get_quadrature_time(itq);
