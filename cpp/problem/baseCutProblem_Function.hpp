@@ -1575,6 +1575,37 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_
     bar.end();
 }
 
+// // For mixed finite element spaces on surface
+// template <typename M> void BaseCutFEM<M>::addFaceStabilizationSurface(const itemVFlist_t &VF, const CutMesh &Th) {
+//     assert(!VF.isRHS());
+//     progress bar(" Add Face Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
+
+//     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+//         bar += Th.next_element();
+
+//         if (!Th.isCut(k, 0) && !Th.isInactive(k, 0))
+//             continue;
+//         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+//             int jfac = ifac;
+//             int kn   = Th.ElementAdj(k, jfac);      // -1 if outside active mesh
+            
+//             // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+//             if (kn < k)
+//                 continue;
+
+//             int kb  = Th.idxElementInBackMesh(k);
+//             int kbn = Th.idxElementInBackMesh(kn);
+
+//             std::pair<int, int> e1 = std::make_pair(kb, ifac);
+//             std::pair<int, int> e2 = std::make_pair(kbn, jfac);
+//             BaseFEM<M>::addFaceContributionSurface(VF, e1, e2, nullptr, 0, 1.);
+//         }
+//         this->addLocalContribution();
+//     }
+//     bar.end();
+// }
+
 template <typename M> void BaseCutFEM<M>::addFaceStabilizationMixed(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
     assert(Th.get_nb_domain() == 1);
@@ -1671,6 +1702,35 @@ template <typename M> void BaseCutFEM<M>::addPatchStabilization(const itemVFlist
             std::pair<int, int> e1 = std::make_pair(k, ifac);
             std::pair<int, int> e2 = std::make_pair(kn, jfac);
             BaseFEM<M>::addPatchContribution(VF, k, kn, nullptr, 0, 1.);
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+
+template <typename M> void BaseCutFEM<M>::addPatchStabilizationMixed(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(!VF.isRHS());
+    progress bar(" Add Mixed Patch Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+
+        if (!Th.isCut(k, 0) && !Th.isInactive(k, 0))
+            continue;
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if (kn < k)
+                continue;
+            
+            int kb  = Th.idxElementInBackMesh(k);
+            int kbn = Th.idxElementInBackMesh(kn);
+
+            std::pair<int, int> e1 = std::make_pair(kb, ifac);
+            std::pair<int, int> e2 = std::make_pair(kbn, jfac);
+            BaseFEM<M>::addPatchContributionMixed(VF, kb, kbn, nullptr, 0, 1.);
         }
         this->addLocalContribution();
     }

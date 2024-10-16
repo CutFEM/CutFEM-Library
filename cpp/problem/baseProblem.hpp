@@ -181,6 +181,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     // integral on patches
     void addPatchContribution(const itemVFlist_t &VF, const int k, const int kn, const TimeSlab *In, int itq,
                               double cst_time);
+    void addPatchContributionMixed(const itemVFlist_t &VF, const int kb, const int kbn, const TimeSlab *In, int itq,
+                              double cst_time);
 
     // integral on boundary
     void addBilinear(const itemVFlist_t &VF, const Mesh &, const CBorder &b, std::list<int> label = {});
