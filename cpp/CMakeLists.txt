@@ -2,15 +2,19 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_CXX_FLAGS_SILENT "-Qunused-arguments")
+
+
 if(USE_OMP)
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}  -fopenmp -std=c++2a -fPIC -O3")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_SILENT} ${LDFLAGS}  -L/opt/homebrew/opt/libomp/lib/ -fopenmp -std=c++2a -fPIC -O3")
+include_directories(/opt/homebrew/opt/libomp/include)
 else()
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${LDFLAGS}   -std=c++2a -fPIC -O3")
 endif()
 
 
 if(USE_MPI)
-  find_package(MPI REQUIRED)
+  find_package(MPI )
   include_directories(${MPI_CXX_INCLUDE_DIR})
   set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 endif()
