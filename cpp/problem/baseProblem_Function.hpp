@@ -1376,7 +1376,14 @@ void BaseFEM<M>::addInterfaceContribution(const itemVFlist_t &VF, const Interfac
     }
 }
 
-// ! Add addInterfaceContribution for function evaluation (rhs)
+// ! FIXME: This doesn't work for the following case (see lagr_nit_fictitious.cpp), I think the issue lies when variables are defined on surface meshes:
+/*
+stokes.addLinear(
+    fun_u, 
+    - innerProduct(1., omega*n)
+    , surface
+);
+*/
 template <typename M>
 template <typename Fct>
 void BaseFEM<M>::addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,
