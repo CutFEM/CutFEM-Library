@@ -258,6 +258,16 @@ static void gather(std::vector<std::map<std::pair<int, int>, double>> &l) {
     }
 }
 
+inline decltype(auto) now() { return std::chrono::high_resolution_clock::now(); }
+
+inline decltype(auto) seconds(const decltype(now()) &start, const decltype(now()) &end) {
+    return std::chrono::duration<double>(end - start).count();
+}
+
+inline decltype(auto) milliseconds(const decltype(now()) &start, const decltype(now()) &end) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+}
+
 ////========================================================////
 ////////////=========     Timer     =========///////////////////
 

@@ -131,6 +131,7 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
     PATHS /usr/lib
     /opt/homebrew/Cellar/scotch/7.0.2/lib
 		/opt/homebrew/Cellar/scotch/7.0.4/lib
+    /opt/homebrew/Cellar/scotch/7.0.5/lib
     /usr/lib/x86_64-linux-gnu
     /usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
@@ -141,6 +142,7 @@ if(MUMPS_INCLUDE_DIR AND MUMPS_LIBRARY_DIR)
     /usr/lib/x86_64-linux-gnu
 		/opt/homebrew/Cellar/scotch/7.0.2/lib
 		/opt/homebrew/Cellar/scotch/7.0.4/lib
+    /opt/homebrew/Cellar/scotch/7.0.5/lib
 		/usr/local/Cellar/brewsci-scotch/6.0.4/lib
     NO_DEFAULT_PATH)
 

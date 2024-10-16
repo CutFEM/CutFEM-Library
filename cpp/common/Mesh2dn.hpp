@@ -54,6 +54,9 @@ class Mesh2 : public GenericMesh<Triangle2, BoundaryEdge2, Vertex2> {
 
     void readMeshGmsh(std::ifstream &f);
     void readMeshFreefem(std::ifstream &f);
+
+    friend Mesh2 refine(const Mesh2 &Th);
+    friend Mesh2 refine_barycentric(const Mesh2 &Th);
 };
 
 class MeshQuad2 : public GenericMesh<Quad2, BoundaryEdge2, Vertex2> {

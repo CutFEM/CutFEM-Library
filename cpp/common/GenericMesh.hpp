@@ -38,6 +38,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 extern long verbosity;
 
 #include "cassert"
+#include "logger.hpp"
 #include "../num/util.hpp"
 #include <cstdlib>
 
@@ -47,7 +48,6 @@ extern long verbosity;
 #include "../num/sort_array.hpp"
 
 #include "../parallel/cfmpi.hpp"
-
 
 enum class MeshFormat { mesh_gmsh, mesh_freefem };
 
@@ -132,10 +132,10 @@ template <typename T, typename B, typename V> class GenericMesh {
           BoundaryElementHeadLink(0) {}
 
     virtual void info() {
-        std::cout << " ----- Mesh " << this << " info ----- " << std::endl;
-        std::cout << " nb of nodes            : \t" << nv << std::endl;
-        std::cout << " nb of elements         : \t" << nt << std::endl;
-        std::cout << " nb of border elements  : \t" << nbe << std::endl;
+        LOG_INFO << " ----- Mesh " << this << " info ----- " << logger::endl;
+        LOG_INFO << " nb of nodes            : \t" << nv << logger::endl;
+        LOG_INFO << " nb of elements         : \t" << nt << logger::endl;
+        LOG_INFO << " nb of border elements  : \t" << nbe << logger::endl;
     }
 
     void set(int mv, int mt, int mbe) {
@@ -158,7 +158,6 @@ template <typename T, typename B, typename V> class GenericMesh {
     virtual int first_boundary_element() const { return MPIcf::my_rank(); }
     virtual int next_boundary_element() const { return MPIcf::size(); }
     virtual int last_boundary_element() const { return this->nbBrdElmts(); }
-
 
     int operator()(const T &tt) const { return CheckT(&tt - elements); }
     int operator()(const T *tt) const { return CheckT(tt - elements); }

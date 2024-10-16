@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
     optionProblem.clear_matrix_ = true;
     std::vector<std::map<std::pair<int, int>, double>> mat_NL(thread_count);
 
-    CutFEM<mesh_t> stokes(qTime, thread_count, optionProblem);
+    CutFEM<mesh_t> stokes(qTime, optionProblem);
 
     CutFEMParameter mu(10., 1.);
     CutFEMParameter rho(1000., 100.);
