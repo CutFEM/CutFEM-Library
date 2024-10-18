@@ -330,15 +330,17 @@ template <typename Mesh> class MacroElementSurface : public GMacro {
 
   public:
     const Interface<Mesh> &interface;
+    const ActiveMesh<Mesh> *Th_active;
 
-    MacroElementSurface(const Interface<Mesh> &, const double);
+    // MacroElementSurface(const Interface<Mesh> &, const double);
+    MacroElementSurface(const Interface<Mesh> &, const double, const ActiveMesh<Mesh> *Th_active_ = nullptr);
     void findSmallElement();
     void findRootElement();
     int checkDirection(const int, const int, int &);
 };
 
 template <typename Mesh>
-MacroElementSurface<Mesh>::MacroElementSurface(const Interface<Mesh> &gh, const double C) : interface(gh) {
+MacroElementSurface<Mesh>::MacroElementSurface(const Interface<Mesh> &gh, const double C, const ActiveMesh<Mesh> *Th_active_) : interface(gh), Th_active(Th_active_) {
     double h = (*interface.backMesh)[0].lenEdge(0);
     tol      = C * h;
 
