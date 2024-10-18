@@ -188,7 +188,7 @@ class progress {
         verbose = v;
 
         if (verbose > 1) {
-#pragma omp single
+#pragma omp single nowait
             {
                 std::cout << "\r";
                 std::cout << title << ": \t";
@@ -203,7 +203,7 @@ class progress {
 #pragma omp atomic
         it++;
 
-#pragma omp single
+#pragma omp single nowait
         {
             if (int(it * 100. / length) > prg & verbose > 1) {
                 prg = int(it * 100. / length);
@@ -218,7 +218,7 @@ class progress {
     void operator+=(int n) {
 #pragma omp atomic
         it += n;
-#pragma omp single
+#pragma omp single nowait
         {
             if (int(it * 100. / length) > prg & verbose > 1) {
                 prg = int(it * 100. / length);
@@ -231,7 +231,7 @@ class progress {
     }
 
     void end() {
-#pragma omp single
+#pragma omp single nowait
         {
             auto t_end  = std::chrono::high_resolution_clock::now();
             double time = std::chrono::duration<double>(t_end - t_start).count();

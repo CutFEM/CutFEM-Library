@@ -225,7 +225,7 @@ template <typename M> void BaseFEM<M>::setDiagonal(const FESpace &Qh, double val
 template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF, const Mesh &Th) {
     assert(!VF.isRHS());
     progress bar("Add Bilinear Mesh", Th.last_element(), globalVariable::verbose);
-
+#pragma omp parallel for num_threads(this->get_num_threads())
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
         BaseFEM<Mesh>::addElementContribution(VF, k, nullptr, 0, 1.);
@@ -1115,8 +1115,8 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &gam
          iface += gamma[itq]->next_element()) {
         bar += gamma[itq]->next_element();
         const typename Interface<M>::Face &face = (*gamma[itq])[iface]; // the face
-        //std::cout << "label " << label << ", face.lab " << face.lab << std::endl;
-        //if (util::contain(label, face.lab) || all_label) {
+        // std::cout << "label " << label << ", face.lab " << face.lab << std::endl;
+        // if (util::contain(label, face.lab) || all_label) {
 
         addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
         this->addLocalContribution();
@@ -1144,7 +1144,6 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, st
 
     bar.end();
 }
-
 
 template <typename M>
 template <typename Fct>
