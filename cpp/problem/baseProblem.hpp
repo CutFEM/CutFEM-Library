@@ -191,6 +191,7 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
                                const TimeSlab *In, int itq, double cst_time);
 
     void setDirichlet(const FunFEM<Mesh> &, const Mesh &, std::list<int> label = {});
+    void setDirichletHone(const FunFEM<Mesh> &gh, const Mesh &Th, std::list<int> label = {});
 
     // integral on interface
     void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {});
