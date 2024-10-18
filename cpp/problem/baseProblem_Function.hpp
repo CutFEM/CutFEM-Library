@@ -563,10 +563,13 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
     }
 }
 
+
+
 template <typename M>
 void BaseFEM<M>::addFaceContributionMixed(const itemVFlist_t &VF, const std::pair<int, int> &e1,
                                           const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
 
+    
     typedef typename FElement::RdHatBord RdHatBord;
 
     // CHECK IF IT IS FOR RHS OR MATRIX
@@ -585,6 +588,7 @@ void BaseFEM<M>::addFaceContributionMixed(const itemVFlist_t &VF, const std::pai
     // double measK = Ki.measure() + Kj.measure();
     // double meas  = Ki.mesureBord(ifac);
     // double h     = 0.5 * (Ki.get_h() + Kj.get_h());
+
     int domain = 0;
     // FKi.get_domain();
     //  Rd normal    = Ki.N(ifac);
@@ -601,6 +605,9 @@ void BaseFEM<M>::addFaceContributionMixed(const itemVFlist_t &VF, const std::pai
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
+
+        assert(Vhv.get_mesh().get_nb_domain() == 1);
+        assert(Vhu.get_mesh().get_nb_domain() == 1);
 
         const int kfac = VF[l].onWhatElementIsTestFunction(ifac, jfac);
         const int kbv  = VF[l].onWhatElementIsTestFunction(kbi, kbj);
@@ -698,6 +705,112 @@ void BaseFEM<M>::addPatchContribution(const itemVFlist_t &VF, const int k, const
         assert(Vhv.get_nb_element() == Vhu.get_nb_element());
         const int kv = VF[l].onWhatElementIsTestFunction(k, kn);
         const int ku = VF[l].onWhatElementIsTrialFunction(k, kn);
+
+        int kbv = Vhv.idxElementInBackMesh(kv);
+        int kbu = Vhu.idxElementInBackMesh(ku);
+
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
+        this->initIndex(FKu, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT
+
+        for (auto e : {k, kn}) {
+
+            const FElement &FK(Vh[e]);
+            const Element &K(FK.T);
+            double measK = K.measure();
+            int domain   = FK.get_domain();
+            double h     = K.get_h();
+
+            double coef = VF[l].computeCoefElement(h, measK, measK, measK, domain);
+
+            // LOOP OVER QUADRATURE IN SPACE
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+                typename QF::QuadraturePoint ip(qf[ipq]);
+                const Rd mip = K.mapToPhysicalElement(ip);
+
+                double Cint = measK * ip.getWeight() * cst_time;
+
+                // TODO: Get extended basis functions and compute their difference
+
+                FKv.BF(Fop, FKv.T.mapToReferenceElement(mip), fv);
+                if (!same)
+                    FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
+
+                Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu, kbv), std::make_pair(domain, domain),
+                                                               mip, tid);
+                Cint *= coef * VF[l].c;
+
+                if (In) {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+                } else {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+                }
+            }
+        }
+    }
+}
+
+template <typename M>
+void BaseFEM<M>::addPatchContributionMixed(const itemVFlist_t &VF, const int kb, const int kbn, const TimeSlab *In, int itq,
+                                      double cst_time) {
+
+    // typedef typename FElement::RdHat RdHat;
+
+    // CHECK IF IT IS FOR RHS OR MATRIX
+    // CONVENTION k < kn
+    bool to_rhs = VF.isRHS();
+
+    // Compute parameter coonected to the mesh.
+    // on can take the one from the first test function
+    const FESpace &Vh(*VF[0].fespaceV);
+    // const FElement &FK(Vh[k]);
+    // const FElement &FKn(Vh[kn]);
+    // const Element &K(FK.T);
+    // const Element &Kn(FKn.T);
+    // double measK  = K.measure();
+    // double measKn = Kn.measure();
+    // double h      = 0.5 * (K.get_h() + Kn.get_h());
+    // int domain    = FK.get_domain();
+
+    // kb, kbn are the indices of the elements in the back mesh
+    const int k = Vh.idxElementFromBackMesh(kb, 0);
+    const int kn = Vh.idxElementFromBackMesh(kbn, 0);
+
+    // GET THE QUADRATURE RULE
+    const QF &qf(this->get_quadrature_formular_K());
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for (int l = 0; l < VF.size(); ++l) {
+        // if(!VF[l].on(domain)) continue;
+
+        // FINTE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+        
+        assert(Vhv.get_mesh().get_nb_domain() == 1);
+        assert(Vhu.get_mesh().get_nb_domain() == 1);
+
+        const int ku = VF[l].onWhatElementIsTrialFunction(k, kn);
+        const int kv = VF[l].onWhatElementIsTestFunction(k, kn);
 
         int kbv = Vhv.idxElementInBackMesh(kv);
         int kbu = Vhu.idxElementInBackMesh(ku);
@@ -1016,7 +1129,8 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::li
                             dof2set.insert({df_glob, gh(df_glob)});
                         }
 
-                    } else if (id_item < K.nv + K.ne) {
+                    } 
+                    else if (id_item < K.nv + K.ne) {
                         // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
                         int id_face = id_item - K.nv;
                         if (id_face == ifac) {
@@ -1050,11 +1164,12 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
         bar += gamma.next_element();
-        if (util::contain(label, face.lab) || all_label) {
+        //! Outcommented the below because it makes high-order DG fail
+        // if (util::contain(label, face.lab) || all_label) {
 
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
             this->addLocalContribution();
-        }
+        // }
     }
     bar.end();
 }
@@ -1375,7 +1490,14 @@ void BaseFEM<M>::addInterfaceContribution(const itemVFlist_t &VF, const Interfac
     }
 }
 
-// ! Add addInterfaceContribution for function evaluation (rhs)
+// ! FIXME: This doesn't work for the following case (see lagr_nit_fictitious.cpp), I think the issue lies when variables are defined on surface meshes:
+/*
+stokes.addLinear(
+    fun_u, 
+    - innerProduct(1., omega*n)
+    , surface
+);
+*/
 template <typename M>
 template <typename Fct>
 void BaseFEM<M>::addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,

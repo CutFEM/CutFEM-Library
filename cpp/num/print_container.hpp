@@ -20,6 +20,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <map>
 #include <span>
 #include <unordered_map>
+#include <set>
 #include <vector>
 
 template <typename T> std::ostream &operator<<(std::ostream &o, const std::vector<T> &v) {
@@ -35,6 +36,22 @@ template <typename T> std::ostream &operator<<(std::ostream &o, const std::vecto
     }
     // Write out the last item
     o << v.back() << "]";
+    return o;
+}
+
+template <typename T> std::ostream &operator<<(std::ostream &o, const std::set<T> &v) {
+    o << "{";
+    if (v.empty()) {
+        o << "}";
+        return o;
+    }
+    // For every item except the last write "Item, "
+    int i = 0;
+    for (auto it = v.begin(); it != --v.end(); it++, ++i) {
+        o << *it << ((i % 5) == 4 ? "\n\t" : "\t");
+    }
+    // Write out the last item
+    o << *v.rbegin() << "}";
     return o;
 }
 

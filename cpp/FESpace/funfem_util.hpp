@@ -2,7 +2,63 @@
 #define FUNFEM_UTILHPP
 
 #include "expression.hpp"
+#include "../common/SparseMatMap.hpp"
 
+
+template <typename Mesh>
+std::vector<size_t> getBoundaryDof( const GFESpace<Mesh> &Vh, std::list<int> label = {}) {
+
+    bool all_label = (label.size() == 0);
+    std::vector<size_t> dof2set;
+    dof2set.clear();
+    const auto &Th(Vh.Th);
+
+    // Loop through all fitted boundary elements 
+    for (int idx_be = Th.first_boundary_element(); idx_be < Th.last_boundary_element();
+         idx_be += Th.next_boundary_element()) {
+
+        int ifac;
+        const int kb          = Th.BoundaryElement(idx_be, ifac);
+        // std::vector<int> idxK = Th.idxAllElementFromBackMesh(kb, -1);
+        // int k                 = idxK[0];
+        int k      = Vh.idxElementInBackMesh(kb);
+
+        // assert(idxK.size() == 1);
+        
+        const auto &K(Th[kb]);
+        const auto &BE(Th.be(idx_be));
+        const auto &FK(Vh[k]);
+
+        if (util::contain(label, BE.lab) || all_label) {
+            // for( int ic=0; ic<Vh.N;++ic) {
+            
+            // DOF for BDM is only one component (v*n)
+            for (int ic = 0; ic < 1; ++ic) {
+
+                // Loop over degrees of freedom of current element
+                for (int df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df) {
+
+                    int id_item = FK.DFOnWhat(df);
+
+                    if (id_item < K.nv) {
+                        assert(0);
+                    } else if (id_item < K.nv + K.ne) {
+                        // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
+                        int id_face = id_item - K.nv;
+                        if (id_face == ifac) {
+                            size_t df_glob = FK.loc2glb(df);
+                            dof2set.push_back(df_glob);
+                        }
+                    } else {
+                        // std::cout << " on face  " << FK.DFOnWhat(df) << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    return dof2set;
+}
 
 template <typename Mesh>
 std::vector<size_t> getBoundaryDof( const CutFESpace<Mesh> &Vh, const TimeSlab &In, std::list<int> label = {}) {

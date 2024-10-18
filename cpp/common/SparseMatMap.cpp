@@ -228,6 +228,34 @@ void eraseAndSetRow(int N, std::map<std::pair<int, int>, double> &A, std::span<d
     }
 }
 
+
+void eraseAndSetRowCol(int N, std::map<std::pair<int, int>, double> &A, std::span<double> b,
+                    std::map<int, double> &dof2rm) {
+
+    std::map<std::pair<int,int>,double> C;
+    std::map<std::pair<int, int>, double> P;
+    for (int i = 0; i < N; ++i) {
+        P[std::make_pair(i, i)] = 1;
+    }
+
+    for (auto &p : dof2rm) {
+        int i0                    = p.first;
+        P[std::make_pair(i0, i0)] = 0;
+        util::at(b, i0)           = p.second;
+    }
+
+    SparseMatrixRC<double> AA(N, N, A);
+    SparseMatrixRC<double> PP(N, N, P);
+    multiply(PP, AA, C);
+        SparseMatrixRC<double> CC(N, N, C);
+    multiply( CC, PP,  A);
+
+    for (auto &p : dof2rm) {
+        int i0                    = p.first;
+        A[std::make_pair(i0, i0)] = 1;
+    }
+}
+
 void eraseRow(int N, std::map<std::pair<int, int>, double> &A, Rn &b, std::set<int> &dof2rm) {
 
     std::map<std::pair<int, int>, double> C;
@@ -267,5 +295,8 @@ void eraseRow(int N, std::map<std::pair<int, int>, double> &A, Rn &b, std::set<i
     b.resize(nline);
     b = x;
 }
+
+
+
 
 //

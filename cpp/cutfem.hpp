@@ -33,6 +33,7 @@
 #include "FESpace/expression.hpp"
 #include "FESpace/integrationFunFEM.hpp"
 #include "FESpace/paraview.hpp"
+#include "FESpace/funfem_util.hpp"
 
 #include "solver/solver.hpp"
 
@@ -43,3 +44,4 @@
 #include "problem/solver_curvature.hpp"
 #include "problem/solver_stokes.hpp"
 #include "problem/time_scheme.hpp"
+

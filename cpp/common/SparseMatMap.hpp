@@ -52,6 +52,7 @@ void buil_CSR_array(int n, const std::map<std::pair<int, int>, R> &M, int32_t *p
 void multiply(int N, const std::map<std::pair<int, int>, double> &A, const std::map<std::pair<int, int>, double> &B,
               std::map<std::pair<int, int>, double> &C);
 void eraseAndSetRow(int N, std::map<std::pair<int, int>, double> &A, std::span<R> b, std::map<int, double> &dof2rm);
+void eraseAndSetRowCol(int N, std::map<std::pair<int, int>, double> &A, std::span<R> b, std::map<int, double> &dof2rm);
 void eraseAndSetRow(int N, std::map<std::pair<int, int>, double> &A, std::span<R> b, int, int, double);
 void eraseRow(int N, std::map<std::pair<int, int>, double> &A, std::span<R> b, std::set<int> &dof2rm);
 
