@@ -542,7 +542,7 @@ std::vector<double> solve(GFESpace<Mesh2> &Vh, GFESpace<Mesh2> &Ph, FunFEM<Mesh2
 
     const auto &Kh            = Vh.Th;
     double hi                 = Kh[0].hElement();
-    double boundary_penalty   = 100. / hi;
+    double boundary_penalty   = 1. / hi;
     double tangential_penalty = 1. / hi;
     double kappa1             = 0.5;
     double kappa2             = 0.5;
