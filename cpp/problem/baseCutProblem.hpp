@@ -142,6 +142,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     template <typename L>
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                                const AlgoimMacro<Mesh, L> &);
+    void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
+                               const MacroElementPartition<Mesh> &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const MacroElement<Mesh> &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In);
