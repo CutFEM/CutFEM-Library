@@ -30,7 +30,7 @@ MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
       mat(AA), rhs(bb), cleanMatrix(s.clearMatrix_) {
 
     //    if(MPIcf::size() > 1) assert(0);
-    LOG_INFO << "MUMPS solver is used" << logger::endl;
+    // LOG_INFO << "MUMPS solver is used" << logger::endl;
     initializeSetting();
     setDoF();
     saveMatrixToCSR();
