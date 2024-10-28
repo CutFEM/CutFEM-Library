@@ -301,6 +301,30 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, int itq
     }
 }
 
+
+template <typename M>
+template <typename Fct>
+void BaseCutFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+    assert(VF.isRHS());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time);
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isInactive(k, itq))
+            continue;
+
+        if (Th.isCut(k, itq))
+            addElementContribution(f, VF, k, &In, itq, 1.);
+        else
+            BaseFEM<M>::addElementContribution(f, VF, k, &In, itq, 1.);
+
+        this->addLocalContribution();
+    }
+}
+
 template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In) {
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
         addLinear(VF, Th, In, itq);

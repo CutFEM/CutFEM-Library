@@ -396,7 +396,7 @@ void BaseFEM<M>::addElementContribution(const Fct &f, const itemVFlist_t &VF, co
         // LOOP OVER QUADRATURE IN SPACE
         for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
             typename QF::QuadraturePoint ip(qf[ipq]);
-            const Rd mip = K.mapToPhysicalElement(ip);
+            Rd mip = K.mapToPhysicalElement(ip);
             double Cint  = meas * ip.getWeight() * cst_time;
 
             // EVALUATE THE BASIS FUNCTIONS
