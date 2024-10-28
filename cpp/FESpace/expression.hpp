@@ -81,6 +81,9 @@ class FunFEMVirtual {
     double *data_ = nullptr; ///< data //?
     KN_<double> v;           ///< coefficients in the degrees of freedom
 
+    // std::vector<double> allocated_data;
+    // std::span<double> accesor_data;
+
     FunFEMVirtual() : v(data_, 0) {}
     FunFEMVirtual(int df) : data_(new double[df]), v(data_, df) { v = 0.; }
     FunFEMVirtual(KN_<double> &u) : v(u) {}
@@ -110,6 +113,7 @@ class FunFEMVirtual {
     const KN_<double> &getArray() const { return v; }
     const KN_<double> &array() const { return v; }
     const double *data() const { return v.data(); }
+    // const double *data() const { return v.data(); }
 };
 
 /**
@@ -172,7 +176,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
         : FunFEMVirtual(vh.NbDoF()), alloc(true), Vh(&vh), databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
         interpolate(*Vh, this->v, f, tid);
     }
-    
+
     // template <typename fun_t>
     // FunFEM(const FESpace &vh, const TimeSlab &in, fun_t f)
     // // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
@@ -183,7 +187,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     template <typename fct_t>
         requires FunctionLevelSetTime<fct_t> || FunctionDomainTime<fct_t> || FunctionScalar<fct_t>
     FunFEM(const FESpace &vh, const TimeSlab &in, fct_t f)
-    // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
+        // FunFEM(const FESpace &vh, const TimeSlab &in, R (*f)(double *, int i, R tt))
         : FunFEMVirtual(vh.NbDoF() * in.NbDoF()), alloc(true), Vh(&vh), In(&in),
           databf(new double[10 * vh[0].NbDoF() * vh.N * 4]) {
         interpolate(*Vh, *In, this->v, f);
@@ -726,6 +730,8 @@ std::shared_ptr<ExpressionSum> operator+(const std::shared_ptr<ExpressionVirtual
 std::shared_ptr<ExpressionSum> operator-(const std::shared_ptr<ExpressionVirtual> &f1,
                                          const std::shared_ptr<ExpressionVirtual> &f2);
 
+
+
 class ExpressionNormal2 : public ExpressionVirtual {
     typedef Mesh2 M;
     const FunFEM<M> &fun;
@@ -783,6 +789,64 @@ class ExpressionNormal2 : public ExpressionVirtual {
 std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Normal &n);
 std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Tangent &n);
 std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Conormal &n);
+
+class ExpressionNormal2Q : public ExpressionVirtual {
+    typedef MeshQuad2 M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> uxnx, uyny;
+    double c0 = 1;
+
+  public:
+    ExpressionNormal2Q(const FunFEM<M> &fh1, const Normal n)
+        : fun(fh1), uxnx(fh1, 0, op_id, 0, 0), uyny(fh1, 1, op_id, 0, 0) {
+        assert(fh1.Vh->N != 1);
+        uxnx.addNormal(0);
+        uyny.addNormal(1);
+    }
+    ExpressionNormal2Q(const FunFEM<M> &fh1, const Tangent t)
+        : fun(fh1), uxnx(fh1, 0, op_id, 0, 0), uyny(fh1, 1, op_id, 0, 0) {
+        assert(fh1.Vh->N != 1);
+        uxnx.addNormal(1);
+        uyny.addNormal(0);
+        c0 = -1;
+    }
+    ExpressionNormal2Q(const FunFEM<M> &fh1, const Conormal n)
+        : fun(fh1), uxnx(fh1, 0, op_id, 0, 0), uyny(fh1, 1, op_id, 0, 0) {
+        assert(fh1.Vh->N != 1);
+        uxnx.addNormal(0);
+        uyny.addNormal(1);
+    }
+
+    R operator()(long i) const {
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        std::cout << " evaluating f*n expression withoutr giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return c0 * uxnx.evalOnBackMesh(k, dom, x, normal) + uyny.evalOnBackMesh(k, dom, x, normal);
+    }
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return c0 * uxnx.evalOnBackMesh(k, dom, x, t, normal) + uyny.evalOnBackMesh(k, dom, x, t, normal);
+    }
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+    ~ExpressionNormal2Q() {}
+};
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Normal &n);
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Tangent &n);
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Conormal &n);
 
 class ExpressionNormal3 : public ExpressionVirtual {
     typedef Mesh3 M;
@@ -1010,7 +1074,37 @@ class ExpressionNormalCrossZ3 : public ExpressionVirtual {
 //     ~ExpressionNormalCross3() {}
 // };
 
-std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
+// std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n);
+std::vector<std::shared_ptr<ExpressionVirtual>> cross(const Normal &n, const FunFEM<Mesh3> &f1);
+
+
+
+/* 3D Curl of a FunFEM */
+class ExpressionCurl3D {
+public:
+    typedef Mesh3 M;
+    const FunFEM<M> &fun;
+
+    ExpressionCurl3D(const FunFEM<M> &fh1)
+        : fun(fh1)
+    {}
+
+    std::vector<std::shared_ptr<ExpressionVirtual>> operator()() const {
+        return {
+            dy(fun.expr(2)) - dz(fun.expr(1)),  // d/dy(u_z) - d/dz(u_y)
+            dz(fun.expr(0)) - dx(fun.expr(2)),  // d/dz(u_x) - d/dx(u_z)
+            dx(fun.expr(1)) - dy(fun.expr(0))   // d/dx(u_y) - d/dy(u_x)
+        };
+    }
+};
+
+// Function to create and return the curl components directly
+std::vector<std::shared_ptr<ExpressionVirtual>> curl(const FunFEM<Mesh3>& uh);
+
+
+
+
+
 
 // divS for 2d
 template <typeMesh M> class ExpressionDSx2 : public ExpressionVirtual {

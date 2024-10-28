@@ -225,7 +225,7 @@ template <typename M> void BaseFEM<M>::setDiagonal(const FESpace &Qh, double val
 template <typename Mesh> void BaseFEM<Mesh>::addBilinear(const itemVFlist_t &VF, const Mesh &Th) {
     assert(!VF.isRHS());
     progress bar("Add Bilinear Mesh", Th.last_element(), globalVariable::verbose);
-
+#pragma omp parallel for num_threads(this->get_num_threads())
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
         BaseFEM<Mesh>::addElementContribution(VF, k, nullptr, 0, 1.);
@@ -325,6 +325,90 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
             // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
             Cint *= coef * VF[l].c;
+
+            if (In) {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint); //, iam);
+            }
+        }
+    }
+}
+
+template <typename M>
+template <typename Fct>
+void BaseFEM<M>::addElementContribution(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
+                                        double cst_time) {
+
+    // CHECK IF IT IS FOR RHS OR MATRIX
+    bool to_rhs = VF.isRHS();
+
+    // Compute parameter coonected to the mesh.
+    // on can take the one from the first test function
+    const FESpace &Vh(*VF[0].fespaceV);
+    const FElement &FK(Vh[k]);
+    const Element &K(FK.T);
+    double meas = K.measure();
+    double h    = K.get_h();
+    int domain  = FK.get_domain();
+    int kb      = Vh.idxElementInBackMesh(k);
+    int iam     = omp_get_thread_num();
+
+    // GET THE QUADRATURE RULE
+    const QF &qf(this->get_quadrature_formular_K());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for (int l = 0; l < VF.size(); ++l) {
+        if (!VF[l].on(domain))
+            continue; //! This was outcommented before, why?
+
+        // FINTE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+        const FElement &FKv(Vhv[k]);
+        const FElement &FKu(Vhu[k]);
+        this->initIndex(FKu, FKv); //, iam);
+
+        // BF MEMORY MANAGEMENT -
+        bool same   = (&Vhu == &Vhv);
+        int lastop  = getLastop(VF[l].du, VF[l].dv);
+        // RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for
+        // basic fonction RNMK_ fu(this->databf_+ (same
+        // ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the value
+        // for basic fonction
+        long offset = iam * this->offset_bf_;
+        RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
+                 lastop); //  the value for basic fonction
+        RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT
+        double coef = VF[l].computeCoefElement(h, meas, meas, meas, domain);
+
+        // LOOP OVER QUADRATURE IN SPACE
+        for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+            typename QF::QuadraturePoint ip(qf[ipq]);
+            Rd mip = K.mapToPhysicalElement(ip);
+            double Cint  = meas * ip.getWeight() * cst_time;
+
+            // EVALUATE THE BASIS FUNCTIONS
+            FKv.BF(Fop, ip, fv);
+            if (!same)
+                FKu.BF(Fop, ip, fu);
+            //   VF[l].applyFunNL(fu,fv);
+
+            // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+            Cint *= coef * VF[l].c;
+            Cint *= f(mip, VF[l].cv, domain);
 
             if (In) {
                 if (VF.isRHS())
@@ -479,10 +563,13 @@ void BaseFEM<M>::addFaceContribution(const itemVFlist_t &VF, const std::pair<int
     }
 }
 
+
+
 template <typename M>
 void BaseFEM<M>::addFaceContributionMixed(const itemVFlist_t &VF, const std::pair<int, int> &e1,
                                           const std::pair<int, int> &e2, const TimeSlab *In, int itq, double cst_time) {
 
+    
     typedef typename FElement::RdHatBord RdHatBord;
 
     // CHECK IF IT IS FOR RHS OR MATRIX
@@ -501,6 +588,7 @@ void BaseFEM<M>::addFaceContributionMixed(const itemVFlist_t &VF, const std::pai
     // double measK = Ki.measure() + Kj.measure();
     // double meas  = Ki.mesureBord(ifac);
     // double h     = 0.5 * (Ki.get_h() + Kj.get_h());
+
     int domain = 0;
     // FKi.get_domain();
     //  Rd normal    = Ki.N(ifac);
@@ -517,6 +605,9 @@ void BaseFEM<M>::addFaceContributionMixed(const itemVFlist_t &VF, const std::pai
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
+
+        assert(Vhv.get_mesh().get_nb_domain() == 1);
+        assert(Vhu.get_mesh().get_nb_domain() == 1);
 
         const int kfac = VF[l].onWhatElementIsTestFunction(ifac, jfac);
         const int kbv  = VF[l].onWhatElementIsTestFunction(kbi, kbj);
@@ -614,6 +705,112 @@ void BaseFEM<M>::addPatchContribution(const itemVFlist_t &VF, const int k, const
         assert(Vhv.get_nb_element() == Vhu.get_nb_element());
         const int kv = VF[l].onWhatElementIsTestFunction(k, kn);
         const int ku = VF[l].onWhatElementIsTrialFunction(k, kn);
+
+        int kbv = Vhv.idxElementInBackMesh(kv);
+        int kbu = Vhu.idxElementInBackMesh(ku);
+
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
+        this->initIndex(FKu, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        bool same  = (VF.isRHS() || (&Vhu == &Vhv && ku == kv));
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT
+
+        for (auto e : {k, kn}) {
+
+            const FElement &FK(Vh[e]);
+            const Element &K(FK.T);
+            double measK = K.measure();
+            int domain   = FK.get_domain();
+            double h     = K.get_h();
+
+            double coef = VF[l].computeCoefElement(h, measK, measK, measK, domain);
+
+            // LOOP OVER QUADRATURE IN SPACE
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+                typename QF::QuadraturePoint ip(qf[ipq]);
+                const Rd mip = K.mapToPhysicalElement(ip);
+
+                double Cint = measK * ip.getWeight() * cst_time;
+
+                // TODO: Get extended basis functions and compute their difference
+
+                FKv.BF(Fop, FKv.T.mapToReferenceElement(mip), fv);
+                if (!same)
+                    FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
+
+                Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu, kbv), std::make_pair(domain, domain),
+                                                               mip, tid);
+                Cint *= coef * VF[l].c;
+
+                if (In) {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+                } else {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+                }
+            }
+        }
+    }
+}
+
+template <typename M>
+void BaseFEM<M>::addPatchContributionMixed(const itemVFlist_t &VF, const int kb, const int kbn, const TimeSlab *In, int itq,
+                                      double cst_time) {
+
+    // typedef typename FElement::RdHat RdHat;
+
+    // CHECK IF IT IS FOR RHS OR MATRIX
+    // CONVENTION k < kn
+    bool to_rhs = VF.isRHS();
+
+    // Compute parameter coonected to the mesh.
+    // on can take the one from the first test function
+    const FESpace &Vh(*VF[0].fespaceV);
+    // const FElement &FK(Vh[k]);
+    // const FElement &FKn(Vh[kn]);
+    // const Element &K(FK.T);
+    // const Element &Kn(FKn.T);
+    // double measK  = K.measure();
+    // double measKn = Kn.measure();
+    // double h      = 0.5 * (K.get_h() + Kn.get_h());
+    // int domain    = FK.get_domain();
+
+    // kb, kbn are the indices of the elements in the back mesh
+    const int k = Vh.idxElementFromBackMesh(kb, 0);
+    const int kn = Vh.idxElementFromBackMesh(kbn, 0);
+
+    // GET THE QUADRATURE RULE
+    const QF &qf(this->get_quadrature_formular_K());
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for (int l = 0; l < VF.size(); ++l) {
+        // if(!VF[l].on(domain)) continue;
+
+        // FINTE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+        
+        assert(Vhv.get_mesh().get_nb_domain() == 1);
+        assert(Vhu.get_mesh().get_nb_domain() == 1);
+
+        const int ku = VF[l].onWhatElementIsTrialFunction(k, kn);
+        const int kv = VF[l].onWhatElementIsTestFunction(k, kn);
 
         int kbv = Vhv.idxElementInBackMesh(kv);
         int kbu = Vhu.idxElementInBackMesh(ku);
@@ -932,7 +1129,8 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::li
                             dof2set.insert({df_glob, gh(df_glob)});
                         }
 
-                    } else if (id_item < K.nv + K.ne) {
+                    } 
+                    else if (id_item < K.nv + K.ne) {
                         // std::cout << " on edge  " <<FK.DFOnWhat(df) << std::endl;
                         int id_face = id_item - K.nv;
                         if (id_face == ifac) {
@@ -955,6 +1153,60 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::li
     eraseAndSetRow(this->get_nb_dof(), *this->pmat_[0], this->rhs_, dof2set);
 }
 
+// set Dirichlet BC strongly for H¹, ie nodes (3D)
+template <typename Mesh>
+void BaseFEM<Mesh>::setDirichletHone(const FunFEM<Mesh> &gh, const Mesh &Th, std::list<int> label) {
+    std::cout << "WARNING (setDirichletH1): This sets H1 DOFs only (in 3D!)" << std::endl;
+
+    bool all_label = (label.size() == 0);    // Check if we need to apply to all labels
+    std::map<int, double> dof2set;    // Map to store degrees of freedom (DOFs) and their corresponding values to be set
+    const FESpace &Vh(gh.getSpace());    // Get the finite element space from the provided FunFEM object
+
+    int dof_init = this->mapIdx0_[&Vh]; // Get the FIRST index of the finite element space in the list of finite element spaces
+
+    // Iterate over each boundary element in the cut mesh
+    for (int idx_be = Th.first_boundary_element(); idx_be < Th.last_boundary_element(); idx_be += Th.next_boundary_element()) {
+        
+        int idx_bdry_face;                                        // Index of the boundary face in the boundary element
+        const int k = Th.BoundaryElement(idx_be, idx_bdry_face);
+
+        // assert(idxK.size() == 1);
+        const Element &K(Th[k]);
+        const BorderElement &BE(Th.be(idx_be));
+        const FElement &FK(Vh[k]);
+
+        // Check if the current boundary element label is in the list of labels to process, or if all labels are being processed
+        if (util::contain(label, BE.lab) || all_label) {
+            
+            for (int df = FK.dfcbegin(0); df < FK.dfcend(0); ++df) { // Iterate over each degree of freedom (DOF)
+                int id_item = FK.DFOnWhat(df); // Get the item (vertex/edge/face) that the DOF is associated with
+
+                // Ensure the DOF is NOT associated with an edge or a face
+                assert(!(id_item >= K.nv));
+                // std::cout << K.edgeOfFace[idx_face] << id_edge << std::endl;
+                auto nodes = K.nvface[idx_bdry_face]; // Check that edge is on boundary
+                if (id_item == nodes[0] || id_item == nodes[1] || id_item == nodes[2]) {
+                    // Get the global index of the DOF
+                    // std::cout << (dof_init-1) + FK.loc2glb(df) << " : " << this->get_nb_dof() << std::endl;
+                    int dof = FK.loc2glb(df);
+                    int df_glob = dof_init + dof; // correct place in Matrix
+                    // Insert the DOF and its corresponding value into the map
+                    dof2set.insert({df_glob, gh(dof)});
+                }
+            }
+        }
+    }
+
+    // Ensure there's exactly one matrix in the problem
+    assert(this->pmat_.size() == 1);
+
+    // Modify the matrix and the right-hand side to enforce the Dirichlet boundary conditions
+    // eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
+    eraseAndSetRowCol(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
+}
+
+
+
 // INTEGRATION ON INTERFACE
 // On Faces
 template <typename M>
@@ -966,11 +1218,12 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
         bar += gamma.next_element();
-        if (util::contain(label, face.lab) || all_label) {
+        //! Outcommented the below because it makes high-order DG fail
+        // if (util::contain(label, face.lab) || all_label) {
 
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
             this->addLocalContribution();
-        }
+        // }
     }
     bar.end();
 }
@@ -1031,11 +1284,12 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &gam
          iface += gamma[itq]->next_element()) {
         bar += gamma[itq]->next_element();
         const typename Interface<M>::Face &face = (*gamma[itq])[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        // std::cout << "label " << label << ", face.lab " << face.lab << std::endl;
+        // if (util::contain(label, face.lab) || all_label) {
 
-            addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
-            this->addLocalContribution();
-        }
+        addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
+        this->addLocalContribution();
+        //}
     }
     bar.end();
 }
@@ -1054,6 +1308,27 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, st
         if (util::contain(label, face.lab) || all_label) {
 
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
+        }
+    }
+
+    bar.end();
+}
+
+template <typename M>
+template <typename Fct>
+void BaseFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const Interface<M> &gamma, std::list<int> label) {
+    assert(VF.isRHS());
+    bool all_label = (label.size() == 0);
+    progress bar(" Add Linear Interface", gamma.last_element(), globalVariable::verbose);
+
+    for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
+        bar += gamma.next_element();
+
+        const typename Interface<M>::Face &face = gamma[iface]; // the face
+
+        if (util::contain(label, face.lab) || all_label) {
+
+            addInterfaceContribution(f, VF, gamma, iface, 0., nullptr, 1., 0);
         }
     }
 
@@ -1269,7 +1544,14 @@ void BaseFEM<M>::addInterfaceContribution(const itemVFlist_t &VF, const Interfac
     }
 }
 
-// ! Add addInterfaceContribution for function evaluation (rhs)
+// ! FIXME: This doesn't work for the following case (see lagr_nit_fictitious.cpp), I think the issue lies when variables are defined on surface meshes:
+/*
+stokes.addLinear(
+    fun_u, 
+    - innerProduct(1., omega*n)
+    , surface
+);
+*/
 template <typename M>
 template <typename Fct>
 void BaseFEM<M>::addInterfaceContribution(const Fct &f, const itemVFlist_t &VF, const Interface<M> &interface, int ifac,

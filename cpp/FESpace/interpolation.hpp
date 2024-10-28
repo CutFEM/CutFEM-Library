@@ -22,6 +22,41 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 // #include "../parallel/cfmpi.hpp"
 
+template <Space F, typename T> void interpolate(const F &Mh, std::span<double> data, std::shared_ptr<T> &f) {
+
+    typedef typename F::Rd Rd;
+    typedef typename F::Element::RdHat RdHat;
+    // Rn fhSend(Mh.nbDoF); fhSend = 1e+50;
+    assert(data.size() == Mh.nbDoF);
+    const int d   = 1;
+    const int nve = Mh.MaxNbNodePerElement;
+    KNM<R> Vpf(nve, 1);              // value of f at the interpolation points
+    KN<R> ggf(Mh.MaxNbDFPerElement); // stock the values of the dof of the interpolate
+
+    progress bar(" Interpolating", Mh.NbElement(), globalVariable::verbose);
+    // for (int t=Mh.first_element();t<Mh.last_element();
+    //      t+= Mh.next_element()) {      // loop over element
+    for (int t = 0; t < Mh.NbElement(); t += 1) {
+        bar += 1;
+        typename F::FElement K(Mh[t]);
+        const int nbdf = K.NbDoF(); // nof local
+
+        for (int p = 0; p < K.tfe->NbPtforInterpolation; p++) { // all interpolation points
+            Rd P(K.Pt(p));                                      // the coordinate of P in K hat
+            Vpf(p, 0) = f->eval(t, P, nullptr);
+        }
+
+        K.Pi_h(Vpf, ggf);
+        for (int df = 0; df < nbdf; df++) {
+            // fhSend[K(df)] =  ggf[df] ;
+            data[K(df)] = ggf[df];
+        }
+    }
+
+    bar.end();
+    // MPIcf::AllReduce(fhSend, fh, MPI_MIN);
+}
+
 /*
 Interpolate f : Rd->R    on space Vh
 - output : fh contains the values
@@ -276,7 +311,8 @@ template <Space F> void interpolate(const F &Mh, KN_<double> fh, R (*f)(double *
 Interpolate f : Rd->R    on space time Vh
 - output : fh contains the values
 */
-template <Space F, FunctionLevelSetTime fct_t> void interpolate(const F &Mh, const TimeSlab &In, KN_<double> fh, fct_t f) {
+template <Space F, FunctionLevelSetTime fct_t>
+void interpolate(const F &Mh, const TimeSlab &In, KN_<double> fh, fct_t f) {
     // std::cout << " need to double check this interpolate function and add MPI"
     // << std::endl; assert(0);
     typedef typename F::Rd Rd;

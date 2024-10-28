@@ -219,6 +219,56 @@ template <typename M> double integral(const ActiveMesh<M> &Th, const FunFEM<M> &
     return val;
 }
 
+template <typename M, typename Fct> 
+double integral(const ActiveMesh<M> &Th, const Fct &fh, int c0, int itq) {
+    
+    typedef M Mesh;
+    typedef typename Mesh::Element Element;
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QF QF;
+    typedef typename FElement::Rd Rd;
+    typedef typename QF::QuadraturePoint QuadraturePoint;
+
+    const QF &qf(*QF_Simplex<typename FElement::RdHat>(5));
+
+    double val = 0.;
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        const int domain = Th.get_domain_element(k);
+        assert(domain == 0);
+        // if (Th.get_domain_element(k) != 1)
+        //     continue;
+
+        if (Th.isInactive(k, itq))
+            continue;
+
+        const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
+        int kb = Th.idxElementInBackMesh(k);
+        for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+
+            const R meas = cutK.measure(it);
+
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+                QuadraturePoint ip(qf[ipq]); // integration point
+                Rd mip       = cutK.mapToPhysicalElement(it, ip);
+                const R Cint = meas * ip.getWeight();
+                val += Cint * fh(mip, c0, domain);
+            }
+        }
+    }
+    double val_receive = 0;
+
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+    return val_receive;
+}
+
 template <typename M> double integral(const ActiveMesh<M> &Th, const FunFEM<M> &fh, int c0, int domain, int itq) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
@@ -245,6 +295,7 @@ double integral(const ActiveMesh<M> &Th, const std::shared_ptr<const ExpressionV
     }
     return val;
 }
+
 template <typename M>
 double integral(const ActiveMesh<M> &Th, const std::shared_ptr<const ExpressionVirtual> &fh, int domain, int itq) {
     typedef M Mesh;
@@ -280,6 +331,55 @@ double integral(const ActiveMesh<M> &Th, const std::shared_ptr<const ExpressionV
                 const R Cint = meas * ip.getWeight();
 
                 val += Cint * fh->evalOnBackMesh(kb, domain, mip);
+            }
+        }
+    }
+    double val_receive = 0;
+
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+    return val_receive;
+}
+
+
+
+template <typename M, typename Fct>
+double integral_exact(const Fct &fh, const ActiveMesh<M> &Th) {
+    typedef M Mesh;
+    typedef typename Mesh::Element Element;
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QF QF;
+    typedef typename FElement::Rd Rd;
+    typedef typename QF::QuadraturePoint QuadraturePoint;
+
+    const QF &qf(*QF_Simplex<typename FElement::RdHat>(5));
+
+    double val = 0.;
+
+    const int domain = 0;
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (domain != Th.get_domain_element(k))
+            continue;
+
+        const Cut_Part<Element> cutK(Th.get_cut_part(k, 0));
+        int kb = Th.idxElementInBackMesh(k);
+        for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+
+            const R meas = cutK.measure(it);
+
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+                QuadraturePoint ip(qf[ipq]); // integration point
+                Rd mip       = cutK.mapToPhysicalElement(it, ip);
+                const R Cint = meas * ip.getWeight();
+                const int comp = 0;
+                val += Cint * fh(mip, comp, domain);
             }
         }
     }

@@ -50,11 +50,18 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In);
     void addBilinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In, int itq);
     void addLinear(const itemVFlist_t &VF, const CutMesh &);
+    template <typename Fct>
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const CutMesh &);
+    template <typename Fct>
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In);
     void addLinear(const itemVFlist_t &VF, const CutMesh &, int itq, const TimeSlab &In);
     void addLinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In);
     void addLinear(const itemVFlist_t &VF, const CutMesh &Th, const TimeSlab &In, int itq);
     virtual void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                         double cst_time);
+    template <typename Fct>
+    void addElementContribution(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
+                                double cst_time);
 
     void addBilinear(const itemVFlist_t &, const CutMesh &, const CExtension &, const int);
     void addLinear(const itemVFlist_t &, const CutMesh &, const CExtension &, const int);
@@ -88,6 +95,8 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
 
     void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
     void setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &Th, const TimeSlab &In, std::list<int> label = {});
+    void setDirichletHcurl(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
+    void setDirichletHone(const FunFEM<Mesh> &gh, const CutMesh &Th, std::list<int> label = {});
 
     // integral on interface
     using BaseFEM<Mesh>::addBilinear;
@@ -135,10 +144,13 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     template <typename L>
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
                                const AlgoimMacro<Mesh, L> &);
+    void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In,
+                               const MacroElementPartition<Mesh> &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const MacroElement<Mesh> &);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In);
     void addPatchStabilization(const itemVFlist_t &VF, const CutMesh &, const TimeSlab &In, const int itq);
+    void addPatchStabilizationMixed(const itemVFlist_t &VF, const CutMesh &Th);
 
     // Lagrange multiplier
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &);

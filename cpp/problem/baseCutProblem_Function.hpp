@@ -32,14 +32,11 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 template <typename M> void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
-
-    double t0 = MPIcf::Wtime();
-
     progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
 #pragma omp parallel for num_threads(this->get_num_threads())
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
-        // bar += Th.next_element();
+        bar += Th.next_element();
 
         if (Th.isCut(k, 0)) {
             addElementContribution(VF, k, nullptr, 0, 1.);
@@ -197,11 +194,11 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, int i
 }
 
 /**
- * @brief Add bilinear in specific time 
- * 
- * @tparam M 
- * @param VF 
- * @param Th 
+ * @brief Add bilinear in specific time
+ *
+ * @tparam M
+ * @param VF
+ * @param Th
  * @param t
  */
 // template <typename M>
@@ -245,7 +242,6 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const CutMesh &Th, int i
 //     bar.end();
 // }
 
-
 template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(VF.isRHS());
     progress bar(" Add Linear CutMesh", Th.last_element(), globalVariable::verbose);
@@ -266,6 +262,24 @@ template <typename M> void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, cons
 }
 
 template <typename M>
+template <typename Fct>
+void BaseCutFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(VF.isRHS());
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isCut(k, 0)) {
+            addElementContribution(f, VF, k, nullptr, 0, 1.);
+        } else {
+            BaseFEM<M>::addElementContribution(f, VF, k, nullptr, 0, 1.);
+        }
+        // if(Th.isCut(k, 0))  BaseCutFEM<M>::addElementContribution(VF,
+        // k,nullptr, 0, 1.); else BaseFEM<M>::addElementContribution(VF,
+        // k,nullptr, 0, 1.);
+    }
+}
+
+template <typename M>
 void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
     assert(VF.isRHS());
     auto tq    = this->get_quadrature_time(itq);
@@ -282,6 +296,30 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const CutMesh &Th, int itq
             addElementContribution(VF, k, &In, itq, 1.);
         else
             BaseFEM<M>::addElementContribution(VF, k, &In, itq, 1.);
+
+        this->addLocalContribution();
+    }
+}
+
+
+template <typename M>
+template <typename Fct>
+void BaseCutFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const CutMesh &Th, int itq, const TimeSlab &In) {
+    assert(VF.isRHS());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = In.map(tq);
+    KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+    RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+    In.BF(tq.x, bf_time);
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isInactive(k, itq))
+            continue;
+
+        if (Th.isCut(k, itq))
+            addElementContribution(f, VF, k, &In, itq, 1.);
+        else
+            BaseFEM<M>::addElementContribution(f, VF, k, &In, itq, 1.);
 
         this->addLocalContribution();
     }
@@ -391,6 +429,100 @@ void BaseCutFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, 
                 // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
                 Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
                 Cint *= coef * VF[l].c;
+
+                if (In) {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+                } else {
+                    if (VF.isRHS())
+                        this->addToRHS(VF[l], FKv, fv, Cint);
+                    else
+                        this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+                }
+            }
+        }
+    }
+}
+
+template <typename M>
+template <typename Fct>
+void BaseCutFEM<M>::addElementContribution(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In,
+                                           int itq, double cst_time) {
+
+    // GET CUT AND COMPUTE PARAMETERS
+    const FESpace &Vh(VF.get_spaceV(0));
+    const CutMesh &Th(Vh.get_mesh());
+    const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
+    const FElement &FK(Vh[k]);
+    const Element &K(FK.T);
+
+    if (cutK.multi_interface()) {
+        assert(0);
+    } // not handled yet
+
+    double meas = K.measure();
+    double h    = K.get_h();
+    int domain  = FK.get_domain();
+    int kb      = Vh.idxElementInBackMesh(k);
+    int iam     = omp_get_thread_num();
+    // GET THE QUADRATURE RULE
+    const QF &qf(this->get_quadrature_formular_cutK());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER ELEMENTS IN THE CUT
+    for (auto it = cutK.element_begin(); it != cutK.element_end(); ++it) {
+
+        double meas_cut = cutK.measure(it);
+        // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+        for (int l = 0; l < VF.size(); ++l) {
+            if (!VF[l].on(domain))
+                continue;
+
+            // FINTE ELEMENT SPACES && ELEMENTS
+            const FESpace &Vhv(VF.get_spaceV(l));
+            const FESpace &Vhu(VF.get_spaceU(l));
+            const FElement &FKv(Vhv[k]);
+            const FElement &FKu(Vhu[k]);
+            this->initIndex(FKu, FKv);
+
+            // BF MEMORY MANAGEMENT -
+            bool same   = (&Vhu == &Vhv);
+            int lastop  = getLastop(VF[l].du, VF[l].dv);
+            // RNMK_ fv(this->databf_,FKv.NbDoF(),FKv.N,lastop); //  the value for
+            // basic fonction RNMK_ fu(this->databf_+ (same
+            // ?0:FKv.NbDoF()*FKv.N*lastop) ,FKu.NbDoF(),FKu.N,lastop); //  the
+            // value for basic fonction
+            long offset = iam * this->offset_bf_;
+            RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N,
+                     lastop); //  the value for basic function
+            RNMK_ fu(this->databf_ + offset + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N,
+                     lastop); //  the value for basic function
+            What_d Fop = Fwhatd(lastop);
+
+            // COMPUTE COEFFICIENT
+            double coef = VF[l].computeCoefElement(h, meas_cut, meas, meas_cut, domain);
+
+            // LOOP OVER QUADRATURE IN SPACE
+            for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+                typename QF::QuadraturePoint ip(qf[ipq]);
+                Rd mip      = cutK.mapToPhysicalElement(it, ip); // to the physical cut part
+                Rd cut_ip   = K.mapToReferenceElement(mip);      // back to the cut part in reference element
+                double Cint = meas_cut * ip.getWeight() * cst_time;
+
+                // EVALUATE THE BASIS FUNCTIONS
+                FKv.BF(Fop, cut_ip, fv);
+                if (!same)
+                    FKu.BF(Fop, cut_ip, fu);
+                //   VF[l].applyFunNL(fu,fv);
+
+                // FIND AND COMPUTE ALL THE COEFFICENTS AND PARAMETERS
+                Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+                Cint *= coef * VF[l].c;
+                Cint *= f(mip, VF[l].cv, domain);
 
                 if (In) {
                     if (VF.isRHS())
@@ -1252,6 +1384,135 @@ void BaseCutFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const CutMesh &cutTh
     eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
 }
 
+// set Dirichlet BC strongly for H(curl), ie edges
+template <typename Mesh>
+void BaseCutFEM<Mesh>::setDirichletHcurl(const FunFEM<Mesh> &gh, const CutMesh &cutTh, std::list<int> label) {
+    std::cout << "WARNING (setDirichletHcurl): This sets H(curl) DOFs only. This space needs to be added first to the "
+                 "CutFEM object."
+              << std::endl;
+
+    bool all_label = (label.size() == 0); // Check if we need to apply to all labels
+    std::map<int, double> dof2set;    // Map to store degrees of freedom (DOFs) and their corresponding values to be set
+    const FESpace &Vh(gh.getSpace()); // Get the finite element space from the provided FunFEM object
+
+    // Iterate over each boundary element in the cut mesh
+    for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
+         idx_be += cutTh.next_boundary_element()) {
+        int idx_edge_be; // Index of the boundary edge in the boundary element
+        const int kb =
+            cutTh.Th.BoundaryElement(idx_be, idx_edge_be); // Get the boundary element index in the original mesh
+        std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(
+            kb, -1); // Get all the indices of the active elements corresponding to the boundary element in the cut mesh
+
+        // Ensure there's exactly one active element corresponding to the boundary element
+        assert(idxK.size() == 1);
+        int k = idxK[0];
+        const FElement &FK(Vh[k]); // Get the finite element for the current element in the finite element space
+
+        // Get the current element and its boundary element
+        const Element &K(cutTh.Th[kb]);
+        const BorderElement &BE(cutTh.be(idx_be));
+
+        // Check if the current boundary element label is in the list of labels to process, or if all labels are being
+        // processed
+        if (util::contain(label, BE.lab) || all_label) {
+            // Skip processing if the element is cut
+            if (cutTh.isCut(k, 0)) {
+                continue;
+            }
+
+            for (int ic = 0; ic < Vh.N; ++ic) { // Iterate over each component in the finite element space
+                for (int df = FK.dfcbegin(ic); df < FK.dfcend(ic);
+                     ++df) { // Iterate over each degree of freedom (DOF) for the current component
+                    int id_item = FK.DFOnWhat(df); // Get the item (vertex/edge/face) that the DOF is associated with
+
+                    // Skip if the DOF is associated with a vertex
+                    if (id_item < K.nv) {
+                        continue;
+                    }
+                    // Process if the DOF is associated with an edge
+                    else if (id_item < K.nv + K.ne) {
+                        int id_edge = id_item - K.nv;
+                        if (id_edge == idx_edge_be) {
+                            // Get the global index of the DOF
+                            int df_glob = FK.loc2glb(df);
+                            // Insert the DOF and its corresponding value into the map
+                            dof2set.insert({df_glob, gh(df_glob)});
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Ensure there's exactly one matrix in the problem
+    assert(this->pmat_.size() == 1);
+
+    // Modify the matrix and the right-hand side to enforce the Dirichlet boundary conditions
+    eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
+}
+
+
+// set Dirichlet BC strongly for H¹, ie nodes (3D)
+template <typename Mesh>
+void BaseCutFEM<Mesh>::setDirichletHone(const FunFEM<Mesh> &gh, const CutMesh &cutTh, std::list<int> label) {
+    std::cout << "WARNING (setDirichletH1): This sets H1 DOFs only (in 3D!)" << std::endl;
+
+    bool all_label = (label.size() == 0);    // Check if we need to apply to all labels
+    std::map<int, double> dof2set;    // Map to store degrees of freedom (DOFs) and their corresponding values to be set
+    const FESpace &Vh(gh.getSpace());    // Get the finite element space from the provided FunFEM object
+
+    int dof_init = this->mapIdx0_[&Vh]; // Get the FIRST index of the finite element space in the list of finite element spaces
+
+    // Iterate over each boundary element in the cut mesh
+    for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element(); idx_be += cutTh.next_boundary_element()) {
+        int idx_bdry_face; // Index of the boundary face in the boundary element
+        const int kb = cutTh.Th.BoundaryElement(idx_be, idx_bdry_face); // Get the boundary element index in the original mesh
+        std::vector<int> idxK = cutTh.idxAllElementFromBackMesh(kb, -1); // Get all the indices of the active elements corresponding to the boundary element in the cut mesh
+
+        // Ensure there's exactly one active element corresponding to the boundary element
+        assert(idxK.size() == 1);
+        int k = idxK[0];
+        const FElement &FK(Vh[k]);  // Get the finite element for the current element in the finite element space
+
+        // Get the current element and its boundary element
+        const Element &K(cutTh.Th[kb]);
+        const BorderElement &BE(cutTh.be(idx_be));
+
+        // Check if the current boundary element label is in the list of labels to process, or if all labels are being processed
+        if (util::contain(label, BE.lab) || all_label) {
+            // Skip processing if the element is cut
+            if (cutTh.isCut(k, 0)) {
+                continue;
+            }
+
+            for (int df = FK.dfcbegin(0); df < FK.dfcend(0); ++df) { // Iterate over each degree of freedom (DOF)
+                int id_item = FK.DFOnWhat(df); // Get the item (vertex/edge/face) that the DOF is associated with
+
+                // Ensure the DOF is NOT associated with an edge or a face
+                assert(!(id_item >= K.nv));
+                // std::cout << K.edgeOfFace[idx_face] << id_edge << std::endl;
+                auto nodes = K.nvface[idx_bdry_face]; // Check that edge is on boundary
+                if (id_item == nodes[0] || id_item == nodes[1] || id_item == nodes[2]) {
+                    // Get the global index of the DOF
+                    // std::cout << (dof_init-1) + FK.loc2glb(df) << " : " << this->get_nb_dof() << std::endl;
+                    int dof = FK.loc2glb(df);
+                    int df_glob = dof_init + dof; // correct place in Matrix
+                    // Insert the DOF and its corresponding value into the map
+                    dof2set.insert({df_glob, gh(dof)});
+                }
+            }
+        }
+    }
+
+    // Ensure there's exactly one matrix in the problem
+    assert(this->pmat_.size() == 1);
+
+    // Modify the matrix and the right-hand side to enforce the Dirichlet boundary conditions
+    // eraseAndSetRow(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
+    eraseAndSetRowCol(this->get_nb_dof(), *(this->pmat_[0]), this->rhs_, dof2set);
+}
+
 template <typename Mesh> void BaseCutFEM<Mesh>::removeDofForHansbo(const FESpace &Vh) {
 
     assert(Vh.basisFctType == BasisFctType::P0 || Vh.basisFctType == BasisFctType::P1dc);
@@ -1377,6 +1638,7 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_
     assert(!VF.isRHS());
     progress bar(" Add Face Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
 
+#pragma omp parallel for num_threads(this->get_num_threads())
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
         bar += Th.next_element();
 
@@ -1398,6 +1660,37 @@ template <typename M> void BaseCutFEM<M>::addFaceStabilization(const itemVFlist_
     }
     bar.end();
 }
+
+// // For mixed finite element spaces on surface
+// template <typename M> void BaseCutFEM<M>::addFaceStabilizationSurface(const itemVFlist_t &VF, const CutMesh &Th) {
+//     assert(!VF.isRHS());
+//     progress bar(" Add Face Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
+
+//     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+//         bar += Th.next_element();
+
+//         if (!Th.isCut(k, 0) && !Th.isInactive(k, 0))
+//             continue;
+//         for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+//             int jfac = ifac;
+//             int kn   = Th.ElementAdj(k, jfac);      // -1 if outside active mesh
+            
+//             // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+//             if (kn < k)
+//                 continue;
+
+//             int kb  = Th.idxElementInBackMesh(k);
+//             int kbn = Th.idxElementInBackMesh(kn);
+
+//             std::pair<int, int> e1 = std::make_pair(kb, ifac);
+//             std::pair<int, int> e2 = std::make_pair(kbn, jfac);
+//             BaseFEM<M>::addFaceContributionSurface(VF, e1, e2, nullptr, 0, 1.);
+//         }
+//         this->addLocalContribution();
+//     }
+//     bar.end();
+// }
 
 template <typename M> void BaseCutFEM<M>::addFaceStabilizationMixed(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
@@ -1495,6 +1788,35 @@ template <typename M> void BaseCutFEM<M>::addPatchStabilization(const itemVFlist
             std::pair<int, int> e1 = std::make_pair(k, ifac);
             std::pair<int, int> e2 = std::make_pair(kn, jfac);
             BaseFEM<M>::addPatchContribution(VF, k, kn, nullptr, 0, 1.);
+        }
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+
+template <typename M> void BaseCutFEM<M>::addPatchStabilizationMixed(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(!VF.isRHS());
+    progress bar(" Add Mixed Patch Stabilization CutMesh", Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+
+        if (!Th.isCut(k, 0) && !Th.isInactive(k, 0))
+            continue;
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+            // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+            if (kn < k)
+                continue;
+            
+            int kb  = Th.idxElementInBackMesh(k);
+            int kbn = Th.idxElementInBackMesh(kn);
+
+            std::pair<int, int> e1 = std::make_pair(kb, ifac);
+            std::pair<int, int> e2 = std::make_pair(kbn, jfac);
+            BaseFEM<M>::addPatchContributionMixed(VF, kb, kbn, nullptr, 0, 1.);
         }
         this->addLocalContribution();
     }
@@ -1637,6 +1959,44 @@ template <typename M>
 template <typename L>
 void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In,
                                           const AlgoimMacro<M, L> &macro) {
+
+    // number_of_stabilized_edges      = 0;
+    int number_of_quadrature_points = this->get_nb_quad_point_time();
+    for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
+
+        assert(!VF.isRHS());
+        auto tq    = this->get_quadrature_time(itq);
+        double tid = In.map(tq);
+
+        KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+        In.BF(tq.x, bf_time); // compute time basic funtions
+        double cst_time = tq.a * In.get_measure();
+
+        for (auto me = macro.macro_element.begin(); me != macro.macro_element.end(); ++me) {
+
+            for (auto it = me->second.inner_edge.begin(); it != me->second.inner_edge.end(); ++it) {
+                int k    = it->first;
+                int ifac = it->second;
+                int jfac = ifac;
+                int kn   = Th.ElementAdj(k, jfac);
+
+                // std::pair<int, int> e1 = std::make_pair(k, ifac);
+                // std::pair<int, int> e2 = std::make_pair(kn, jfac);
+
+                // number_of_stabilized_edges += 1;
+                BaseFEM<M>::addPatchContribution(VF, k, kn, &In, itq, cst_time);
+            }
+            this->addLocalContribution();
+        }
+    }
+    // number_of_stabilized_edges /= number_of_quadrature_points;
+}
+
+
+template <typename M>
+void BaseCutFEM<M>::addPatchStabilization(const itemVFlist_t &VF, const ActiveMesh<M> &Th, const TimeSlab &In,
+                                          const MacroElementPartition<M> &macro) {
 
     // number_of_stabilized_edges      = 0;
     int number_of_quadrature_points = this->get_nb_quad_point_time();

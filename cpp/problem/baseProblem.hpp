@@ -165,6 +165,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addBilinear(const itemVFlist_t &VF, const CutMesh &);
     void addLinear(const itemVFlist_t &VF, const Mesh &);
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
+    template <typename Fct>
+    void addElementContribution(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
 
     // integral on innerFace
     void addBilinear(const itemVFlist_t &VF, const Mesh &, const CFacet &b);
@@ -179,6 +181,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     // integral on patches
     void addPatchContribution(const itemVFlist_t &VF, const int k, const int kn, const TimeSlab *In, int itq,
                               double cst_time);
+    void addPatchContributionMixed(const itemVFlist_t &VF, const int kb, const int kbn, const TimeSlab *In, int itq,
+                              double cst_time);
 
     // integral on boundary
     void addBilinear(const itemVFlist_t &VF, const Mesh &, const CBorder &b, std::list<int> label = {});
@@ -187,6 +191,7 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
                                const TimeSlab *In, int itq, double cst_time);
 
     void setDirichlet(const FunFEM<Mesh> &, const Mesh &, std::list<int> label = {});
+    void setDirichletHone(const FunFEM<Mesh> &gh, const Mesh &Th, std::list<int> label = {});
 
     // integral on interface
     void addBilinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {});
@@ -207,6 +212,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
                                   double tid, const TimeSlab *In, double cst_time, int itq);
 
     void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {});
+    template <typename Fct>
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const Interface<Mesh> &gamma, std::list<int> label = {});
     void addLinear(const itemVFlist_t &VF, const Interface<Mesh> &gamma, const TimeSlab &In, int itq,
                    std::list<int> label = {});
     template <typename Fct>

@@ -76,10 +76,12 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
 
     if (solver_name_ == "mumps") {
 #ifdef USE_MUMPS
+        std::cout << "Using MUMPS\n";
         MUMPS(*this, A, b);
 #endif
     } else if (solver_name_ == "umfpack") {
 #ifdef USE_UMFPACK
+        std::cout << "Using UMFPACK\n";
         solver::umfpack(A, b, clearMatrix_);
 #endif
     }
@@ -101,11 +103,16 @@ void umfpack(std::map<std::pair<int, int>, R> &Amap, std::span<double> b, bool c
     if (clearMatrix)
         Amap.clear();
     void *Symbolic, *Numeric;
-    (void)umfpack_di_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
-    (void)umfpack_di_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
-    umfpack_di_free_symbolic(&Symbolic);
-    (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x.data(), b.data(), Numeric, 0, 0);
-    umfpack_di_free_numeric(&Numeric);
+    //(void)umfpack_di_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
+    // (void)umfpack_di_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
+    // umfpack_di_free_symbolic(&Symbolic);
+    // (void)umfpack_di_solve(UMFPACK_At, A.p, A.j, A.a, x.data(), b.data(), Numeric, 0, 0);
+    // umfpack_di_free_numeric(&Numeric);
+    (void)umfpack_dl_symbolic(n, n, A.p, A.j, A.a, &Symbolic, 0, 0);
+    (void)umfpack_dl_numeric(A.p, A.j, A.a, Symbolic, &Numeric, 0, 0);
+    umfpack_dl_free_symbolic(&Symbolic);
+    (void)umfpack_dl_solve(UMFPACK_At, A.p, A.j, A.a, x.data(), b.data(), Numeric, 0, 0);
+    umfpack_dl_free_numeric(&Numeric);
 
     std::copy(x.begin(), x.end(), b.begin());
     // b = x;

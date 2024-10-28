@@ -138,8 +138,10 @@ template <typeMesh M> void InterfaceLevelSet<M>::make_patch(int label) {
         }
     }
 
-    LOG_INFO << " Interface info :"
-             << "\n\t * measure " << this->measure_ << "\n\t * nb faces " << this->faces_.size() << logger::endl;
+    // if (globalVariable::verbose > 0) {
+    //     LOG_INFO << " Interface info :" << "\n\t * measure " << this->measure_ << "\n\t * nb faces "
+    //              << this->faces_.size() << logger::endl;
+    // }
 }
 
 template <typeMesh M>

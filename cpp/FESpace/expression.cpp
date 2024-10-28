@@ -76,6 +76,15 @@ std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Tang
 std::shared_ptr<ExpressionNormal2> operator*(const FunFEM<Mesh2> &f1, const Conormal &n) {
     return std::make_shared<ExpressionNormal2>(f1, n);
 }
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Normal &n) {
+    return std::make_shared<ExpressionNormal2Q>(f1, n);
+}
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Tangent &n) {
+    return std::make_shared<ExpressionNormal2Q>(f1, n);
+}
+std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const Conormal &n) {
+    return std::make_shared<ExpressionNormal2Q>(f1, n);
+}
 std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Normal &n) {
     return std::make_shared<ExpressionNormal3>(f1);
 }
@@ -96,7 +105,7 @@ std::shared_ptr<ExpressionAverage> operator*(const ExpressionAverage &fh, double
 }
 
 
-std::vector<std::shared_ptr<ExpressionVirtual>> cross(const FunFEM<Mesh3> &f1, const Normal &n) {
+std::vector<std::shared_ptr<ExpressionVirtual>> cross(const Normal &n, const FunFEM<Mesh3> &f1) {
 
     return {std::make_shared<ExpressionNormalCrossX3>(f1), std::make_shared<ExpressionNormalCrossY3>(f1),
              std::make_shared<ExpressionNormalCrossZ3>(f1)};
@@ -108,6 +117,10 @@ ExpressionNormalBurgerFlux burgerFlux(const ExpressionVirtual &f1, const Normal 
     return ExpressionNormalBurgerFlux(f1);
 }
 
+
+std::vector<std::shared_ptr<ExpressionVirtual>> curl(const FunFEM<Mesh3>& uh) {
+    return ExpressionCurl3D(uh)(); // Directly return the vector of components
+}
 
 std::shared_ptr<ExpressionDSx3> dxS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSx3>(f1); }
 std::shared_ptr<ExpressionDSy3> dyS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDSy3>(f1); }
