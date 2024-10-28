@@ -32,6 +32,7 @@ add_example(darcy_interface/DI_example2.cpp)
 
 add_example(convection_diffusion/bulk.cpp)
 add_example(convection_diffusion/coupled.cpp)
+add_example(convection_diffusion/merging.cpp)
 
 # add_example(navier_stokes/navier_stokes_raising_drop_2D.cpp)
 
