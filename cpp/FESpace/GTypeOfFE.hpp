@@ -200,6 +200,7 @@ template <class mesh> struct DataFE {
     static GTypeOfFE<mesh> &P3Poly;
 
     static GTypeOfFE<mesh> &RT0;
+    static GTypeOfFE<mesh> &RT0_scaled_face;
     static GTypeOfFE<mesh> &RT0_scaled_edge;
     static GTypeOfFE<mesh> &RT0_scaled_volume;
     static GTypeOfFE<mesh> &RT0m;
