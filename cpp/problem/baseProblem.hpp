@@ -164,6 +164,8 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     void addBilinear(const itemVFlist_t &VF, const Mesh &);
     void addBilinear(const itemVFlist_t &VF, const CutMesh &);
     void addLinear(const itemVFlist_t &VF, const Mesh &);
+    template <typename Fct>
+    void addLinear(const Fct &f, const itemVFlist_t &VF, const Mesh &);
     void addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
     template <typename Fct>
     void addElementContribution(const Fct &f, const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);

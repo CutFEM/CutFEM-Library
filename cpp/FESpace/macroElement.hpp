@@ -386,7 +386,6 @@ template <typename Mesh> void MacroElementSurface<Mesh>::findRootElement() {
             ie_v(i)             = ie;
         }
 
-        // Choose the root with the lowest mesh index
         int i = (chain_position_v(0) <= chain_position_v(1)) ? 0 : 1;
         if (root_v(i) == -1) {
             i = (i == 0);
@@ -463,12 +462,15 @@ template <typename Mesh> void MacroElementSurfaceExtension<Mesh>::findRootElemen
     
     // Create a map to keep track of the number of small elements connected to each large element
     std::unordered_map<int, int> largeElementCount;
+    std::unordered_map<int, int> chainPositionCount;    
 
     for (auto it = this->small_element.begin(); it != this->small_element.end(); ++it) {
         int iface                                  = it->first;
         const typename Interface<Mesh>::Face &face = this->interface[iface];
         const int kb                               = this->interface.idxElementOfFace(iface);
-        KN<int> root_v(2), chain_position_v(2), ie_v(2);
+        KN<int> root_v(2), chain_position_v(2), small_element_count_v(2), ie_v(2);
+
+        // std::cout << "Small element kb " << kb << "\n";
 
         // Find potential roots
         for (int i = 0; i < 2; ++i) {
@@ -478,16 +480,18 @@ template <typename Mesh> void MacroElementSurfaceExtension<Mesh>::findRootElemen
             int ie       = this->interface.edge_of_node_[idx_node];
             int root_K   = this->checkDirection(kb, ie, chain_position);    // index of root (-1) if no root found in that direction
 
-            if ()
             root_v(i)           = root_K;
-            chain_position_v(i) = chain_position;
+            chain_position_v(i) = chain_position;   // how many elements away from a large element is the small element
             ie_v(i)             = ie;
+            small_element_count_v(i) = largeElementCount[root_v(i)];
+
+            // chainPositionCount[root_K] = chain_position;
         }
 
 
-        for (int i=0; i<2; ++i) {
-            std::cout << "root_v(i) = " << root_v(i) << "\t chain_pos(i)" << chain_position_v(i) << "\t ie_v(i)" << ie_v(i) << std::endl;
-        }
+        // for (int i=0; i<2; ++i) {
+        //     std::cout << "root_v(" << i << ") = " << root_v(i) << "\t chain_pos(i) = " << chain_position_v(i) << "\t small_element_count_v(i) = " << small_element_count_v(i) << "\t ie_v(i)= " << ie_v(i) << std::endl;
+        // }
 
         // getchar();
 
@@ -496,24 +500,80 @@ template <typename Mesh> void MacroElementSurfaceExtension<Mesh>::findRootElemen
         int local_face_idx_selected_root = -1;
         int min_count = std::numeric_limits<int>::max();    // Initialize min_count to maximum value
         
-        for (int i = 0; i < 2; ++i) {
-            if (root_v(i) != -1) {
-                int count = largeElementCount[root_v(i)];
+        int j = (chain_position_v(0) <= chain_position_v(1)) ? 0 : 1;           // index of the direction of lowest chain position
+        int k = (small_element_count_v(0) <= small_element_count_v(1)) ? 0 : 1; // index of the large element containing the fewest number of small element
 
-                if (count < min_count) {
-                    min_count = count;
-                    selected_root = root_v(i);
-                    local_face_idx_selected_root = i;
-                }
+        // if (j == k) {   // a root has both the lowest chain index and lowest number of small elements
+        //     selected_root = root_v(j);
+        //     local_face_idx_selected_root = j;
+        // }
+        // else {
+        // }
+        if (chain_position_v(0) < chain_position_v(1)) {
+            selected_root                = root_v(0);
+            local_face_idx_selected_root = 0;
+        }
+        else if (chain_position_v(0) > chain_position_v(1)) {
+            selected_root                = root_v(1);
+            local_face_idx_selected_root = 1;
+        }
+        else if (chain_position_v(0) == chain_position_v(1)) {
+            if (small_element_count_v(0) < small_element_count_v(1)) {
+                selected_root                = root_v(0);
+                local_face_idx_selected_root = 0;
+            }
+            else if (small_element_count_v(0) > small_element_count_v(1)) {
+                selected_root                = root_v(1);
+                local_face_idx_selected_root = 1;
             }
             else {
-                selected_root = -1;
-                std::cout << "No root found for small element " << iface << std::endl;
-                break;
+                selected_root                = root_v(0);
+                local_face_idx_selected_root = 0;
             }
         }
+        else {
+            std::cout << "Something is wrong!\n";
+            return;
+        }
+
+        // for (int i = 0; i < 2; ++i) {
+        //     if (root_v(i) != -1) {
+        //         int count = largeElementCount[root_v(i)];
+        //         std::cout << "Count i = " << i << " = " << count << "\n";
+
+        //         int j = (chain_position_v(0) <= chain_position_v(1)) ? 0 : 1;           // index of the direction of lowest chain position
+        //         int k = (small_element_count_v(0) <= small_element_count_v(1)) ? 0 : 1; // index of the large element containing the fewest number of small element
         
-        //! Error is in the function below
+        //         if ((count < min_count) && (i == j)) {
+        //             min_count = count;
+        //             selected_root = root_v(i);
+        //             local_face_idx_selected_root = i;
+        //             // break;
+        //         }
+        //         else if ((count < min_count) && (i != j)) {
+        //             min_count = count;
+        //             selected_root = root_v(j);
+        //             local_face_idx_selected_root = j;
+        //             // break;
+        //         }
+        //         else if (count == min_count) {
+        //             selected_root = root_v(j);
+        //             local_face_idx_selected_root = j;
+        //         }
+        //         else {
+        //             std::cout << "Something is wrong!\n";
+        //             return;
+        //         }
+        //     }
+        //     else {
+        //         // selected_root = -1;
+        //         std::cout << "No root found for small element across face " << iface << std::endl;
+        //         // break;
+        //     }
+        // }
+
+        // std::cout << "Selected root: " << selected_root << "\n";
+        
         if (selected_root != -1) {
             assert(local_face_idx_selected_root != -1);
             int root = this->interface.face_of_element_.find(selected_root)->second;
@@ -523,6 +583,7 @@ template <typename Mesh> void MacroElementSurfaceExtension<Mesh>::findRootElemen
             it->second.setEdgeDirection(ie_v(local_face_idx_selected_root));
         }
         
+        // getchar();
     }
 
     for (auto it = this->small_element.begin(); it != this->small_element.end(); ++it) {
@@ -547,10 +608,10 @@ template <typename Mesh> void MacroElementSurfaceExtension<Mesh>::findRootElemen
     }
 
 
-    // print out the largeElementCount
-    for (auto it = largeElementCount.begin(); it != largeElementCount.end(); ++it) {
-        std::cout << "Large element " << it->first << " has " << it->second << " connected small elements" << std::endl;
-    }
+    // // print out the largeElementCount
+    // for (auto it = largeElementCount.begin(); it != largeElementCount.end(); ++it) {
+    //     std::cout << "Large element " << it->first << " has " << it->second << " connected small elements" << std::endl;
+    // }
 }
 
 

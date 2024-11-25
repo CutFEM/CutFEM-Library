@@ -259,6 +259,22 @@ template <typename Mesh> void BaseFEM<Mesh>::addLinear(const itemVFlist_t &VF, c
     }
     bar.end();
 }
+
+
+template <typename Mesh> 
+template <typename Fct>
+void BaseFEM<Mesh>::addLinear(const Fct &f, const itemVFlist_t &VF, const Mesh &Th) {
+    assert(VF.isRHS());
+    progress bar("Add Linear Mesh", Th.last_element(), globalVariable::verbose);
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+        bar += Th.next_element();
+
+        BaseFEM<Mesh>::addElementContribution(f, VF, k, nullptr, 0, 1.);
+    }
+    bar.end();
+}
+
 template <typename M>
 void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq,
                                         double cst_time) {
