@@ -277,6 +277,14 @@ template <typename T, typename B, typename V> class GenericMesh {
         return hh;
     }
 
+    double get_largest_mesh_size() const {
+        double hh = 0.;
+        for (int k = 0; k < nt; ++k) {
+            hh = std::max((*this)[k].hMax(), hh);
+        }
+        return hh;
+    }
+
     ~GenericMesh() {
         delete[] TheAdjacencesLink;
         delete[] BoundaryElementHeadLink;

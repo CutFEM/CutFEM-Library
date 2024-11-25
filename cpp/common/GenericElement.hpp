@@ -193,7 +193,7 @@ template <typename Data> class GenericElement : public Label {
     R hMax() const {
         double h = 0;
         for (int i = 0; i < ne; ++i)
-            h = max(h, lenEdge(i));
+            h = std::max(h, lenEdge(i));
         return h;
     }
     R measure() const { return mes; }
