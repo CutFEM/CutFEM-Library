@@ -212,7 +212,15 @@ template <typeMesh M> struct ItemVF {
     int get_domain_test_function() const { return domainV_id_; }
     int get_domain_trial_function() const { return domainU_id_; }
 
-    bool on(int d) const { return ((domainU_id_ == domainV_id_) && (domainU_id_ == -1 || domainU_id_ == d)); }
+    // bool on(int d) const { return ((domainU_id_ == domainV_id_) && (domainU_id_ == -1 || domainU_id_ == d)); }
+    bool on(int d) const { 
+        if(domainU_id_ == d && domainV_id_ == d) return true;
+        else if(domainU_id_ == domainV_id_ && domainU_id_ == -1) return true;
+        else if(domainU_id_ == -1 ) return domainV_id_ == d;
+        else if(domainV_id_ == -1 ) return domainU_id_ == d;
+        else return false;
+    }
+        // return ((domainU_id_ == domainV_id_) && (domainU_id_ == -1 || domainU_id_ == d)); }
 
   private:
     double computeCoeffFromArray(const std::vector<int> &array_idx, const double *v) const {

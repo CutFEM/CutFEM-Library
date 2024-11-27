@@ -160,7 +160,7 @@ GTypeOfFE<Mesh2> &P0Lagrange2d(P0_2d);
 template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::P0 = P0_2d;
 
 
-// // Globally constant 2D
+// Globally constant 2D
 // class TypeOfFE_NumberSpace2d : public GTypeOfFE<Mesh2> {
 
 //     typedef Mesh2 Mesh;
@@ -169,7 +169,7 @@ template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::P0 = P0_2d;
 
 //   public:
 //     static const int k   = 0;
-//     static const int ndf = 0;
+//     static const int ndf = 1;
 //     static int Data[];
 //     static double alpha_Pi_h[];
 
@@ -192,33 +192,47 @@ template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::P0 = P0_2d;
 //     void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
 // };
 
-// const int TypeOfFE_NumberSpace2d::nbNodeOnItem[4] = {0, 0, 0, 0};
-// int TypeOfFE_NumberSpace2d::Data[]                = {
-//     0,          // the support number  of the node of the df
-//     0,          // the number of the df on  the node
-//     0,          // the node of the df
-//     0,          // which are de df on sub FE
-//     0, 0, 0, 0, // nb node on what
-//     0,          // for each compontant $j=0,N-1$ it give the sub FE associated
-//     0,          // begin_dfcomp
-//     0           // end_dfcomp
-// };
-// double TypeOfFE_NumberSpace2d::alpha_Pi_h[] = {1.};
+const int TypeOfFE_NumberSpace2d::nbNodeOnItem[4] = {0, 0, 0, 0};
+int TypeOfFE_NumberSpace2d::Data[]                = {
+    0,          // the support number  of the node of the df
+    0,          // the number of the df on  the node
+    0,          // the node of the df
+    0,          // which are de df on sub FE
+    0, 0, 0, 0, // nb node on what
+    0,          // for each compontant $j=0,N-1$ it give the sub FE associated
+    0,          // begin_dfcomp
+    1           // end_dfcomp
+};
+double TypeOfFE_NumberSpace2d::alpha_Pi_h[] = {1.};
 
-// void TypeOfFE_NumberSpace2d::FB(const What_d whatd, const Element &K, const R2 &P, RNMK_ &val) const {
-//     assert(val.N() >= 1);
-//     assert(val.M() == 1);
+void TypeOfFE_NumberSpace2d::FB(const What_d whatd, const Element &K, const R2 &P, RNMK_ &val) const {
+    assert(val.N() >= 1);
+    assert(val.M() == 1);
 
-//     val = 0;
-//     RN_ f0(val('.', 0, op_id));
+    val = 0;
+    RN_ f0(val('.', 0, op_id));
 
-//     if (whatd & Fop_D0) {
-//         f0[0] = 1.;
-//     }
-// }
-// static TypeOfFE_NumberSpace2d Number_Space;
-// GTypeOfFE<Mesh2> &PNumberSpace(Number_Space);
-// template <> GTypeOfFE<Mesh2> &DataFE<Mesh2>::NumberSpace = Number_Space;
+    if (whatd & Fop_D0) {
+        f0[0] = 1.;
+    }
+    else if (whatd & Fop_D1) {
+        if (whatd & Fop_dx) {
+            RN_ f0x(val('.', 0, op_dx));
+            f0x[0] = 0.;
+        }
+        if (whatd & Fop_dy) {
+            RN_ f0y(val('.', 0, op_dy));
+            f0y[0] = 0.;
+        }
+    }
+}
+static TypeOfFE_NumberSpace2d Number_Space;
+// GTypeOfFE<Mesh2> 
+TypeOfFE_NumberSpace2d &PNumberSpace(Number_Space);
+// template <> GTypeOfFE<Mesh2>
+
+template <>
+ TypeOfFE_NumberSpace2d &DataFE<Mesh2>::NumberSpace = Number_Space;
 
 
 // P0 Quad 2D
