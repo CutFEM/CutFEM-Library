@@ -258,7 +258,7 @@ std::vector<const GTypeOfFE<Mesh1> *> FE_time   = {&DataFE<Mesh1>::P0Poly, &Data
 
 // Define method, stabilization, and polynomial order
 #define droplet            // example (circle/droplet)
-#define conservative     // method (conservative/non_conservative)
+#define non_conservative     // method (conservative/non_conservative)
 #define fullstab     // stabilization (fullstab/macro)
 #define K 2                     // polynomial order in time (0/1/2)
 #define M 2                     // polynomial order in space (1/2)
@@ -309,7 +309,7 @@ int main(int argc, char **argv) {
     double h  = 0.1;                                    // starting mesh size
     int nx, ny;                     
     
-    const double cfl_number = 1./4;
+    const double cfl_number = 1./3;
     double dT;
     int total_number_iteration; 
     const double t0 = 0., tfinal = .1;
@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
     Levelset<2> phi;
     const std::string solver_name = "mumps";
     ProblemOption option;
-    const int quadrature_order_space       = 5;         // in each space dimension -> quadrature_order_space^2 quadrature points per element
+    const int quadrature_order_space  = 5;         // in each space dimension -> quadrature_order_space^2 quadrature points per element
     option.order_space_element_quadrature_ = quadrature_order_space;
     AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
 
@@ -373,8 +373,8 @@ int main(int argc, char **argv) {
         const double lx = 1., ly = 1.;
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
     #elif defined(droplet)
-        const double x0 = -1.5 - Epsilon, y0 = -3.5 - Epsilon;
-        const double lx = 3., ly = 7.;
+        const double x0 = -1.5 - Epsilon, y0 = -1.5 - Epsilon;
+        const double lx = 3., ly = 4.;
         nx = (int)(lx / h) + 1, ny = (int)(ly / h) + 1;
     #endif
 
@@ -411,7 +411,7 @@ int main(int argc, char **argv) {
         const Uint ndf_time_slab      = Ih[0].NbDoF();
 
         // Velocity field
-        LagrangeQuad2 FEvelocity(1);
+        LagrangeQuad2 FEvelocity(2);
         fespace_t VelVh(Th, FEvelocity);
         fct_t vel(VelVh, fun_velocity);
 
