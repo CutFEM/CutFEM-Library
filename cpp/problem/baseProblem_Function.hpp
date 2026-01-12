@@ -1319,6 +1319,7 @@ void BaseFEM<M>::addOuterBorderContribution(const itemVFlist_t &VF, const int k,
     }
 }
 
+//! Only seems to work for trivial BC
 template <typename Mesh>
 void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::list<int> label) {
 
@@ -1380,7 +1381,7 @@ void BaseFEM<Mesh>::setDirichlet(const FunFEM<Mesh> &gh, const Mesh &Th, std::li
     }
 
     int N = this->get_nb_dof();
-    eraseAndSetRow(this->get_nb_dof(), *this->pmat_[0], this->rhs_, dof2set);
+    eraseAndSetRow(this->get_nb_dof(), *this->pmat_, this->rhs_, dof2set);
 }
 
 // set Dirichlet BC strongly for H¹, ie nodes (3D)
