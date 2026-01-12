@@ -23,6 +23,12 @@
 #include <../algoim/uvector.hpp>
 #include <../algoim/xarray.hpp>
 
+#include "../cutfem.hpp"
+// #include "finiteElement.hpp"
+// // #include "GenericMapping.hpp"
+// #include "levelSet.hpp"
+// #include "baseProblem.hpp"
+
 #include <array>
 #include <cmath>
 #include <fstream>
@@ -156,7 +162,7 @@ inline QuadScheme compute_cut_triangle_quadrature(
 
 
 
-int main() {
+/*int main() {
 
     std::array<cuttri_multipoly::Vec2,3> tri_verts = {
         // cuttri_multipoly::Vec2(0.0, 0.0),
@@ -210,5 +216,139 @@ int main() {
 
 
 
+    return 0;
+}*/
+
+
+using mesh_t       = Mesh2;
+using barymesh_t   = BarycentricMesh2;
+using funtest_t    = TestFunction<mesh_t>;
+using fct_t        = FunFEM<mesh_t>;
+using activemesh_t = ActiveMesh<mesh_t>;
+using baryactivemesh_t = BarycentricActiveMesh2;
+using space_t      = GFESpace<mesh_t>;
+using cutspace_t   = CutFESpace<mesh_t>;
+using fe_element_t = space_t::FElement;
+using Rd           = fe_element_t::Rd;
+
+template <typename L>
+double integrate(const activemesh_t &Th, const fct_t &fh, L &phi) {
+    
+    double val = 0.0;
+    int domain = 0;
+    int cu = 0; // component index
+    int op = 0; // operation index
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (Th.isInactive(k, 0))
+            continue;
+
+        int kb = Th.idxElementInBackMesh(k);
+
+        const auto &T(Th.Th[kb]);   // get element in background mesh
+        const auto &V0(T.at(0)); // vertex 0
+        const auto &V1(T.at(1)); // vertex 1
+        const auto &V2(T.at(2)); // vertex 2
+        
+        const std::array<algoim::uvector<double, 2>, 3> triangle{ 
+            algoim::uvector<double, 2>{V0[0], V0[1]},
+            algoim::uvector<double, 2>{V1[0], V1[1]},
+            algoim::uvector<double, 2>{V2[0], V2[1]}
+        };
+        
+        const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
+            triangle,
+            phi,
+            8,   // bernstein degree
+            12   // algoim 1D quadrature order
+        );
+        for (int ipq = 0; ipq < q.x_vol.size(); ++ipq) {
+
+            const Rd mip(q.x_vol.at(ipq)[0], q.x_vol.at(ipq)[1]);
+            const R weight = q.w_vol.at(ipq);
+
+            val += weight * fh.evalOnBackMesh(kb, domain, mip, cu, op);
+        }
+
+        
+    }
+    return val;
+
+}
+
+
+struct PhiCircle {
+    cuttri_multipoly::real operator()(const cuttri_multipoly::Vec2& x) const {
+        const cuttri_multipoly::real xc = 0.5;
+        const cuttri_multipoly::real yc = 0.5;
+        const cuttri_multipoly::real r  = 0.6;
+        const cuttri_multipoly::real dx = x(0) - xc;
+        const cuttri_multipoly::real dy = x(1) - yc;
+        return (dx*dx + dy*dy) - r*r;   //! needs to be a polynomial
+    }
+};
+
+double fun_phi(double *P, const int comp) {
+    const double x = P[0];
+    const double y = P[1];
+
+    const double xc = 0.5;
+    const double yc = 0.5;
+    const double r  = 0.6;
+    const double dx = x - xc;
+    const double dy = y - yc;
+    return (dx*dx + dy*dy) - r*r; 
+}
+
+
+double fun_test(double *P, const int comp) {
+    const double x = P[0];
+    const double y = P[1];
+
+    return 1.;
+}
+
+int main() {
+
+    int nx = 4;
+    int ny = 4;
+    double bottom_left_x = 0.0;
+    double bottom_left_y = 0.0;
+    double width_domain  = 1.0;
+    double height_domain = 1.0;
+    
+    mesh_t Th(nx
+            , ny
+            , bottom_left_x
+            , bottom_left_y
+            , width_domain
+            , height_domain);
+
+    // barymesh_t Th(nx
+    //         , ny
+    //         , bottom_left_x
+    //         , bottom_left_y
+    //         , width_domain
+    //         , height_domain);
+
+            
+    PhiCircle phi_circle;
+
+    space_t Lh(Th, DataFE<mesh_t>::P1);
+    fct_t phi_lin(Lh, fun_phi);
+    InterfaceLevelSet<mesh_t> surface(Th, phi_lin);
+    activemesh_t Th_active(Th);
+    Th_active.truncate(surface, 1);
+
+    space_t V_test(Th, DataFE<mesh_t>::P4);   
+    fct_t test_fun(V_test, fun_test);
+
+
+    double volV = integrate(Th_active, test_fun, phi_circle);
+
+    std::cout << "Integrated volume: " << volV << "\n";
+
+    
     return 0;
 }
