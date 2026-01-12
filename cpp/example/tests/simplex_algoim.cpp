@@ -196,7 +196,7 @@ int main()
     // ----- choose level set in physical coordinates -----
     CirclePhi phi_phys{/*cx=*/0.55, /*cy=*/0.40, /*R=*/0.35};
 
-    // ----- linear cut selecting the triangle inside the square -----
+    // ----- linear cut selecting the triangle inside the square ----- (Seb: goes perpendicular to hypotenuse)
     auto psi_phys = [&](const Vec<2>& x) -> real
     {
         // psi < 0   => inside triangle
