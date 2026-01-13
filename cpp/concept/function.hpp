@@ -44,6 +44,12 @@ concept typeMesh = std::is_same_v<Mesh1, C> || std::is_same_v<Mesh2, C> || std::
 template <typename C>
 concept meshQuadrilateral = std::is_same_v<MeshQuad2, C> || std::is_same_v<MeshHexa, C>;
 
+
+template <typename C>
+concept meshTriag = std::is_same_v<Mesh2, C> || std::is_same_v<BarycentricMesh2, C>;
+
+
+
 // template <typename L>
 // concept AlgoimLevelset = requires(L phi) {
 //     phi<typename T>(const algoim::uvector<T, typename N> &);
