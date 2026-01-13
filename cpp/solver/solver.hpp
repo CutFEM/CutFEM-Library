@@ -22,6 +22,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 struct ProblemOption {
     int order_space_element_quadrature_ = 5;
+    int algoim_bernstein_deg_           = 5;
     int order_space_bord_quadrature_    = 5;
     int order_time_quadrature_          = 1;
     std::string solver_name_            = "mumps";
