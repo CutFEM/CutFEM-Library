@@ -18,10 +18,12 @@
 //
 // Note: If you compile with C++20, you may need the xarraySlice constructor patch discussed earlier.
 
-#include <../algoim/quadrature_multipoly.hpp>
-#include <../algoim/bernstein.hpp>
-#include <../algoim/uvector.hpp>
-#include <../algoim/xarray.hpp>
+// #include <../algoim/quadrature_multipoly.hpp>
+// #include <../algoim/bernstein.hpp>
+// #include <../algoim/uvector.hpp>
+// #include <../algoim/xarray.hpp>
+
+#include <../algoim/cut_triangle_quadrature.hpp>
 
 #include "../cutfem.hpp"
 // #include "finiteElement.hpp"
@@ -29,14 +31,15 @@
 // #include "levelSet.hpp"
 // #include "baseProblem.hpp"
 
-#include <array>
-#include <cmath>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <string>
-#include <vector>
+// #include <array>
+// #include <cmath>
+// #include <fstream>
+// #include <iomanip>
+// #include <iostream>
+// #include <string>
+// #include <vector>
 
+/*
 namespace cuttri_multipoly {
 
 using real = algoim::real;
@@ -118,8 +121,9 @@ inline QuadScheme compute_cut_triangle_quadrature(
         if (ps >= 0) return;
 
         const Vec2 x = F.map(xi);
-        const real ph = phi(x);
-        if (ph >= 0) return;
+        //const real ph = phi(x);   // before: this needs phi to be a polynomial
+        const real phB = algoim::bernstein::evalBernsteinPoly(phiB, xi);    
+        if (phB >= 0) return;
 
         const real w_phys = w_ref * abs_detJ;
         out.x_vol.push_back({x(0), x(1)});
@@ -128,27 +132,28 @@ inline QuadScheme compute_cut_triangle_quadrature(
 
     // -------- Surface nodes: ipquad gives union of interfaces (phi=0 and psi=0) --------
     // We keep phi=0, reject psi=0, and require psi<0.
-    ipquad.integrate_surf(strat, q1d, [&](const Vec2& xi, real w_ref, const Vec2& wn_ref) {
-        const real ps = psi_ref(xi);
-        if (ps >= 0) return;
+    ipquad.integrate_surf(strat, q1d, 
+    [&](const Vec2& xi, real w_ref, const Vec2& wn_ref)
+    {
+        const real ps = psi_ref(xi);    // psi is linear, so exact
+        if (ps >= 0) return;                // outside triangle
 
-        const Vec2 x = F.map(xi);
-        const real ph = phi(x);
+        //const real ph = phi(x);   // before: this needs phi to be a polynomial
+        const real phB = algoim::bernstein::evalBernsteinPoly(phiB, xi);    // evaluate phi using its Bernstein poly, since phi may not always be a polynomial
 
-        const bool on_phi = std::abs(ph) < tol_phi;
-        const bool on_psi = std::abs(ps) < tol_psi;
+        const bool on_phi = std::abs(phB) < tol_phi;  // robust: same polynomial as ipquad
+        const bool on_psi = std::abs(ps)  < tol_psi;  // cheap & exact
         if (!on_phi || on_psi) return;
 
-        // Convert ds in reference -> ds in physical.
-        // We use wn_ref direction to infer a normal direction in reference coordinates.
-        // Then pick unit tangent t_ref ⟂ n_ref, and ds_phys = ||J t_ref|| ds_ref.
+        const Vec2 x = F.map(xi);
+
         Vec2 n_ref = wn_ref;
         const real nrm = norm2(n_ref);
         if (nrm == 0) return;
         n_ref /= nrm;
 
-        Vec2 t_ref = perp(n_ref); // unit tangent in reference
-        const real scale = norm2(F.J_mul(t_ref)); // metric factor
+        Vec2 t_ref = perp(n_ref);
+        const real scale = norm2(F.J_mul(t_ref));
 
         const real w_phys = w_ref * scale;
         out.x_surf.push_back({x(0), x(1)});
@@ -159,7 +164,7 @@ inline QuadScheme compute_cut_triangle_quadrature(
 }
 
 } // namespace cuttri_multipoly
-
+*/
 
 
 /*int main() {
@@ -285,7 +290,8 @@ struct PhiCircle {
         const cuttri_multipoly::real r  = 0.6;
         const cuttri_multipoly::real dx = x(0) - xc;
         const cuttri_multipoly::real dy = x(1) - yc;
-        return (dx*dx + dy*dy) - r*r;   //! needs to be a polynomial
+        //return (dx*dx + dy*dy) - r*r;   
+        return std::sqrt(dx*dx + dy*dy) - r;
     }
 };
 
@@ -298,7 +304,8 @@ double fun_phi(double *P, const int comp) {
     const double r  = 0.6;
     const double dx = x - xc;
     const double dy = y - yc;
-    return (dx*dx + dy*dy) - r*r; 
+    // return (dx*dx + dy*dy) - r*r; 
+    return std::sqrt(dx*dx + dy*dy) - r;
 }
 
 
@@ -311,12 +318,12 @@ double fun_test(double *P, const int comp) {
 
 int main() {
 
-    int nx = 4;
-    int ny = 4;
-    double bottom_left_x = 0.0;
-    double bottom_left_y = 0.0;
-    double width_domain  = 1.0;
-    double height_domain = 1.0;
+    int nx = 10;
+    int ny = 10;
+    double bottom_left_x = -1.0;
+    double bottom_left_y = -1.0;
+    double width_domain  = 2.5;
+    double height_domain = 2.5;
     
     mesh_t Th(nx
             , ny
@@ -347,7 +354,13 @@ int main() {
 
     double volV = integrate(Th_active, test_fun, phi_circle);
 
+    // double surfA = integrate_surface(Th_active, test_fun, phi_lin, phi_circle);
+
     std::cout << "Integrated volume: " << volV << "\n";
+
+    Paraview<mesh_t> paraview(Th, "simplex_algoim.vtk");
+    paraview.add(phi_lin, "phi_lin", 0, 1);
+    paraview.writeActiveMesh(Th_active, "active_mesh.vtk");
 
     
     return 0;
