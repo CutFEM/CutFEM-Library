@@ -2,8 +2,11 @@
 #define BASE_CUTPROBLEM_SAYE_HPP
 
 #include "../algoim/quadrature_general.hpp"
+#include "../algoim/cut_triangle_quadrature.hpp"
 #include "../common/AlgoimInterface.hpp"
 
+
+// For 2D cartesian meshes
 template <typename M, typename L> class AlgoimBaseCutFEM : public BaseCutFEM<M> {
 
     using mesh_t        = M;
@@ -153,6 +156,41 @@ template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBas
     //     Solver::solve(A[0], b);
     // }
 };
+
+
+
+template <meshTriag M, typename Phi> class TriAlgoimBaseCutFEM : public BaseCutFEM<M> {
+
+    using mesh_t        = M;
+    using fespace_t     = GFESpace<mesh_t>;
+    using itemVFlist_t  = ListItemVF<mesh_t>;
+    using fe_element_t  = typename fespace_t::FElement;
+    using Rd            = typename fe_element_t::Rd;
+    // using QF            = typename fe_element_t::QF;
+    // using QFB           = typename fe_element_t::QFB;
+    using element_t       = typename mesh_t::Element;
+    // using BorderElement = typename mesh_t::BorderElement;
+
+    int bernstein_deg_;
+    int q1d_;
+    Phi &phi_;
+
+public:
+
+    TriAlgoimBaseCutFEM(const fespace_t& vh, Phi& phi, const ProblemOption& opt)
+      : BaseCutFEM<mesh_t>(vh, opt),
+        bernstein_deg_(opt.algoim_bernstein_deg_),
+        q1d_(opt.order_space_element_quadrature_),
+        phi_(phi) {}
+
+    void addElementContribution(const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq,
+                                double cst_time) override;
+
+};
+
+
+
+
 
 #include "AlgoimBaseCutProblem.tpp"
 

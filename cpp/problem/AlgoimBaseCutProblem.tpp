@@ -2037,3 +2037,81 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
 //         }
 //     }
 // }
+
+
+
+
+
+// TRIALGOIM
+
+template <meshTriag M, typename Phi>
+void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
+    const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq, double cst_time)
+{
+    const fespace_t& Vh(VF.get_spaceV(0));
+    const auto& Th(Vh.get_mesh());
+    const fe_element_t& FK(Vh[k]);
+    const element_t&  K(FK.T);
+
+    const int domain = FK.get_domain();
+    const int kb     = Vh.idxElementInBackMesh(k);
+    const int iam    = omp_get_thread_num();
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+    phi_.t = tid; // if your L has time
+
+    using Vec2 = algoim::uvector<double,2>;
+    std::array<Vec2,3> verts = {
+        Vec2(K.at(0)[0], K.at(0)[1]),
+        Vec2(K.at(1)[0], K.at(1)[1]),
+        Vec2(K.at(2)[0], K.at(2)[1])
+    };
+
+    const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
+            verts,
+            phi_,
+            bernstein_deg_,   // bernstein degree
+            q1d_              // algoim 1D quadrature order
+        );
+
+    // assemble (same as your current inner loops)
+    for (int l=0; l<VF.size(); ++l) {
+        if (!VF[l].on(domain)) continue;
+
+        const fespace_t& Vhv(VF.get_spaceV(l));
+        const fespace_t& Vhu(VF.get_spaceU(l));
+        const auto& FKv(Vhv[k]);
+        const auto& FKu(Vhu[k]);
+        this->initIndex(FKu, FKv);
+
+        bool same  = (&Vhu == &Vhv);
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
+        long offset = iam * this->offset_bf_;
+        RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + offset + (same?0:FKv.NbDoF()*FKv.N*lastop),
+                 FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        for (size_t ip=0; ip<q.x_vol.size(); ++ip) {
+            Rd mip(q.x_vol.at(ip)[0], q.x_vol.at(ip)[1]);
+            Rd cut_ip = K.mapToReferenceElement(mip);
+            double Cint = q.w_vol.at(ip) * cst_time;
+
+            FKv.BF(Fop, cut_ip, fv);
+            if (!same) FKu.BF(Fop, cut_ip, fu);
+
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+            Cint *= VF[l].c;
+
+            if (In) {
+                if (VF.isRHS()) this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else            this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS()) this->addToRHS(VF[l], FKv, fv, Cint);
+                else            this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    }
+}
