@@ -28,6 +28,11 @@ struct ProblemOption {
     std::string solver_name_            = "mumps";
     bool clear_matrix_                  = true;
     int verbose_                        = 0;
+
+    // --- Iterative solver options (used e.g. by Eigen CG) ---
+    int    it_maxit_    = 2000;
+    double it_tol_      = 1e-10;
+    bool   it_use_ic_   = true;   // incomplete Cholesky (SPD)
 };
 
 namespace solver {
@@ -41,24 +46,32 @@ void mumps(std::map<std::pair<int, int>, R> &A, std::span<double> b, std::size_t
 
 } // namespace solver
 class Solver {
-
     double get_Time() const { return MPIcf::Wtime(); }
 
   public:
     int verbose_             = 0;
     bool clearMatrix_        = true;
-    //   std::string reordering = "none";
     std::string solver_name_ = "default";
+
+    // iterative options
+    int    it_maxit_   = 2000;
+    double it_tol_     = 1e-10;
+    bool   it_use_ic_  = true;
 
     Solver(const ProblemOption &option) {
         clearMatrix_ = option.clear_matrix_;
         solver_name_ = option.solver_name_;
         verbose_     = option.verbose_;
+
+        it_maxit_  = option.it_maxit_;
+        it_tol_    = option.it_tol_;
+        it_use_ic_ = option.it_use_ic_;
     }
 
-    // void solve(std::map<std::pair<int, int>, R> &A, Rn &b);
     void solve(std::map<std::pair<int, int>, R> &A, std::span<double> b);
 };
+
+
 
 #endif
 
@@ -82,3 +95,4 @@ class Solver {
 // 			     int Istart, int Iend);
 
 // }
+

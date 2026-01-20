@@ -30,6 +30,12 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "solverMumps.hpp"
 #endif
 
+#ifdef CUTFEM_USE_EIGEN
+#include "solverEigen.hpp"
+#endif
+
+
+
 // void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
 void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
 
@@ -48,6 +54,13 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
         exit(EXIT_FAILURE);
     }
 #endif
+#ifndef CUTFEM_USE_EIGEN
+    if (solver_name_ == "eigen_cg") {
+        std::cout << " eigen_cg chosen but Eigen not enabled (CUTFEM_USE_EIGEN missing)\n";
+        exit(EXIT_FAILURE);
+    }
+#endif
+
     // #ifdef USE_MUMPS
     //     if (solver_name_ == "mumps") {
     //         if (!MPIcf::isInitialized()) {
@@ -86,7 +99,19 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
         // std::cout << "Using UMFPACK\n";
         solver::umfpack(A, b, clearMatrix_);
 #endif
+    } else if (solver_name_ == "eigen_cg") {
+#ifdef CUTFEM_USE_EIGEN
+        std::cout << "Using Eigen CG\n";
+        // You can later route tol/maxit from ProblemOption
+        solver::eigen_cg(A, b,
+                         clearMatrix_,
+                         it_tol_,
+                         it_maxit_,
+                         it_use_ic_,
+                         verbose_);
+#endif
     }
+
 
     tsolver = this->get_Time() - tsolver;
 
