@@ -175,7 +175,7 @@ std::map<int, std::pair<typename BaseCutFEM<M>::Rd, int>>& BaseCutFEM<M>::get_do
         
         const bool current_is_cut = (cut_index == 1 || cut_index == 3);
 
-        std::cout << "k = " << k << ", cut_index = " << cut_index << ", current_is_cut = " << current_is_cut << "\n";
+        // std::cout << "k = " << k << ", cut_index = " << cut_index << ", current_is_cut = " << current_is_cut << "\n";
 
         const FElement &FK(Vh[k]);
 
