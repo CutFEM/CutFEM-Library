@@ -158,7 +158,7 @@ template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBas
 };
 
 
-
+/*
 template <meshTriag M, typename Phi> class TriAlgoimBaseCutFEM : public BaseCutFEM<M> {
 
     using mesh_t        = M;
@@ -188,7 +188,7 @@ public:
 
 };
 
-
+*/
 
 
 
