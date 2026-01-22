@@ -106,6 +106,84 @@ template <> void BaseCutFEM<Mesh2>::addPatchStabilization(const itemVFlist_t &VF
     //std::cout << "Number of stabilized faces: " << num_stab_faces << "\n";
 }
 
+template <> void BaseCutFEM<Mesh2>::addPatchStabilization(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th, const TimeSlab &In) {
+    
+    int number_of_quadrature_points = this->get_nb_quad_point_time();
+    int num_stab_faces = 0;
+
+    // Loop through time quadrature points
+    for (int itq = 0; itq < number_of_quadrature_points; ++itq) {
+        assert(!VF.isRHS());
+
+        // Compute contribution from time basis functions
+        auto tq    = this->get_quadrature_time(itq);
+        double tid = In.map(tq);
+        KNMK<double> basisFunTime(In.NbDoF(), 1, op_dz + 1);
+        RNMK_ bf_time(this->databf_time_, In.NbDoF(), 1, op_dz);
+        In.BF(tq.x, bf_time); // compute time basic funtions
+        double cst_time = tq.a * In.get_measure();
+
+        progress bar(" Add Patch Stabilization BarycentricActiveMesh2", Th.last_element(), globalVariable::verbose);
+
+        // Loop over micro element
+        for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+            bar += Th.next_element();
+
+            int domain = Th.get_domain_element(k);
+            
+            // const int active_micro_idx_d = k - ((domain == 0) ? 0 : Th.get_nb_element(0));  // the to domain local active mesh index
+            // const int k_macro = Th.inverse_active_macro_map_d[domain].at(active_micro_idx_d);
+            const int k_macro = Th.macro_of_micro(k);
+            // std::cout << "Element " << k << " (local in active mesh = " << k - idx_shift << "), belongs to domain " << domain << " and macro element " << k_macro << "\n";
+            if (!Th.stabilize_macro(k_macro))
+                continue;
+
+            // std::cout << "Stabilizing macro element " << k_macro << " in domain " << domain << "\n";
+      
+            for (int ifac = 0; ifac < Element::nea; ++ifac) { // loop over the edges / faces
+
+                int jfac = ifac;
+                int kn   = Th.ElementAdj(k, jfac);
+            
+                // ONLY INNER EDGE && LOWER INDEX TAKE CARE OF THE INTEGRATION
+                // if (kn < k)
+                //     continue;
+                if (kn == -1) continue;
+
+                // int kn_macro = Th.inverse_active_macro_map_d[domain][kn];
+                // if (kn < k && Th.is_macro_cut(kn, domain, 0))
+
+                if (Th.get_domain_element(kn) != domain) continue; // <- critical fix
+
+                const int kn_macro = Th.macro_of_micro(kn);
+
+                if ((kn < k) && Th.stabilize_macro(kn_macro))
+                    continue;
+                
+                // std::cout << " Stabilizing face between micro elements " << k << " and " << kn << " in the macros " << k_macro << ", " << kn_macro <<  "\n";
+                
+                    // std::pair<int, int> e1 = std::make_pair(k, ifac);
+                // std::pair<int, int> e2 = std::make_pair(kn, jfac);
+                const int kb  = Th.idxElementInBackMesh(k, domain);
+                const int kbn = Th.idxElementInBackMesh(kn, domain);
+                
+                // const int kbn_macro = Th.macro_idx_in_background_mesh_[domain][kn_macro];
+                // const int kb_macro = Th.macro_idx_in_background_mesh_[domain][k_macro];
+
+                // std::cout << "Domain " << domain << " stabilizing face between micro elements " << kb << " and " << kbn << " in the macros " << kb_macro << ", " << kbn_macro <<  "\n";
+                // std::cout << "The element " << kb << " is (" << Th.Th[kb][0] << "), (" << Th.Th[kb][1] << "), (" << Th.Th[kb][2] << ")\n";
+                BaseFEM<Mesh2>::addPatchContribution(VF, k, kn, &In, itq, cst_time);
+                num_stab_faces++;
+            }
+            this->addLocalContribution();
+        }
+        bar.end();
+
+    }
+
+    // std::cout << "Number of stabilized faces: " << num_stab_faces / number_of_quadrature_points << "\n";
+}
+
 
 template <> void BaseCutFEM<Mesh2>::addFaceStabilizationMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th) {
     assert(!VF.isRHS());

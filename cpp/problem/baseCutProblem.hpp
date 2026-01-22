@@ -182,7 +182,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void addPatchStabilizationMixed(const itemVFlist_t &VF, const CutMesh &Th);
     void addPatchStabilizationMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
     void addElementStabilization(const itemVFlist_t &VF, const Interface<Mesh> &interface, const CutMesh &Th);
-
+    void addPatchStabilization(const itemVFlist_t &VF, const BarycentricActiveMesh2 &, const TimeSlab &In);
 
     // Lagrange multiplier
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &);
