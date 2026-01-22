@@ -2,7 +2,7 @@
 #define BASE_CUTPROBLEM_SAYE_HPP
 
 #include "../algoim/quadrature_general.hpp"
-#include "../algoim/cut_triangle_quadrature.hpp"
+// #include "../algoim/cut_triangle_quadrature.hpp"
 #include "../common/AlgoimInterface.hpp"
 
 
@@ -158,7 +158,7 @@ template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBas
 };
 
 
-
+/*
 template <meshTriag M, typename Phi> class TriAlgoimBaseCutFEM : public BaseCutFEM<M> {
 
     using mesh_t        = M;
@@ -188,7 +188,7 @@ public:
 
 };
 
-
+*/
 
 
 

@@ -2043,7 +2043,7 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
 
 
 // TRIALGOIM
-
+/*
 template <meshTriag M, typename Phi>
 void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
     const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq, double cst_time)
@@ -2115,3 +2115,4 @@ void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
         }
     }
 }
+*/
