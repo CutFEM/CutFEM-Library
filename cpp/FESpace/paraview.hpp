@@ -1569,7 +1569,7 @@ template <class M> class Paraview {
             phi.t          = t;
 
             int kk = 0;
-            for (int k = cutTh.first_element(); k < cutTh.last_element(); k += cutTh.next_element()) {
+            for (int k = 0; k < cutTh.NbElement(); k += 1) {
                 if (domain != cutTh.get_domain_element(k))
                     continue;
 
