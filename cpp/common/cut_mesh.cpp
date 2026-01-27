@@ -671,7 +671,7 @@ bool BarycentricActiveMesh2::is_macro_cut(int macro_k, int domain, int t) const 
 
 
 bool BarycentricActiveMesh2::is_macro_cut(int macro_k, int t /*=0*/) const {
-    const int domain = 0;
+    const int domain = 0;   // assumes single domain
     assert(0 <= macro_k && macro_k < (int)active_macro_elements_d[domain].size());
     std::array<int,3> sub = active_macro_elements_d[domain][macro_k]; // 3 active micro ids
 

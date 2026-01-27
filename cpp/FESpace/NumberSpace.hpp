@@ -88,7 +88,7 @@ class TypeOfFE_NumberSpace2dQ : public GTypeOfFE<MeshQuad2> {
         GTypeOfFE<Mesh>::basisFctType   = BasisFctType::P0;
         GTypeOfFE<Mesh>::polynomialOrder = 0;
 
-        static const R2 Pt[1] = {R2(1. / 3, 1. / 3)};
+        static const R2 Pt[1] = {R2(1. / 2, 1. / 2)};
 
         for (int i = 0; i < ndf; ++i) {
             Pt_Pi_h[i]  = Pt[i];
