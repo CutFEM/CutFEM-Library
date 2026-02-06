@@ -18,13 +18,13 @@ template <int D> class DofData {
     DofData(DofData &&)            = default;
     DofData &operator=(DofData &&) = default;
 
-    /// @brief Index of the element ON THE BACKGROUND MESH
+
     int k;
-    /// @brief Index of the domain
+    
     int domain{0};
-    /// @brief Index of the component
+    
     int ci;
-    /// @brief Point in which we evaluate the function
+    
     v_t P;
 };
 
@@ -40,10 +40,10 @@ template <typename M> class BoundaryDirichlet {
     using dof_data_t   = DofData<D>;
 
   public:
-    BoundaryDirichlet(const cutspace_t &Vh, std::vector<int> lab);  // set strong BC on outer (fitted) boundary of CutFEM problem
+    BoundaryDirichlet(const cutspace_t &Vh, std::vector<int> lab = {});  // set strong BC on outer (fitted) boundary of CutFEM problem
     BoundaryDirichlet(const cutspace_t &Vh, const int domain = 0);      // set strong BC on outer boundary of the active mesh corresponding to domain "domain" of a CutFEM problem
     BoundaryDirichlet(const cutspace_t &Vh, const BarycentricActiveMesh2& active_mesh, const int domain = 0);
-    BoundaryDirichlet(const space_t &Vh, std::vector<int> lab);     // set strong BC on the boundary of a standard fitted FEM mesh
+    BoundaryDirichlet(const space_t &Vh, std::list<int> lab = {});     // set strong BC on the boundary of a standard fitted FEM mesh
 
     void apply_inhomogeneous(std::map<std::pair<int, int>, double> &A);
     template <typename Fct>
@@ -190,10 +190,12 @@ BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, std::vector<int> l
                 int id_item       = df_loc;
                 bool is_on_border = false;
 
+                // std::cout << "I'm here\n";
+
                 // case 1: dof is on node. E.g. (0, 1, 2) if triangle
                 if (id_item < T.nv) {
                     for (int i = 0; i < elt_t::nva; ++i) {
-                        //std::cout << "idx_bdry_face = " << idx_bdry_face << ", i = " << i << "\n";
+                        // std::cout << "nva = " << elt_t::nva << ", idx_bdry_face = " << idx_bdry_face << ", i = " << i << "\n";
                         int i_e = elt_t::nvedge.at(idx_bdry_face).at(i);
                         if (i_e == id_item) {
                             is_on_border = true;
@@ -302,17 +304,19 @@ BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, const int domain) 
 
 
 
-template <typename M> BoundaryDirichlet<M>::BoundaryDirichlet(const space_t &Vh, std::vector<int> lab) {
+template <typename M> BoundaryDirichlet<M>::BoundaryDirichlet(const space_t &Vh, std::list<int> lab) {
     const mesh_t &Th = Vh.Th;
+
+    bool all_label = (lab.size() == 0);
 
     // loop over boundary elements
     for (int k = Th.first_boundary_element(); k < Th.last_boundary_element(); k += Th.next_boundary_element()) {
 
         const auto &BE(Th.be(k));
-        auto it_lab = std::find(lab.begin(), lab.end(), BE.lab);
 
-        if (it_lab == lab.end())
+        if (!(util::contain(lab, BE.lab) || all_label)) {
             continue;
+        }
 
         auto [elt_idx, face_idx] = Th.getBoundaryElement(k);
         const auto &T(Th[elt_idx]);

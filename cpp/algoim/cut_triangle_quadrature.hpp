@@ -9,9 +9,6 @@
 #include <vector>
 
 #include "quadrature_multipoly.hpp"
-#include "bernstein.hpp"
-#include "uvector.hpp"
-#include "xarray.hpp"
 
 namespace cuttri_multipoly {
 

@@ -70,7 +70,7 @@ namespace algoim::bernstein
 
     // Fast evaluation of a 1-D Bernstein polynomial and its derivative; it is assumed that
     // binom == Binomial::row(P - 1), left to the caller to evaluate and cache, for speed
-    void bernsteinValueAndDerivative(const real* alpha, int P, const real* binom, real x, real& value, real& deriv)
+    inline void bernsteinValueAndDerivative(const real* alpha, int P, const real* binom, real x, real& value, real& deriv)
     {
         assert(P > 1);
         real *a, *b;
@@ -423,7 +423,7 @@ namespace algoim::bernstein
         //   in: alpha, length P, shall be overwritten
         //   in: beta, length P, shall be overwritten
         //   in: b, overwritten with first P rows yielding least squares solution
-        void lsqr_bidiagonal(real *alpha, real *beta, int P, xarray<real,2>& b)
+        inline void lsqr_bidiagonal(real *alpha, real *beta, int P, xarray<real,2>& b)
         {
             assert(b.ext(0) == P + 1 && b.ext(1) > 0);
             real *gamma;
@@ -686,7 +686,7 @@ namespace algoim::bernstein
         // Compute the generalised eigenvalues for matrix pair A, B
         //   in: N by N square matrices; A, B will be overwritten
         //   out: array of length N x 2
-        void generalisedEigenvalues(xarray<real,2>& A, xarray<real,2>& B, xarray<real,2>& out)
+        inline void generalisedEigenvalues(xarray<real,2>& A, xarray<real,2>& B, xarray<real,2>& out)
         {
             int N = A.ext(0);
             assert(all(A.ext() == N) && all(B.ext() == N) && out.ext(0) == N && out.ext(1) == 2);
@@ -711,7 +711,7 @@ namespace algoim::bernstein
     // Compute all complex  roots of a Bernstein polynomial
     //   alpha: array of length P
     //   out: array of length (P-1) x 2
-    void rootsBernsteinPoly(const real* alpha, int P, xarray<real,2>& out)
+    inline void rootsBernsteinPoly(const real* alpha, int P, xarray<real,2>& out)
     {
         assert(P >= 2 && out.ext(0) == P - 1 && out.ext(1) == 2);
         using std::max;
@@ -829,7 +829,7 @@ namespace algoim::bernstein
     //   - if some coefficients are close to zero (thereby preventing a reliable use of
     //     Descartes' rule), -1 is returned
     //   - if no other guarantees can be made, -1 is returned
-    int bernsteinSimpleRoot(const real* alpha, int P, real tol, real& root)
+    inline int bernsteinSimpleRoot(const real* alpha, int P, real tol, real& root)
     {
         assert(P >= 2);
         using std::abs;
@@ -856,7 +856,7 @@ namespace algoim::bernstein
     // Compute real roots of a Bernstein polynomial using a bisection + Newton's method approach.
     // Returns the number of real roots computed (and recorded in out, a buffer of size at least
     // P - 1), or -1 if failed
-    int rootsBernsteinPolyFast(const xarray<real,1>& alpha, real a, real b, int depth, real tol, real* out)
+    inline int rootsBernsteinPolyFast(const xarray<real,1>& alpha, real a, real b, int depth, real tol, real* out)
     {
         // Try simple root method
         real root;
@@ -893,7 +893,7 @@ namespace algoim::bernstein
 
     // Apply generalised eigenvalue method to compute the real roots of alpha in the interval [0,1],
     // returning the number of roots recorded in 'out', a buffer of size at least P - 1
-    int bernsteinUnitIntervalRealRoots_eigenvalue(const real* alpha, int P, real* out)
+    inline int bernsteinUnitIntervalRealRoots_eigenvalue(const real* alpha, int P, real* out)
     {
         using std::abs;
         xarray<real,2> roots(nullptr, uvector<int,2>{P - 1, 2});
@@ -915,7 +915,7 @@ namespace algoim::bernstein
     // Apply a Newton's method-based approach to compute the real roots of alpha in the interval [0,1];
     // if succeeded, returns the number of roots recorded in 'out' (a buffer of size at least P -1);
     // if failed, returns -1
-    int bernsteinUnitIntervalRealRoots_fast(const real* alpha, int P, real* out)
+    inline int bernsteinUnitIntervalRealRoots_fast(const real* alpha, int P, real* out)
     {
         using std::max;
         using std::abs;
@@ -934,7 +934,7 @@ namespace algoim::bernstein
     // anywhere between 10x and 100x faster than the backup approach; if the fast approach fails,
     // the backup method is applied. Returns the number of computed roots, recorded in the buffer
     // 'out' of size at least P - 1
-    int bernsteinUnitIntervalRealRoots(const real* alpha, int P, real* out)
+    inline int bernsteinUnitIntervalRealRoots(const real* alpha, int P, real* out)
     {
         using std::sqrt;
         if (P == 1)
@@ -976,7 +976,7 @@ namespace algoim::bernstein
 
     // Build Sylvester matrix for Bernstein polynomials of degrees P-1 and Q-1
     //   out: square matrix of dimensions P + Q - 2
-    void sylvesterMatrix(const real* a, int P, const real* b, int Q, xarray<real,2>& out)
+    inline void sylvesterMatrix(const real* a, int P, const real* b, int Q, xarray<real,2>& out)
     {
         assert(P >= 1 && Q >= 1 && P + Q >= 3 && out.ext(0) == P + Q - 2 && out.ext(1) == P + Q - 2);
         const real* bP = Binomial::row(P - 1);
@@ -993,7 +993,7 @@ namespace algoim::bernstein
 
     // Build Bezout matrix for Bernstein polynomials of equal degree P-1
     //   out: square matrix of dimensions P - 1
-    void bezoutMatrix(const real* a, const real* b, int P, xarray<real,2>& out)
+    inline void bezoutMatrix(const real* a, const real* b, int P, xarray<real,2>& out)
     {
         assert(P >= 2 && out.ext(0) == P - 1 && out.ext(1) == P - 1);
         const int n = P - 1;

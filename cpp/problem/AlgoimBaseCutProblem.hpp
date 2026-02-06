@@ -2,7 +2,7 @@
 #define BASE_CUTPROBLEM_SAYE_HPP
 
 #include "../algoim/quadrature_general.hpp"
-// #include "../algoim/cut_triangle_quadrature.hpp"
+#include "../algoim/cut_triangle_quadrature.hpp"
 #include "../common/AlgoimInterface.hpp"
 
 
@@ -158,7 +158,7 @@ template <meshQuadrilateral M, typename L> class AlgoimCutFEM : public AlgoimBas
 };
 
 
-/*
+
 template <meshTriag M, typename Phi> class TriAlgoimBaseCutFEM : public BaseCutFEM<M> {
 
     using mesh_t        = M;
@@ -186,9 +186,33 @@ public:
     void addElementContribution(const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq,
                                 double cst_time) override;
 
+    void addInterfaceContribution(const itemVFlist_t& VF, const Interface<mesh_t>& interface, int ifac, double tid,
+                                  const TimeSlab* In, double cst_time, int itq) override;
+
 };
 
-*/
+
+template <meshTriag M, typename Phi>
+class TriAlgoimCutFEM : public TriAlgoimBaseCutFEM<M, Phi>, public Solver {
+    typedef GFESpace<M> fespace_t;
+    typedef std::map<std::pair<int, int>, R> Matrix;
+
+    public:
+    TriAlgoimCutFEM(const fespace_t& vh, Phi& phi, const ProblemOption& option = defaultProblemOption)
+        : TriAlgoimBaseCutFEM<M, Phi>(vh, phi, option), Solver(option) {}
+
+    void solve() { Solver::solve(this->mat_, this->rhs_); }
+    void solve(std::string solverName) {
+        this->solver_name_ = solverName;
+        Solver::solve(this->mat_, this->rhs_);
+    }
+    void solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) { Solver::solve(A, b); }
+    void solve(std::map<std::pair<int, int>, R> &A, std::span<double> b, std::string solverName) { 
+        this->solver_name_ = solverName;    
+        Solver::solve(A, b); 
+    }
+};
+
 
 
 

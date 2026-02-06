@@ -2043,7 +2043,6 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
 
 
 // TRIALGOIM
-/*
 template <meshTriag M, typename Phi>
 void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
     const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq, double cst_time)
@@ -2074,6 +2073,12 @@ void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
             bernstein_deg_,   // bernstein degree
             q1d_              // algoim 1D quadrature order
         );
+
+    assert(q.x_vol.size() != 0);
+    if (q.x_vol.size() == 0) {
+        std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << ", returning\n";
+        return;
+    }
 
     // assemble (same as your current inner loops)
     for (int l=0; l<VF.size(); ++l) {
@@ -2115,4 +2120,114 @@ void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
         }
     }
 }
-*/
+
+
+
+template <meshTriag M, typename Phi>
+void TriAlgoimBaseCutFEM<M, Phi>::addInterfaceContribution(const itemVFlist_t& VF, const Interface<mesh_t>& interface, int ifac, double tid,
+                                  const TimeSlab* In, double cst_time, int itq) {
+
+    phi_.t = tid; // update time in level set function
+
+    //  GET IDX ELEMENT CONTAINING FACE ON backMes
+    const int kb = interface.idxElementOfFace(ifac);
+    const auto &K(interface.get_element(kb));
+
+    // const Rd normal(-interface.normal(ifac));
+    using Vec2 = algoim::uvector<double,2>;
+    std::array<Vec2,3> verts = {
+        Vec2(K.at(0)[0], K.at(0)[1]),
+        Vec2(K.at(1)[0], K.at(1)[1]),
+        Vec2(K.at(2)[0], K.at(2)[1])
+    };
+
+    const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
+            verts,
+            phi_,
+            bernstein_deg_,   // bernstein degree
+            q1d_              // algoim 1D quadrature order
+        );
+
+    assert(q.x_surf.size() != 0);
+    if (q.x_surf.size() == 0) {
+        std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << ", returning\n";
+        return;
+    }
+
+    for (int l = 0; l < VF.size(); ++l) {
+
+        // if(!VF[l].on(domain)) continue;
+
+        // FINITE ELEMENT SPACES && ELEMENTS
+        const fespace_t &Vhv(VF.get_spaceV(l));
+        const fespace_t &Vhu(VF.get_spaceU(l));
+        bool same = (VF.isRHS() || (&Vhu == &Vhv));
+
+        std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+        std::vector<int> idxU = (same) ? idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
+
+        int kv = VF[l].onWhatElementIsTestFunction(idxV);
+        int ku = VF[l].onWhatElementIsTrialFunction(idxU);
+
+        const auto &FKu(Vhu[ku]);
+        const auto &FKv(Vhv[kv]);
+        int domu = FKu.get_domain();
+        int domv = FKv.get_domain();
+        this->initIndex(FKu, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT && NORMAL
+        // double coef = VF[l].computeCoefInterface(h, meas, measK, measCut, {domu, domv});
+        // coef *= VF[l].computeCoefFromNormal(normal);
+
+        // double coef = VF[l].computeCoefFromNormal(normal);
+
+        // LOOP OVER QUADRATURE IN SPACE
+        for (size_t ip=0; ip<q.x_surf.size(); ++ip) {
+            Rd mip(q.x_surf.at(ip)[0], q.x_surf.at(ip)[1]);
+            
+            const R weight = q.w_surf.at(ip);
+            assert(weight > 0);
+            const Rd face_ip = K.mapToReferenceElement(mip);
+            double Cint      = weight * cst_time;
+
+            const Rd normal(phi_.normal(mip));
+
+            assert(std::fabs(normal.norm() - 1) < 1e-14);
+            double coef = VF[l].computeCoefFromNormal(normal);
+
+            FKv.BF(Fop, face_ip, fv);
+
+            if (!same)
+                FKu.BF(Fop, face_ip, fu);
+
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip, tid,
+                                                           normal);
+            Cint *= coef * VF[l].c;
+
+            // std::cout << "mip = " << mip << "\t" << "feval = "
+            //           << VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv),
+            //           mip,
+            //                                                     tid, normal)
+            //           << "\n";
+
+            if (In) {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS()) {
+                    this->addToRHS(VF[l], FKv, fv, Cint);
+                } else
+                    this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    }
+
+}
