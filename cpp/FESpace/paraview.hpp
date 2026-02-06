@@ -22,6 +22,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/util.hpp"
 #include "expression.hpp"
 #include "../algoim/quadrature_general.hpp"
+#include "../algoim/cut_triangle_quadrature.hpp"
 
 // template<class F>
 // class FEMFunction;
@@ -1685,6 +1686,143 @@ template <class M> class Paraview {
             }
         }
 
+        template <typename L> void buildTriAlgoimVolumeQuadrature(const ActiveMesh<M> &cutTh, L &phi, int bernstein_deg, int q1d) {
+            typedef typename FESpace::FElement FElement;
+            typedef typename ActiveMesh<M>::Element Element;
+            typedef typename FElement::Rd Rd;
+            typedef typename FElement::QF QF;
+            typedef typename QF::QuadraturePoint QuadraturePoint;
+
+            const QF &qf(*QF_Simplex<typename FElement::RdHat>(q1d));
+
+            const int domain           = 0; // only for one subdomain
+            ntCut_                     = 0;
+            ntNotcut_                  = 0;
+            nv_                        = 0;
+
+            clearAndResize(q1d * q1d * q1d * cutTh.NbElement());
+
+            // std::vector<Rd> all_quadrature_nodes;
+
+            int kk = 0;
+            for (int k = 0; k < cutTh.NbElement(); k += 1) {
+                if (domain != cutTh.get_domain_element(k))
+                    continue;
+
+                if (cutTh.isInactive(k, 0))
+                    continue;
+
+                // if (!cutTh.isCut(k, 0))
+                //     continue;
+
+                int domain = cutTh.get_domain_element(k);
+                int kb     = cutTh.idxElementInBackMesh(k);
+
+                check_and_resize_array(kk);
+
+                const Element &K(cutTh[k]);
+
+                if (cutTh.isCut(k, 0)) {
+                    // TriAlgoim quadrature
+                    using Vec2 = algoim::uvector<double,2>;
+                    std::array<Vec2,3> verts = {
+                        Vec2(K.at(0)[0], K.at(0)[1]),
+                        Vec2(K.at(1)[0], K.at(1)[1]),
+                        Vec2(K.at(2)[0], K.at(2)[1])
+                    };
+
+                    const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
+                        verts,
+                        phi,
+                        bernstein_deg,   // bernstein degree
+                        q1d              // algoim 1D quadrature order
+                    );
+                    
+                    for (int ipq = 0; ipq < q.x_vol.size(); ++ipq) {
+                        mesh_node.at(kk).push_back(R2(q.x_vol.at(ipq)[0], q.x_vol.at(ipq)[1]));
+                        num_cell.at(kk)  = std::make_pair(1, 1);
+                        idx_in_Vh.at(kk) = std::make_pair(kb, domain);
+                        kk++;
+                        ntCut_++;
+                    }
+                    
+                    nv_ += q.x_vol.size();
+
+                } else {
+                    // Standard quadrature
+                    for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+                        auto ip(qf[ipq]);
+
+                        mesh_node.at(kk).push_back(K.mapToPhysicalElement(ip));
+                        num_cell.at(kk)  = std::make_pair(1, 1);
+                        idx_in_Vh.at(kk) = std::make_pair(kb, domain);
+                        kk++;
+                        ntNotcut_++;
+                    }
+
+                    nv_ += qf.getNbrOfQuads();
+                }
+            }
+        }
+
+        template <typename L> void buildTriAlgoimSurfaceQuadrature(const ActiveMesh<M> &cutTh, L &phi, int bernstein_deg, int q1d) {
+            typedef typename FESpace::FElement FElement;
+            typedef typename ActiveMesh<M>::Element Element;
+            typedef typename FElement::Rd Rd;
+            typedef typename FElement::QF QF;
+            typedef typename QF::QuadraturePoint QuadraturePoint;
+
+            const int domain           = 0; // only for one subdomain
+            ntCut_                     = 0;
+            ntNotcut_                  = 0;
+            nv_                        = 0;
+
+            clearAndResize(q1d * q1d * cutTh.NbElement());
+
+            // std::vector<Rd> all_quadrature_nodes;
+
+            int kk = 0;
+            for (int k = 0; k < cutTh.NbElement(); k += 1) {
+                if (domain != cutTh.get_domain_element(k))
+                    continue;
+
+                if (cutTh.isInactive(k, 0) || !cutTh.isCut(k, 0))
+                    continue;
+
+                int domain = cutTh.get_domain_element(k);
+                int kb     = cutTh.idxElementInBackMesh(k);
+
+                check_and_resize_array(kk);
+
+                const Element &K(cutTh[k]);
+                
+                using Vec2 = algoim::uvector<double,2>;
+                std::array<Vec2,3> verts = {
+                    Vec2(K.at(0)[0], K.at(0)[1]),
+                    Vec2(K.at(1)[0], K.at(1)[1]),
+                    Vec2(K.at(2)[0], K.at(2)[1])
+                };
+
+                const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
+                    verts,
+                    phi,
+                    bernstein_deg,   // bernstein degree
+                    q1d              // algoim 1D quadrature order
+                );
+
+                for (int ipq = 0; ipq < q.x_surf.size(); ++ipq) {
+                    mesh_node.at(kk).push_back(R2(q.x_surf.at(ipq)[0], q.x_surf.at(ipq)[1]));
+                    num_cell.at(kk)  = std::make_pair(1, 1);
+                    idx_in_Vh.at(kk) = std::make_pair(kb, domain);
+                    kk++;
+                    ntCut_++;
+                }
+                
+                nv_ += q.x_surf.size();
+            }
+        }
+
         template <typename Q> void buildQuadrature(const ActiveMesh<M> &cutTh, Q &qf) {
             using mesh_t    = M;
             using fespace_t = GFESpace<mesh_t>;
@@ -2046,6 +2184,22 @@ template <class M> class Paraview {
     void writeAlgoimQuadrature(const ActiveMesh<M> &cutTh, L &phi, const int algoim_domain, std::string name) {
         outFile_ = name;
         mesh_data.template buildAlgoimQuadrature<L>(cutTh, phi, algoim_domain);
+        this->writeFileMesh();
+        this->writeFileCell();
+    }
+
+    template <typename L>
+    void writeTriAlgoimVolumeQuadrature(const ActiveMesh<M> &cutTh, L &phi, int bernstein_deg, int q1d, std::string name) {
+        outFile_ = name;
+        mesh_data.template buildTriAlgoimVolumeQuadrature<L>(cutTh, phi, bernstein_deg, q1d);
+        this->writeFileMesh();
+        this->writeFileCell();
+    }
+
+    template <typename L>
+    void writeTriAlgoimSurfaceQuadrature(const ActiveMesh<M> &cutTh, L &phi, int bernstein_deg, int q1d, std::string name) {
+        outFile_ = name;
+        mesh_data.template buildTriAlgoimSurfaceQuadrature<L>(cutTh, phi, bernstein_deg, q1d);
         this->writeFileMesh();
         this->writeFileCell();
     }
