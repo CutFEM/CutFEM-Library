@@ -602,20 +602,20 @@ void BoundaryDirichlet<M>::finalize_inhomogeneous(std::map<std::pair<int,int>, d
                                                   size_t dof_start)
 {
     for (const auto& kv : boundary_dofs) {
-        const int I = static_cast<int>(kv.first + dof_start);
-        const double g = b[static_cast<size_t>(I)];
+        const int I_dof = static_cast<int>(kv.first + dof_start);
+        const double g = b[static_cast<size_t>(I_dof)];
 
         for (auto it = A.begin(); it != A.end(); ) {
             const int r = it->first.first;
             const int c = it->first.second;
-            if (c == I && r != I) {
+            if (c == I_dof && r != I_dof) {
                 b[static_cast<size_t>(r)] -= it->second * g; // RHS shift
-                it = A.erase(it);                            // zero A(r,I)
+                it = A.erase(it);                            // zero A(r,I_dof)
             } else {
                 ++it;
             }
         }
-        // A(I,I)=1 already set; row I already zeroed.
+        // A(I_dof,I_dof)=1 already set; row I_dof already zeroed.
     }
 
 }
