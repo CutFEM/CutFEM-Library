@@ -1,17 +1,25 @@
-
 #ifndef ALGOIM_INTEGRATION_HPP
 #define ALGOIM_INTEGRATION_HPP
 
 #include "../common/AlgoimInterface.hpp"
-
-#include "../common/AlgoimInterface.hpp"
+#include "../solver/solver.hpp"
+#include "../problem/problem.hpp"
 
 const int quadrature_order_integration = 4;
-const int bernstein_deg                = 2;
+// const int bernstein_degr = 2;
 
+// // Helper function to get default Algoim ProblemOption
+// inline ProblemOption getDefaultAlgoimOptions() {
+//     ProblemOption options;
+//     options.order_space_element_quadrature_ = quadrature_order_integration;
+//     options.algoim_bernstein_deg_ = bernstein_degr;
+//     return options;
+// }
+
+/*
 template <typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(const R2, int i),
-                         const Interface<MeshQuad2> &interface, L &phi, const int order_space = quadrature_order_integration) {
+                         const Interface<MeshQuad2> &interface, L &phi) {
 
     using fespace_t = GFESpace<MeshQuad2>;
     using FElement  = typename fespace_t::FElement;
@@ -67,7 +75,7 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
 
 template <typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(const R2, int i, double t),
-                         const Interface<MeshQuad2> &interface, double tt, L &phi, const int order_space = quadrature_order_integration) {
+                         const Interface<MeshQuad2> &interface, double tt, L &phi) {
 
     using fespace_t = GFESpace<MeshQuad2>;
     using FElement  = typename fespace_t::FElement;
@@ -124,7 +132,7 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(co
 
 template <typename L>
 double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, double t),
-                         const Interface<MeshQuad2> &interface, double tt, L &phi, const int order_space = quadrature_order_integration) {
+                         const Interface<MeshQuad2> &interface, double tt, L &phi) {
 
     using fespace_t = GFESpace<MeshQuad2>;
     using FElement  = typename fespace_t::FElement;
@@ -177,8 +185,10 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(do
     return val_receive;
 }
 
-template <meshTriag Mesh, typename L, typename FEX>
-double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, const Interface<Mesh> &interface, L &phi, const int order_space = quadrature_order_integration) {
+*/
+
+template <typeMesh Mesh, typename L, typename FEX>
+double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, const Interface<Mesh> &interface, L &phi) {//, const int order_space = quadrature_order_integration) {
 
     using fespace_t = GFESpace<Mesh>;
     using FElement  = typename fespace_t::FElement;
@@ -196,26 +206,17 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
         const Element &K(interface.get_element(kb));
         // const R meas = interface.measure(iface);
 
-        using Vec2 = algoim::uvector<double,2>;
-        std::array<Vec2,3> verts = {
-            Vec2(K.at(0)[0], K.at(0)[1]),
-            Vec2(K.at(1)[0], K.at(1)[1]),
-            Vec2(K.at(2)[0], K.at(2)[1])
-        };
-
-        const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
-            verts,
-            phi,
-            bernstein_deg,   // bernstein degree
-            quadrature_order_integration    // algoim 1D quadrature order
-        );
-
+        auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+        if (quad_rule.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
+            continue;
+        }
         // assert(q.x_surf.size() != 0);
-        for (int ipq = 0; ipq < q.x_surf.size(); ++ipq) {
+        for (size_t ipq = 0; ipq < quad_rule.size(); ++ipq) {
 
-            Rd mip(q.x_surf.at(ipq)[0], q.x_surf.at(ipq)[1]);
+            Rd mip = quad_rule.points[ipq];
             
-            const R Cint   = q.w_surf.at(ipq);
+            const double Cint = quad_rule.weights[ipq];
 
             double a = fh->evalOnBackMesh(kb, 0, mip) - fex(mip, fh->cu);
             val += Cint * a * a;
@@ -232,8 +233,8 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
 }
 
 
-template <meshTriag Mesh, typename L, typename FEX>
-double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, const Interface<Mesh> &interface, double tt, L &phi, const int order_space = quadrature_order_integration) {
+template <typeMesh Mesh, typename L, typename FEX>
+double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, const Interface<Mesh> &interface, double tt, L &phi) {//, const int order_space = quadrature_order_integration) {
     
     using fespace_t = GFESpace<Mesh>;
     using FElement  = typename fespace_t::FElement;
@@ -242,7 +243,6 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
 
     // typedef typename FElement::QFB QFB;
     // typedef typename QFB::QuadraturePoint QuadraturePoint;
-
     phi.t = tt;
 
     double val = 0.;
@@ -251,29 +251,18 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
 
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
         const Element &K(interface.get_element(kb));
-        // const R meas = interface.measure(iface);
 
-        using Vec2 = algoim::uvector<double,2>;
-        std::array<Vec2,3> verts = {
-            Vec2(K.at(0)[0], K.at(0)[1]),
-            Vec2(K.at(1)[0], K.at(1)[1]),
-            Vec2(K.at(2)[0], K.at(2)[1])
-        };
-
-        const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
-            verts,
-            phi,
-            bernstein_deg,   // bernstein degree
-            quadrature_order_integration    // algoim 1D quadrature order
-        );
-
+        auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
+            continue;
+        }
         // assert(q.x_surf.size() != 0);
-        for (int ipq = 0; ipq < q.x_surf.size(); ++ipq) {
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-            Rd mip(q.x_surf.at(ipq)[0], q.x_surf.at(ipq)[1]);
+            Rd mip = quad_rule.points[ipq];
             
-            const R Cint   = q.w_surf.at(ipq);
-
+            const double Cint = quad_rule.weights[ipq];
             double a = fh->evalOnBackMesh(kb, 0, mip, tt) - fex(mip, fh->cu, tt);
             val += Cint * a * a;
         }
@@ -290,68 +279,68 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
 
 
 template <typeMesh M, typename L, typename FEX>
-double L2_norm_surface(const FunFEM<M> &fh, const FEX &fex, const Interface<M> &interface, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
+double L2_norm_surface(const FunFEM<M> &fh, const FEX &fex, const Interface<M> &interface, L &phi, int c0, int num_comp) {//, const int order_space = quadrature_order_integration) {
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
-        val += L2_norm_surface_2(ui, fex, interface, phi, order_space);
+        val += L2_norm_surface_2(ui, fex, interface, phi);
     }
     return sqrt(val);
 }
 
 //! REMOVE BELOW IF THE ONE ABOVE WORKS
-template <typeMesh M, typename L>
-double L2_norm_surface(const FunFEM<M> &fh, R(fex)(const R2, int i), const Interface<M> &interface, L &phi,
-                       int c0, int num_comp, const int order_space = quadrature_order_integration) {
+// template <typeMesh M, typename L>
+// double L2_norm_surface(const FunFEM<M> &fh, R(fex)(const R2, int i), const Interface<M> &interface, L &phi,
+//                        int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
-    double val = 0;
-    for (int i = c0; i < num_comp + c0; ++i) {
-        auto ui = fh.expr(i);
-        val += L2_norm_surface_2(ui, fex, interface, phi, order_space);
-    }
-    return sqrt(val);
-}
+//     double val = 0;
+//     for (int i = c0; i < num_comp + c0; ++i) {
+//         auto ui = fh.expr(i);
+//         val += L2_norm_surface_2(ui, fex, interface, phi);
+//     }
+//     return sqrt(val);
+// }
 
 template <typeMesh M, typename L, typename FEX>
-double L2_norm_surface(const FunFEM<M> &fh, const FEX &fex, const Interface<M> &interface, double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
+double L2_norm_surface(const FunFEM<M> &fh, const FEX &fex, const Interface<M> &interface, double tt, L &phi, int c0, int num_comp) {//, const int order_space = quadrature_order_integration) {
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
-        val += L2_norm_surface_2(ui, fex, interface, tt, phi, order_space);
+        val += L2_norm_surface_2(ui, fex, interface, tt, phi);
     }
     return sqrt(val);
 }
 
 //! REMOVE BELOW IF THE ONE ABOVE WORKS
-template <typeMesh M, typename L>
-double L2_norm_surface(const FunFEM<M> &fh, R(fex)(const R2, int i, double t), const Interface<M> &interface,
-                       double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
+// template <typeMesh M, typename L>
+// double L2_norm_surface(const FunFEM<M> &fh, R(fex)(const R2, int i, double t), const Interface<M> &interface,
+//                        double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
-    double val = 0;
-    for (int i = c0; i < num_comp + c0; ++i) {
-        auto ui = fh.expr(i);
-        val += L2_norm_surface_2(ui, fex, interface, tt, phi, order_space);
-    }
-    return sqrt(val);
-}
+//     double val = 0;
+//     for (int i = c0; i < num_comp + c0; ++i) {
+//         auto ui = fh.expr(i);
+//         val += L2_norm_surface_2(ui, fex, interface, tt, phi);
+//     }
+//     return sqrt(val);
+// }
 
 template <typeMesh M, typename L>
 double L2_norm_surface(const FunFEM<M> &fh, R(fex)(double *, int i, double t), const Interface<M> &interface,
-                       double tt, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
+                       double tt, L &phi, int c0, int num_comp) {//, const int order_space = quadrature_order_integration) {
 
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
-        val += L2_norm_surface_2(ui, fex, interface, tt, phi, order_space);
+        val += L2_norm_surface_2(ui, fex, interface, tt, phi);
     }
     return sqrt(val);
 }
 
 // L2(In x Gamma)
-template <typename L, typename fct_t>
-double L2L2_norm_surf(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInterface<MeshQuad2> &gamma, const TimeSlab &In,
-                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
-    using mesh_t    = MeshQuad2;
+template <typeMesh mesh_t, typename L, typename fct_t>
+double L2L2_norm_surf(const FunFEM<mesh_t> &fh, const fct_t &f, const TimeInterface<mesh_t> &gamma, const TimeSlab &In,
+                 const QuadratureFormular1d &qTime, L &phi) {
+
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
     using Rd        = typename FElement::Rd;
@@ -378,26 +367,18 @@ double L2L2_norm_surf(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInt
             const int kb = (*gamma[itq]).idxElementOfFace(iface);
             const Element &K((*gamma[itq]).get_element(kb));
 
-            // Get coordinates of current quadrilateral
-            const auto &V0(K.at(0)); // vertex 0
-            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
-
-            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
-
-            // Get quadrature rule
-            algoim::QuadratureRule<2> q =
-                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, order_space);
-
-            // Loop over quadrature in space
-            assert(q.nodes.size() != 0);
+            auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+            if (quad_rule.size() == 0) {
+                std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << "\n";
+                continue;
+            }
 
             double weight_K = 0.;
-            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+            for (size_t ipq = 0; ipq < quad_rule.size(); ++ipq) {
 
-                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
+                Rd mip = quad_rule.points[ipq];
 
-                const R weight = q.nodes.at(ipq).w;
+                const double weight = quad_rule.weights[ipq];
 
                 assert(weight > 0);
 
@@ -415,10 +396,10 @@ double L2L2_norm_surf(const FunFEM<MeshQuad2> &fh, const fct_t &f, const TimeInt
 
 
 // L2(L2(Omega(t)), 0, T)
-template <typename L, typename fct_t>
-double L2L2_norm(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
-                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
-    using mesh_t    = MeshQuad2;
+template <typeMesh mesh_t, typename L, typename fct_t>
+double L2L2_norm(const FunFEM<mesh_t> &fh, const fct_t &f, const ActiveMesh<mesh_t> &Th, const TimeSlab &In,
+                 const QuadratureFormular1d &qTime, L &phi) {
+    
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
     using Rd        = typename FElement::Rd;
@@ -451,26 +432,17 @@ double L2L2_norm(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<M
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
 
-            // Get coordinates of current quadrilateral
-            const auto &V0(K.at(0)); // vertex 0
-            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+            auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
-            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
-
-            // Get quadrature rule
-            algoim::QuadratureRule<2> q =
-                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
-
-            // Loop over quadrature in space
-            assert(q.nodes.size() != 0);
-
+            if (quad_rule.points.size() == 0) {
+                std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in L2L2_norm\n";
+                continue;
+            }
             double weight_K = 0.;
-            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+            for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-
-                const R weight = q.nodes.at(ipq).w;
+                Rd mip = quad_rule.points[ipq];
+                const double weight = quad_rule.weights[ipq];
 
                 double err = fh.evalOnBackMesh(kb, domain, mip, t, 0, 0, 0) - f(mip, 0, domain, t);
 
@@ -486,10 +458,9 @@ double L2L2_norm(const FunFEM<MeshQuad2> &fh, const fct_t &f, const ActiveMesh<M
 
 
 // L2(H1(Omega(t)), 0, T)
-template <typename L>
-double L2H1_norm(const FunFEM<MeshQuad2> &fh, const FunFEM<MeshQuad2> &f, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In,
-                 const QuadratureFormular1d &qTime, L &phi, const int order_space = quadrature_order_integration) {
-    using mesh_t    = MeshQuad2;
+template <typeMesh mesh_t, typename L>
+double L2H1_norm(const FunFEM<mesh_t> &fh, const FunFEM<mesh_t> &f, const ActiveMesh<mesh_t> &Th, const TimeSlab &In,
+                 const QuadratureFormular1d &qTime, L &phi) {
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
     using Rd        = typename FElement::Rd;
@@ -529,26 +500,17 @@ double L2H1_norm(const FunFEM<MeshQuad2> &fh, const FunFEM<MeshQuad2> &f, const 
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
 
-            // Get coordinates of current quadrilateral
-            const auto &V0(K.at(0)); // vertex 0
-            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+            auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
-            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
-
-            // Get quadrature rule
-            algoim::QuadratureRule<2> q =
-                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
-
-            // Loop over quadrature in space
-            assert(q.nodes.size() != 0);
-
+            if (quad_rule.points.size() == 0) {
+                std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in L2H1_norm\n";
+                continue;
+            }
             double weight_K = 0.;
-            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
+            for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-
-                const R weight = q.nodes.at(ipq).w;
+                Rd mip = quad_rule.points[ipq];
+                const double weight = quad_rule.weights[ipq];       
 
         
                 //double derrx = dfhx->eval(kb, mip, nullptr) - dfx->eval(kb, mip, nullptr);
@@ -572,7 +534,7 @@ double L2H1_norm(const FunFEM<MeshQuad2> &fh, const FunFEM<MeshQuad2> &f, const 
 }
 
 // Time-dependent bulk L2 norm
-template <typename Mesh, typename L>
+template <typeMesh Mesh, typename L>
 double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, double tt), const TimeSlab &In,
                    const QuadratureFormular1d &qTime, const int itq, L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
 
@@ -581,7 +543,7 @@ double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, doub
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
-        val += L2_norm_cut_2(ui, fex, Th, In, qTime, itq, phi, order_space);
+        val += L2_norm_cut_2(ui, fex, Th, In, qTime, itq, phi);
     }
     return sqrt(val);
 }
@@ -589,22 +551,23 @@ double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom, doub
 template <typeMesh M, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
                      const ActiveMesh<M> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime, const int itq,
-                     L &phi, const int order_space = quadrature_order_integration) {
+                     L &phi) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
-        val += L2_norm_cut_2(fh, fex, i, Th, In, qTime, itq, phi, order_space);
+        val += L2_norm_cut_2(fh, fex, i, Th, In, qTime, itq, phi);
     }
     return val;
 }
 
-template <typename L>
+
+template <typeMesh mesh_t, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt),
-                     int domain, const ActiveMesh<MeshQuad2> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime,
-                     const int itq, L &phi, const int order_space = quadrature_order_integration) {
-    typedef GFESpace<MeshQuad2> FESpace;
+                     int domain, const ActiveMesh<mesh_t> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime,
+                     const int itq, L &phi) {
+    typedef GFESpace<mesh_t> FESpace;
     typedef typename FESpace::FElement FElement;
-    typedef typename ActiveMesh<MeshQuad2>::Element Element;
+    typedef typename ActiveMesh<mesh_t>::Element Element;
     typedef typename FElement::Rd Rd;
 
     double val = 0.;
@@ -627,25 +590,17 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 
         int kk = k;
 
-        // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0)); // vertex 0
-        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
-        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom, double tt), int domain, const ActiveMesh<mesh_t> &Th, const TimeSlab &In, const QuadratureFormular1d &qTime, const int itq, L &phi)\n";
+            continue;
+        }
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-        algoim::QuadratureRule<2> q =
-            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
-
-        // std::cout << "K = [" << V0[0] << ", " << V2[0] << "] x [" << V0[1] << ", " << V2[1] << "]\n";
-        // std::cout << phi(xymin) << "\n";
-
-        // Loop over quadrature in space
-        assert(q.nodes.size() != 0);
-        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-            const R weight = q.nodes.at(ipq).w;
+            Rd mip = quad_rule.points[ipq];
+            const double weight = quad_rule.weights[ipq];
+            assert(weight > 0);
 
             double a = fh->eval(kk, mip) - fex(mip, fh->cu, domain, t);
 
@@ -661,6 +616,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
     return val_receive;
 }
 
+
 // Stationary bulk L2 norm
 template <typename Mesh, typename L>
 double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom), L &phi, int c0, int num_comp, const int order_space = quadrature_order_integration) {
@@ -670,25 +626,25 @@ double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom), L &
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
-        val += L2_norm_cut_2(ui, fex, Th, phi, order_space);
+        val += L2_norm_cut_2(ui, fex, Th, phi);
     }
     return sqrt(val);
 }
 
 template <typename M, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom),
-                     const ActiveMesh<M> &Th, L &phi, const int order_space = quadrature_order_integration) {
+                     const ActiveMesh<M> &Th, L &phi) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
-        val += L2_norm_cut_2(fh, fex, i, Th, phi, order_space);
+        val += L2_norm_cut_2(fh, fex, i, Th, phi);
     }
     return val;
 }
 
-template <typename L>
+/*template <typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom), int domain,
-                     const ActiveMesh<MeshQuad2> &Th, L &phi, const int order_space = quadrature_order_integration) {
+                     const ActiveMesh<MeshQuad2> &Th, L &phi) {
     typedef GFESpace<MeshQuad2> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename ActiveMesh<MeshQuad2>::Element Element;
@@ -742,10 +698,10 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
     val_receive = val;
 #endif
     return val_receive;
-}
+}*/
 
-template <meshTriag M, typename L, typename FEX>
-double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, int domain, const ActiveMesh<M> &Th, L &phi, const int order_space = quadrature_order_integration) {
+template <typeMesh M, typename L, typename FEX>
+double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, int domain, const ActiveMesh<M> &Th, L &phi) {//, const int order_space = quadrature_order_integration) {
     typedef GFESpace<M> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename ActiveMesh<M>::Element Element;
@@ -770,26 +726,17 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fe
         int kk = k;
 
         if (Th.isCut(k, 0)) {
-            using Vec2 = algoim::uvector<double,2>;
-            std::array<Vec2,3> verts = {
-                Vec2(K.at(0)[0], K.at(0)[1]),
-                Vec2(K.at(1)[0], K.at(1)[1]),
-                Vec2(K.at(2)[0], K.at(2)[1])
-            };
+            
+            auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
-            const auto q = cuttri_multipoly::compute_cut_triangle_quadrature(
-                verts,
-                phi,
-                bernstein_deg,   // bernstein degree
-                quadrature_order_integration              // algoim 1D quadrature order
-            );
+            if (quad_rule.points.size() == 0) {
+                std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, int domain, const ActiveMesh<M> &Th, L &phi)\n";
+                continue;
+            }
+            for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-            // Loop over quadrature in space
-            // assert(q.x_vol.size() != 0);
-            for (int ipq = 0; ipq < q.x_vol.size(); ++ipq) {
-
-                Rd mip(q.x_vol.at(ipq)[0], q.x_vol.at(ipq)[1]);
-                const R weight = q.w_vol.at(ipq);
+                Rd mip = quad_rule.points[ipq];
+                const double weight = quad_rule.weights[ipq];
                 assert(weight > 0);
 
                 double a = fh->eval(kk, mip) - fex(mip, fh->cu, domain);
@@ -821,8 +768,8 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fe
 }
 
 
-template <meshTriag mesh_t, typename L>
-double max_norm_cut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<mesh_t> &Th, int domain, L& phi, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename L>
+double max_norm_cut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMesh<mesh_t> &Th, int domain, L& phi) {
 
     using fespace_t = GFESpace<mesh_t>;
     using fe_t      = typename fespace_t::FElement;
@@ -832,8 +779,8 @@ double max_norm_cut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMe
     using v_t       = typename fe_t::Rd;
     using qp_t      = typename QF::QuadraturePoint;
 
-    const QF &qf(*QF_Simplex<typename fe_t::RdHat>(order_space));
-    const QFB &qfb(*QF_Simplex<typename fe_t::RdHatBord>(order_space));
+    const QF &qf(*QF_Simplex<typename fe_t::RdHat>(quadrature_order_integration));
+    const QFB &qfb(*QF_Simplex<typename fe_t::RdHatBord>(quadrature_order_integration));
 
     What_d Fop = Fwhatd(op_id);
     double val = 0.;
@@ -874,10 +821,9 @@ double max_norm_cut(const std::shared_ptr<ExpressionVirtual> &fh, const ActiveMe
 }
 
 
-template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename L>
+double integral_algoim(FunFEM<mesh_t> &fh, const Interface<mesh_t> &interface, int cu, L &phi) {
 
-    using mesh_t        = MeshQuad2;
     using fespace_t     = GFESpace<mesh_t>;
     using itemVFlist_t  = ListItemVF<mesh_t>;
     using FElement      = typename fespace_t::FElement;
@@ -893,28 +839,20 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
 
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
-        const auto &T(interface.get_element(kb));
-        const auto &V0(T.at(0)); // vertex 0
-        const auto &V2(T.at(2)); // vertex 2   diagonally opposed
+        const Element &K(interface.get_element(kb));
+        
+        auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
+            continue;
+        }
+        // assert(q.x_surf.size() != 0);
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
-
-        algoim::QuadratureRule<2> q =
-            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, order_space);
-
-        assert(q.nodes.size() != 0);
-        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-            const R weight = q.nodes.at(ipq).w;
-
-            const R Cint = weight;
-            if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
-                val += Cint * fh.evalOnBackMesh(kb, 0, mip, cu, 0);
-            } else {
-                val += Cint * fh->evalOnBackMesh(kb, 0, mip, nullptr);
-            }
+            Rd mip = quad_rule.points[ipq];
+            
+            const double Cint = quad_rule.weights[ipq];
+            val += Cint * fh.evalOnBackMesh(kb, 0, mip, cu, 0);
         }
     }
 
@@ -928,10 +866,55 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
     return val_receive;
 }
 
-template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const double t, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename L>
+double integral_algoim(const std::shared_ptr<const ExpressionVirtual> &fh, const Interface<mesh_t> &interface, L &phi) {
 
-    using mesh_t        = MeshQuad2;
+    using fespace_t     = GFESpace<mesh_t>;
+    using itemVFlist_t  = ListItemVF<mesh_t>;
+    using FElement      = typename fespace_t::FElement;
+    using Rd            = typename FElement::Rd;
+    using QF            = typename FElement::QF;
+    using QFB           = typename FElement::QFB;
+    using Element       = typename mesh_t::Element;
+    using BorderElement = typename mesh_t::BorderElement;
+
+    double val = 0.;
+
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
+
+        const int kb = interface.idxElementOfFace(iface); // idx on backMesh
+
+        const Element &K(interface.get_element(kb));
+        
+        auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
+            continue;
+        }
+        // assert(q.x_surf.size() != 0);
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
+
+            Rd mip = quad_rule.points[ipq];
+            Rd normal = quad_rule.normals[ipq];
+            
+            const double Cint = quad_rule.weights[ipq];
+            val += Cint * fh->evalOnBackMesh(kb, 0, mip, normal);
+        }
+    }
+
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
+template <typeMesh mesh_t, typename L, typename fct_t>
+double integral_algoim(fct_t &fh, const Interface<mesh_t> &interface, int cu, L &phi, const double t) {
+
     using fespace_t     = GFESpace<mesh_t>;
     using itemVFlist_t  = ListItemVF<mesh_t>;
     using FElement      = typename fespace_t::FElement;
@@ -949,24 +932,20 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
 
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
-        const auto &T(interface.get_element(kb));
-        const auto &V0(T.at(0)); // vertex 0
-        const auto &V2(T.at(2)); // vertex 2   diagonally opposed
+        const Element &K(interface.get_element(kb));
+        
+        auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
+            continue;
+        }
+        // assert(q.x_surf.size() != 0);
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
-
-        algoim::QuadratureRule<2> q =
-            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, order_space);
-
-        assert(q.nodes.size() != 0);
-        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-            const R weight = q.nodes.at(ipq).w;
-
-            const R Cint = weight;
-            if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+            Rd mip = quad_rule.points[ipq];
+            
+            const double Cint = quad_rule.weights[ipq];
+            if constexpr (std::is_same_v<fct_t, FunFEM<mesh_t>>) {
                 val += Cint * fh.evalOnBackMesh(kb, 0, mip, cu, 0);
             } else {
                 val += Cint * fh->evalOnBackMesh(kb, 0, mip, nullptr);
@@ -984,11 +963,10 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
     return val_receive;
 }
 
-template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename L, typename fct_t>
+double integral_algoim(fct_t &fh, const Interface<mesh_t> &interface, int cu, L &phi, const TimeSlab &In,
+                       const QuadratureFormular1d &qTime, const int itq) {
 
-    using mesh_t        = MeshQuad2;
     using fespace_t     = GFESpace<mesh_t>;
     using itemVFlist_t  = ListItemVF<mesh_t>;
     using FElement      = typename fespace_t::FElement;
@@ -1009,23 +987,18 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const auto &T(interface.get_element(kb));
-        const auto &V0(T.at(0)); // vertex 0
-        const auto &V2(T.at(2)); // vertex 2   diagonally opposed
+        auto quad_rule = quadGenSurf(T, phi, defaultProblemOption);
+        if (quad_rule.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << "\n";
+            continue;
+        }
+        // assert(q.x_surf.size() != 0);
+        for (size_t ipq = 0; ipq < quad_rule.size(); ++ipq) {
 
-        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+            Rd mip = quad_rule.points[ipq];
+            const double Cint = quad_rule.weights[ipq];
 
-        algoim::QuadratureRule<2> q =
-            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, order_space);
-
-        assert(q.nodes.size() != 0);
-        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-            const R weight = q.nodes.at(ipq).w;
-
-            const R Cint = weight;
-            if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+            if constexpr (std::is_same_v<fct_t, FunFEM<mesh_t>>) {
                 val += Cint * fh.evalOnBackMesh(kb, 0, mip, t, cu, 0, 0);
             } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
                 val += Cint * fh->evalOnBackMesh(kb, 0, mip, t, nullptr);
@@ -1057,12 +1030,11 @@ double integral_algoim(fct_t &fh, const Interface<MeshQuad2> &interface, int cu,
  * @param phi
  * @return double
  */
-template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c0, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename L, typename fct_t>
+double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, int c0) {
 
     assert(Th.get_nb_domain() == 1);
 
-    using mesh_t        = MeshQuad2;
     using fespace_t     = GFESpace<mesh_t>;
     using itemVFlist_t  = ListItemVF<mesh_t>;
     using FElement      = typename fespace_t::FElement;
@@ -1081,37 +1053,25 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c
         if (domain != Th.get_domain_element(k))
             continue;
 
+        if (Th.isInactive(k, 0))
+            continue;
+
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
 
-        // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0)); // vertex 0
-        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
-        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, int c0)\n";
+            continue;
+        }
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-        // Get quadrature rule
-        algoim::QuadratureRule<2> q =
-            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
+            Rd mip = quad_rule.points[ipq];
+            const double Cint = quad_rule.weights[ipq];
+            assert(Cint > 0);
 
-        // if (Th.isCut(k, 0)) {
-        //     std::cout << "This element is not cut: here comes the quadrature: "
-        //               << "\n";
-        //     for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-        //         Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-        //         std::cout << "mip = " << mip[0] << ", " << mip[1] << "\n";
-        //     }
-        // }
-        // Loop over quadrature in space
-        assert(q.nodes.size() != 0);
-        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-            const R weight = q.nodes.at(ipq).w;
-
-            const R Cint = weight;
-            if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+            if constexpr (std::is_same_v<fct_t, FunFEM<mesh_t>>) {
                 val += Cint * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
             } else {
                 val += Cint * fh->evalOnBackMesh(kb, domain, mip);
@@ -1129,34 +1089,90 @@ double integral_algoim(fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, int c
     return val_receive;
 }
 
+template <typeMesh mesh_t, typename L>
+double integral_algoim(const ActiveMesh<mesh_t> &Th, const std::shared_ptr<const ExpressionVirtual> &fh,  L &phi) {
+
+    assert(Th.get_nb_domain() == 1);
+
+    using fespace_t     = GFESpace<mesh_t>;
+    using itemVFlist_t  = ListItemVF<mesh_t>;
+    using FElement      = typename fespace_t::FElement;
+    using Rd            = typename FElement::Rd;
+    using QF            = typename FElement::QF;
+    using QFB           = typename FElement::QFB;
+    using Element       = typename mesh_t::Element;
+    using BorderElement = typename mesh_t::BorderElement;
+
+    double val       = 0.;
+    const int domain = 0;
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (domain != Th.get_domain_element(k))
+            continue;
+
+        if (Th.isInactive(k, 0))
+            continue;
+
+        const Element &K(Th[k]);
+        int kb = Th.idxElementInBackMesh(k);
+
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
+
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, int c0)\n";
+            continue;
+        }
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
+
+            Rd mip = quad_rule.points[ipq];
+            const double Cint = quad_rule.weights[ipq];
+            assert(Cint > 0);
+
+            val += Cint * fh->evalOnBackMesh(kb, domain, mip);
+
+        }
+    }
+
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
 /**
  * @brief Integrate function over time-dependent cut domain over In
  */
-template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int order_space = quadrature_order_integration) {
+// template <typeMesh mesh_t, typename Phi, typename fct_t>
+// double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Phi &phi, const TimeSlab &In,
+//                        const QuadratureFormular1d &qTime) {
 
-    const int number_of_domains = Th.get_nb_domain();
-    double val                  = 0.;
+//     const int number_of_domains = Th.get_nb_domain();
+//     double val                  = 0.;
 
-    for (int i = 0; i < number_of_domains; ++i) {
-        val += integral_algoim(fh, cu, Th, i, phi, In, qTime, order_space);
-    }
+//     for (int i = 0; i < number_of_domains; ++i) {
+//         val += integral_algoim(fh, cu, Th, i, phi, In, qTime);
+//     }
 
-    return val;
-}
+//     return val;
+// }
 
-template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi,
-                       const TimeSlab &In, const QuadratureFormular1d &qTime, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename Phi, typename fct_t>
+double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Phi &phi,
+                       const TimeSlab &In, const QuadratureFormular1d &qTime) {//, const int order_space = quadrature_order_integration) {
 
-    using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
     using Rd        = typename FElement::Rd;
     using Element   = typename mesh_t::Element;
 
     double val = 0.;
+    assert(Th.get_nb_domain() == 1);
+    const int domain = 0;
 
     for (int itq = 0; itq < qTime.n; ++itq) {
 
@@ -1168,37 +1184,26 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
 
             if (domain != Th.get_domain_element(k))
                 continue;
-            // if (Th.isInactive(k, itq))
-            //     continue;
+            if (Th.isInactive(k, itq))
+                continue;
 
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
 
-            // Get coordinates of current quadrilateral
-            const auto &V0(K.at(0)); // vertex 0
-            const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+            auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
-            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
-
-            // Get quadrature rule
-            algoim::QuadratureRule<2> q =
-                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
-
-            // Loop over quadrature in space
-            //assert(q.nodes.size() != 0);
-            if (q.nodes.size()==0)
+            if (quad_rule.points.size() == 0) {
+                std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Phi &phi, const TimeSlab &In, const QuadratureFormular1d &qTime)\n";
                 continue;
+            }
+            for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-                const R weight = q.nodes.at(ipq).w;
-
+                Rd mip = quad_rule.points[ipq];
+                const double weight = quad_rule.weights[ipq];
                 assert(weight > 0);
 
                 const R Cint = weight * In.T.measure() * tq.a;
-                if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+                if constexpr (std::is_same_v<fct_t, FunFEM<mesh_t>>) {
                     val += Cint * fh.evalOnBackMesh(kb, domain, mip, t, cu, 0, 0);
 
                 } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
@@ -1236,12 +1241,12 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<MeshQuad2> &Th,
  */
 template <typename L, typename fct_t>
 double integral_algoim(const fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
+                       const QuadratureFormular1d &qTime, const int itq) {
 
     const int number_of_domains = Th.get_nb_domain();
     double val                  = 0.;
     for (int i = 0; i < number_of_domains; ++i) {
-        val += integral_algoim(fh, Th, i, phi, In, qTime, itq, order_space);
+        val += integral_algoim(fh, Th, i, phi, In, qTime, itq);
     }
 
     return val;
@@ -1252,11 +1257,10 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<MeshQuad2> &Th, L &phi,
  * @param domain Domain index
  *
  */
-template <typename L, typename fct_t>
-double integral_algoim(const fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const int domain, L &phi, const TimeSlab &In,
-                       const QuadratureFormular1d &qTime, const int itq, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename L, typename fct_t>
+double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, const int domain, L &phi, const TimeSlab &In,
+                       const QuadratureFormular1d &qTime, const int itq) {
 
-    using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
     using Rd        = typename FElement::Rd;
@@ -1279,27 +1283,19 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const i
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
 
-        // Get coordinates of current quadrilateral
-        const auto &V0(K.at(0)); // vertex 0
-        const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
-        algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-        algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, const int domain, L &phi, const TimeSlab &In, const QuadratureFormular1d &qTime, const int itq)\n";
+            continue;
+        }
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-        // Get quadrature rule
-        algoim::QuadratureRule<2> q =
-            algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), -1, -1, order_space);
-
-        // Loop over quadrature in space
-        assert(q.nodes.size() != 0);
-        for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-            Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-            const R weight = q.nodes.at(ipq).w;
-
+            Rd mip = quad_rule.points[ipq];
+            const double weight = quad_rule.weights[ipq];
             assert(weight > 0);
 
-            if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+            if constexpr (std::is_same_v<fct_t, FunFEM<mesh_t>>) {
                 val += weight * fh.evalOnBackMesh(kb, domain, mip, 0, 0);
             } else if constexpr ((std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) || (std::is_same_v<fct_t, std::shared_ptr<ExpressionSum>>)) {
                 val += weight * fh->evalOnBackMesh(kb, domain, mip, t, 0);
@@ -1389,10 +1385,9 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<MeshQuad2> &Th, const i
 //     return val_receive;
 // }
 
-template <typename L, typename fct_t>
-double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<MeshQuad2> &gamma, L &phi, int cu, const int order_space = quadrature_order_integration) {
+template <typeMesh mesh_t, typename Phi, typename fct_t>
+double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<mesh_t> &gamma, Phi &phi, int cu) {
 
-    using mesh_t    = MeshQuad2;
     using fespace_t = GFESpace<mesh_t>;
     using FElement  = typename fespace_t::FElement;
     using Rd        = typename FElement::Rd;
@@ -1415,26 +1410,23 @@ double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<MeshQu
             // const R meas = interface.measure(iface);
 
             const auto &T(interface.get_element(kb));
-            const auto &V0(T.at(0)); // vertex 0
-            const auto &V2(T.at(2)); // vertex 2   diagonally opposed
 
-            algoim::uvector<double, 2> xymin{V0[0], V0[1]}; // min x and y
-            algoim::uvector<double, 2> xymax{V2[0], V2[1]}; // max x and y
+            auto quad_rule = quadGenSurf(T, phi, defaultProblemOption);
+            if (quad_rule.size() == 0) {
+                std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
+                continue;
+            }
+            // assert(q.x_surf.size() != 0);
+            for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
 
-            algoim::QuadratureRule<2> q =
-                algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, order_space);
-
-            assert(q.nodes.size() != 0);
-            for (int ipq = 0; ipq < q.nodes.size(); ++ipq) {
-
-                Rd mip(q.nodes.at(ipq).x(0), q.nodes.at(ipq).x(1));
-                const R weight             = q.nodes.at(ipq).w;
+                Rd mip = quad_rule.points[ipq];
+                const double weight = quad_rule.weights[ipq];
                 // const R Cint = meas * ip.getWeight() * In.T.mesure() * tq.a;
-                const R Cint               = weight * In.T.measure() * tq.a;
+                const double Cint = weight * In.T.measure() * tq.a;
                 const int domain_interface = 0;
                 // val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
 
-                if constexpr (std::is_same_v<fct_t, FunFEM<MeshQuad2>>) {
+                if constexpr (std::is_same_v<fct_t, FunFEM<mesh_t>>) {
                     val += Cint * fh.evalOnBackMesh(kb, domain_interface, mip, t, cu, 0, 0);
                 } else if constexpr (std::is_same_v<fct_t, std::shared_ptr<ExpressionVirtual>>) {
                     val += Cint * fh->evalOnBackMesh(kb, domain_interface, mip, t, cu);

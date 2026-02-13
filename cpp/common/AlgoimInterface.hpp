@@ -4,6 +4,8 @@
 
 #include "interface_levelSet.hpp"
 #include "../algoim/quadrature_general.hpp"
+#include "../solver/solver.hpp"
+#include "../algoim/algoim_quad_rule.hpp"
 
 /**
  * @brief Interface class that uses the algoim quadrature generation to find cut elements.
@@ -24,12 +26,14 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
     L phi;
     const int quadrature_order = 5;
     int number_of_cut_elements{0};
-    std::map<int, algoim::QuadratureRule<2>> cut_elements;
+    // std::map<int, algoim::QuadratureRule<2>> cut_elements;
+    std::map<int, AlgoimQuadratureRule<M>> cut_elements;
 
   public:
     AlgoimInterface(const mesh_t &Mesh, const L &phi_, int label = 0);
 
-    std::map<int, algoim::QuadratureRule<2>> get_cut_elements() { return cut_elements; }
+    // std::map<int, algoim::QuadratureRule<2>> get_cut_elements() { return cut_elements; }
+    std::map<int, AlgoimQuadratureRule<M>> get_cut_elements() { return cut_elements; }
     int get_nb_cut_elements() { return cut_elements.size(); }
     SignElement<Element> get_SignElement(int k) const override;
     Partition<Element> get_partition(int k) const override;

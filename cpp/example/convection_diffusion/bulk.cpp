@@ -389,14 +389,14 @@ int main(int argc, char **argv) {
     assert(k >= 0 && k <= 3);
     assert(m >= 1 && m <= 3);
 
-    const size_t iterations = 5;   // number of mesh refinements
-    double h                = 0.1; // starting mesh size
+    const size_t iterations = 4;   // number of mesh refinements
+    double h                = 0.2; // starting mesh size
     int nx, ny;
 
     const double cfl_number = 1./4;
     int total_number_iteration;
     double dT       = 0.1;
-    const double t0 = 0., tfinal = 1.;
+    const double t0 = 0., tfinal = .25;
 
     // Time integration quadrature
     const size_t quadrature_order_time = 5;
@@ -416,7 +416,11 @@ int main(int argc, char **argv) {
 #endif
     const int quadrature_order_space       = 5;
     option.order_space_element_quadrature_ = quadrature_order_space;
-    AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
+    option.algoim_surface_quad_deg_        = 5;
+    option.algoim_vol_quad_deg_            = 5;
+    
+    // AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
+    AlgoimCutFEMUnified<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
 
     // Method parameters
     const double tau   = 1.;  // stabilization constant
@@ -569,16 +573,19 @@ int main(int argc, char **argv) {
 
             fct_t uh0(Wh, data_uh0);
             fct_t uh(Wh, In, data_uh);
+            fct_t rhs(Wh, In, fun_rhsBulk);
+            fct_t neumann(Wh, In, fun_neumann_Gamma);
 
 // Variational formulation
 #if defined(non_conservative)
             convdiff.addBilinear(+innerProduct(u, v), Thi, 0, In);
             // Impose initial condition
-            if (iter == 0) {
-                convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
-            } else {
-                convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
-            }
+            // if (iter == 0) {
+            //     convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+            // } else {
+            //     convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
+            // }
+            convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
             convdiff.addBilinear(+innerProduct(dt(u), v) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
             for (int i = 0; i < nbTime; ++i) {
@@ -589,11 +596,12 @@ int main(int argc, char **argv) {
             convdiff.addBilinear(+innerProduct(u, v), Thi, (int)lastQuadTime, In);
 
             // Impose initial condition
-            if (iter == 0) {
-                convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
-            } else {
-                convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
-            }
+            // if (iter == 0) {
+            //     convdiff.addLinearExact(fun_uBulk, +innerProduct(1, v), Thi, 0, In);
+            // } else {
+            //     convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
+            // }
+            convdiff.addLinear(+innerProduct(uh0.expr(), v), Thi, 0, In);
 
             convdiff.addBilinear(-innerProduct(u, dt(v)) + innerProduct(D * grad(u), grad(v)), Thi, In);
 
@@ -603,7 +611,8 @@ int main(int argc, char **argv) {
 #endif
 
             // Source function
-            convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
+            // convdiff.addLinearExact(fun_rhsBulk, +innerProduct(1, v), Thi, In);
+            convdiff.addLinear(+innerProduct(rhs.expr(), v), Thi, In);
 
             // Stabilization
 
@@ -640,16 +649,16 @@ int main(int argc, char **argv) {
             // Solve linear system
             convdiff.solve();
 
-            std::span<double> rhs = std::span<double>(convdiff.rhs_.data(), convdiff.get_nb_dof());
-            data_all.assign(rhs.begin(), rhs.end());
+            std::span<double> rhs_data = std::span<double>(convdiff.rhs_.data(), convdiff.get_nb_dof());
+            data_all.assign(rhs_data.begin(), rhs_data.end());
             convdiff.saveSolution(data_all);
 
             // Compute (int_In ||u-uex||^2 dt)^2
             fct_t uh_t(Wh, In, data_all);
             fct_t u_t(Wh, In, fun_uBulk);
 
-            L2L2_error += L2L2_norm(uh_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
-            L2H1_error += L2H1_norm(uh_t, u_t, Thi, In, qTime, phi, quadrature_order_space);
+            L2L2_error += L2L2_norm(uh_t, fun_uBulkD, Thi, In, qTime, phi);
+            L2H1_error += L2H1_norm(uh_t, u_t, Thi, In, qTime, phi);
             std::cout << " t_n -> || u-uex||_(L2L2)^2 = " << L2L2_error << '\n';
             std::cout << " t_n -> || u-uex||_(L2H1)^2 = " << L2H1_error << '\n';
 
@@ -672,8 +681,8 @@ int main(int argc, char **argv) {
             auto udx = dx(u_exact.expr());
             auto udy = dy(u_exact.expr());
 
-            L2_error = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1, quadrature_order_space);
-            H1_error = std::sqrt(integral_algoim((funuh.expr() - u_exact.expr())*(funuh.expr() - u_exact.expr()) + (uhdx - udx)*(uhdx - udx) + (uhdy-udy)*(uhdy-udy), Thi, phi, In, qTime, lastQuadTime, quadrature_order_space));
+            L2_error = L2_norm_cut(funuh, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1);//, quadrature_order_space);
+            H1_error = std::sqrt(integral_algoim((funuh.expr() - u_exact.expr())*(funuh.expr() - u_exact.expr()) + (uhdx - udx)*(uhdx - udx) + (uhdy-udy)*(uhdy-udy), Thi, phi, In, qTime, lastQuadTime));
 
             L2_errors[j] = L2_error;
             H1_errors[j] = H1_error;
@@ -684,18 +693,19 @@ int main(int argc, char **argv) {
             std::cout << " t_n -> || u-uex||_H1 = " << H1_error << '\n';
 
             // Compute conservation error
-            intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime,
-                                   quadrature_order_space); // integrate source over In
-            intG = integral_algoim(fun_neumann_Gamma, In, interface, phi, 0,
-                                   quadrature_order_space); // integrate flux boundary over In
+            // intF = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime); // integrate source over In
+            // intG = integral_algoim(fun_neumann_Gamma, In, interface, phi, 0); // integrate flux boundary over In
+            intF = integral_algoim(rhs, 0, Thi, phi, In, qTime); // integrate source over In
+            intG = integral_algoim(neumann, In, interface, phi, 0); // integrate flux boundary over In
 
             intF_total += intF;
             intG_total += intG;
 
-            mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime, quadrature_order_space);
+            mass_last = integral_algoim(funuh, Thi, phi, In, qTime, lastQuadTime);
 
             if (iter == 0) {
-                mass_initial       = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0, quadrature_order_space);
+                // mass_initial       = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0);
+                mass_initial       = integral_algoim(uh0, Thi, phi, In, qTime, 0);
                 mass_last_previous = mass_initial;
             }
 

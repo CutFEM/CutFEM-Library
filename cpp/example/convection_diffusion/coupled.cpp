@@ -5805,8 +5805,8 @@ std::vector<const GTypeOfFE<Mesh1> *> FE_time = {&DataFE<Mesh1>::P0Poly, &DataFE
 
 // Define method, stabilization, and polynomial order
 #define droplet          // example (circle/droplet)
-#define non_conservative // method (conservative/non_conservative)
-#define fullstab         // stabilization (fullstab/macro)
+#define conservative // method (conservative/non_conservative)
+#define macro         // stabilization (fullstab/macro)
 #define K 2              // polynomial order in time (0/1/2)
 #define M 2              // polynomial order in space (1/2)
 
@@ -5875,7 +5875,8 @@ int main(int argc, char **argv) {
     ProblemOption option;
     const int quadrature_order_space = 5; // in each space dimension -> quadrature_order_space^2 quadrature points per element
     option.order_space_element_quadrature_ = quadrature_order_space;
-    AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
+    // AlgoimCutFEM<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
+    AlgoimCutFEMUnified<mesh_t, Levelset<2>> convdiff(qTime, phi, option);
 
     const size_t deg_interpolation_vel = 2;
 
@@ -6055,6 +6056,8 @@ int main(int argc, char **argv) {
             fct_t uhS0(WhGamma, data_uhS0);
             fct_t uhB(Wh, In, data_uhB);
             fct_t uhS(WhGamma, In, data_uhS);
+            fct_t rhsB(Wh, In, fun_rhsBulk);
+            fct_t rhsS(Wh, In, fun_rhsSurf);
 
             int newton_iterations = 0;
             double tol            = 1e-10;
@@ -6192,8 +6195,8 @@ int main(int argc, char **argv) {
                     }
 
                     convdiff.addBilinear(
-                        +innerProduct(tau_G * grad(uS) * n, grad(vS) * n) +
-                            innerProduct(tau_G * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n),
+                        + innerProduct(tau_G * grad(uS) * n, grad(vS) * n) 
+                        + innerProduct(tau_G * h * h * grad(grad(uS) * n) * n, grad(grad(vS) * n) * n),
                         interface, In);
                 }
 
@@ -6207,18 +6210,22 @@ int main(int argc, char **argv) {
                 convdiff.addLinear(-innerProduct(uhB.expr() * uhS.expr(), vB - vS), interface, In);
 
                 // Time penalty RHS
-                if (iter == 0) {
-                    convdiff.addLinearExact(fun_uBulk, -innerProduct(1., vB), Thi, 0, In);
-                    convdiff.addLinearExact(fun_uSurf, -innerProduct(1., vS), *interface(0), In, 0);
+                // if (iter == 0) {
+                //     convdiff.addLinearExact(fun_uBulk, -innerProduct(1., vB), Thi, 0, In);
+                //     convdiff.addLinearExact(fun_uSurf, -innerProduct(1., vS), *interface(0), In, 0);
 
-                } else {
-                    convdiff.addLinear(-innerProduct(uhB0.expr(), vB), Thi, 0, In);
-                    convdiff.addLinear(-innerProduct(uhS0.expr(), vS), *interface(0), In, 0);
-                }
+                // } else {
+                //     convdiff.addLinear(-innerProduct(uhB0.expr(), vB), Thi, 0, In);
+                //     convdiff.addLinear(-innerProduct(uhS0.expr(), vS), *interface(0), In, 0);
+                // }
+                convdiff.addLinear(-innerProduct(uhB0.expr(), vB), Thi, 0, In);
+                convdiff.addLinear(-innerProduct(uhS0.expr(), vS), *interface(0), In, 0);
 
                 // RHS force functions
-                convdiff.addLinearExact(fun_rhsBulk, -innerProduct(1., vB), Thi, In);
-                convdiff.addLinearExact(fun_rhsSurf, -innerProduct(1., vS), interface, In);
+                // convdiff.addLinearExact(fun_rhsBulk, -innerProduct(1., vB), Thi, In);
+                // convdiff.addLinearExact(fun_rhsSurf, -innerProduct(1., vS), interface, In);
+                convdiff.addLinear(-innerProduct(rhsB.expr(), vB), Thi, In);
+                convdiff.addLinear(-innerProduct(rhsS.expr(), vS), interface, In);
 
                 // Switch the system matrix to the jacobian instead of convdiff.mat_
                 convdiff.set_map(jacobian);
@@ -6242,10 +6249,8 @@ int main(int argc, char **argv) {
                 // const auto max_res_S = std::max_element(dwS.begin(), dwS.end());
 
                 // Compute the residual as the maximum of the absolute values of the residual data
-                const auto max_res_B =
-                    std::max_element(dwB.begin(), dwB.end(), [](int a, int b) { return std::abs(a) < std::abs(b); });
-                const auto max_res_S =
-                    std::max_element(dwS.begin(), dwS.end(), [](int a, int b) { return std::abs(a) < std::abs(b); });
+                const auto max_res_B = std::max_element(dwB.begin(), dwB.end(), [](double a, double b) { return std::abs(a) < std::abs(b); });
+                const auto max_res_S = std::max_element(dwS.begin(), dwS.end(), [](double a, double b) { return std::abs(a) < std::abs(b); });
 
                 residual = std::max(*max_res_B, *max_res_S);
 
@@ -6281,8 +6286,8 @@ int main(int argc, char **argv) {
             // Compute L2(Omega(t), 0, T) and L2(Gamma(t), 0, T)
             fct_t fun_uhB_t(Wh, In, data_uhB);
             fct_t fun_uhS_t(WhGamma, In, data_uhS);
-            error_I += L2L2_norm(fun_uhB_t, fun_uBulkD, Thi, In, qTime, phi, quadrature_order_space);
-            error_I_surf += L2L2_norm_surf(fun_uhS_t, fun_uSurf, interface, In, qTime, phi, quadrature_order_space);
+            error_I += L2L2_norm(fun_uhB_t, fun_uBulkD, Thi, In, qTime, phi);
+            error_I_surf += L2L2_norm_surf(fun_uhS_t, fun_uSurf, interface, In, qTime, phi);
 
             // Compute L2(Omega(T)) and L2(Gamma(T))
             std::vector<double> sol_uhB(Wh.get_nb_dof());
@@ -6305,7 +6310,7 @@ int main(int argc, char **argv) {
             fct_t fun_uhB(Wh, sol_uhB);
             fct_t fun_uhS(WhGamma, sol_uhS);
 
-            error_bulk = L2_norm_cut(fun_uhB, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1, quadrature_order_space);
+            error_bulk = L2_norm_cut(fun_uhB, fun_uBulkD, In, qTime, lastQuadTime, phi, 0, 1);//, quadrature_order_space);
             error_surf = L2_norm_surface(fun_uhS, fun_uSurf, *interface(lastQuadTime), current_time + dT, phi, 0, 1);
 
             std::cout << " t_n -> || u-uex||_Omega(T) = " << error_bulk << '\n';
@@ -6315,31 +6320,24 @@ int main(int argc, char **argv) {
             errors_surf[j] = error_surf;
 
             // Compute conservation error
-            intF      = integral_algoim(fun_rhsBulk, 0, Thi, phi, In, qTime,
-                                        quadrature_order_space); // integrate source over In
-            intF_surf = integral_algoim(fun_rhsSurf, In, interface, phi, 0,
-                                        quadrature_order_space); // integrate flux boundary over In
+            intF      = integral_algoim(rhsB, 0, Thi, phi, In, qTime); // integrate source over In
+            intF_surf = integral_algoim(rhsS, In, interface, phi, 0); // integrate flux boundary over In
 
             intF_total += intF;
             intF_surf_total += intF_surf;
 
-            double mass_last      = integral_algoim(fun_uhB, Thi, phi, In, qTime, lastQuadTime,
-                                                    quadrature_order_space); // mass in last quad point
-            double mass_last_surf = integral_algoim(fun_uhS, *interface(lastQuadTime), 0, phi, In, qTime, lastQuadTime,
-                                                    quadrature_order_space);
+            double mass_last      = integral_algoim(fun_uhB, Thi, phi, In, qTime, lastQuadTime); // mass in last quad point
+            double mass_last_surf = integral_algoim(fun_uhS, *interface(lastQuadTime), 0, phi, In, qTime, lastQuadTime);
 
             if (iter == 0) {
-                mass_initial = integral_algoim(fun_uBulk, Thi, phi, In, qTime, 0, quadrature_order_space);
-                mass_initial_surf =
-                    integral_algoim(fun_uSurf, *interface(0), 0, phi, In, qTime, 0, quadrature_order_space);
+                mass_initial            = integral_algoim(uhB0, Thi, phi, In, qTime, 0);
+                mass_initial_surf       = integral_algoim(uhS0, *interface(0), 0, phi, In, qTime, 0);
                 mass_last_previous      = mass_initial;
                 mass_last_previous_surf = mass_initial_surf;
             }
 
-            local_conservation_error =
-                mass_last + mass_last_surf - mass_last_previous - mass_last_previous_surf - intF - intF_surf;
-            global_conservation_error =
-                mass_last + mass_last_surf - mass_initial - mass_initial_surf - intF_total - intF_surf_total;
+            local_conservation_error = mass_last + mass_last_surf - mass_last_previous - mass_last_previous_surf - intF - intF_surf;
+            global_conservation_error = mass_last + mass_last_surf - mass_initial - mass_initial_surf - intF_total - intF_surf_total;
 
             std::cout << "global_conservation_error: " << global_conservation_error << "\n";
             std::cout << "local_conservation_error: " << local_conservation_error << "\n";

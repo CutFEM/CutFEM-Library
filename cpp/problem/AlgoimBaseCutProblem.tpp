@@ -2076,7 +2076,7 @@ void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
 
     assert(q.x_vol.size() != 0);
     if (q.x_vol.size() == 0) {
-        std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << ", returning\n";
+        std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in function TriAlgoim::addElementContribution\n";
         return;
     }
 
