@@ -59,130 +59,125 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
     // Compute quadrature using the implicit polynomial quadrature method
     algoim::ImplicitPolyQuadrature<2> ipquad(phiB, psiB);
 
-    // Generate quadrature rule on K_ref \cap {phi < 0} \cap {psi < 0}
-    ipquad.integrate(algoim::AutoMixed, q1d, [&](const Vec2& xi, real w_ref) {
-
+    ipquad.integrate(algoim::AutoMixed, q1d, [&](const Vec2& xi, real w_ref)
+    {
+        // pick component: inside triangle AND phi<0
+        if (psi_ref(xi) >= 0) return; // exact
         if (algoim::bernstein::evalBernsteinPoly(phiB, xi) >= 0) return;
-        if (algoim::bernstein::evalBernsteinPoly(psiB, xi) >= 0) return;
 
-        // Map to physical coordinates
-        const Vec2 x = F(xi);
-        const double w_phys = w_ref * std::abs(detJ);  // physical quadrature weight
-        // const R2 normal = phi.normal(R2(x(0), x(1)));
-        
-        rule.points.push_back(R2(x(0), x(1)));
-        rule.weights.push_back(w_phys);
-        // rule.normals.push_back(normal);
-
+        Vec2 x = F(xi);
+        rule.points.emplace_back(R2(x(0), x(1)));
+        rule.weights.emplace_back(double(w_ref) * std::abs(detJ));
     });
-    
+
     return rule;
 }
 template <typename Phi>
-AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option) {
-    // Quadrature generation strategy:
-    // 1. Map the triangle K in physical coordinates to the reference triangle (0,0)-(1,0)-(0,1) called K_ref
-    // 2. K_ref can be defined implicitly as the unit square intersected with {psi < 0} where psi = x+y-1 represents the hypothenuse of K_ref     
-    // 3. Add the intersection with {phi = 0} where phi is the levelset function used to describe our domain
-    // 4. Generate quadrature rules for surface using Bernstein polynomials for phi (psi is always linear)
-    // 5. Map quadrature nodes, weights and normals back to the physical triangle using an affine map
-
+AlgoimQuadratureRule<Mesh2>
+quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option)
+{
     using real = algoim::real;
     using Vec2 = algoim::uvector<real, 2>;
     using R2   = typename Mesh2::Rd;
 
-    std::array<Vec2,3> vertices = {
-        Vec2(K.at(0)[0], K.at(0)[1]),
-        Vec2(K.at(1)[0], K.at(1)[1]),
-        Vec2(K.at(2)[0], K.at(2)[1])
-    };
-
     AlgoimQuadratureRule<Mesh2> rule;
-    
-    real tol_phi = 1e-10;
-    real tol_psi = 1e-12;
 
-    // Create the affine map F(xi0, xi1) = v0 + xi0*e1 + xi1*e2 mapping from the reference triangle to the physical triangle
-    Vec2 v0 = vertices[0];
-    Vec2 e1 = vertices[1] - vertices[0];
-    Vec2 e2 = vertices[2] - vertices[0];
-    auto F = [&](const Vec2& xi) -> Vec2 { return v0 + e1*xi(0) + e2*xi(1); };  
-    auto detJ = e1(0)*e2(1) - e1(1)*e2(0);
-    auto J_mul = [&](const Vec2& t) -> Vec2 { return e1*t(0) + e2*t(1); };
-    
-    // Inverse transpose of Jacobian for transforming normals: n_phys = J^{-T} * n_ref
-    auto J_inv_T_mul = [&](const Vec2& n) -> Vec2 {
-        return Vec2(e2(1)*n(0) - e1(1)*n(1), -e2(0)*n(0) + e1(0)*n(1)) / detJ;
+    // --- physical triangle vertices
+    const Vec2 v0(K.at(0)[0], K.at(0)[1]);
+    const Vec2 v1(K.at(1)[0], K.at(1)[1]);
+    const Vec2 v2(K.at(2)[0], K.at(2)[1]);
+
+    // Affine map x = F(xi) = v0 + J*xi,   J = [e1 e2]
+    const Vec2 e1 = v1 - v0;
+    const Vec2 e2 = v2 - v0;
+
+    const auto F = [&](const Vec2& xi) -> Vec2 {
+        return v0 + e1*xi(0) + e2*xi(1);
     };
 
-    // Define the reference level set psi_ref(xi) = xi0 + xi1 - 1
-    auto psi_ref = [&](const Vec2& xi) -> real { return xi(0) + xi(1) - real(1); };
+    const real detJ = e1(0)*e2(1) - e1(1)*e2(0);
+    if (std::abs(detJ) < real(1e-30)) {
+        // Degenerate element
+        return rule;
+    }
 
-    // Interpolate phi(F(x)) on the unit square using Bernstein polynomials
-    int bernstein_deg = option.algoim_bernstein_deg_;
-    //int q1d = option.algoim_q1d_;
-    int q1d = option.algoim_surface_quad_deg_;
-    int n = bernstein_deg + 1;
-    
+    // cofactor(J) = det(J) * J^{-T} = [[ e2y, -e1y ],
+    //                                 [ -e2x,  e1x ]]
+    // This maps (n ds)_ref -> (n ds)_phys for a curve under affine map.
+    const auto cofJ_mul = [&](const Vec2& v) -> Vec2 {
+        return Vec2(
+            e2(1)*v(0) - e1(1)*v(1),
+           -e2(0)*v(0) + e1(0)*v(1)
+        );
+    };
+
+    // Reference triangle cut: psi(xi) = xi0 + xi1 - 1 < 0
+    const auto psi_ref = [&](const Vec2& xi) -> real {
+        return xi(0) + xi(1) - real(1);
+    };
+
+    // --- Bernstein interpolation on unit square [0,1]^2 (as algoim expects)
+    const int bernstein_deg = option.algoim_bernstein_deg_;
+    const int q1d           = option.algoim_surface_quad_deg_;
+
+    const int n = bernstein_deg + 1;
     algoim::uvector<int,2> P(n,n);
+
     std::vector<real> phi_data(n*n), psi_data(n*n);
-    
     algoim::xarray<real,2> phiB(phi_data.data(), P);
     algoim::xarray<real,2> psiB(psi_data.data(), P);
-    
+
     algoim::bernstein::bernsteinInterpolate<2>(
-        [&](const Vec2& xi) -> real { return phi(F(xi)); },
-        phiB
+        [&](const Vec2& xi) -> real { return phi(F(xi)); }, phiB
     );
     algoim::bernstein::bernsteinInterpolate<2>(
-        [&](const Vec2& xi) -> real { return psi_ref(xi); },
-        psiB
+        [&](const Vec2& xi) -> real { return psi_ref(xi); }, psiB
     );
 
-    // Compute quadrature using the implicit polynomial quadrature method
     algoim::ImplicitPolyQuadrature<2> ipquad(phiB, psiB);
 
-    // Generate quadrature rule on K_ref \cap {phi = 0} \cap {psi < 0} (surface)
-    ipquad.integrate_surf(algoim::AutoMixed, q1d, [&](const Vec2& xi, real w_ref, const Vec2& wn_ref) {
+    // Tolerances: only to filter out the psi=0 part (triangle edge)
+    const real tol_inside = real(1e-14);
+    const real tol_psi0   = real(1e-10);
 
-        // Evaluate exact psi
-        real ps = psi_ref(xi);
-        if (ps >= 0) return;  // outside triangle
+    ipquad.integrate_surf(algoim::AutoMixed, q1d,
+    [&](const Vec2& xi, real /*w_ref*/, const Vec2& wn_ref)
+    {
+        const real ph  = algoim::bernstein::evalBernsteinPoly(phiB, xi);
+        const real ps  = psi_ref(xi); // exact
+        if (ps >= 0) return;          // must be inside triangle
 
-        const real phB = algoim::bernstein::evalBernsteinPoly(phiB, xi);
+        // decide which constraint generated this boundary point
+        if (std::abs(ps) < std::abs(ph)) return; // this is psi-boundary => skip
 
-        const bool on_phi = std::abs(phB) < tol_phi;
-        const bool on_psi = std::abs(ps) < tol_psi;
-        if (!on_phi || on_psi) return;
+        // map point
+        Vec2 x = F(xi);
 
-        // Transform normal from reference to physical coordinates
-        Vec2 n_ref = wn_ref;
-        const real nrm_ref = std::sqrt(n_ref(0)*n_ref(0) + n_ref(1)*n_ref(1));
-        if (nrm_ref == 0) return;
-        n_ref /= nrm_ref;  // normalize reference normal
-        
-        Vec2 n_phys = J_inv_T_mul(n_ref);  // transform to physical space
-        const real nrm_phys = std::sqrt(n_phys(0)*n_phys(0) + n_phys(1)*n_phys(1));
-        n_phys /= nrm_phys;  // normalize physical normal
-        // const R2 n_phys(phi.normal(R2(F(xi)(0), F(xi)(1))));  // use normal from level set function in physical space
-        
-        // Compute tangent and surface Jacobian (same as before for weight computation)
-        Vec2 t_ref = Vec2(-n_ref(1), n_ref(0));  // perp(n_ref)
-        Vec2 t_phys = J_mul(t_ref);
-        const real scale = std::sqrt(t_phys(0)*t_phys(0) + t_phys(1)*t_phys(1));
+        // map (n ds) using cof(J)
+        Vec2 wn_phys = cofJ_mul(wn_ref);
+        real w = std::sqrt(wn_phys(0)*wn_phys(0) + wn_phys(1)*wn_phys(1));
+        if (w <= 0) return;
 
-        const Vec2 x = F(xi);   // physical coordinates
-        const double w_phys = w_ref * scale;  // physical quadrature weight
-        
-        rule.points.push_back(R2(x(0), x(1)));
-        rule.weights.push_back(w_phys);
-        rule.normals.push_back(R2(n_phys(0), n_phys(1)));  // use transformed normal from Bernstein poly
-        // rule.normals.push_back(n_phys);  // use normal from level set function in physical space
+        Vec2 n = wn_phys / w;
 
+        // orientation: make n outward for the phase "phi<0"
+        Vec2 g_ref = algoim::bernstein::evalBernsteinPolyGradient(phiB, xi);
+        Vec2 g_phys(
+            ( e2(1)*g_ref(0) - e1(1)*g_ref(1)) / detJ,
+            (-e2(0)*g_ref(0) + e1(0)*g_ref(1)) / detJ
+        );
+        if (n(0)*g_phys(0) + n(1)*g_phys(1) < 0) n = -n;
+
+        rule.points.emplace_back(R2(x(0), x(1)));
+        rule.weights.emplace_back(double(w));
+        rule.normals.emplace_back(R2(n(0), n(1)));
     });
+
+
 
     return rule;
 }
+
 template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenFace(const Mesh2::Element& K, Phi& phi, const ProblemOption& option, int ifac) {
     // To be implemented
@@ -419,7 +414,7 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
     // Get quadrature rule - template argument deduction from K and phi_
     auto quad_rule = quadGenSurf(K, phi_, options_);
 
-    if (quad_rule.points.size() == 0) {
+    if (quad_rule.size() == 0) {
         std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in AlgoimCutFEMUnified::addInterfaceContribution\n";
         return;
     }
@@ -452,7 +447,7 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
         What_d Fop = Fwhatd(lastop);
 
         // Loop over quadrature points
-        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
+        for (size_t ipq = 0; ipq < quad_rule.size(); ++ipq) {
             
             Rd mip = quad_rule.points[ipq];
             const double weight = quad_rule.weights[ipq];

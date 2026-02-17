@@ -911,6 +911,51 @@ double integral_algoim(const std::shared_ptr<const ExpressionVirtual> &fh, const
 
     return val_receive;
 }
+template <typeMesh mesh_t, typename L>
+double integral_algoim(const double c, const Interface<mesh_t> &interface, L &phi) {
+
+    using fespace_t     = GFESpace<mesh_t>;
+    using itemVFlist_t  = ListItemVF<mesh_t>;
+    using FElement      = typename fespace_t::FElement;
+    using Rd            = typename FElement::Rd;
+    using QF            = typename FElement::QF;
+    using QFB           = typename FElement::QFB;
+    using Element       = typename mesh_t::Element;
+    using BorderElement = typename mesh_t::BorderElement;
+
+    double val = 0.;
+
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
+
+        const int kb = interface.idxElementOfFace(iface); // idx on backMesh
+
+        const Element &K(interface.get_element(kb));
+        
+        auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
+            continue;
+        }
+        // assert(q.x_surf.size() != 0);
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
+
+            Rd mip = quad_rule.points[ipq];
+            Rd normal = quad_rule.normals[ipq];
+            
+            const double Cint = quad_rule.weights[ipq];
+            val += Cint * c;
+        }
+    }
+
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
 
 template <typeMesh mesh_t, typename L, typename fct_t>
 double integral_algoim(fct_t &fh, const Interface<mesh_t> &interface, int cu, L &phi, const double t) {
@@ -1130,6 +1175,60 @@ double integral_algoim(const ActiveMesh<mesh_t> &Th, const std::shared_ptr<const
             assert(Cint > 0);
 
             val += Cint * fh->evalOnBackMesh(kb, domain, mip);
+
+        }
+    }
+
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+template <typeMesh mesh_t, typename Phi>
+double integral_algoim(const double c, const ActiveMesh<mesh_t> &Th, Phi &phi) {
+
+    assert(Th.get_nb_domain() == 1);
+
+    using fespace_t     = GFESpace<mesh_t>;
+    using itemVFlist_t  = ListItemVF<mesh_t>;
+    using FElement      = typename fespace_t::FElement;
+    using Rd            = typename FElement::Rd;
+    using QF            = typename FElement::QF;
+    using QFB           = typename FElement::QFB;
+    using Element       = typename mesh_t::Element;
+    using BorderElement = typename mesh_t::BorderElement;
+
+    double val       = 0.;
+    const int domain = 0;
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        if (domain != Th.get_domain_element(k))
+            continue;
+
+        if (Th.isInactive(k, 0))
+            continue;
+
+        const Element &K(Th[k]);
+        int kb = Th.idxElementInBackMesh(k);
+
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
+
+        if (quad_rule.points.size() == 0) {
+            std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, int c0)\n";
+            continue;
+        }
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
+
+            Rd mip = quad_rule.points[ipq];
+            const double Cint = quad_rule.weights[ipq];
+            assert(Cint > 0);
+
+            val += Cint * c;
 
         }
     }
