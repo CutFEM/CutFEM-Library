@@ -161,16 +161,19 @@ quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option)
         Vec2 n = wn_phys / w;
 
         // orientation: make n outward for the phase "phi<0"
-        Vec2 g_ref = algoim::bernstein::evalBernsteinPolyGradient(phiB, xi);
-        Vec2 g_phys(
-            ( e2(1)*g_ref(0) - e1(1)*g_ref(1)) / detJ,
-            (-e2(0)*g_ref(0) + e1(0)*g_ref(1)) / detJ
-        );
-        if (n(0)*g_phys(0) + n(1)*g_phys(1) < 0) n = -n;
-
+        // Vec2 g_ref = algoim::bernstein::evalBernsteinPolyGradient(phiB, xi);
+        // Vec2 g_phys(
+        //     ( e2(1)*g_ref(0) - e1(1)*g_ref(1)) / detJ,
+        //     (-e2(0)*g_ref(0) + e1(0)*g_ref(1)) / detJ
+        // );
+        // if (n(0)*g_phys(0) + n(1)*g_phys(1) < 0) n = -n;
+        
+        
+        // const R2 normal = phi.normal(R2(x(0), x(1)));
         rule.points.emplace_back(R2(x(0), x(1)));
         rule.weights.emplace_back(double(w));
         rule.normals.emplace_back(R2(n(0), n(1)));
+        // rule.normals.emplace_back(normal);
     });
 
 
