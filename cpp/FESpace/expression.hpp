@@ -584,6 +584,119 @@ std::shared_ptr<ExpressionVirtual> dot(
     return result;
 }
 
+// Forward declarations for generic differential operators
+class ExpressionSum;
+class ExpressionProduct;
+std::shared_ptr<ExpressionSum> dx(const std::shared_ptr<ExpressionSum> &u);
+std::shared_ptr<ExpressionSum> dy(const std::shared_ptr<ExpressionSum> &u);
+std::shared_ptr<ExpressionSum> dz(const std::shared_ptr<ExpressionSum> &u);
+std::shared_ptr<ExpressionSum> dt(const std::shared_ptr<ExpressionSum> &u);
+std::shared_ptr<ExpressionSum> dx(const std::shared_ptr<ExpressionProduct> &u);
+std::shared_ptr<ExpressionSum> dy(const std::shared_ptr<ExpressionProduct> &u);
+std::shared_ptr<ExpressionSum> dz(const std::shared_ptr<ExpressionProduct> &u);
+std::shared_ptr<ExpressionSum> dt(const std::shared_ptr<ExpressionProduct> &u);
+
+// Generic differential operators that dispatch based on runtime type
+inline std::shared_ptr<ExpressionVirtual> dx(const std::shared_ptr<ExpressionVirtual> &u) {
+    // Try casting to ExpressionFunFEM (need to try different mesh types)
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dx(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh3>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dx(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshQuad2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dx(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshHexa>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dx(ptr));
+    }
+    // Try casting to ExpressionSum
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionSum>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dx(ptr));
+    }
+    // Try casting to ExpressionProduct
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionProduct>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dx(ptr));
+    }
+    // If none match, error
+    std::cerr << "Error: dx not implemented for this expression type" << std::endl;
+    assert(false && "dx not implemented for this expression type");
+    return nullptr;
+}
+
+inline std::shared_ptr<ExpressionVirtual> dy(const std::shared_ptr<ExpressionVirtual> &u) {
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dy(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh3>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dy(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshQuad2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dy(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshHexa>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dy(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionSum>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dy(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionProduct>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dy(ptr));
+    }
+    std::cerr << "Error: dy not implemented for this expression type" << std::endl;
+    assert(false && "dy not implemented for this expression type");
+    return nullptr;
+}
+
+inline std::shared_ptr<ExpressionVirtual> dz(const std::shared_ptr<ExpressionVirtual> &u) {
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dz(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh3>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dz(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshQuad2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dz(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshHexa>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dz(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionSum>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dz(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionProduct>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dz(ptr));
+    }
+    std::cerr << "Error: dz not implemented for this expression type" << std::endl;
+    assert(false && "dz not implemented for this expression type");
+    return nullptr;
+}
+
+inline std::shared_ptr<ExpressionVirtual> dt(const std::shared_ptr<ExpressionVirtual> &u) {
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dt(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<Mesh3>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dt(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshQuad2>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dt(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionFunFEM<MeshHexa>>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dt(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionSum>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dt(ptr));
+    }
+    if (auto ptr = std::dynamic_pointer_cast<ExpressionProduct>(u)) {
+        return std::static_pointer_cast<ExpressionVirtual>(dt(ptr));
+    }
+    std::cerr << "Error: dt not implemented for this expression type" << std::endl;
+    assert(false && "dt not implemented for this expression type");
+    return nullptr;
+}
+
 
 class ExpressionMultConst : public ExpressionVirtual {
     const std::shared_ptr<ExpressionVirtual> fun1;
@@ -656,9 +769,18 @@ class ExpressionProduct : public ExpressionVirtual {
     const std::shared_ptr<ExpressionVirtual> fun1;
     const std::shared_ptr<ExpressionVirtual> fun2;
 
+    // Friend declarations for differential operators
+    friend std::shared_ptr<ExpressionSum> dx(const std::shared_ptr<ExpressionProduct> &u);
+    friend std::shared_ptr<ExpressionSum> dy(const std::shared_ptr<ExpressionProduct> &u);
+    friend std::shared_ptr<ExpressionSum> dz(const std::shared_ptr<ExpressionProduct> &u);
+    friend std::shared_ptr<ExpressionSum> dt(const std::shared_ptr<ExpressionProduct> &u);
+
   public:
-    ExpressionProduct(const std::shared_ptr<ExpressionVirtual> &fh1, const std::shared_ptr<ExpressionVirtual> &fh2)
-        : fun1(fh1), fun2(fh2) {}
+    // Template constructor that accepts any types derived from ExpressionVirtual
+    template<typename T1, typename T2>
+    ExpressionProduct(std::shared_ptr<T1> fh1, std::shared_ptr<T2> fh2)
+        : fun1(std::static_pointer_cast<ExpressionVirtual>(fh1)), 
+          fun2(std::static_pointer_cast<ExpressionVirtual>(fh2)) {}
 
     R operator()(long i) const { return (*fun1)(i) * (*fun2)(i); }
 
@@ -678,8 +800,55 @@ class ExpressionProduct : public ExpressionVirtual {
     int idxElementFromBackMesh(int kb, int dd = 0) const { return fun1->idxElementFromBackMesh(kb, dd); }
     ~ExpressionProduct() {}
 };
-std::shared_ptr<ExpressionProduct> operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionVirtual> operator*(const std::shared_ptr<ExpressionVirtual> &f1,
                                              const std::shared_ptr<ExpressionVirtual> &f2);
+
+// Template overload for operator* that accepts derived types
+template<typename T1, typename T2,
+         typename = std::enable_if_t<std::is_base_of_v<ExpressionVirtual, T1> && 
+                                      std::is_base_of_v<ExpressionVirtual, T2>>>
+inline std::shared_ptr<ExpressionVirtual> operator*(const std::shared_ptr<T1> &f1,
+                                                    const std::shared_ptr<T2> &f2) {
+    return std::static_pointer_cast<ExpressionVirtual>(std::make_shared<ExpressionProduct>(f1, f2));
+}
+
+// Differential operators for ExpressionProduct (applying product rule: d/dx(f*g) = df/dx * g + f * dg/dx)
+// Note: These return ExpressionSum because the product rule produces a sum
+inline std::shared_ptr<ExpressionSum> dx(const std::shared_ptr<ExpressionProduct> &u) {
+    auto fun1_dx = dx(u->fun1);
+    auto fun2_dx = dx(u->fun2);
+    // d/dx(f*g) = df/dx * g + f * dg/dx
+    auto term1 = std::make_shared<ExpressionProduct>(fun1_dx, u->fun2);
+    auto term2 = std::make_shared<ExpressionProduct>(u->fun1, fun2_dx);
+    return std::make_shared<ExpressionSum>(term1, term2);
+}
+
+inline std::shared_ptr<ExpressionSum> dy(const std::shared_ptr<ExpressionProduct> &u) {
+    auto fun1_dy = dy(u->fun1);
+    auto fun2_dy = dy(u->fun2);
+    // d/dy(f*g) = df/dy * g + f * dg/dy
+    auto term1 = std::make_shared<ExpressionProduct>(fun1_dy, u->fun2);
+    auto term2 = std::make_shared<ExpressionProduct>(u->fun1, fun2_dy);
+    return std::make_shared<ExpressionSum>(term1, term2);
+}
+
+inline std::shared_ptr<ExpressionSum> dz(const std::shared_ptr<ExpressionProduct> &u) {
+    auto fun1_dz = dz(u->fun1);
+    auto fun2_dz = dz(u->fun2);
+    // d/dz(f*g) = df/dz * g + f * dg/dz
+    auto term1 = std::make_shared<ExpressionProduct>(fun1_dz, u->fun2);
+    auto term2 = std::make_shared<ExpressionProduct>(u->fun1, fun2_dz);
+    return std::make_shared<ExpressionSum>(term1, term2);
+}
+
+inline std::shared_ptr<ExpressionSum> dt(const std::shared_ptr<ExpressionProduct> &u) {
+    auto fun1_dt = dt(u->fun1);
+    auto fun2_dt = dt(u->fun2);
+    // d/dt(f*g) = df/dt * g + f * dg/dt
+    auto term1 = std::make_shared<ExpressionProduct>(fun1_dt, u->fun2);
+    auto term2 = std::make_shared<ExpressionProduct>(u->fun1, fun2_dt);
+    return std::make_shared<ExpressionSum>(term1, term2);
+}
 
 /// @brief Class that compute an function or expression to a power of n
 /// @tparam D The dimension
@@ -764,9 +933,18 @@ class ExpressionSum : public ExpressionVirtual {
     const std::shared_ptr<ExpressionVirtual> fun1;
     const std::shared_ptr<ExpressionVirtual> fun2;
 
+    // Friend declarations for differential operators
+    friend std::shared_ptr<ExpressionSum> dx(const std::shared_ptr<ExpressionSum> &u);
+    friend std::shared_ptr<ExpressionSum> dy(const std::shared_ptr<ExpressionSum> &u);
+    friend std::shared_ptr<ExpressionSum> dz(const std::shared_ptr<ExpressionSum> &u);
+    friend std::shared_ptr<ExpressionSum> dt(const std::shared_ptr<ExpressionSum> &u);
+
   public:
-    ExpressionSum(const std::shared_ptr<ExpressionVirtual> &fh1, const std::shared_ptr<ExpressionVirtual> &fh2)
-        : fun1(fh1), fun2(fh2) {}
+    // Template constructor that accepts any types derived from ExpressionVirtual
+    template<typename T1, typename T2>
+    ExpressionSum(std::shared_ptr<T1> fh1, std::shared_ptr<T2> fh2)
+        : fun1(std::static_pointer_cast<ExpressionVirtual>(fh1)), 
+          fun2(std::static_pointer_cast<ExpressionVirtual>(fh2)) {}
     R operator()(long i) const { return (*fun1)(i) + (*fun2)(i); }
 
     R eval(const int k, const R *x, const R *normal) const {
@@ -786,11 +964,54 @@ class ExpressionSum : public ExpressionVirtual {
     ~ExpressionSum() {}
 };
 
-std::shared_ptr<ExpressionSum> operator+(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionVirtual> operator+(const std::shared_ptr<ExpressionVirtual> &f1,
                                          const std::shared_ptr<ExpressionVirtual> &f2);
 
-std::shared_ptr<ExpressionSum> operator-(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionVirtual> operator-(const std::shared_ptr<ExpressionVirtual> &f1,
                                          const std::shared_ptr<ExpressionVirtual> &f2);
+
+// Template overloads for operator+ and operator- that accept derived types
+template<typename T1, typename T2, 
+         typename = std::enable_if_t<std::is_base_of_v<ExpressionVirtual, T1> && 
+                                      std::is_base_of_v<ExpressionVirtual, T2>>>
+inline std::shared_ptr<ExpressionVirtual> operator+(const std::shared_ptr<T1> &f1,
+                                                const std::shared_ptr<T2> &f2) {
+    return std::static_pointer_cast<ExpressionVirtual>(std::make_shared<ExpressionSum>(f1, f2));
+}
+
+template<typename T1, typename T2,
+         typename = std::enable_if_t<std::is_base_of_v<ExpressionVirtual, T1> && 
+                                      std::is_base_of_v<ExpressionVirtual, T2>>>
+inline std::shared_ptr<ExpressionVirtual> operator-(const std::shared_ptr<T1> &f1,
+                                                const std::shared_ptr<T2> &f2) {
+    auto neg_f2 = std::make_shared<ExpressionMultConst>(f2, -1.0);
+    return std::static_pointer_cast<ExpressionVirtual>(std::make_shared<ExpressionSum>(f1, neg_f2));
+}
+
+// Differential operators for ExpressionSum (applying chain rule: d/dx(f+g) = df/dx + dg/dx)
+inline std::shared_ptr<ExpressionSum> dx(const std::shared_ptr<ExpressionSum> &u) {
+    auto fun1_dx = dx(u->fun1);
+    auto fun2_dx = dx(u->fun2);
+    return std::make_shared<ExpressionSum>(fun1_dx, fun2_dx);
+}
+
+inline std::shared_ptr<ExpressionSum> dy(const std::shared_ptr<ExpressionSum> &u) {
+    auto fun1_dy = dy(u->fun1);
+    auto fun2_dy = dy(u->fun2);
+    return std::make_shared<ExpressionSum>(fun1_dy, fun2_dy);
+}
+
+inline std::shared_ptr<ExpressionSum> dz(const std::shared_ptr<ExpressionSum> &u) {
+    auto fun1_dz = dz(u->fun1);
+    auto fun2_dz = dz(u->fun2);
+    return std::make_shared<ExpressionSum>(fun1_dz, fun2_dz);
+}
+
+inline std::shared_ptr<ExpressionSum> dt(const std::shared_ptr<ExpressionSum> &u) {
+    auto fun1_dt = dt(u->fun1);
+    auto fun2_dt = dt(u->fun2);
+    return std::make_shared<ExpressionSum>(fun1_dt, fun2_dt);
+}
 
 class ExpressionNormal2 : public ExpressionVirtual {
     typedef Mesh2 M;
