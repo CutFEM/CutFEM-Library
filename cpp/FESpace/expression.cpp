@@ -39,9 +39,9 @@ std::shared_ptr<ExpressionAbs> fabs(const std::shared_ptr<ExpressionVirtual> &f1
     return std::make_shared<ExpressionAbs>(f1);
 }
 
-std::shared_ptr<ExpressionProduct> operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionVirtual> operator*(const std::shared_ptr<ExpressionVirtual> &f1,
                                              const std::shared_ptr<ExpressionVirtual> &f2) {
-    return std::make_shared<ExpressionProduct>(f1, f2);
+    return std::static_pointer_cast<ExpressionVirtual>(std::make_shared<ExpressionProduct>(f1, f2));
 }
 
 std::shared_ptr<ExpressionPow> pow(const std::shared_ptr<ExpressionVirtual> &f1, const double nn) {
@@ -57,12 +57,12 @@ std::shared_ptr<ExpressionDivision> operator/(const std::shared_ptr<ExpressionVi
     return std::make_shared<ExpressionDivision>(f1, f2);
 }
 
-std::shared_ptr<ExpressionSum> operator+(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionVirtual> operator+(const std::shared_ptr<ExpressionVirtual> &f1,
                                          const std::shared_ptr<ExpressionVirtual> &f2) {
-    return std::make_shared<ExpressionSum>(f1, f2);
+    return std::static_pointer_cast<ExpressionVirtual>(std::make_shared<ExpressionSum>(f1, f2));
 }
 
-std::shared_ptr<ExpressionSum> operator-(const std::shared_ptr<ExpressionVirtual> &f1,
+std::shared_ptr<ExpressionVirtual> operator-(const std::shared_ptr<ExpressionVirtual> &f1,
                                          const std::shared_ptr<ExpressionVirtual> &f2) {
     return f1 + (-1. * f2);
 }
