@@ -3332,7 +3332,6 @@ template <typename M> void BaseCutFEM<M>::addLinearInner(const itemVFlist_t &VF,
     }
     bar.end();
 }
-
 template <typename M> void BaseCutFEM<M>::addBilinearInnerBorder(const itemVFlist_t &VF, const CutMesh &Th) {
     assert(!VF.isRHS());
     progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
@@ -3352,10 +3351,8 @@ template <typename M> void BaseCutFEM<M>::addBilinearInnerBorder(const itemVFlis
             int kn   = Th.ElementAdj(k, jfac);
 
             // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
-            if ((kn == -1) || Th.isCut(kn, 0))
-                continue;
-            
-            assert(!Th.isCut(kn, 0) && Th.isCut(k, 0));
+            if (kn == -1) continue;
+            if (Th.isCut(kn, 0)) continue;
 
             BaseFEM<M>::addInnerBorderContribution(VF, k, ifac, nullptr, 0, 1.);
             
@@ -3365,8 +3362,216 @@ template <typename M> void BaseCutFEM<M>::addBilinearInnerBorder(const itemVFlis
     }
     bar.end();
 }
+template <typename M> void BaseCutFEM<M>::addLinearInnerBorder(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(VF.isRHS());
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        bar += Th.next_element();
+
+        // Loop only over cut elements for efficiency
+        if (!Th.isCut(k, 0)) {
+            continue;
+        } 
+        
+        // Find the face that neighbors an interior element
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { 
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
+            if (kn == -1) continue;
+            if (Th.isCut(kn, 0)) continue;
+
+            BaseFEM<M>::addInnerBorderContribution(VF, k, ifac, nullptr, 0, 1.);
+            
+        }
+        
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+template <typename M> void BaseCutFEM<M>::addBilinearInnerBorderMixed(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(!VF.isRHS());
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        bar += Th.next_element();
+
+        // Loop only over cut elements for efficiency
+        if (!Th.isCut(k, 0)) {
+            continue;
+        } 
+        
+        // Find the face that neighbors an interior element
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { 
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
+            if (kn == -1) continue;
+            if (Th.isCut(kn, 0)) continue;
+
+            BaseFEM<M>::addInnerBorderContributionMixed(VF, k, ifac, nullptr, 0, 1.);
+            
+        }
+        
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+template <typename M> void BaseCutFEM<M>::addLinearInnerBorderMixed(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(VF.isRHS());
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        bar += Th.next_element();
+
+        // Loop only over cut elements for efficiency
+        if (!Th.isCut(k, 0)) {
+            continue;
+        } 
+        
+        // Find the face that neighbors an interior element
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { 
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
+            if (kn == -1) continue;
+            if (Th.isCut(kn, 0)) continue;
+
+            BaseFEM<M>::addInnerBorderContributionMixed(VF, k, ifac, nullptr, 0, 1.);
+            
+        }
+        
+        this->addLocalContribution();
+    }
+    bar.end();
+}
 
 
+template <typename M> void BaseCutFEM<M>::addBilinearOuterBorder(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(!VF.isRHS());
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        bar += Th.next_element();
+
+        // Loop only over cut elements for efficiency
+        if (!Th.isCut(k, 0)) {
+            continue;
+        } 
+        
+        // Find the face that neighbors an exterior element
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { 
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
+            if (kn != -1) continue;
+            
+            BaseFEM<M>::addOuterBorderContribution(VF, k, ifac, nullptr, 0, 1.);
+            
+        }
+        
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+template <typename M> void BaseCutFEM<M>::addLinearOuterBorder(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(VF.isRHS());
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        bar += Th.next_element();
+
+        // Loop only over cut elements for efficiency
+        if (!Th.isCut(k, 0)) {
+            continue;
+        } 
+        
+        // Find the face that neighbors an interior element
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { 
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
+            if (kn != -1) continue;
+            
+            BaseFEM<M>::addOuterBorderContribution(VF, k, ifac, nullptr, 0, 1.);
+            
+        }
+        
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+template <typename M> void BaseCutFEM<M>::addBilinearOuterBorderMixed(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(!VF.isRHS());
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        bar += Th.next_element();
+
+        // Loop only over cut elements for efficiency
+        if (!Th.isCut(k, 0)) {
+            continue;
+        } 
+        
+        // Find the face that neighbors an interior element
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { 
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
+            if (kn != -1) continue;
+            int kb = Th.idxElementInBackMesh(k);
+            BaseFEM<M>::addOuterBorderContributionMixed(VF, kb, ifac, nullptr, 0, 1.);
+            
+        }
+        
+        this->addLocalContribution();
+    }
+    bar.end();
+}
+template <typename M> void BaseCutFEM<M>::addLinearOuterBorderMixed(const itemVFlist_t &VF, const CutMesh &Th) {
+    assert(VF.isRHS());
+    progress bar(" Add Bilinear CutMesh", Th.last_element(), globalVariable::verbose);
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        bar += Th.next_element();
+
+        // Loop only over cut elements for efficiency
+        if (!Th.isCut(k, 0)) {
+            continue;
+        } 
+        
+        // Find the face that neighbors an interior element
+        for (int ifac = 0; ifac < Element::nea; ++ifac) { 
+            int jfac = ifac;
+            int kn   = Th.ElementAdj(k, jfac);
+
+            // an neighboring element can be 1) outside of the domain, 2) another cut element or 3) inside of the domain 
+            if (kn != -1) continue;
+
+            int kb = Th.idxElementInBackMesh(k);
+            
+            BaseFEM<M>::addOuterBorderContributionMixed(VF, kb, ifac, nullptr, 0, 1.);
+            
+        }
+        
+        this->addLocalContribution();
+    }
+    bar.end();
+}
 
 template <typename M> void BaseCutFEM<M>::addElementStabilization(const itemVFlist_t &VF, const Interface<M> &gamma, const CutMesh &Th) {
     assert(Th.get_nb_domain()==1);

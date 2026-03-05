@@ -1240,6 +1240,104 @@ void BaseFEM<M>::addInnerBorderContribution(const itemVFlist_t &VF, const int k,
 }
 
 template <typename M>
+void BaseFEM<M>::addInnerBorderContributionMixed(const itemVFlist_t &VF, const int kb, const int ifac,
+                                       const TimeSlab *In, int itq, double cst_time) {
+
+    typedef typename FElement::RdHatBord RdHatBord;
+
+    // Get a reference space to access the mesh
+    const FESpace &Vh(VF.get_spaceV(0));
+    
+    // Access the background mesh through the active mesh
+    const ActiveMesh<M> &Th(Vh.get_mesh());
+    const M &Thi(Th.Th);  // Background mesh
+    
+    // Access the element directly from the background mesh using kb
+    const Element &K(Thi[kb]);
+
+    // Compute parameter connected to the mesh.
+    double measK = K.measure();
+    double meas  = K.mesureBord(ifac);
+    double h     = K.get_h();
+    Rd normal    = -K.N(ifac);  // when calling this function, we are coming from a cut element into an interior element, but we want the normal to point outwards from the inner domain, so we change the sign!
+
+    // GET THE QUADRATURE RULE
+    const QFB &qfb(this->get_quadrature_formular_dK());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for (int l = 0; l < VF.size(); ++l) {
+        // if(!VF[l].on(domain)) continue;
+
+        // FINITE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+        bool same = (VF.isRHS() || (&Vhu == &Vhv));
+
+        // Get the domain IDs for test and trial functions
+        const int domainV = VF[l].get_domain_test_function();
+        const int domainU = VF[l].get_domain_trial_function();
+
+        // Convert background element index to active mesh indices
+        // Note: Using idxElementFromBackMesh with specific domain, not idxAllElementFromBackMesh
+        // If the domain is -1 (any domain), we need to handle it appropriately
+        int kv = Vhv.idxElementFromBackMesh(kb, 0);
+        int ku = Vhu.idxElementFromBackMesh(kb, 0);
+
+        // // Skip if the element doesn't exist in the active mesh(es)
+        // if (kv == -1 || ku == -1)
+        //     continue;
+
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
+        int domain = FKv.get_domain();
+        this->initIndex(FKu, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT
+        double coef = VF[l].computeCoefElement(h, meas, measK, measK, domain);
+        coef *= VF[l].computeCoefFromNormal(normal);
+
+        // LOOP OVER QUADRATURE IN SPACE
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+            typename QFB::QuadraturePoint ip(qfb[ipq]);
+            const Rd ip_edge = K.mapToReferenceElement((RdHatBord)ip, ifac);
+            const Rd mip     = K.mapToPhysicalElement(ip_edge);
+            
+            double Cint      = meas * ip.getWeight() * cst_time;
+
+            // EVALUATE THE BASIS FUNCTIONS
+            // CRITICAL: Map physical point to reference element of EACH finite element
+            // since FKu and FKv may have different geometries if on different active meshes
+            FKv.BF(Fop, FKv.T.mapToReferenceElement(mip), fv);
+            if (!same)
+                FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
+
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid, normal);
+            Cint *= coef * VF[l].c;
+
+            if (In) {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    }
+}
+
+template <typename M>
 void BaseFEM<M>::addOuterBorderContribution(const itemVFlist_t &VF, const int k, const int ifac,
                                        const TimeSlab *In, int itq, double cst_time) {
 
@@ -1270,7 +1368,7 @@ void BaseFEM<M>::addOuterBorderContribution(const itemVFlist_t &VF, const int k,
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
-        assert(Vhv.get_nb_element() == Vhu.get_nb_element());
+        // assert(Vhv.get_nb_element() == Vhu.get_nb_element());
         bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
         const FElement &FKu(Vhu[k]);
@@ -1318,6 +1416,106 @@ void BaseFEM<M>::addOuterBorderContribution(const itemVFlist_t &VF, const int k,
         }
     }
 }
+
+template <typename M>
+void BaseFEM<M>::addOuterBorderContributionMixed(const itemVFlist_t &VF, const int kb, const int ifac,
+                                       const TimeSlab *In, int itq, double cst_time) {
+
+    typedef typename FElement::RdHatBord RdHatBord;
+
+    // Get a reference space to access the mesh
+    const FESpace &Vh(VF.get_spaceV(0));
+    
+    // Access the background mesh through the active mesh
+    const ActiveMesh<M> &Th(Vh.get_mesh());
+    const M &Thi(Th.Th);  // Background mesh
+    
+    // Access the element directly from the background mesh using kb
+    const Element &K(Thi[kb]);
+
+    // Compute parameter connected to the mesh.
+    double measK = K.measure();
+    double meas  = K.mesureBord(ifac);
+    double h     = K.get_h();
+    Rd normal    = K.N(ifac);  // when calling this function, we are coming from a cut element into an exterior element
+
+    // GET THE QUADRATURE RULE
+    const QFB &qfb(this->get_quadrature_formular_dK());
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+
+    // LOOP OVER THE VARIATIONAL FORMULATION ITEMS
+    for (int l = 0; l < VF.size(); ++l) {
+        // if(!VF[l].on(domain)) continue;
+
+        // FINITE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        const FESpace &Vhu(VF.get_spaceU(l));
+        bool same = (VF.isRHS() || (&Vhu == &Vhv));
+
+        // Get the domain IDs for test and trial functions
+        const int domainV = VF[l].get_domain_test_function();
+        const int domainU = VF[l].get_domain_trial_function();
+
+        // Convert background element index to active mesh indices
+        // Note: Using idxElementFromBackMesh with specific domain, not idxAllElementFromBackMesh
+        // If the domain is -1 (any domain), we need to handle it appropriately
+        int kv = Vhv.idxElementFromBackMesh(kb, domainV == -1 ? 0 : domainV);
+        int ku = (same) ? kv : Vhu.idxElementFromBackMesh(kb, domainU == -1 ? 0 : domainU);
+
+        // Skip if the element doesn't exist in the active mesh(es)
+        if (kv == -1 || ku == -1)
+            continue;
+
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
+        int domain = FKv.get_domain();
+        this->initIndex(FKu, FKv);
+
+        // BF MEMORY MANAGEMENT -
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+        RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
+        RNMK_ fu(this->databf_ + (same ? 0 : FKv.NbDoF() * FKv.N * lastop), FKu.NbDoF(), FKu.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        // COMPUTE COEFFICIENT
+        double coef = VF[l].computeCoefElement(h, meas, measK, measK, domain);
+        coef *= VF[l].computeCoefFromNormal(normal);
+
+        // LOOP OVER QUADRATURE IN SPACE
+        for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+            typename QFB::QuadraturePoint ip(qfb[ipq]);
+            const Rd ip_edge = K.mapToReferenceElement((RdHatBord)ip, ifac);
+            const Rd mip     = K.mapToPhysicalElement(ip_edge);
+            
+            double Cint      = meas * ip.getWeight() * cst_time;
+
+            // EVALUATE THE BASIS FUNCTIONS
+            // CRITICAL: Map physical point to reference element of EACH finite element
+            // since FKu and FKv may have different geometries if on different active meshes
+            FKv.BF(Fop, FKv.T.mapToReferenceElement(mip), fv);
+            if (!same)
+                FKu.BF(Fop, FKu.T.mapToReferenceElement(mip), fu);
+
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid, normal);
+            Cint *= coef * VF[l].c;
+
+            if (In) {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], *In, FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], *In, FKu, FKv, fu, fv, Cint);
+            } else {
+                if (VF.isRHS())
+                    this->addToRHS(VF[l], FKv, fv, Cint);
+                else
+                    this->addToMatrix(VF[l], FKu, FKv, fu, fv, Cint);
+            }
+        }
+    }
+}
+
+            
 
 //! Only seems to work for trivial BC
 template <typename Mesh>

@@ -132,15 +132,31 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
     void addInterfaceRidgeContribution(const itemVFlist_t &VF, const Interface<Mesh> &interface, int ifac,
                                        const TimeSlab *In, int itq, double cst_time);
 
-    // Integration on border of inner active mesh
+    // Integration on inner/outer border of active mesh
     void addLinearInner(const itemVFlist_t &VF, const CutMesh &Th);
     void addBilinearInner(const itemVFlist_t &VF, const CutMesh &Th);
     void addBilinearInnerBorder(const itemVFlist_t &VF, const CutMesh &Th);
+    void addLinearInnerBorder(const itemVFlist_t &VF, const CutMesh &Th);
+    void addBilinearInnerBorderMixed(const itemVFlist_t &VF, const CutMesh &Th);
+    void addLinearInnerBorderMixed(const itemVFlist_t &VF, const CutMesh &Th);
+    
+    void addBilinearOuterBorder(const itemVFlist_t &VF, const CutMesh &Th);
+    void addLinearOuterBorder(const itemVFlist_t &VF, const CutMesh &Th);
+    void addBilinearOuterBorderMixed(const itemVFlist_t &VF, const CutMesh &Th);
+    void addLinearOuterBorderMixed(const itemVFlist_t &VF, const CutMesh &Th);
+
     void addLinearInner(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
+    void addLinearOuter(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
     void addBilinearInner(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
     void addBilinearInnerBorder(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
+    void addLinearInnerBorder(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
+    void addBilinearInnerBorderMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
+    void addLinearInnerBorderMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
+
     void addBilinearOuterBorder(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
+    void addBilinearOuterBorderMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
     void addLinearOuterBorder(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
+    void addLinearOuterBorderMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th);
 
     // Face stabilization
     void addFaceStabilization(const itemVFlist_t &VF, const CutMesh &);

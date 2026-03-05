@@ -358,20 +358,18 @@ template <> void BaseCutFEM<Mesh2>::addBilinearInnerBorder(const itemVFlist_t &V
                 int jfac = ifac;
                 int kn_micro = Th.ElementAdj(k_micro, jfac);
 
-            // a neighboring element can be 1) outside of the domain, 2) another cut element, 
-            // 3) inside of the domain but in the same macro element, or 4) inside of the domain and in another macro element
-                //! THIS WILL BE PROBLEMATIC IF kn_micro == -1
-                // if ((Th.inverse_active_macro_map[k_micro] == Th.inverse_active_macro_map[kn_micro]) || (kn_micro == -1) || Th.isCut(kn_micro, 0))
-                //     continue;
-
-                //! Just put this for now
                 if (kn_micro == -1) 
                     continue;
-                if (Th.isCut(kn_micro, 0))
+                int kn_macro = Th.inverse_active_macro_map_d[domain][kn_micro];
+                if (Th.is_macro_cut(kn_macro))  // 2)
                     continue;
                 
-                assert(!Th.isCut(kn_micro, 0));
-                assert(Th.is_macro_interior(Th.inverse_active_macro_map_d[domain][kn_micro]));
+                // Skip if in same macro element
+                if (kn_macro == km)
+                    continue;
+                
+                // assert(!Th.isCut(kn_micro, 0));
+                assert(Th.is_macro_interior(kn_macro));
 
                 // std::cout << "Integrating on edge between micro elements " << k_micro << " (macro element " << Th.inverse_active_macro_map[k_micro] << ") and " << kn_micro << " (macro element " << Th.inverse_active_macro_map[kn_micro] << ")\n";
                 BaseFEM<Mesh2>::addInnerBorderContribution(VF, k_micro, ifac, nullptr, 0, 1.);
@@ -384,6 +382,151 @@ template <> void BaseCutFEM<Mesh2>::addBilinearInnerBorder(const itemVFlist_t &V
 
 }
 
+template <> void BaseCutFEM<Mesh2>::addLinearInnerBorder(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th) {
+    assert(VF.isRHS());
+
+    const int domain = 0;
+    assert(Th.get_nb_domain() == 1);
+    for (int km = 0; km < Th.active_macro_elements_d[domain].size(); ++km) {
+
+        // Loop only over cut elements for efficiency
+        if (!Th.is_macro_cut(km))
+            continue;
+
+        const auto& micro_elements = Th.active_macro_elements_d[domain][km];
+
+        for (int k_micro : micro_elements) {
+            
+            for (int ifac = 0; ifac < Element::nea; ++ifac) {
+                int jfac = ifac;
+                int kn_micro = Th.ElementAdj(k_micro, jfac);
+
+            // a neighboring element can be 1) outside of the domain, 2) another cut element, 
+            // 3) inside of the domain but in the same macro element, or 4) inside of the domain and in another macro element
+                if (kn_micro == -1) 
+                    continue;
+                int kn_macro = Th.inverse_active_macro_map_d[domain][kn_micro];
+                if (Th.is_macro_cut(kn_macro))  // 2)
+                    continue;
+                
+                // Skip if in same macro element
+                if (kn_macro == km)
+                    continue;
+                
+                // assert(!Th.isCut(kn_micro, 0));
+                assert(Th.is_macro_interior(kn_macro));
+
+                // std::cout << "Integrating on edge between micro elements " << k_micro << " (macro element " << Th.inverse_active_macro_map[k_micro] << ") and " << kn_micro << " (macro element " << Th.inverse_active_macro_map[kn_micro] << ")\n";
+                BaseFEM<Mesh2>::addInnerBorderContribution(VF, k_micro, ifac, nullptr, 0, 1.);
+            
+            }
+        
+        }
+
+    }
+
+}
+
+template <> void BaseCutFEM<Mesh2>::addBilinearInnerBorderMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th) {
+    assert(!VF.isRHS());
+
+    const int domain = 0;
+    assert(Th.get_nb_domain() == 1);
+    for (int km = 0; km < Th.active_macro_elements_d[domain].size(); ++km) {
+
+        // Loop only over cut elements for efficiency
+        if (!Th.is_macro_cut(km))
+            continue;
+
+        const auto& micro_elements = Th.active_macro_elements_d[domain][km];
+
+        for (int k_micro : micro_elements) {
+            
+            for (int ifac = 0; ifac < Element::nea; ++ifac) {
+                int jfac = ifac;
+                int kn_micro = Th.ElementAdj(k_micro, jfac);
+
+                // a neighboring element can be 1) outside of the domain, 2) another cut macro element, 
+                // 3) inside of the domain but in the same macro element, or 4) inside of the domain and in another macro element
+                // we only want to integrate on the face to an element that satisfies 4)
+                if (kn_micro == -1) // 1)
+                    continue;
+                
+                int kn_macro = Th.inverse_active_macro_map_d[domain][kn_micro];
+                if (Th.is_macro_cut(kn_macro))  // 2)
+                    continue;
+                
+                // Skip if in same macro element
+                if (kn_macro == km) // 3)
+                    continue;
+                
+                const int kbn_macro = Th.macro_idx_in_background_mesh_[domain][kn_macro];
+                const int kb_macro = Th.macro_idx_in_background_mesh_[domain][km];
+                // std::cout << "Integrating on edge between micro elements " << k_micro << " (macro element " << Th.inverse_active_macro_map_d[domain][k_micro] << " (bg = " << kb_macro <<  ")) and " << kn_micro << " (macro element " << Th.inverse_active_macro_map_d[domain][kn_micro] << " (bg = " << kbn_macro <<  "))\n";
+                
+
+                // assert(!Th.isCut(kn_micro, 0));
+                assert(Th.is_macro_interior(kn_macro));
+
+                int kb_micro = Th.idxElementInBackMesh(k_micro);
+
+                
+                BaseFEM<Mesh2>::addInnerBorderContributionMixed(VF, kb_micro, ifac, nullptr, 0, 1.);
+            
+            }
+        
+        }
+
+    }
+
+}
+
+template <> void BaseCutFEM<Mesh2>::addLinearInnerBorderMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th) {
+    assert(VF.isRHS());
+
+    const int domain = 0;
+    assert(Th.get_nb_domain() == 1);
+    for (int km = 0; km < Th.active_macro_elements_d[domain].size(); ++km) {
+
+        // Loop only over cut elements for efficiency
+        if (!Th.is_macro_cut(km))
+            continue;
+
+        const auto& micro_elements = Th.active_macro_elements_d[domain][km];
+
+        for (int k_micro : micro_elements) {
+            
+            for (int ifac = 0; ifac < Element::nea; ++ifac) {
+                int jfac = ifac;
+                int kn_micro = Th.ElementAdj(k_micro, jfac);
+
+                // a neighboring element can be 1) outside of the domain, 2) another cut element, 
+                // 3) inside of the domain but in the same macro element, or 4) inside of the domain and in another macro element
+                if (kn_micro == -1) 
+                    continue;
+                int kn_macro = Th.inverse_active_macro_map_d[domain][kn_micro];
+                if (Th.is_macro_cut(kn_macro))  // 2)
+                    continue;
+                
+                // Skip if in same macro element
+                if (kn_macro == km)
+                    continue;
+                
+                // assert(!Th.isCut(kn_micro, 0));
+                assert(Th.is_macro_interior(kn_macro));
+
+                int kb_micro = Th.idxElementInBackMesh(k_micro);
+
+                // std::cout << "Integrating on edge between micro elements " << k_micro << " (macro element " << Th.inverse_active_macro_map[k_micro] << ") and " << kn_micro << " (macro element " << Th.inverse_active_macro_map[kn_micro] << ")\n";
+                BaseFEM<Mesh2>::addInnerBorderContributionMixed(VF, kb_micro, ifac, nullptr, 0, 1.);
+            
+            }
+        
+        }
+
+    }
+
+}
 
 // Outer border of the active mesh
 template<>
@@ -406,8 +549,34 @@ void BaseCutFEM<Mesh2>::addBilinearOuterBorder(const itemVFlist_t& VF,
                 const int kn_micro = Th.ElementAdj(k_micro, jfac);
                 if (kn_micro != -1) continue;         // only outer boundary
 
-                BaseFEM<Mesh2>::addOuterBorderContribution(VF, k_micro, ifac,
-                                                           /*user*/nullptr, /*w*/0, /*coef*/1.0);
+                BaseFEM<Mesh2>::addOuterBorderContribution(VF, k_micro, ifac, nullptr, 0, 1.0);
+            }
+        }
+    }
+}
+template<>
+void BaseCutFEM<Mesh2>::addBilinearOuterBorderMixed(const itemVFlist_t& VF,
+                                               const BarycentricActiveMesh2& Th)
+{
+    using Element = typename BarycentricActiveMesh2::Element;
+    assert(!VF.isRHS());
+
+    const int domain = 0;
+    assert(Th.get_nb_domain() == 1);
+
+    for (int km = 0; km < (int)Th.active_macro_elements_d[domain].size(); ++km) {
+        if (!Th.is_macro_cut(km)) continue;
+
+        const auto& micro = Th.active_macro_elements_d[domain][km];
+        for (int k_micro : micro) {
+            for (int ifac = 0; ifac < Element::nea; ++ifac) {
+                int jfac = ifac;
+                const int kn_micro = Th.ElementAdj(k_micro, jfac);
+                if (kn_micro != -1) continue;         // only outer boundary
+
+                int kb_micro = Th.idxElementInBackMesh(k_micro);
+
+                BaseFEM<Mesh2>::addOuterBorderContributionMixed(VF, kb_micro, ifac, nullptr, 0, 1.0);
             }
         }
     }
@@ -449,7 +618,43 @@ template <> void BaseCutFEM<Mesh2>::addLinearOuterBorder(const itemVFlist_t &VF,
     }
 
 }
+template <> void BaseCutFEM<Mesh2>::addLinearOuterBorderMixed(const itemVFlist_t &VF, const BarycentricActiveMesh2 &Th) {
+    assert(VF.isRHS());
 
+    const int domain = 0;
+    assert(Th.get_nb_domain() == 1);
+
+    for (int km = 0; km < Th.active_macro_elements_d[domain].size(); ++km) {
+
+        // Loop only over cut elements for efficiency
+        if (!Th.is_macro_cut(km))
+            continue;
+
+        const auto& micro_elements = Th.active_macro_elements_d[domain][km];
+
+        for (int k_micro : micro_elements) {
+            
+            for (int ifac = 0; ifac < Element::nea; ++ifac) {
+                int jfac = ifac;
+                int kn_micro = Th.ElementAdj(k_micro, jfac);
+
+                // if ((kn_micro != -1) ||(Th.inverse_active_macro_map[k_micro] == Th.inverse_active_macro_map[kn_micro]))
+                //     continue;
+                if (kn_micro != -1)
+                    continue;
+                
+                int kb_micro = Th.idxElementInBackMesh(k_micro);
+
+                // std::cout << "Integrating on edge between micro elements " << k_micro << " (macro element " << Th.inverse_active_macro_map[k_micro] << ") and " << kn_micro << " (macro element " << Th.inverse_active_macro_map[kn_micro] << ")\n";
+                BaseFEM<Mesh2>::addOuterBorderContributionMixed(VF, kb_micro, ifac, nullptr, 0, 1.);
+            
+            }
+        
+        }
+
+    }
+
+}
 
 
 

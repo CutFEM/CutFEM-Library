@@ -225,8 +225,13 @@ template <typename Mesh> class BaseFEM : public ShapeOfProblem<Mesh>, public Qua
     // integral on active mesh boundary
     void addInnerBorderContribution(const itemVFlist_t &VF, const int k, const int ifac,
                                     const TimeSlab *In, int itq, double cst_time);
+    void addInnerBorderContributionMixed(const itemVFlist_t &VF, const int kb, const int ifac,
+                                    const TimeSlab *In, int itq, double cst_time);                                    
     void addOuterBorderContribution(const itemVFlist_t &VF, const int k, const int ifac,
                                     const TimeSlab *In, int itq, double cst_time);
+    void addOuterBorderContributionMixed(const itemVFlist_t &VF, const int kb, const int ifac,
+                                    const TimeSlab *In, int itq, double cst_time);
+    
                                     
 
     void setDirichlet(const FunFEM<Mesh> &, const Mesh &, std::list<int> label = {});
