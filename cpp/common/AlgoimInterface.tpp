@@ -40,6 +40,9 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
         // algoim::QuadratureRule<2> q =
         //     algoim::quadGen<2>(phi, algoim::HyperRectangle<double, 2>(xymin, xymax), 2, -1, quadrature_order);
 
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+            phi.setElementFromBackMesh(k, 0);
+        }
         auto q = quadGenSurf(K, phi, options);
         // double cut_threshold = 1e-6;
 
@@ -69,6 +72,9 @@ template <typeMesh M, typename L>
 SignElement<typename AlgoimInterface<M, L>::Element> AlgoimInterface<M, L>::get_SignElement(int k) const {
     using Element = typename AlgoimInterface<M, L>::Element;
 
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+        phi.setElement(k);
+    }
     double loc_ls[Element::nv]; // list with size = number of vertices on the element
     for (int i = 0; i < Element::nv; ++i) {
         loc_ls[i] = phi(this->backMesh->operator[](k).at(i));
@@ -80,6 +86,9 @@ template <typeMesh M, typename L>
 Partition<typename AlgoimInterface<M, L>::Element> AlgoimInterface<M, L>::get_partition(int k) const {
     using Element = typename AlgoimInterface<M, L>::Element;
 
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+        phi.setElement(k);
+    }
     // assert(0);
     double loc_ls[Element::nv];
     for (int i = 0; i < Element::nv; ++i) {
@@ -128,6 +137,9 @@ template <typeMesh M, typename L> double AlgoimInterface<M, L>::measure(int i) c
 template <typeMesh M, typename L>
 typename AlgoimInterface<M, L>::Rd AlgoimInterface<M, L>::normal(int k, std::span<double> x) const {
     assert(0);
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+        phi.setElement(k);
+    }
     return phi.normal(x);
 }
 
@@ -166,8 +178,12 @@ template <typeMesh M, typename L> bool AlgoimInterface<M, L>::isCutFace(int k, i
     }
 
     ProblemOption options;
-    options.algoim_surface_quad_deg_ = 3;
+    options.algoim_surface_quad_deg_ = 3 ;
     options.algoim_bernstein_deg_    = 2;
+    
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+        phi.setElement(k);
+    }
     const auto quad_rule = quadGenFace(K, phi, options, ifac);
 
     // // Get coordinates of current quadrilateral

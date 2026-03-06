@@ -73,9 +73,14 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
     return rule;
 }
 template <typename Phi>
-AlgoimQuadratureRule<Mesh2>
-quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option)
-{
+AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option) {
+    // Quadrature generation strategy:
+    // 1. Map the triangle K in physical coordinates to the reference triangle (0,0)-(1,0)-(0,1) called K_ref
+    // 2. K_ref can be defined implicitly as the unit square intersected with {psi < 0} where psi = x+y-1 represents the hypothenuse of K_ref     
+    // 3. Add the intersection with {phi = 0} where phi is the levelset function used to describe our domain
+    // 4. Generate quadrature rules for surface using Bernstein polynomials for phi (psi is always linear)
+    // 5. Map quadrature nodes, weights and normals back to the physical triangle using an affine map
+
     using real = algoim::real;
     using Vec2 = algoim::uvector<real, 2>;
     using R2   = typename Mesh2::Rd;
@@ -281,12 +286,16 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addElementContribution(const itemVFlist_t& 
 
     auto tq    = this->get_quadrature_time(itq);
     double tid = (In) ? (double)In->map(tq) : 0.;
-    phi_.t = tid; 
-
+    if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
+        phi_.setTime(tid);
+        phi_.setElement(k);
+    } else {
+        phi_.t = tid;
+    }
     auto quad_rule = quadGenVol(K, phi_, options_);
 
     if (quad_rule.points.size() == 0) {
-        std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << "in AlgoimCutFEM::addElementContribution\n";
+        std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in AlgoimCutFEMUnified::addElementContribution\n";
         return;
     }
 
@@ -407,13 +416,16 @@ template <typeMesh Mesh, typename Phi>
 void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t& VF, const Interface<mesh_t>& interface, int ifac, double tid,
                                   const TimeSlab* In, double cst_time, int itq) {
 
-
-    phi_.t = tid; // update time in level set function
-
     //  GET IDX ELEMENT CONTAINING FACE ON backMes
     const int kb = interface.idxElementOfFace(ifac);
     const auto &K(interface.get_element(kb));
 
+    if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
+        phi_.setTime(tid);
+        phi_.setElementFromBackMesh(kb, 0);
+    } else {
+        phi_.t = tid;
+    }
     // Get quadrature rule - template argument deduction from K and phi_
     auto quad_rule = quadGenSurf(K, phi_, options_);
 
@@ -515,7 +527,12 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
     auto tq    = this->get_quadrature_time(itq);
     double tid = (In) ? (double)In->map(tq) : 0.;
 
-    phi_.t = tid;
+    if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
+        phi_.setTime(tid);
+        phi_.setElement(k);
+    } else {
+        phi_.t = tid;
+    }
 
     auto quad_rule = quadGenFace(K, phi_, options_, ifac);
 

@@ -24,6 +24,7 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
     // save cut elements as a map of background mesh index of cut element, and corresponding interface quadrature rule
 
     L phi;
+    // const L &phi;
     const int quadrature_order = 5;
     int number_of_cut_elements{0};
     // std::map<int, algoim::QuadratureRule<2>> cut_elements;

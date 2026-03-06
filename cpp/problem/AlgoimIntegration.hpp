@@ -206,6 +206,9 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
         const Element &K(interface.get_element(kb));
         // const R meas = interface.measure(iface);
 
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<Mesh>>) {
+            phi.setElementFromBackMesh(kb, 0);
+        }
         auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
         if (quad_rule.size() == 0) {
             std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
@@ -243,7 +246,6 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
 
     // typedef typename FElement::QFB QFB;
     // typedef typename QFB::QuadraturePoint QuadraturePoint;
-    phi.t = tt;
 
     double val = 0.;
 
@@ -252,6 +254,12 @@ double L2_norm_surface_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
         const Element &K(interface.get_element(kb));
 
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<Mesh>>) {
+            phi.setTime(tt);
+            phi.setElementFromBackMesh(kb, 0);
+        } else {
+            phi.t = tt;
+        }
         auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
@@ -356,9 +364,14 @@ double L2L2_norm_surf(const FunFEM<mesh_t> &fh, const fct_t &f, const TimeInterf
         // Get quadrature points in time
         GQuadraturePoint<R1> tq((qTime)[itq]);
         const double t = In.mapToPhysicalElement(tq);
-        phi.t          = t;
 
         double weight_time = In.T.measure() * tq.a;
+
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setTime(t);
+        } else {
+            phi.t = t;
+        }
 
         // Loop in space
         double weight_space = 0.;
@@ -367,6 +380,10 @@ double L2L2_norm_surf(const FunFEM<mesh_t> &fh, const fct_t &f, const TimeInterf
             const int kb = (*gamma[itq]).idxElementOfFace(iface);
             const Element &K((*gamma[itq]).get_element(kb));
 
+            if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+                phi.setElementFromBackMesh(kb, 0);
+            }
+            
             auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
             if (quad_rule.size() == 0) {
                 std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << "\n";
@@ -415,8 +432,12 @@ double L2L2_norm(const FunFEM<mesh_t> &fh, const fct_t &f, const ActiveMesh<mesh
         // Get quadrature points in time
         GQuadraturePoint<R1> tq((qTime)[itq]);
         const double t = In.mapToPhysicalElement(tq);
-        phi.t          = t;
-
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setTime(t);
+        } else {
+            phi.t = t;
+        }
+        
         double weight_time = In.T.measure() * tq.a;
 
         // Loop in space
@@ -431,7 +452,9 @@ double L2L2_norm(const FunFEM<mesh_t> &fh, const fct_t &f, const ActiveMesh<mesh
 
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
-
+            if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+                phi.setElement(k);
+            }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
             if (quad_rule.points.size() == 0) {
@@ -483,7 +506,11 @@ double L2H1_norm(const FunFEM<mesh_t> &fh, const FunFEM<mesh_t> &f, const Active
         // Get quadrature points in time
         GQuadraturePoint<R1> tq((qTime)[itq]);
         const double t = In.mapToPhysicalElement(tq);
-        phi.t          = t;
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setTime(t);
+        } else {
+            phi.t = t;
+        }
 
         double weight_time = In.T.measure() * tq.a;
 
@@ -500,6 +527,9 @@ double L2H1_norm(const FunFEM<mesh_t> &fh, const FunFEM<mesh_t> &f, const Active
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
 
+            if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+                phi.setElement(k);
+            }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
             if (quad_rule.points.size() == 0) {
@@ -574,7 +604,11 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 
     GQuadraturePoint<R1> tq((qTime)[itq]);
     const double t = In.mapToPhysicalElement(tq);
-    phi.t          = t;
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+        phi.setTime(t);
+    } else {
+        phi.t = t;
+    }
     // std::cout << "t = " << t << "\n";
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
@@ -589,6 +623,10 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
         int kb = Th.idxElementInBackMesh(k);
 
         int kk = k;
+
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElement(k);
+        }
 
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -727,6 +765,9 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fe
 
         if (Th.isCut(k, 0)) {
             
+            if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+                phi.setElement(k);
+            }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
             if (quad_rule.points.size() == 0) {
@@ -841,6 +882,9 @@ double integral_algoim(FunFEM<mesh_t> &fh, const Interface<mesh_t> &interface, i
 
         const Element &K(interface.get_element(kb));
         
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElementFromBackMesh(kb, 0);
+        }
         auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
@@ -885,7 +929,9 @@ double integral_algoim(const std::shared_ptr<const ExpressionVirtual> &fh, const
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const Element &K(interface.get_element(kb));
-        
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElementFromBackMesh(kb, 0);
+        }
         auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
@@ -930,7 +976,9 @@ double integral_algoim(const double c, const Interface<mesh_t> &interface, L &ph
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const Element &K(interface.get_element(kb));
-        
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElementFromBackMesh(kb, 0);
+        }
         auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
@@ -971,14 +1019,20 @@ double integral_algoim(fct_t &fh, const Interface<mesh_t> &interface, int cu, L 
 
     double val = 0.;
 
-    phi.t = t;
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+        phi.setTime(t);
+    } else {
+        phi.t = t;
+    }
 
     for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
 
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const Element &K(interface.get_element(kb));
-        
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElementFromBackMesh(kb, 0);
+        }
         auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";
@@ -1025,13 +1079,20 @@ double integral_algoim(fct_t &fh, const Interface<mesh_t> &interface, int cu, L 
 
     GQuadraturePoint<R1> tq((qTime)[itq]);
     const double t = In.mapToPhysicalElement(tq);
-    phi.t          = t;
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+        phi.setTime(t);
+    } else {
+        phi.t = t;
+    }
 
     for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
 
         const int kb = interface.idxElementOfFace(iface); // idx on backMesh
 
         const auto &T(interface.get_element(kb));
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElementFromBackMesh(kb, 0);
+        }
         auto quad_rule = quadGenSurf(T, phi, defaultProblemOption);
         if (quad_rule.size() == 0) {
             std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << "\n";
@@ -1104,6 +1165,9 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, in
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
 
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElement(k);
+        }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
         if (quad_rule.points.size() == 0) {
@@ -1162,6 +1226,9 @@ double integral_algoim(const ActiveMesh<mesh_t> &Th, const std::shared_ptr<const
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
 
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElement(k);
+        }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
         if (quad_rule.points.size() == 0) {
@@ -1216,6 +1283,9 @@ double integral_algoim(const double c, const ActiveMesh<mesh_t> &Th, Phi &phi) {
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
 
+        if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
+            phi.setElement(k);
+        }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
         if (quad_rule.points.size() == 0) {
@@ -1277,7 +1347,11 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Ph
 
         GQuadraturePoint<R1> tq((qTime)[itq]);
         const double t = In.mapToPhysicalElement(tq);
-        phi.t          = t;
+        if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
+            phi.setTime(t);
+        } else {
+            phi.t = t;
+        }
 
         for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
@@ -1289,6 +1363,9 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Ph
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
 
+            if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
+                phi.setElement(k);
+            }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
             if (quad_rule.points.size() == 0) {
@@ -1369,7 +1446,11 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, const int 
 
     GQuadraturePoint<R1> tq((qTime)[itq]);
     const double t = In.mapToPhysicalElement(tq);
-    phi.t          = t;
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+        phi.setTime(t);
+    } else {
+        phi.t = t;
+    }
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
@@ -1382,6 +1463,9 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, const int 
         const Element &K(Th[k]);
         int kb = Th.idxElementInBackMesh(k);
 
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
+            phi.setElement(k);
+        }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
         if (quad_rule.points.size() == 0) {
@@ -1500,7 +1584,11 @@ double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<mesh_t
         const QuadratureFormular1d *qTime(gamma.get_quadrature_time());
         GQuadraturePoint<R1> tq((*qTime)[it]);
         const double t = In.mapToPhysicalElement(tq);
-        phi.t          = t;
+        if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
+            phi.setTime(t);
+        } else {
+            phi.t = t;
+        }
 
         for (int iface = interface.first_element(); iface < interface.last_element();
              iface += interface.next_element()) {
@@ -1509,7 +1597,9 @@ double integral_algoim(fct_t &fh, const TimeSlab &In, const TimeInterface<mesh_t
             // const R meas = interface.measure(iface);
 
             const auto &T(interface.get_element(kb));
-
+            if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
+                phi.setElementFromBackMesh(kb, 0);
+            }
             auto quad_rule = quadGenSurf(T, phi, defaultProblemOption);
             if (quad_rule.size() == 0) {
                 std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in L2_norm_surface_2\n";

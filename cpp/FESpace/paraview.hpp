@@ -1731,6 +1731,10 @@ template <class M> class Paraview {
                 const Element &K(cutTh[k]);
 
                 if (cutTh.isCut(k, 0)) {
+
+                    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+                        phi.setElement(k);
+                    }
                     auto quad_rule = quadGenVol(K, phi, options);
                     
                     for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
@@ -1793,7 +1797,10 @@ template <class M> class Paraview {
                 check_and_resize_array(kk);
 
                 const Element &K(cutTh[k]);
-                
+
+                if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+                    phi.setElementFromBackMesh(k, 0);
+                }
                 auto quad_rule = quadGenSurf(K, phi, options);
 
                 for (size_t ipq = 0; ipq < quad_rule.size(); ++ipq) {
