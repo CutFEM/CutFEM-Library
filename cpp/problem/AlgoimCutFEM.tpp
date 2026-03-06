@@ -288,7 +288,7 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addElementContribution(const itemVFlist_t& 
     double tid = (In) ? (double)In->map(tq) : 0.;
     if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
         phi_.setTime(tid);
-        phi_.setElement(k);
+        phi_.setElementFromBackMesh(kb);
     } else {
         phi_.t = tid;
     }
@@ -527,9 +527,11 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
     auto tq    = this->get_quadrature_time(itq);
     double tid = (In) ? (double)In->map(tq) : 0.;
 
+    int kb = Vh.idxElementInBackMesh(k);
+
     if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
         phi_.setTime(tid);
-        phi_.setElement(k);
+        phi_.setElementFromBackMesh(kb);
     } else {
         phi_.t = tid;
     }

@@ -1733,7 +1733,7 @@ template <class M> class Paraview {
                 if (cutTh.isCut(k, 0)) {
 
                     if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
-                        phi.setElement(k);
+                        phi.setElementFromBackMesh(kb);
                     }
                     auto quad_rule = quadGenVol(K, phi, options);
                     

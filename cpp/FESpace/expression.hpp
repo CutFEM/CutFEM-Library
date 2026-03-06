@@ -387,7 +387,6 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     mutable double t_algoim_ = -1.0;
     
     void setTime(double t) const { t_algoim_ = t; }
-    void setElement(int k) const { algoim_k_ = k; }
     void setElementFromBackMesh(int kb, int dom = 0) const {
         algoim_k_ = Vh->idxElementFromBackMesh(kb, dom);
     }

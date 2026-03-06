@@ -453,7 +453,7 @@ double L2L2_norm(const FunFEM<mesh_t> &fh, const fct_t &f, const ActiveMesh<mesh
             const Element &K(Th[k]);
             int kb = Th.idxElementInBackMesh(k);
             if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
-                phi.setElement(k);
+                phi.setElementFromBackMesh(kb);
             }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -528,7 +528,7 @@ double L2H1_norm(const FunFEM<mesh_t> &fh, const FunFEM<mesh_t> &f, const Active
             int kb = Th.idxElementInBackMesh(k);
 
             if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
-                phi.setElement(k);
+                phi.setElementFromBackMesh(kb);
             }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -625,7 +625,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
         int kk = k;
 
         if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
-            phi.setElement(k);
+            phi.setElementFromBackMesh(kb);
         }
 
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
@@ -766,7 +766,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fe
         if (Th.isCut(k, 0)) {
             
             if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
-                phi.setElement(k);
+                phi.setElementFromBackMesh(kb);
             }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -1166,7 +1166,7 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, in
         int kb = Th.idxElementInBackMesh(k);
 
         if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
-            phi.setElement(k);
+            phi.setElementFromBackMesh(kb);
         }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -1227,7 +1227,7 @@ double integral_algoim(const ActiveMesh<mesh_t> &Th, const std::shared_ptr<const
         int kb = Th.idxElementInBackMesh(k);
 
         if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
-            phi.setElement(k);
+            phi.setElementFromBackMesh(kb);
         }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -1284,7 +1284,7 @@ double integral_algoim(const double c, const ActiveMesh<mesh_t> &Th, Phi &phi) {
         int kb = Th.idxElementInBackMesh(k);
 
         if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
-            phi.setElement(k);
+            phi.setElementFromBackMesh(kb);
         }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -1364,7 +1364,7 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Ph
             int kb = Th.idxElementInBackMesh(k);
 
             if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
-                phi.setElement(k);
+                phi.setElementFromBackMesh(kb);
             }
             auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
@@ -1464,7 +1464,7 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, const int 
         int kb = Th.idxElementInBackMesh(k);
 
         if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
-            phi.setElement(k);
+            phi.setElementFromBackMesh(kb);
         }
         auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
 
