@@ -21,6 +21,10 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <cmath>
 #include <memory>
 #include <list>
+#include "../algoim/uvector.hpp"
+#include "../algoim/interval.hpp"
+
+
 
 struct Normal_Component {
     virtual int component() const = 0;
@@ -132,6 +136,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     typedef M Mesh;
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
+    typedef typename Mesh::Element Element;
     typedef typename Mesh::Rd Rd;
 
   public:
@@ -373,7 +378,64 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     FunFEM<M> &operator-=(const FunFEM<M> &other);
     FunFEM<M> &operator*=(const double c);
     FunFEM<M> &operator/=(const double c);
+
+
+    // Algoim additions
+    using Itv = algoim::Interval<Rd::d>;
+
+    mutable int algoim_k_ = -1;
+    mutable double t_algoim_ = -1.0;
     
+    void setTime(double t) const { t_algoim_ = t; }
+    void setElement(int k) const { algoim_k_ = k; }
+    void setElementFromBackMesh(int kb, int dom = 0) const {
+        algoim_k_ = Vh->idxElementFromBackMesh(kb, dom);
+    }
+
+    // Evaluation in Rd points
+    // double operator()(const algoim::uvector<double, Rd::d>& x) const {
+    //     return eval(algoim_k_, x.data(), 0, op_id);
+    // }
+    // algoim::uvector<double, Rd::d> grad(const algoim::uvector<double, Rd::d>& x) const {
+    //     algoim::uvector<double, Rd::d> g;
+    //     for (int i = 0; i < Rd::d; ++i)
+    //         g(i) = eval(algoim_k_, x.data(), 0, op_dx + i);  // op_dx=1, op_dy=2, op_dz=3
+    //     return g;
+    // }
+    double operator()(const Rd& x) const {
+        if (In && t_algoim_ >= 0.0)
+            return eval(algoim_k_, x, t_algoim_, 0, op_id, op_id);
+        return eval(algoim_k_, x, 0, op_id);
+    }
+    double operator()(const algoim::uvector<double, Rd::d>& x) const {
+        if (In && t_algoim_ >= 0.0)
+            return eval(algoim_k_, x.data(), t_algoim_, 0, op_id, op_id);
+        return eval(algoim_k_, x.data(), 0, op_id);
+    }
+    algoim::uvector<double, Rd::d> grad(const algoim::uvector<double, Rd::d>& x) const {
+        algoim::uvector<double, Rd::d> g;
+        for (int i = 0; i < Rd::d; ++i)
+            g(i) = (In && t_algoim_ >= 0.0)
+                ? eval(algoim_k_, x.data(), t_algoim_, 0, op_dx + i, op_id)
+                : eval(algoim_k_, x.data(), 0, op_dx + i);
+        return g;
+    }
+
+    
+    // Evaluation in interval arithmetic
+    Itv operator()(const algoim::uvector<Itv, Rd::d>& x) const;   // implemented in .tpp
+    algoim::uvector<Itv, Rd::d> grad(const algoim::uvector<Itv, Rd::d>& x) const;   // .tpp
+
+    Rd normal(Rd x) const {
+        algoim::uvector<double, Rd::d> xv;
+        for (int i = 0; i < Rd::d; ++i) xv(i) = x[i];
+        auto g = grad(xv);
+        double nrm = 0; for (int i = 0; i < Rd::d; ++i) nrm += g(i)*g(i);
+        nrm = std::sqrt(nrm);
+        Rd n; for (int i = 0; i < Rd::d; ++i) n[i] = g(i)/nrm;
+        return n;
+    }
+
     // ~FunFEM() {}
 
 };

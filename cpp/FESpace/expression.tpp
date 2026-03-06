@@ -256,3 +256,215 @@ FunFEM<M>& FunFEM<M>::operator/=(const double c) {
     }
     return *this;
 }
+
+
+
+// Algoim additions
+
+// Compute barycentric coordinates of a physical point on a simplex.
+// lam[0..nv-1] are filled with Interval values.
+// Dl[i] = grad(lambda_i) from Gradlambda — pure doubles.
+// A[j] = j-th coordinate of K[0] — pure double.
+// Template params Itv, nv, d are all explicit to avoid deduction issues.
+template<typename Itv, int nv, int d, typename RdType>
+inline void computeBarycentricCoords(const algoim::uvector<Itv, d>& x, const RdType* Dl,
+                                     const RdType& A, Itv* lam) {
+    lam[0] = 1.0;
+    for (int i = 1; i < nv; ++i) {
+        lam[i] = 0.0;
+        for (int j = 0; j < d; ++j)
+            lam[i] += Dl[i][j] * (x(j) - A[j]);
+        lam[0] -= lam[i];
+    }
+}
+
+// operator()(Interval)
+template<typename M>
+algoim::Interval<M::Rd::d>
+FunFEM<M>::operator()(const algoim::uvector<algoim::Interval<M::Rd::d>, M::Rd::d>& x) const {
+    using Itv = algoim::Interval<M::Rd::d>;
+    constexpr int d = M::Rd::d;
+
+    assert(algoim_k_ >= 0);
+    const FElement& FK = (*Vh)[algoim_k_];
+    const Element&  K  = FK.T;
+
+    switch (getBasisFctType()) {
+
+    case BasisFctType::P1:
+    case BasisFctType::P1dc: {
+        if constexpr (std::is_same_v<Mesh, MeshQuad2>) {
+            // Q1 bilinear on quad
+            double x0 = K[0][0], y0 = K[0][1];
+            double hx  = K[1][0] - x0;
+            double hy  = K[3][1] - y0;
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            Itv val = v[FK(0)]*(1.0-s)*(1.0-t) + v[FK(1)]*s*(1.0-t)
+                    + v[FK(2)]*s*t             + v[FK(3)]*(1.0-s)*t;
+            val.eps = 0.0;  // Polynomial evaluation is exact
+            return val;
+        } else {
+            // P1 Lagrange on simplex (Mesh2 or Mesh3)
+            Rd Dl[Element::nv];
+            K.Gradlambda(Dl);
+            const Rd& A = static_cast<const Rd&>(K[0]);
+            Itv lam[Element::nv];
+            computeBarycentricCoords<Itv, Element::nv, d>(x, Dl, A, lam);
+            Itv val(0.0);
+            for (int i = 0; i < Element::nv; ++i)
+                val += v[FK(i)] * lam[i];
+            val.eps = 0.0;  // Polynomial evaluation is exact
+            return val;
+        }
+    }
+
+    case BasisFctType::P2:
+    case BasisFctType::P2dc: {
+        if constexpr (std::is_same_v<Mesh, Mesh2>) {
+            // P2 Lagrange on triangle: 3 vertex DOFs + 3 edge DOFs
+            Rd Dl[3];
+            K.Gradlambda(Dl);
+            const Rd& A = static_cast<const Rd&>(K[0]);
+            Itv l[3];
+            computeBarycentricCoords<Itv, 3, d>(x, Dl, A, l);
+            // vertex basis functions: phi_i = l[i] * (2*l[i] - 1)
+            Itv val(0.0);
+            for (int i = 0; i < 3; ++i)
+                val += v[FK(i)] * l[i] * (2.0*l[i] - 1.0);
+            // edge basis functions: phi = 4 * l[a] * l[b]
+            for (int i = 0; i < 3; ++i) {
+                int i0 = Element::nvedge[i][0], i1 = Element::nvedge[i][1];
+                val += v[FK(3+i)] * 4.0 * l[i0] * l[i1];
+            }
+            val.eps = 0.0;  // Polynomial evaluation is exact
+            return val;
+        } else if constexpr (std::is_same_v<Mesh, MeshQuad2>) {
+            // Q2 tensor-product on quad: 9 DOFs
+            double x0 = K[0][0], y0 = K[0][1];
+            double hx  = K[1][0] - x0;
+            double hy  = K[3][1] - y0;
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            Itv psi_x[3] = {1.0-3.0*s+2.0*s*s, s*(2.0*s-1.0), 4.0*s*(1.0-s)};
+            Itv psi_y[3] = {1.0-3.0*t+2.0*t*t, t*(2.0*t-1.0), 4.0*t*(1.0-t)};
+            const int ix[9] = {0,1,1,0,2,1,2,0,2};
+            const int iy[9] = {0,0,1,1,0,2,1,2,2};
+            Itv val(0.0);
+            for (int i = 0; i < 9; ++i)
+                val += v[FK(i)] * psi_x[ix[i]] * psi_y[iy[i]];
+            // For polynomial evaluation on reference element, result is exact
+            // Zero out accumulated eps from interval arithmetic
+            val.eps = 0.0;
+            return val;
+        } else {
+            assert(0 && "P2 Interval eval not yet implemented for this mesh type");
+            return {};
+        }
+    }
+
+    default:
+        assert(0 && "Interval eval not implemented for this FE type");
+        return {};
+    }
+}
+
+// grad(Interval)
+template<typename M>
+algoim::uvector<algoim::Interval<M::Rd::d>, M::Rd::d>
+FunFEM<M>::grad(const algoim::uvector<algoim::Interval<M::Rd::d>, M::Rd::d>& x) const {
+    using Itv = algoim::Interval<M::Rd::d>;
+    constexpr int d = M::Rd::d;
+
+    assert(algoim_k_ >= 0);
+    const FElement& FK = (*Vh)[algoim_k_];
+    const Element&  K  = FK.T;
+    algoim::uvector<Itv, d> g;  // zero-initialised by uvector default ctor
+
+    switch (getBasisFctType()) {
+
+    case BasisFctType::P1:
+    case BasisFctType::P1dc: {
+        if constexpr (std::is_same_v<Mesh, MeshQuad2>) {
+            // Q1: gradient is bilinear — depends on x
+            double x0 = K[0][0], y0 = K[0][1];
+            double hx  = K[1][0] - x0;
+            double hy  = K[3][1] - y0;
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            double u0=v[FK(0)], u1=v[FK(1)], u2=v[FK(2)], u3=v[FK(3)];
+            g(0) = ((u1-u0)*(1.0-t) + (u2-u3)*t) / hx;
+            g(1) = ((u3-u0)*(1.0-s) + (u2-u1)*s) / hy;
+            g(0).eps = 0.0;  // Polynomial gradient is exact
+            g(1).eps = 0.0;
+        } else {
+            // P1 on simplex: gradient is element-constant (all Dl[i] are pure doubles)
+            Rd Dl[Element::nv];
+            K.Gradlambda(Dl);
+            for (int j = 0; j < d; ++j) {
+                g(j) = 0.0;
+                for (int i = 0; i < Element::nv; ++i)
+                    g(j) += v[FK(i)] * Dl[i][j];
+                g(j).eps = 0.0;  // Polynomial gradient is exact
+            }
+        }
+        break;
+    }
+
+    case BasisFctType::P2:
+    case BasisFctType::P2dc: {
+        if constexpr (std::is_same_v<Mesh, Mesh2>) {
+            // P2 on triangle: gradient is linear in barycentric coords → depends on x
+            Rd Dl[3];
+            K.Gradlambda(Dl);
+            const Rd& A = static_cast<const Rd&>(K[0]);
+            Itv l[3];
+            computeBarycentricCoords<Itv, 3, d>(x, Dl, A, l);
+            // vertex DOFs: grad(phi_i) = (4*l[i] - 1) * Dl[i] * u_i
+            for (int i = 0; i < 3; ++i) {
+                Itv coeff = (4.0*l[i] - 1.0) * v[FK(i)];
+                for (int j = 0; j < d; ++j)
+                    g(j) += coeff * Dl[i][j];
+            }
+            // edge DOFs: grad(phi) = 4 * (l[b]*Dl[a] + l[a]*Dl[b]) * u_edge
+            for (int i = 0; i < 3; ++i) {
+                int i0 = Element::nvedge[i][0], i1 = Element::nvedge[i][1];
+                double u_edge = v[FK(3+i)];
+                for (int j = 0; j < d; ++j)
+                    g(j) += 4.0 * u_edge * (l[i1]*Dl[i0][j] + l[i0]*Dl[i1][j]);
+            }
+            for (int j = 0; j < d; ++j)
+                g(j).eps = 0.0;  // Polynomial gradient is exact
+        } else if constexpr (std::is_same_v<Mesh, MeshQuad2>) {
+            // Q2 tensor-product on quad: 9 DOFs
+            double x0 = K[0][0], y0 = K[0][1];
+            double hx  = K[1][0] - x0;
+            double hy  = K[3][1] - y0;
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            Itv psi_x[3]   = {1.0-3.0*s+2.0*s*s, s*(2.0*s-1.0), 4.0*s*(1.0-s)};
+            Itv psi_y[3]   = {1.0-3.0*t+2.0*t*t, t*(2.0*t-1.0), 4.0*t*(1.0-t)};
+            Itv dpsi_x[3]  = {(-3.0+4.0*s)/hx, (4.0*s-1.0)/hx, (4.0-8.0*s)/hx};
+            Itv dpsi_y[3]  = {(-3.0+4.0*t)/hy, (4.0*t-1.0)/hy, (4.0-8.0*t)/hy};
+            const int ix[9] = {0,1,1,0,2,1,2,0,2};
+            const int iy[9] = {0,0,1,1,0,2,1,2,2};
+            g(0) = 0.0; g(1) = 0.0;
+            for (int i = 0; i < 9; ++i) {
+                double ui = v[FK(i)];
+                g(0) += ui * dpsi_x[ix[i]] * psi_y[iy[i]];
+                g(1) += ui * psi_x[ix[i]]  * dpsi_y[iy[i]];
+            }
+            g(0).eps = 0.0;  // Polynomial gradient is exact
+            g(1).eps = 0.0;
+        } else {
+            assert(0 && "P2 Interval grad not yet implemented for this mesh type");
+        }
+        break;
+    }
+
+    default:
+        assert(0 && "Interval grad not implemented for this FE type");
+    }
+
+    return g;
+}
