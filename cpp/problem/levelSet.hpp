@@ -247,7 +247,8 @@ void move_3D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mes
             double dyup  = up.eval(k, mip, 0, op_dy);
             double dzup  = up.eval(k, mip, 0, op_dz);
             double normB = Bx * Bx + By * By + Bz * Bz;
-            double Tsd   = 2. / (sqrt(1. / dt / dt + normB * 1. / h / h));
+            // double Tsd   = 2. / (sqrt(1. / dt / dt + normB * 1. / h / h));
+            double Tsd   = 0.5 / (sqrt(1. / dt / dt + normB * 1. / h / h));     //! Correction by Sebastian 20 mars
 
             for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
                 for (int j = FK.dfcbegin(0); j < FK.dfcend(0); ++j) {

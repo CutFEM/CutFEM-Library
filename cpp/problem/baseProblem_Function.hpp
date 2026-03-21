@@ -2466,6 +2466,7 @@ template <typename Mesh> void BaseFEM<Mesh>::addLagrangeMultiplier(const itemVFl
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_.at(ndf) = val;
+    this->nb_dof_ = ndf + 1;  // Update the number of DOFs
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 
@@ -2543,7 +2544,7 @@ void BaseFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, const
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_.at(ndf) = val;
-    // this->nb_dof_ += 1; //? added but doesn't make a difference
+    this->nb_dof_ = ndf + 1;  // Update the number of DOFs
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
 

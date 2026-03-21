@@ -2708,6 +2708,7 @@ template <typename M> void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_.at(ndf) = val;
+    this->nb_dof_ = ndf + 1;  // Update the number of DOFs
     progress bar(" Add Lagrange Multiplier Kh", Th.last_element(), globalVariable::verbose);
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
@@ -2732,6 +2733,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_[ndf] = val;
+    this->nb_dof_ = ndf + 1;  // Update the number of DOFs
 
     if (Th.isCut(k, 0))
         BaseCutFEM<M>::addLagrangeContribution(VF, k, nullptr, 0, 1);
@@ -2747,6 +2749,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_[ndf] = val;
+    this->nb_dof_ = ndf + 1;  // Update the number of DOFs
     for (int itq = 0; itq < this->get_nb_quad_point_time(); ++itq) {
 
         addLagrangeMultiplier(VF, val, Th, In, itq, false);
@@ -2762,6 +2765,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
         ndf++;
         this->rhs_.resize(ndf + 1);
         this->rhs_[ndf] = val;
+        this->nb_dof_ = ndf + 1;  // Update the number of DOFs
     }
 
     auto tq    = this->get_quadrature_time(itq);
@@ -2798,6 +2802,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
         ndf++;
         this->rhs_.resize(ndf + 1);
         this->rhs_(ndf) = val;
+        this->nb_dof_ = ndf + 1;  // Update the number of DOFs
     }
 
     auto tq    = this->get_quadrature_time(itq);
@@ -2909,6 +2914,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_[ndf] = val;
+    this->nb_dof_ = ndf + 1;  // Update the number of DOFs
 
     for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element();
          idx_be += cutTh.next_boundary_element()) {
@@ -3031,6 +3037,7 @@ void BaseCutFEM<M>::addLagrangeMultiplier(const itemVFlist_t &VF, double val, co
     int ndf = this->rhs_.size();
     this->rhs_.resize(ndf + 1);
     this->rhs_[ndf] = val;
+    this->nb_dof_ = ndf + 1;  // Update the number of DOFs
 
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
 

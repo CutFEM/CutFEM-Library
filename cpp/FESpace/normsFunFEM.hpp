@@ -1050,6 +1050,49 @@ double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, i
     return val_receive;
 }
 
+template <typename M, FunctionLevelSetTime fct_t>
+double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, fct_t fex, const M &Th, double t) {
+    typedef M Mesh;
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename Mesh::Element Element;
+    typedef typename FESpace::FElement FElement;
+    typedef typename FElement::QF QF;
+    typedef typename FElement::Rd Rd;
+    typedef typename QF::QuadraturePoint QuadraturePoint;
+
+    const QF &qf(*QF_Simplex<typename FElement::RdHat>(8));
+    What_d Fop = Fwhatd(op_id);
+    double val = 0.;
+
+    for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {
+
+        const Element &K(Th[k]);
+
+        const R meas = K.measure();
+        for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+
+            QuadraturePoint ip(qf[ipq]); // integration point
+            Rd mip       = K.mapToPhysicalElement(ip);
+            const R Cint = meas * ip.getWeight();
+            double a     = fh->eval(k, mip) - fex(mip, fh->cu, t);
+
+            // std::cout << " ----------- " << std::endl;
+            // std::cout << mip << std::endl;
+            // std::cout << fh->eval(k, mip) << "\t" << fex(mip, fh->cu) << std::endl;
+            val += Cint * a * a;
+        }
+        // getchar();
+    }
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_SUM);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
 template <typename M> double L2norm_2(const std::shared_ptr<ExpressionVirtual> &fh, const M &Th) {
     typedef Mesh2 Mesh;
     typedef GFESpace<Mesh> FESpace;
@@ -1096,6 +1139,19 @@ template <typename M> double L2norm(const FunFEM<M> &fh, R(fex)(double *, int i)
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
         val += L2norm_2(ui, fex, Th);
+    }
+    return sqrt(val);
+}
+
+template <typename M, FunctionLevelSetTime fct_t> double L2norm(const FunFEM<M> &fh, fct_t fex, int c0, int num_comp, double t) {
+
+    const GFESpace<M> &Vh(*fh.Vh);
+    const M &Th(Vh.Th);
+
+    double val = 0;
+    for (int i = c0; i < num_comp + c0; ++i) {
+        auto ui = fh.expr(i);
+        val += L2norm_2(ui, fex, Th, t);
     }
     return sqrt(val);
 }
