@@ -37,6 +37,15 @@ void move(const FunFEM<MeshHexa> &up, const FunFEM<MeshHexa> &betap, const FunFE
     move_3D<MeshHexa>(up, betap, beta, dt, ls);
 }
 
+void move_bdf2(const FunFEM<Mesh3> &up, const FunFEM<Mesh3> &upp, const FunFEM<Mesh3> &beta, double dt,
+          FunFEM<Mesh3> &ls) {
+    move_3D_BDF2<Mesh3>(up, upp, beta, dt, ls);
+}
+
+void move_bw_euler(const FunFEM<Mesh3> &up, const FunFEM<Mesh3> &beta, double dt, FunFEM<Mesh3> &ls) {
+    move_3D_BW_EULER<Mesh3>(up, beta, dt, ls);
+}
+
 // KN<double> move(const FunFEM<MeshQ3> &, const FunFEM<MeshQ3> &, const
 // FunFEM<MeshQ3> &, double);
 
