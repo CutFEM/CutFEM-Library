@@ -1183,6 +1183,36 @@ template <typeMesh mesh_t> TestFunction<mesh_t> dyS(const TestFunction<mesh_t> &
     return gradSU;
 }
 
+template <typeMesh mesh_t> TestFunction<mesh_t> dzS(const TestFunction<mesh_t> &T) {
+    assert(T.nbCol() == 1 && T.nbRow() == 1);
+    auto [N, M] = T.size();
+    int D       = mesh_t::D;
+    TestFunction<mesh_t> gradSU;
+    TestFunction<mesh_t> gradU = grad(T);
+
+    if (T.nbRow() == 1) {
+        for (int j = 0; j < D; ++j) {
+            auto new_list = gradU.getList(j, 0);
+            if (2 == j) {
+                gradSU.push({0, 0}, new_list);
+            }
+            for (auto &item : new_list.U) {
+                item.c *= -1.;
+                item.addNormal(2);
+                item.addNormal(j);
+            }
+            gradSU.push({0, 0}, new_list);
+        }
+
+    } else {
+        assert(0);
+    }
+
+    return gradSU;
+}
+
+
+
 /**
  * @brief Compute the cross product of a normal and a TestFunction
  *

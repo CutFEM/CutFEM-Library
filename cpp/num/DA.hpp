@@ -288,14 +288,16 @@ DA<V_t, N> operator*(const double &y, const DA<V_t, N> &x) {
    return r;
 }
 
-// template <class V_t,int N>
-// DA<V_t,N> sqrt(const DA<V_t,N>  & x)
-// {
-//   DA<V_t,N> r(sqrt(x.val));
-//   for(int i=0; i<N;++i)
-//     r.d[i] = x.d[i]*0.5/r.val;
-//   return r;
-// }
+template <class V_t,int N>
+DA<V_t,N> sqrt(const DA<V_t,N>  & x)
+{
+  DA<V_t,N> r(sqrt(accessDA_<DA<V_t, N>>::get_val(x)));
+  for(int i=0; i<N;++i)
+    r.d[i] = x.d[i]*0.5/r.val;
+   for (int i = 0; i < N; ++i)
+      accessDA_<V_t>::set_derivative(r.val, r.d[i], i);    
+  return r;
+}
 
 template <class V_t, int N>
 DA<V_t, N> operator/(const DA<V_t, N> &x, const DA<V_t, N> &y) {

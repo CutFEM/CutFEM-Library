@@ -34,6 +34,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "solverEigen.hpp"
 #endif
 
+#include "solverCG.hpp"
+
 
 
 // void Solver::solve(std::map<std::pair<int, int>, R> &A, Rn &b) {
@@ -83,8 +85,8 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
         solver_name_ = "umfpack";
         std::cout << "Default solver is UMFPACK\n";
 #else
-        std::cout << " Solver unknown " << std::endl;
-        exit(EXIT_FAILURE);
+        solver_name_ = "cg";
+        std::cout << "Default solver is CG (no direct solver linked)\n";
 #endif
 #endif
     }
@@ -99,6 +101,8 @@ void Solver::solve(std::map<std::pair<int, int>, R> &A, std::span<double> b) {
         // std::cout << "Using UMFPACK\n";
         solver::umfpack(A, b, clearMatrix_);
 #endif
+    } else if (solver_name_ == "cg") {
+        solver::cg(A, b, clearMatrix_, it_tol_, it_maxit_, it_use_ic_, verbose_, &residual_history_);
     } else if (solver_name_ == "eigen_cg") {
 #ifdef CUTFEM_USE_EIGEN
         std::cout << "Using Eigen CG\n";

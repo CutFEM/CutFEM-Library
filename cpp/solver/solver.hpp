@@ -60,6 +60,9 @@ class Solver {
     double it_tol_     = 1e-10;
     bool   it_use_ic_  = true;
 
+    // populated after each CG solve; empty for direct solvers
+    std::vector<double> residual_history_;
+
     Solver(const ProblemOption &option) {
         clearMatrix_ = option.clear_matrix_;
         solver_name_ = option.solver_name_;
