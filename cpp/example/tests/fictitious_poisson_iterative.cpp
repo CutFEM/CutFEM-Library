@@ -56,7 +56,7 @@ int main(int argc, char** argv ) {
     MPIcf cfMPI(argc,argv);
 
     ProblemOption option;
-    // option.solver_name_ = "umfpack";
+    // option.solver_name_ = "mumps";
     option.solver_name_ = "eigen_cg";
     option.order_space_element_quadrature_ = 5;
     option.it_maxit_ = 2000;
@@ -66,12 +66,12 @@ int main(int argc, char** argv ) {
 
     
     // nx, ny vertices in x and y direction
-    int nx = 10, ny = 10;
+    int nx = 21, ny = 21;
     
     // side lengths
     const double lx = 1., ly = 1.;
     
-    size_t n_refinements = 6;
+    size_t n_refinements = 1;
 
     std::vector<double> h_values(n_refinements, 0.), L2_errors(n_refinements, 0.);
     for (int i = 0; i < n_refinements; ++i) {
@@ -81,7 +81,7 @@ int main(int argc, char** argv ) {
 
         const double mu = 1.;
         double lambda = 10.*mu/h; 
-        double ghost_penalty = 1.;
+        double ghost_penalty = 0.0002;
 
     
         mesh_t Th(nx, ny, 0., 0., lx, ly);
@@ -143,15 +143,15 @@ int main(int argc, char** argv ) {
         );
 
         // ghost-penalty stabilization
-        poisson.addPatchStabilization( 
-            + innerProduct(ghost_penalty * mu * std::pow(h, -2) * jump(u), jump(v)) 
-            , active_mesh
-        );
-
-        // poisson.addFaceStabilization(
-        //     + innerProduct(ghost_penalty * mu * std::pow(h, 1) * jump(grad(u)*n), jump(grad(v)*n))
+        // poisson.addPatchStabilization( 
+        //     + innerProduct(ghost_penalty * mu * std::pow(h, -2) * jump(u), jump(v)) 
         //     , active_mesh
-        //     );
+        // );
+
+        poisson.addFaceStabilization(
+            + innerProduct(ghost_penalty * mu * std::pow(h, 1) * jump(grad(u)*n), jump(grad(v)*n))
+            , active_mesh
+            );
 
         // std::vector<int> labels = {1,2,3,4};
         // BoundaryDirichlet bc(Vh, labels);
@@ -159,8 +159,8 @@ int main(int argc, char** argv ) {
         // bc.apply(poisson.rhs_, gh);
         // bc.finalize_inhomogeneous(poisson.mat_, poisson.rhs_);
 
-        auto dof_index_data  = poisson.get_dof_index_data(Vh, active_mesh);
-        auto dof_vertex_data = poisson.get_dof_vertex_data(Vh, active_mesh);
+        // auto dof_index_data  = poisson.get_dof_index_data(Vh, active_mesh);
+        // auto dof_vertex_data = poisson.get_dof_vertex_data(Vh, active_mesh);
 
         // export matrix BEFORE solve (afterwards it gets reset)
         // matlab::Export(poisson.mat_, "mat.dat");
@@ -172,13 +172,17 @@ int main(int argc, char** argv ) {
 
         fct_t uh(Vh,  poisson.rhs_);    // solution to the system goes into poisson.rhs_
         double L2_error = L2normCut(uh, fun_exact, 0, 1);
-
+        fct_t u_error(Vh, fun_exact);
+        std::transform(u_error.v.begin(), u_error.v.end(), uh.v.begin(), u_error.v.begin(), std::minus<double>()); 
+        
         std::cout << "L2 error = " << L2_error << "\n";
 
         // PRINT THE SOLUTION TO PARAVIEW
         // =====================================================
         paraview_t writer(active_mesh, "poisson_fictitious" + std::to_string(i) + ".vtk");
         writer.add(uh, "uh", 0, 1);
+        writer.add(gh, "u_exact", 0, 1);
+        writer.add(u_error, "u_error", 0, 1);
         writer.add(levelset, "levelset", 0, 1);
 
         nx = 2*nx - 1;
