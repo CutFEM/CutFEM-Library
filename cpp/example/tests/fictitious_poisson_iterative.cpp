@@ -36,7 +36,8 @@ double fun_exact(double* P, int elementComp, int domain) {
   return 2*std::sin(2*M_PI*P[0])*std::sin(4*M_PI*P[1]);
 }
 double fun_levelset(double* P, const int i) {
-  return -(std::sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.5)*(P[1]-0.5)) - 0.25 - Epsilon);
+//   return -(std::sqrt((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.5)*(P[1]-0.5)) - 0.25 - Epsilon);
+return -((P[0]-0.5)*(P[0]-0.5) + (P[1]-0.5)*(P[1]-0.5) - 0.25*0.25 - Epsilon);
 }
 
 
@@ -57,7 +58,8 @@ int main(int argc, char** argv ) {
 
     ProblemOption option;
     // option.solver_name_ = "mumps";
-    option.solver_name_ = "eigen_cg";
+    // option.solver_name_ = "eigen_cg";
+    option.solver_name_ = "cg";
     option.order_space_element_quadrature_ = 5;
     option.it_maxit_ = 2000;
     option.it_tol_ = 1e-5;
@@ -74,13 +76,14 @@ int main(int argc, char** argv ) {
     size_t n_refinements = 1;
 
     std::vector<double> h_values(n_refinements, 0.), L2_errors(n_refinements, 0.);
+    std::vector<std::vector<double>> cg_histories(n_refinements);
     for (int i = 0; i < n_refinements; ++i) {
 
         double h =  lx / (nx - 1);
         std::cout << "h = " << h << std::endl;
 
         const double mu = 1.;
-        double lambda = 10.*mu/h; 
+        double lambda = 40.*mu/h; 
         double ghost_penalty = 0.0002;
 
     
@@ -163,12 +166,12 @@ int main(int argc, char** argv ) {
         // auto dof_vertex_data = poisson.get_dof_vertex_data(Vh, active_mesh);
 
         // export matrix BEFORE solve (afterwards it gets reset)
-        // matlab::Export(poisson.mat_, "mat.dat");
+        matlab::Export(poisson.mat_, "mat_gp1.dat");
         // matlab::Export(dof_index_data, "dof_index_data.dat");
         // matlab::Export(dof_vertex_data, "dof_vertex_data.dat");
         // poisson.solve("mumps");
         poisson.solve();
-        
+        cg_histories[i] = poisson.residual_history_;
 
         fct_t uh(Vh,  poisson.rhs_);    // solution to the system goes into poisson.rhs_
         double L2_error = L2normCut(uh, fun_exact, 0, 1);
@@ -216,6 +219,15 @@ int main(int argc, char** argv ) {
                 << "\n";
     }
 
+
+    std::cout << "\nCG residual history (relative residual per iteration):\n";
+    for (size_t i = 0; i < n_refinements; ++i) {
+        std::cout << "  Refinement " << i << " (h=" << std::setprecision(4) << h_values[i]
+                  << ", " << cg_histories[i].size() << " iters):\n";
+        for (size_t k = 0; k < cg_histories[i].size(); ++k)
+            std::cout << "    " << std::setw(4) << k
+                      << "  " << std::setprecision(6) << std::scientific << cg_histories[i][k] << "\n";
+    }
 
     return 0;
 }
