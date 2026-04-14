@@ -24,6 +24,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../parallel/cfomp.hpp"
 #include "../common/geometry.hpp"
 #include "../common/interface_levelSet.hpp"
+#include "../common/interface_levelSetP2.hpp"
 #include "../common/SparseMatMap.hpp"
 #include "../num/DA.hpp"
 #include "../FESpace/FESpace.hpp"

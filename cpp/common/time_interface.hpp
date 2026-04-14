@@ -24,6 +24,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <memory>
 #include "../concept/function.hpp"
 #include "interface_levelSet.hpp"
+#include "interface_levelSetP2.hpp"
 #include "AlgoimInterface.hpp"
 
 template <typename Mesh> class TimeInterface {
@@ -61,7 +62,13 @@ template <typename Mesh> class TimeInterface {
     template <typename Fct> void init(int i, const Mesh &Th, const Fct &ls) {
         assert(0 <= i && i < n_);
         if constexpr (typeFunFEM<Fct>) {
-            interface_[i] = std::make_unique<InterfaceLevelSet<mesh_t>>(Th, ls);
+            // Dispatch to the P2 interface class when the levelset lives in a
+            // P2 (or higher) space; otherwise use the standard P1 interface.
+            if (ls.getPolynomialOrder() >= 2) {
+                interface_[i] = std::make_unique<InterfaceLevelSet_P2<mesh_t>>(Th, ls);
+            } else {
+                interface_[i] = std::make_unique<InterfaceLevelSet<mesh_t>>(Th, ls);
+            }
         } else {
             interface_[i] = std::make_unique<AlgoimInterface<MeshQuad2, Fct>>(Th, ls);
         }
