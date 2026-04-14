@@ -1334,6 +1334,48 @@ template <typeMesh mesh_t> TestFunction<mesh_t> average(const TestFunction<mesh_
 //    return TestFunction<N>(F, f_ln);
 // }
 
+/**
+ * @brief Compute the surface divergence of a TestFunction
+ * @note divS(T) = div(T) - sum_{i,j} (n_i * n_j * \partial_j T_i)
+ * @tparam mesh_t Mesh
+ * @param T TestFunction
+ * @return TestFunction<mesh_t> with 1 component (scalar)
+ */
+template <typeMesh mesh_t> TestFunction<mesh_t> divS(const TestFunction<mesh_t> &T) {
+    auto [N, M] = T.size();
+    int D       = mesh_t::D;
+    
+    assert(M == 1); // We do not want to take divS of matrices
+    assert(N == D); // The number of components of T must equal the physical dimension
+    
+    TestFunction<mesh_t> divSU; // Resulting scalar TestFunction
+
+    // Iterate over the components of the test function vector (i)
+    for (int i = 0; i < N; ++i) {
+        
+        // 1. The standard divergence part: \partial_i T_i
+        auto list_div = T.getList(i, 0);
+        for (auto &item : list_div.U) {
+            item.du = nextDerivative(i, item.du); // Take derivative w.r.t i
+        }
+        divSU.push({0, 0}, list_div); // Push into the scalar (0,0) result
+        
+        // 2. The surface correction part: - \sum_j n_i n_j \partial_j T_i
+        for (int j = 0; j < D; ++j) {
+            auto list_correction = T.getList(i, 0);
+            for (auto &item : list_correction.U) {
+                item.c *= -1.0;                       // Apply the minus sign
+                item.du = nextDerivative(j, item.du); // Take derivative w.r.t j
+                item.addNormal(i);                    // Multiply by normal component n_i
+                item.addNormal(j);                    // Multiply by normal component n_j
+            }
+            divSU.push({0, 0}, list_correction); // Accumulate into the scalar (0,0) result
+        }
+    }
+
+    return divSU;
+}
+
 // template <int d> TestFunction<d> divS(const TestFunction<d> &T) {
 //    assert(T.nbCol() == 1);
 //    assert(T.nbRow() == d);
