@@ -249,8 +249,8 @@ void move_3D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mes
             double dyup  = up.eval(k, mip, 0, op_dy);
             double dzup  = up.eval(k, mip, 0, op_dz);
             double normB = Bx * Bx + By * By + Bz * Bz;
-            double Tsd   = 2. / (sqrt(1. / dt / dt + normB * 1. / h / h));
-            // double Tsd   = 0.5 / (sqrt(1. / dt / dt + normB * 1. / h / h));     //! Correction by Sebastian 20 mars
+            // double Tsd   = 2. / (sqrt(1. / dt / dt + normB * 1. / h / h));
+            double Tsd   = 0.5 / (sqrt(1. / dt / dt + normB * 1. / h / h));     //! Correction by Sebastian 20 mars
 
             for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
                 for (int j = FK.dfcbegin(0); j < FK.dfcend(0); ++j) {
@@ -404,7 +404,55 @@ void move_3D_BW_EULER(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Beta, double d
 }
 
 
+// ============================================================
+//  Remark 7.4.4: Gradient Check for Reinitialization
+// ============================================================
+template <typename Mesh>
+bool needs_reinitialization(const FunFEM<Mesh> &ls, double c = 5.0) {
+    typedef GFESpace<Mesh> FESpace;
+    typedef typename FESpace::Rd Rd;
 
+    const FESpace &Vh(*ls.Vh);
+    FEM<Mesh> dummy(Vh); 
+    const auto &qf(dummy.get_quadrature_formular_K()); 
+
+    for (int k = Vh.first_element(); k < Vh.last_element(); k += Vh.next_element()) {
+        const auto &FK(Vh[k]);
+        double meas = FK.getMeasure();
+        double h    = FK.T.hElement();
+
+        Rd centroid = FK.T.barycenter();
+        double phi_val = ls.eval(k, centroid, 0, op_id);
+        if (std::fabs(phi_val) > 2.0 * h) continue;
+
+        // 2. Compute the L2 norm of the gradient over the element
+        double grad_norm_sq = 0.0;
+        for (int ipq = 0; ipq < qf.getNbrOfQuads(); ++ipq) {
+            auto ip(qf[ipq]); 
+            Rd mip = FK.map(ip);
+            double Cint = meas * ip.getWeight();
+
+            double dx = ls.eval(k, mip, 0, op_dx);
+            double dy = ls.eval(k, mip, 0, op_dy);
+            double dz = ls.eval(k, mip, 0, op_dz);
+
+            grad_norm_sq += Cint * (dx * dx + dy * dy + dz * dz);
+        }
+
+        double grad_norm = std::sqrt(grad_norm_sq);
+        double ideal_norm = std::sqrt(meas); // Ideal norm is |T|^(1/2)
+
+        // 3. Remark 7.4.4 Condition: Trigger if gradient is too steep or too flat
+        if (grad_norm > c * ideal_norm || grad_norm < (1.0 / c) * ideal_norm) {
+            if (MPIcf::IamMaster()) {
+                std::cout << " -> Reinitialization triggered (Gradient distorted: " 
+                          << grad_norm / ideal_norm << "x ideal)\n";
+            }
+            return true; 
+        }
+    }
+    return false;
+}
 
 
 }; // namespace LevelSet
