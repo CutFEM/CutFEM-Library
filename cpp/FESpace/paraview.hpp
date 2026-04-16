@@ -1948,6 +1948,39 @@ template <class M> class Paraview {
         this->writeFileCell();
     }
 
+    // Writes interface triangles with outward normals as CELL_DATA into a single VTK file.
+    // In ParaView: color by "normal_z" to spot mis-oriented faces; use Glyph filter on
+    // "normal" (cell-centered) to visualize normal directions as arrows.
+    void writeInterfacePatchesAndNormals(const Interface<Mesh> &interface, const std::string &name) {
+        nbDataFile = 0;
+        outFile_   = name;
+        mesh_data.build_interface(interface);
+        this->writeFileMesh();
+        this->writeFileCell();
+
+        std::ofstream data(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
+        const int n_faces = interface.nbElement();
+        data << "CELL_DATA " << n_faces << "\n";
+        data << "VECTORS normal float\n";
+        for (int iface = 0; iface < n_faces; ++iface) {
+            Rd n = interface.normal(iface);
+            if constexpr (Rd::d == 2) {
+                data << paraviewFormat(n[0]) << "\t" << paraviewFormat(n[1]) << "\t0.0\n";
+            } else {
+                data << paraviewFormat(n[0]) << "\t" << paraviewFormat(n[1]) << "\t"
+                     << paraviewFormat(n[2]) << "\n";
+            }
+        }
+        data << "SCALARS normal_z float 1\n";
+        data << "LOOKUP_TABLE default\n";
+        for (int iface = 0; iface < n_faces; ++iface) {
+            Rd n = interface.normal(iface);
+            data << paraviewFormat(n[Rd::d - 1]) << "\n";
+        }
+        data.close();
+        nbDataFile = 1;
+    }
+
     int get_nb_stab_elems(const ActiveMesh<Mesh> &cutTh, int domain) { return mesh_data.num_stab_elems(cutTh, domain); }
     void writeFaceStab(const ActiveMesh<Mesh> &cutTh, int domain, std::string name) {
         outFile_ = name;

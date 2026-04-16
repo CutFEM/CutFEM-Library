@@ -76,7 +76,7 @@ template <typeMesh M> class Interface {
     std::vector<Rd> vertices_;
     // std::vector<Rd> outward_normal_;
     std::vector<Uint> element_of_face_;
-    std::map<int, int> face_of_element_;
+    std::multimap<int, int> face_of_element_;
     std::vector<Uint> edge_of_node_;
 
     double measure_;

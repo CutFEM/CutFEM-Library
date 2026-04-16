@@ -16,6 +16,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef COMMON_LEVELSET_INTERFACE_P2_HPP
 #define COMMON_LEVELSET_INTERFACE_P2_HPP
 
+#include <limits>
 #include "base_interface.hpp"
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
@@ -70,6 +71,9 @@ template <typeMesh M> class InterfaceLevelSet_P2 : public Interface<M> {
     std::vector<double> ls_;
 
     std::vector<Rd> outward_normal_;
+    // Per-element P2 levelset values: ls_p2_[k][i] for i in 0..nv+ne-1.
+    // Vertices i<nv use local vertex index; edge midpoints i>=nv use nv+local_edge.
+    std::vector<std::vector<double>> ls_p2_;
 
   public:
     template <typeFunFEM Fct> InterfaceLevelSet_P2(const Mesh &MM, const Fct &lss, int label = 0);

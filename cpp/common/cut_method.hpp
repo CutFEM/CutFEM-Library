@@ -570,6 +570,18 @@ template <typename E> class Partition : public Virtual_Partition<E> {
     const Element &T;
     double ls[E::nv];
 
+    // --- NEW VARIABLES FOR P2 SUPPORT ---
+    bool is_custom_ = false;
+    struct CustomSimplex {
+        int sign;
+        RdHat pts[dim + 1];
+    };
+    std::vector<CustomSimplex> custom_simplices_;
+    std::vector<ElementIdx> custom_iterators_all_;
+    std::vector<ElementIdx> custom_iterators_pos_;
+    std::vector<ElementIdx> custom_iterators_neg_;
+    // ------------------------------------
+
     // build a partition that consider the full element
     Partition(const Element &t) : patch(RefPartition<E>::instance(0)), T(t) {
         for (int i = 0; i < E::nv; ++i)
@@ -581,6 +593,31 @@ template <typename E> class Partition : public Virtual_Partition<E> {
             ls[i] = lls[i];
     }
 
+    // --- NEW CONSTRUCTOR & METHOD FOR P2 SUB-ELEMENTS ---
+    Partition(const Element &t, bool custom) : patch(RefPartition<E>::instance(0)), T(t), is_custom_(custom) {
+        for (int i = 0; i < E::nv; ++i) ls[i] = -1;
+    }
+
+    void add_simplex(int sign_part, const RdHat* ref_points) {
+        CustomSimplex cs;
+        cs.sign = sign_part;
+        for(int i = 0; i < dim + 1; ++i) cs.pts[i] = ref_points[i];
+        custom_simplices_.push_back(cs);
+
+        // Create a dummy iterator index so `element_begin` works without breaking Virtual_Partition.
+        // All slots hold the same index (the simplex position in custom_simplices_).
+        // SortArray::operator[] is read-only, so write directly to .v.
+        ElementIdx dummy_idx;
+        const Ubyte ci = static_cast<Ubyte>(custom_simplices_.size() - 1);
+        for(int i = 0; i < dim + 1; ++i)
+            dummy_idx.v[i] = ci;
+
+        custom_iterators_all_.push_back(dummy_idx);
+        if (sign_part > 0) custom_iterators_pos_.push_back(dummy_idx);
+        else               custom_iterators_neg_.push_back(dummy_idx);
+    }
+    // ----------------------------------------------------
+
     // Partition(const Element& t, const CutData& data)
     //   : patch(RefPartition<E>::instance(data.sign)), T(t), cutData(&data) {
     //     for(int i=0;i<E::nv;++i) ls[i] = static_cast<double>(data.sign[i]);
@@ -590,9 +627,21 @@ template <typename E> class Partition : public Virtual_Partition<E> {
     // const { return patch.element_begin(s);} const_element_iterator element_end
     // (ElementSignEnum s = AllElement) const { return patch.element_end(s); }
     //
-    int whatSign(const_element_iterator t) const { return patch.whatSign(t); }
-    bool is_cut() const { return patch.is_cut(); }
-    bool isnot_cut() const { return patch.is_uncut(); }
+    int whatSign(const_element_iterator t) const { 
+        if (is_custom_) return custom_simplices_[(*t)[0]].sign;
+        return patch.whatSign(t); 
+    }
+    
+    bool is_cut() const { 
+        if (is_custom_) return !custom_simplices_.empty();
+        return patch.is_cut(); 
+    }
+    
+    bool isnot_cut() const { 
+        if (is_custom_) return custom_simplices_.empty();
+        return patch.is_uncut(); 
+    }
+    
     int get_sign_node(int i) const { return util::sign(ls[i]); }
 
     // Obsolete in multi domains
@@ -611,14 +660,37 @@ template <typename E> class Partition : public Virtual_Partition<E> {
         else
             return AllElement;
     }
-    const_element_iterator element_begin(int s) const { return patch.element_begin(what_part(s)); }
-    const_element_iterator element_end(int s) const { return patch.element_end(what_part(s)); }
+    const_element_iterator element_begin(int s) const { 
+        if (is_custom_) {
+            if (s == 1)  return custom_iterators_pos_.empty() ? nullptr : custom_iterators_pos_.data();
+            if (s == -1) return custom_iterators_neg_.empty() ? nullptr : custom_iterators_neg_.data();
+            return custom_iterators_all_.empty() ? nullptr : custom_iterators_all_.data();
+        }
+        return patch.element_begin(what_part(s)); 
+    }
+    const_element_iterator element_end(int s) const { 
+        if (is_custom_) {
+            if (s == 1)  return custom_iterators_pos_.empty() ? nullptr : custom_iterators_pos_.data() + custom_iterators_pos_.size();
+            if (s == -1) return custom_iterators_neg_.empty() ? nullptr : custom_iterators_neg_.data() + custom_iterators_neg_.size();
+            return custom_iterators_all_.empty() ? nullptr : custom_iterators_all_.data() + custom_iterators_all_.size();
+        }
+        return patch.element_end(what_part(s)); 
+    }
 
     //   double getEdgeLength() const {
     //     return 1./3*(T.lenEdge(0)+ T.lenEdge(1)+T.lenEdge(2));
     //   }
 
     double measure(const_element_iterator it) const {
+        if (is_custom_) {
+            int idx = (*it)[0]; // Retrieve the custom simplex index
+            Rd N[dim + 1];
+            for (int i = 0; i < dim + 1; ++i) {
+                N[i] = T(custom_simplices_[idx].pts[i]); // map ref point to physical space
+            }
+            return geometry::mesure_simplex<RdHat::d>(N);
+        }
+
         if (patch.is_uncut() && E::nb_ntcut == 1)
             return T.measure();
         Rd N[dim + 1];
@@ -635,7 +707,16 @@ template <typename E> class Partition : public Virtual_Partition<E> {
         }
         return geometry::mesure_simplex<RdHat::d>(N);
     }
+    
     double measure(int s) const {
+        if (is_custom_) {
+            double mes = 0;
+            for (const_element_iterator it = element_begin(s); it != element_end(s); ++it) {
+                mes += measure(it);
+            }
+            return mes;
+        }
+
         if (patch.is_uncut())
             return T.measure();
         R mes = 0;
@@ -686,6 +767,14 @@ template <typename E> class Partition : public Virtual_Partition<E> {
     //   }
     //
     Rd mapToPhysicalElement(const_element_iterator it, const RdHat Phat) const {
+        if (is_custom_) {
+            int idx = (*it)[0];
+            Rd N[dim + 1];
+            for (int i = 0; i < dim + 1; ++i) {
+                N[i] = T(custom_simplices_[idx].pts[i]);
+            }
+            return geometry::map_point_to_simplex(N, Phat);
+        }
 
         if (patch.is_uncut())
             return T(Phat);
@@ -704,6 +793,11 @@ template <typename E> class Partition : public Virtual_Partition<E> {
     }
 
     Rd get_vertex(const_element_iterator it, const int i) const {
+        if (is_custom_) {
+            int idx = (*it)[0];
+            return T(custom_simplices_[idx].pts[i]);
+        }
+
         Uint idx = (*it)[i];
         if (idx < E::nv)
             return (Rd)T[idx];
@@ -746,6 +840,11 @@ template <typename E> class Partition : public Virtual_Partition<E> {
         return CutElement<E>();
     };
     int nb_element(int s) const {
+        if (is_custom_) {
+            if (s == 1) return custom_iterators_pos_.size();
+            if (s == -1) return custom_iterators_neg_.size();
+            return custom_iterators_all_.size();
+        }
         assert(0);
         return patch.end_ - patch.begin_;
     }

@@ -211,7 +211,7 @@ template <typename M> class GenericInterface {
    std::vector<Rd> outward_normal_;
    std::vector<bool>
        is_boundary_face_; // True, if triangle face of one of the tetras
-   std::map<int, int> face_of_element_;
+   std::multimap<int, int> face_of_element_;
    std::vector<Uint> edge_of_node_;
 
  private:
@@ -351,7 +351,7 @@ void GenericInterface<M>::make_patch(const KN<double> &ls, int label) {
       for (typename RefPatch::const_face_iterator it  = cut.face_begin(),
                                                   end = cut.face_end();
            it != end; ++it) {
-         face_of_element_[k] = element_of_face_.size();
+         face_of_element_.emplace(k, element_of_face_.size());
          faces_.push_back(make_face(*it, K, loc_ls, zero_vertex_uses, label));
          element_of_face_.push_back(k);
          outward_normal_.push_back(make_normal(K, loc_ls));
@@ -390,7 +390,7 @@ void GenericInterface<M>::add(const KN<double> &ls, int label) {
       for (typename RefPatch::const_face_iterator it  = cut.face_begin(),
                                                   end = cut.face_end();
            it != end; ++it) {
-         face_of_element_[k] = element_of_face_.size();
+         face_of_element_.emplace(k, element_of_face_.size());
          faces_.push_back(make_face(*it, K, loc_ls, zero_vertex_uses, label));
          element_of_face_.push_back(k);
          outward_normal_.push_back(make_normal(K, loc_ls));

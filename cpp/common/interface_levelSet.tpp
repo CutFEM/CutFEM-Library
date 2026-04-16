@@ -133,7 +133,7 @@ template <typeMesh M> void InterfaceLevelSet<M>::make_patch(int label) {
 
         for (typename RefPatch<Element>::const_face_iterator it = cut.face_begin(), end = cut.face_end(); it != end;
              ++it) {
-            this->face_of_element_[k] = this->element_of_face_.size();
+            this->face_of_element_.emplace(k, this->element_of_face_.size());
             this->faces_.push_back(make_face(*it, K, loc_ls, label));
             this->element_of_face_.push_back(k);
             this->outward_normal_.push_back(make_normal(K, loc_ls));

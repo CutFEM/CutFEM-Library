@@ -16,6 +16,37 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef COMMON_LEVELSET_INTERFACEP2_TPP
 #define COMMON_LEVELSET_INTERFACEP2_TPP
 
+// ---------------------------------------------------------------------------
+// get_reference_P2_node<M>(i)
+// Returns the reference-element coordinates of the i-th P2 node for mesh M.
+// Node ordering matches the SubElementTable and nvedge conventions:
+//   2D Triangle (nv=3, ne=3):
+//     0=(0,0)  1=(1,0)  2=(0,1)
+//     3=mid(v1,v2)=(0.5,0.5)  4=mid(v2,v0)=(0,0.5)  5=mid(v0,v1)=(0.5,0)
+//   3D Tet (nv=4, ne=6):
+//     0..3 = vertices, 4..9 = edge midpoints (order matches nvedge)
+// ---------------------------------------------------------------------------
+template <typeMesh M>
+typename M::Element::RdHat
+get_reference_P2_node(int i) {
+    using RdHat = typename M::Element::RdHat;
+    if constexpr (M::D == 3) {
+        static const RdHat ref_nodes[10] = {
+            RdHat(0,0,0), RdHat(1,0,0), RdHat(0,1,0), RdHat(0,0,1), // 0-3: vertices
+            RdHat(0.5,0,0), RdHat(0,0.5,0), RdHat(0,0,0.5),          // 4-6: mid(v0,v1/v2/v3)
+            RdHat(0.5,0.5,0), RdHat(0.5,0,0.5), RdHat(0,0.5,0.5)     // 7-9: mid(v1,v2/v3), mid(v2,v3)
+        };
+        return ref_nodes[i];
+    } else {
+        // nvedge[0]={1,2}, [1]={2,0}, [2]={0,1}  →  node 3=mid(v1,v2), 4=mid(v2,v0), 5=mid(v0,v1)
+        static const RdHat ref_nodes[6] = {
+            RdHat(0,0), RdHat(1,0), RdHat(0,1),            // 0-2: vertices
+            RdHat(0.5,0.5), RdHat(0,0.5), RdHat(0.5,0)     // 3=mid(v1,v2), 4=mid(v2,v0), 5=mid(v0,v1)
+        };
+        return ref_nodes[i];
+    }
+}
+
 template <typeMesh M>
 template <typeFunFEM Fct>
 InterfaceLevelSet_P2<M>::InterfaceLevelSet_P2(const M &MM, const Fct &lss, int label)
@@ -28,9 +59,12 @@ template <typeMesh M>
 SignElement<typename InterfaceLevelSet_P2<M>::Element> InterfaceLevelSet_P2<M>::get_SignElement(int k) const {
     typedef typename InterfaceLevelSet_P2<M>::Element Element;
     byte loc_ls[Element::nv];
+    // Use the P2 LS values at coarse vertices stored during make_patch.
+    // ls_sign[iglb] would be wrong here: for a P2 function, lss.array() is
+    // indexed by P2 DOF indices, not mesh vertex indices, so ls_sign[vertex_idx]
+    // accesses an arbitrary DOF entry and gives the wrong sign.
     for (int i = 0; i < Element::nv; ++i) {
-        int iglb  = this->backMesh->at(k, i);
-        loc_ls[i] = ls_sign[iglb];
+        loc_ls[i] = util::sign(ls_p2_[k][i]);
     }
     return SignElement<Element>(loc_ls);
 }
@@ -39,51 +73,176 @@ template <typeMesh M> bool InterfaceLevelSet_P2<M>::isCut(int k) const {
     return (this->face_of_element_.find(k) != this->face_of_element_.end());
 }
 
-// Uses coarse-vertex signs from ls_ (same as P1 InterfaceLevelSet).
-// This is conservative: may return false when only an edge midpoint crosses
-// zero, but is consistent with get_SignElement and get_partition.
+// Check if face ifac of element k is cut by the P2 interface.
+// Uses the stored per-element P2 levelset values (ls_p2_[k]).
 template <typeMesh M> bool InterfaceLevelSet_P2<M>::isCutFace(int k, int ifac) const {
-    if constexpr (M::D == 3) {
-        for (int e = 0; e < Element::Face::ne; ++e) {
-            const int id_edge = Element::edgeOfFace[ifac][e];
-            const int i1      = Element::nvedge[id_edge][0];
-            const int i2      = Element::nvedge[id_edge][1];
-            if (ls_[this->backMesh->at(k, i1)] * ls_[this->backMesh->at(k, i2)] < 0)
-                return true;
-        }
-        return false;
-    } else {
-        const int i1 = Element::nvedge[ifac][0];
-        const int i2 = Element::nvedge[ifac][1];
-        return ls_[this->backMesh->at(k, i1)] * ls_[this->backMesh->at(k, i2)] < 0;
+    double max_val = std::numeric_limits<double>::lowest();
+    double min_val = std::numeric_limits<double>::max();
+
+    // Check coarse vertex signs on the face.
+    for (int lv : Element::nvhyperFace[ifac]) {
+        const double v = ls_p2_[k][lv];
+        if (v > max_val) max_val = v;
+        if (v < min_val) min_val = v;
     }
+    // Check edge-midpoint signs on the face.
+    if constexpr (M::D == 2) {
+        // In 2D, face ifac IS edge ifac, midpoint at local P2 index nv + ifac.
+        const double v = ls_p2_[k][Element::nv + ifac];
+        if (v > max_val) max_val = v;
+        if (v < min_val) min_val = v;
+    } else {
+        // In 3D, edgeOfFace[ifac] lists the coarse-element edge indices on the face.
+        for (int le : Element::edgeOfFace[ifac]) {
+            const double v = ls_p2_[k][Element::nv + le];
+            if (v > max_val) max_val = v;
+            if (v < min_val) min_val = v;
+        }
+    }
+    return (max_val > 0.0 && min_val < 0.0);
 }
 
+// Bulk partition for element k, using the P2 sub-element refinement.
+// The coarse element is split into n_sub sub-elements (SubElementTable), each
+// cut with a P1 levelset. Resulting simplices are mapped back to coarse reference
+// space and collected into a custom Partition.
 template <typeMesh M>
 Partition<typename InterfaceLevelSet_P2<M>::Element> InterfaceLevelSet_P2<M>::get_partition(int k) const {
-    typedef typename InterfaceLevelSet_P2<M>::Element Element;
+    using Element = typename InterfaceLevelSet_P2<M>::Element;
+    using Table   = SubElementTable<Element>;
+    using RdHat   = typename Element::RdHat;
+    constexpr int n_nodes = Element::nv + Element::ne;
 
-    double loc_ls[Element::nv];
-    for (int i = 0; i < Element::nv; ++i) {
-        int iglb  = this->backMesh->at(k, i);
-        loc_ls[i] = ls_[iglb];
+    // Retrieve the stored per-element P2 levelset values.
+    const double* vals = ls_p2_[k].data();
+
+    // Build the custom (empty) partition for the coarse element.
+    Partition<Element> coarse_partition((*this->backMesh)[k], true);
+
+    for (int s = 0; s < Table::n_sub; ++s) {
+        // P2 LS values at the sub-element's nv corners (from global P2 nodes).
+        double sub_vals[Element::nv];
+        for (int j = 0; j < Element::nv; ++j)
+            sub_vals[j] = vals[Table::idx[s][j]];
+
+        // P1 cut of the sub-element using its corner LS values.
+        Partition<Element> sub_part((*this->backMesh)[k], sub_vals);
+
+        // Reference coordinates of this sub-element's corners in the COARSE ref space.
+        RdHat sub_corners[Element::nv];
+        for (int j = 0; j < Element::nv; ++j)
+            sub_corners[j] = get_reference_P2_node<M>(Table::idx[s][j]);
+
+        // Iterate over all simplices produced by the P1 cut (both signs).
+        for (auto it = sub_part.element_begin(0); it != sub_part.element_end(0); ++it) {
+            const int sign = sub_part.whatSign(it);
+
+            // Compute coarse reference coordinates of each simplex vertex directly.
+            // sub_corners[j] already holds the coarse ref coords of the j-th sub-vertex.
+            RdHat mapped_pts[Element::nv];
+            for (int i = 0; i < Element::nv; ++i) {
+                const Uint idx = (*it)[i];
+                if (idx < static_cast<Uint>(Element::nv)) {
+                    // Corner vertex: coarse ref coords are sub_corners[idx].
+                    mapped_pts[i] = sub_corners[idx];
+                } else {
+                    // Cut point on local sub-element edge e_loc at parameter t.
+                    const int e_loc = static_cast<int>(idx) - Element::nv;
+                    const int v0    = Element::nvedge[e_loc][0];
+                    const int v1    = Element::nvedge[e_loc][1];
+                    const double t  = -sub_vals[v0] / (sub_vals[v1] - sub_vals[v0]);
+                    mapped_pts[i]   = (1.0 - t) * sub_corners[v0] + t * sub_corners[v1];
+                }
+            }
+            coarse_partition.add_simplex(sign, mapped_pts);
+        }
     }
-
-    return Partition<Element>((*this->backMesh)[k], loc_ls);
+    return coarse_partition;
 }
 
+// Face partition for a cut face, using P2 sub-triangle refinement (3D) or
+// P1 fallback (2D).
 template <typeMesh M>
 Partition<typename InterfaceLevelSet_P2<M>::Element::Face>
 InterfaceLevelSet_P2<M>::get_partition_face(const typename Element::Face &face, int k, int ifac) const {
-    typedef typename InterfaceLevelSet_P2<M>::Element Element;
+    using Element  = typename InterfaceLevelSet_P2<M>::Element;
+    using FaceType = typename Element::Face;
+    using RdHatFace = typename FaceType::RdHat;
 
-    double loc_ls[Element::Face::nv];
-    for (int i = 0; i < Element::Face::nv; ++i) {
-        int j     = Element::nvhyperFace[ifac][i];
-        int iglb  = this->backMesh->at(k, j);
-        loc_ls[i] = ls_[iglb];
+    if constexpr (M::D == 2) {
+        // 2D: face (edge) has nv=2 vertices; use P1 partition with coarse vertex signs.
+        double loc_ls[FaceType::nv];
+        for (int i = 0; i < FaceType::nv; ++i)
+            loc_ls[i] = ls_p2_[k][Element::nvhyperFace[ifac][i]];
+        return Partition<FaceType>(face, loc_ls);
+    } else {
+        // 3D: face is a triangle with 3 vertices + 3 edge midpoints.
+        // Use SubElementTable<Triangle2> (same index structure as any triangle face).
+        using FaceTable = SubElementTable<Triangle2>;
+
+        // Build face_vals[6] in FaceTable ordering (nodes 0,1,2 = face vertices;
+        // nodes 3,4,5 = midpoints per Triangle2::nvedge ordering).
+        double face_vals[6];
+        for (int i = 0; i < 3; ++i)
+            face_vals[i] = ls_p2_[k][Element::nvhyperFace[ifac][i]];
+
+        // For each face edge e (in Triangle2/FaceType nvedge ordering), find the
+        // corresponding coarse element edge and read its midpoint LS value.
+        for (int e = 0; e < 3; ++e) {
+            const int fv0 = FaceType::nvedge[e][0];
+            const int fv1 = FaceType::nvedge[e][1];
+            const int cv0 = Element::nvhyperFace[ifac][fv0];
+            const int cv1 = Element::nvhyperFace[ifac][fv1];
+            int ce = -1;
+            for (int j = 0; j < Element::ne; ++j) {
+                if ((Element::nvedge[j][0] == cv0 && Element::nvedge[j][1] == cv1) ||
+                    (Element::nvedge[j][0] == cv1 && Element::nvedge[j][1] == cv0)) {
+                    ce = j; break;
+                }
+            }
+            assert(ce >= 0);
+            face_vals[3 + e] = ls_p2_[k][Element::nv + ce];
+        }
+
+        // Custom partition for the coarse face.
+        Partition<FaceType> coarse_face_partition(face, true);
+
+        for (int s = 0; s < FaceTable::n_sub; ++s) {
+            double sub_vals[FaceType::nv];
+            for (int j = 0; j < FaceType::nv; ++j)
+                sub_vals[j] = face_vals[FaceTable::idx[s][j]];
+
+            Partition<FaceType> sub_part(face, sub_vals);
+
+            // Reference coords of sub-triangle corners in the coarse face ref space.
+            RdHatFace sub_corners[FaceType::nv];
+            for (int j = 0; j < FaceType::nv; ++j)
+                sub_corners[j] = get_reference_P2_node<Mesh2>(FaceTable::idx[s][j]);
+
+            for (auto it = sub_part.element_begin(0); it != sub_part.element_end(0); ++it) {
+                const int sign = sub_part.whatSign(it);
+
+                // Compute coarse face reference coordinates directly.
+                RdHatFace mapped_pts[FaceType::nv];
+                for (int i = 0; i < FaceType::nv; ++i) {
+                    const Uint idx = (*it)[i];
+                    if (idx < static_cast<Uint>(FaceType::nv)) {
+                        // Corner vertex: coarse face ref coords are sub_corners[idx].
+                        mapped_pts[i] = sub_corners[idx];
+                    } else {
+                        // Cut point on local sub-face edge e_loc at parameter t.
+                        const int e_loc = static_cast<int>(idx) - FaceType::nv;
+                        const int v0    = FaceType::nvedge[e_loc][0];
+                        const int v1    = FaceType::nvedge[e_loc][1];
+                        const double t  = -sub_vals[v0] / (sub_vals[v1] - sub_vals[v0]);
+                        mapped_pts[i]   = (1.0 - t) * sub_corners[v0] + t * sub_corners[v1];
+                    }
+                }
+                coarse_face_partition.add_simplex(sign, mapped_pts);
+            }
+        }
+        return coarse_face_partition;
     }
-    return Partition<typename Element::Face>(face, loc_ls);
 }
 
 template <typeMesh M>
@@ -103,13 +262,6 @@ template <typeMesh M> R InterfaceLevelSet_P2<M>::measure(const Face &f) const {
     return geometry::measure_hyper_simplex(l);
 };
 
-// Rd get_intersection_node(int k, const Rd A, const Rd B) const {
-//   double fA = fun.eval(k, A);
-//   double fB = fun.eval(k, B);
-//   double t = -fA/(fB-fA);
-//   return (1-t) * A + t * B;
-// }
-
 template <typeMesh M>
 typename InterfaceLevelSet_P2<M>::Rd
 InterfaceLevelSet_P2<M>::mapToPhysicalFace(int ifac, const typename InterfaceLevelSet_P2<M>::Element::RdHatBord x) const {
@@ -125,18 +277,18 @@ InterfaceLevelSet_P2<M>::mapToPhysicalFace(int ifac, const typename InterfaceLev
 template <typeMesh M>
 Uint InterfaceLevelSet_P2<M>::coarse_edge_of(int g0, int g1) {
     using E = typename M::Element;
-    // If one endpoint is an edge midpoint, the sub-edge lies on that coarse edge
-    // (provided the other endpoint is one of that coarse edge's vertices).
+    // Both endpoints are edge midpoints of different coarse edges: interior sub-edge.
+    if (g0 >= E::nv && g1 >= E::nv) return static_cast<Uint>(E::ne);
+    // Exactly one endpoint is an edge midpoint: the sub-edge lies on that coarse edge.
     if (g0 >= E::nv) return static_cast<Uint>(g0 - E::nv);
     if (g1 >= E::nv) return static_cast<Uint>(g1 - E::nv);
-    // Both endpoints are original vertices: find the matching coarse edge.
+    // Both endpoints are original coarse vertices: find the matching coarse edge.
     for (int e = 0; e < E::ne; ++e) {
         if ((E::nvedge[e][0] == g0 && E::nvedge[e][1] == g1) ||
             (E::nvedge[e][0] == g1 && E::nvedge[e][1] == g0))
             return static_cast<Uint>(e);
     }
-    // Both are edge midpoints of different coarse edges: interior sub-edge.
-    return static_cast<Uint>(E::ne);
+    return static_cast<Uint>(E::ne); // should be unreachable
 }
 
 template <typeMesh M>
@@ -157,6 +309,9 @@ void InterfaceLevelSet_P2<M>::make_patch(const Fct &lss, int label) {
     const M &Th = *(this->backMesh);
     util::copy_levelset_sign(ls_, ls_sign);
 
+    // Allocate per-element P2 levelset storage.
+    ls_p2_.assign(Th.nbElmts(), std::vector<double>(n_nodes));
+
     for (int k = 0; k < Th.nbElmts(); ++k) {
         const Element &K(Th[k]);
 
@@ -176,6 +331,9 @@ void InterfaceLevelSet_P2<M>::make_patch(const Fct &lss, int label) {
             vals[Element::nv + e]  = lss.eval(k, nodes[Element::nv + e], 0, op_id);
         }
 
+        // Store P2 levelset values for this element (used by get_partition etc.).
+        ls_p2_[k].assign(vals, vals + n_nodes);
+
         // Process each sub-element.
         for (int s = 0; s < Table::n_sub; ++s) {
             byte   sub_signs[Element::nv];
@@ -191,6 +349,7 @@ void InterfaceLevelSet_P2<M>::make_patch(const Fct &lss, int label) {
 
             for (auto it = cut.face_begin(); it != cut.face_end(); ++it) {
                 Uint triIdx[nve];
+                Rd   face_v[nve];
                 for (Uint j = 0; j < static_cast<Uint>(nve); ++j) {
                     const Uint loc = (*it)[j];
                     if (loc < static_cast<Uint>(Element::nv)) {
@@ -199,36 +358,46 @@ void InterfaceLevelSet_P2<M>::make_patch(const Fct &lss, int label) {
                     }
                     // Identify which sub-element edge is cut (loc = nv + local_edge).
                     const int e_sub = static_cast<int>(loc) - Element::nv;
-                    const int lv0   = Element::nvedge[e_sub][0]; // local sub-vertex index
+                    const int lv0   = Element::nvedge[e_sub][0];
                     const int lv1   = Element::nvedge[e_sub][1];
-                    const int g0    = Table::idx[s][lv0];        // global P2 node index
+                    const int g0    = Table::idx[s][lv0];
                     const int g1    = Table::idx[s][lv1];
                     const double v0 = vals[g0], v1 = vals[g1];
                     const double t  = v0 / (v0 - v1);
                     const Rd Q      = (1.0 - t) * nodes[g0] + t * nodes[g1];
                     this->vertices_.push_back(Q);
                     triIdx[j] = static_cast<Uint>(this->vertices_.size() - 1);
-                    // edge_of_node_: coarse edge index, or Element::ne if interior.
+                    face_v[j] = Q;
                     this->edge_of_node_.push_back(coarse_edge_of(g0, g1));
                 }
 
-                this->face_of_element_[k] = this->element_of_face_.size();
+                this->face_of_element_.emplace(k, this->element_of_face_.size());
                 this->faces_.push_back(Face(triIdx, label));
                 this->element_of_face_.push_back(k);
 
-                // Normal: gradient of the P2 levelset at the sub-element centroid.
-                Rd centroid{};
-                for (int j = 0; j < Element::nv; ++j)
-                    centroid += (1.0 / Element::nv) * nodes[Table::idx[s][j]];
+                // Compute the normal using the SORTED vertex order stored in faces_.back().
+                // Face(triIdx, label) is a SortArray and reorders the indices; the normal
+                // must be computed from the same order used by mapToPhysicalFace, otherwise
+                // an odd-permutation sort silently flips the triangle handedness.
+                Rd sv[nve];
+                for (int j = 0; j < nve; ++j)
+                    sv[j] = this->vertices_[this->faces_.back()[j]];
 
                 Rd normal_ls;
                 if constexpr (M::D == 2) {
-                    normal_ls = Rd(lss.eval(k, centroid, 0, op_dx),
-                                   lss.eval(k, centroid, 0, op_dy));
+                    normal_ls = (sv[1] - sv[0]).perp();
                 } else {
-                    normal_ls = Rd(lss.eval(k, centroid, 0, op_dx),
-                                   lss.eval(k, centroid, 0, op_dy),
-                                   lss.eval(k, centroid, 0, op_dz));
+                    const Rd e1 = sv[1] - sv[0];
+                    const Rd e2 = sv[2] - sv[0];
+                    normal_ls   = e1 ^ e2;
+                }
+                // Orient toward the positive-levelset side of the sub-element.
+                for (int j = 0; j < Element::nv; ++j) {
+                    if (sub_vals[j] > 0.0) {
+                        if ((nodes[Table::idx[s][j]] - sv[0], normal_ls) < 0.0)
+                            normal_ls = -normal_ls;
+                        break;
+                    }
                 }
                 normal_ls /= normal_ls.norm();
                 this->outward_normal_.push_back(normal_ls);
