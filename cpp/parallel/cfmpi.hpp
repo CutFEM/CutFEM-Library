@@ -16,7 +16,7 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef _CF_MPI_HPP_
 #define _CF_MPI_HPP_
 
-#include "../cutFEMConfig.h"
+#include "cutFEMConfig.h"
 #ifndef USE_MPI
 #include "dummy_cfmpi.hpp"
 #else 
