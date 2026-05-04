@@ -147,42 +147,45 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     FunFEM() : FunFEMVirtual() {}
 
     // START OF CHATGPT ADDITION
-    // Deep copy
-    FunFEM(const FunFEM& other)
-        : FunFEMVirtual(), Vh(other.Vh), In(other.In)
-    {
-        data_.assign(other.v.begin(), other.v.end());                 // allocate & copy coefficients
-        v = std::span<double>(data_.data(), data_.size());            // bind to *this* storage
+    // // Deep copy
+    // FunFEM(const FunFEM& other)
+    //     : FunFEMVirtual(), Vh(other.Vh), In(other.In)
+    // {
+    //     data_.assign(other.v.begin(), other.v.end());                 // allocate & copy coefficients
+    //     v = std::span<double>(data_.data(), data_.size());            // bind to *this* storage
 
-        if (Vh) {
-            std::size_t databf_size = (*Vh)[0].NbDoF() * Vh->N * 10;
-            std::size_t n_chunk     = cutfem_get_max_threads();
-            pool_databf             = std::make_unique<MemoryPool>(n_chunk, databf_size);
-        }
-    }
+    //     if (Vh) {
+    //         std::size_t databf_size = (*Vh)[0].NbDoF() * Vh->N * 10;
+    //         std::size_t n_chunk     = cutfem_get_max_threads();
+    //         pool_databf             = std::make_unique<MemoryPool>(n_chunk, databf_size);
+    //     }
+    // }
 
-    // Deep-copy assignment: same idea
-    FunFEM& operator=(const FunFEM& other) {
-        if (this == &other) return *this;
-        Vh = other.Vh;
-        In = other.In;
+    // // Deep-copy assignment: same idea
+    // FunFEM& operator=(const FunFEM& other) {
+    //     if (this == &other) return *this;
+    //     Vh = other.Vh;
+    //     In = other.In;
 
-        data_.assign(other.v.begin(), other.v.end());                 // copy from the view, not data_
-        v = std::span<double>(data_.data(), data_.size());            // rebind to our storage
+    //     data_.assign(other.v.begin(), other.v.end());                 // copy from the view, not data_
+    //     v = std::span<double>(data_.data(), data_.size());            // rebind to our storage
 
-        if (Vh) {
-            std::size_t databf_size = (*Vh)[0].NbDoF() * Vh->N * 10;
-            std::size_t n_chunk     = cutfem_get_max_threads();
-            pool_databf             = std::make_unique<MemoryPool>(n_chunk, databf_size);
-        } else {
-            pool_databf.reset();
-        }
-        return *this;
-    }
+    //     if (Vh) {
+    //         std::size_t databf_size = (*Vh)[0].NbDoF() * Vh->N * 10;
+    //         std::size_t n_chunk     = cutfem_get_max_threads();
+    //         pool_databf             = std::make_unique<MemoryPool>(n_chunk, databf_size);
+    //     } else {
+    //         pool_databf.reset();
+    //     }
+    //     return *this;
+    // }
 
-    // Moves are fine to default (unique_ptr is movable)
-    FunFEM(FunFEM&&) noexcept = default;
-    FunFEM& operator=(FunFEM&&) noexcept = default;
+    // // Moves are fine to default (unique_ptr is movable)
+    // FunFEM(FunFEM&&) noexcept = default;
+    // FunFEM& operator=(FunFEM&&) noexcept = default;
+    FunFEM(FunFEM&&) noexcept = delete;
+    FunFEM& operator=(FunFEM&&) noexcept = delete;
+
     ~FunFEM() = default;
 
     // END OF CHATGPT ADDITION
