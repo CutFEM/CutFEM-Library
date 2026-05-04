@@ -16,7 +16,6 @@ option(CUTFEM_BUILD_EXAMPLE "Build the cpp example" ON)
 option(CUTFEM_CREATE_DOCS "Build library documentation (requires Doxygen and Graphviz/Dot to be installed)" OFF)
 
 configure_file(cutFEMConfig.in cutFEMConfig.h)
-configure_file(cutFEMConfig.in ../cpp/cutFEMConfig.h)
 
 
 ## ##############################
@@ -27,7 +26,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-
+include_directories(${CMAKE_BINARY_DIR})
 
 if(${CUTFEM_BUILD_DEBUG})
 set(CMAKE_BUILD_TYPE Debug)
