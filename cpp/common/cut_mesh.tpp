@@ -1285,6 +1285,8 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &inte
         // Get the sign of the current element
         const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(k);
 
+        const bool K_is_cut = interface.isCut(k);
+
         // If the element is cut, add it to both domains
         if (signK.cut()) {
             // Push the index of the element into both positive and negative domain index arrays
@@ -1306,6 +1308,7 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &inte
         else {
             // Get the sign of the element
             int s    = signK.sign();
+            assert(s != 0);
             // Get the index of the element in the appropriate domain
             int &nnt = (s > 0) ? nt0 : nt1;
             // Push the index of the corresponding background mesh element into the appropriate domain index array
