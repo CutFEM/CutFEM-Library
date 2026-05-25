@@ -202,7 +202,13 @@ struct DataQuad3 {
     typedef V::Rd Rd;
     typedef Edge3 Face;
 
-    static R mesure(V *pv[NbOfVertices]) { return det(*pv[0], *pv[1], *pv[2]); }
+    // static R mesure(V *pv[NbOfVertices]) { return det(*pv[0], *pv[1], *pv[2]); }
+    // Gustaf
+    static R mesure(V *pv[NbOfVertices]) {
+        R3 e1(*pv[0], *pv[1]);
+        R3 e2(*pv[0], *pv[3]);
+        return (e1 ^ e2).norme();
+    }
     typedef R2 RdHat;
     typedef R1 RdHatBord;
     static RdHat PBord(const int *nvb, const RdHatBord &P) {
@@ -436,6 +442,9 @@ class Hexa : public GenericElement<DataHexa> {
 
     // R2 toKref(const R1& P, int i) const;
     // R mesureBord(int i) const ;
+
+    // Gustaf
+    R mesureBord(int i) const;
 };
 
 // Forward declaration

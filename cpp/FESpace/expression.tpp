@@ -13,67 +13,138 @@ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 */
-template <typename M>
-FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh) : FunFEMVirtual(vh.NbDoF()), Vh(&vh) {
+// template <typename M>
+// FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh) : FunFEMVirtual(vh.NbDoF()), Vh(&vh) {
 
-    // allocate memory for basis functions
+//     // allocate memory for basis functions
+//     std::size_t databf_size = vh[0].NbDoF() * vh.N * 10;
+//     std::size_t n_chunk     = cutfem_get_max_threads();
+//     pool_databf             = std::make_unique<MemoryPool>(n_chunk, databf_size);
+
+//     assert(Vh->N == 1);
+
+// // #ifdef USE_MPI
+// //     double dataSend[Vh->nbDoF];
+// //     Rn_ fhSend(dataSend, Vh->nbDoF);
+// //     fhSend = 1e+50;
+// // #else
+
+// // #endif
+
+//     const int d   = Vh->N;
+//     const int nve = Vh->TFE(0)->NbPtforInterpolation;
+
+//     // Gustaf
+//     #ifdef USE_MPI
+//     std::vector<double> dataSend(Vh->NbDoF(), 1e+50);
+//     #endif
+//     // KNM<R> Vpf(nve, d);                             // value of f at the interpolation points
+
+// // #pragma omp parallel
+// //     {
+//         std::vector<std::vector<double>> Vpf(d, std::vector<double>(nve)); // value of f at the interpolation points
+//         std::vector<double> ggf(Vh->MaxNbDFPerElement); // stock the values of the dof of the interpolate
+
+// // #pragma omp for
+//         for (int k = Vh->first_element(); k < Vh->last_element(); k += Vh->next_element()) {
+
+//             const FElement &FK((*Vh)[k]);
+//             const int nbdf   = FK.NbDoF(); // nof local
+//             const int domain = FK.get_domain();
+//             const int kb     = Vh->idxElementInBackMesh(k);
+
+//             for (int p = 0; p < FK.tfe->NbPtforInterpolation; p++) { // all interpolation points
+//                 const Rd &P(FK.Pt(p));                               // the coordinate of P in K hat
+//                 for (int i = 0; i < d; ++i) {
+//                     Vpf[i][p] = fh.evalOnBackMesh(kb, domain, P);
+//                 }
+//             }
+//             FK.Pi_h(Vpf, ggf);
+
+// // #ifdef USE_MPI
+// // #pragma omp critical
+// //             for (int df = 0; df < nbdf; df++) {
+// //                 fhSend(FK.loc2glb(df)) = ggf[df];
+// //                 // fh[K(df)] =  ggf[df] ;
+// //             }
+// // #else
+// // #pragma omp critical
+//             // Gustaf commented out
+//             // for (int df = 0; df < nbdf; df++) {
+//             //     v[FK.loc2glb(df)] = ggf[df];
+//             // }
+//             // Gustaf replacement
+//             for (int df = 0; df < nbdf; df++) {
+//             #ifdef USE_MPI
+//                 dataSend[FK.loc2glb(df)] = ggf[df];
+//             #else
+//                 v[FK.loc2glb(df)] = ggf[df];
+//             #endif
+//             }
+//             #ifdef USE_MPI
+//             MPIcf::AllReduce(dataSend.data(), v.data(), dataSend.size(), MPI_MIN);
+//             #endif
+// // #endif
+//         }
+//     // }
+
+// // #ifdef USE_MPI
+// //     MPIcf::AllReduce(dataSend, v.data(), fhSend.size(), MPI_MIN);
+// // #endif
+// }
+
+// Gustaf
+template <typename M>
+FunFEM<M>::FunFEM(const FESpace &vh, const ExpressionVirtual &fh)
+    : FunFEMVirtual(vh.NbDoF()), Vh(&vh) {
+
     std::size_t databf_size = vh[0].NbDoF() * vh.N * 10;
     std::size_t n_chunk     = cutfem_get_max_threads();
     pool_databf             = std::make_unique<MemoryPool>(n_chunk, databf_size);
 
     assert(Vh->N == 1);
 
-// #ifdef USE_MPI
-//     double dataSend[Vh->nbDoF];
-//     Rn_ fhSend(dataSend, Vh->nbDoF);
-//     fhSend = 1e+50;
-// #else
-
-// #endif
-
     const int d   = Vh->N;
     const int nve = Vh->TFE(0)->NbPtforInterpolation;
-    // KNM<R> Vpf(nve, d);                             // value of f at the interpolation points
 
-// #pragma omp parallel
-//     {
-        std::vector<std::vector<double>> Vpf(d, std::vector<double>(nve)); // value of f at the interpolation points
-        std::vector<double> ggf(Vh->MaxNbDFPerElement); // stock the values of the dof of the interpolate
+#ifdef USE_MPI
+    std::vector<double> dataSend(Vh->NbDoF(), 1e+50);
+#endif
 
-// #pragma omp for
-        for (int k = Vh->first_element(); k < Vh->last_element(); k += Vh->next_element()) {
+    std::vector<std::vector<double>> Vpf(d, std::vector<double>(nve));
+    std::vector<double> ggf(Vh->MaxNbDFPerElement);
 
-            const FElement &FK((*Vh)[k]);
-            const int nbdf   = FK.NbDoF(); // nof local
-            const int domain = FK.get_domain();
-            const int kb     = Vh->idxElementInBackMesh(k);
+    for (int k = Vh->first_element(); k < Vh->last_element(); k += Vh->next_element()) {
 
-            for (int p = 0; p < FK.tfe->NbPtforInterpolation; p++) { // all interpolation points
-                const Rd &P(FK.Pt(p));                               // the coordinate of P in K hat
-                for (int i = 0; i < d; ++i) {
-                    Vpf[i][p] = fh.evalOnBackMesh(kb, domain, P);
-                }
+        const FElement &FK((*Vh)[k]);
+        const int nbdf   = FK.NbDoF();
+        const int domain = FK.get_domain();
+        const int kb     = Vh->idxElementInBackMesh(k);
+
+        for (int p = 0; p < FK.tfe->NbPtforInterpolation; p++) {
+            const Rd &P(FK.Pt(p));
+            for (int i = 0; i < d; ++i) {
+                Vpf[i][p] = fh.evalOnBackMesh(kb, domain, P);
             }
-            FK.Pi_h(Vpf, ggf);
-
-// #ifdef USE_MPI
-// #pragma omp critical
-//             for (int df = 0; df < nbdf; df++) {
-//                 fhSend(FK.loc2glb(df)) = ggf[df];
-//                 // fh[K(df)] =  ggf[df] ;
-//             }
-// #else
-// #pragma omp critical
-            for (int df = 0; df < nbdf; df++) {
-                v[FK.loc2glb(df)] = ggf[df];
-            }
-// #endif
         }
-    // }
 
-// #ifdef USE_MPI
-//     MPIcf::AllReduce(dataSend, v.data(), fhSend.size(), MPI_MIN);
-// #endif
+        FK.Pi_h(Vpf, ggf);
+
+        for (int df = 0; df < nbdf; df++) {
+#ifdef USE_MPI
+            dataSend[FK.loc2glb(df)] = ggf[df];
+#else
+            v[FK.loc2glb(df)] = ggf[df];
+#endif
+        }
+    }
+
+#ifdef USE_MPI
+    MPIcf::AllReduce(dataSend.data(),
+                     v.data(),
+                     static_cast<int>(dataSend.size()),
+                     MPI_MIN);
+#endif
 }
 
 template <typename M>
@@ -304,7 +375,33 @@ FunFEM<M>::operator()(const algoim::uvector<algoim::Interval<M::Rd::d>, M::Rd::d
                     + v[FK(2)]*s*t             + v[FK(3)]*(1.0-s)*t;
             val.eps = 0.0;  // Polynomial evaluation is exact
             return val;
-        } else {
+        } else if constexpr (std::is_same_v<Mesh, MeshHexa>) {
+            const double x0 = K[0][0], y0 = K[0][1], z0 = K[0][2];
+            const double hx = K[1][0] - x0;
+            const double hy = K[3][1] - y0;
+            const double hz = K[4][2] - z0;
+
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            Itv r = (x(2) - z0) / hz;
+
+            Itv lx[2] = {1.0 - s, s};
+            Itv ly[2] = {1.0 - t, t};
+            Itv lz[2] = {1.0 - r, r};
+
+            const int ix[8] = {0, 1, 1, 0, 0, 1, 1, 0};
+            const int iy[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+            const int iz[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+
+            Itv val(0.0);
+            for (int i = 0; i < 8; ++i) {
+                val += v[FK(i)] * lx[ix[i]] * ly[iy[i]] * lz[iz[i]];
+            }
+
+            val.eps = 0.0;
+            return val;
+        }
+        else {
             // P1 Lagrange on simplex (Mesh2 or Mesh3)
             Rd Dl[Element::nv];
             K.Gradlambda(Dl);
@@ -397,6 +494,44 @@ FunFEM<M>::grad(const algoim::uvector<algoim::Interval<M::Rd::d>, M::Rd::d>& x) 
             g(1) = ((u3-u0)*(1.0-s) + (u2-u1)*s) / hy;
             g(0).eps = 0.0;  // Polynomial gradient is exact
             g(1).eps = 0.0;
+        } else if constexpr (std::is_same_v<Mesh, MeshHexa>) {
+            const double x0 = K[0][0], y0 = K[0][1], z0 = K[0][2];
+            const double hx = K[1][0] - x0;
+            const double hy = K[3][1] - y0;
+            const double hz = K[4][2] - z0;
+            
+
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            Itv r = (x(2) - z0) / hz;
+
+            Itv lx[2]  = {1.0 - s, s};
+            Itv ly[2]  = {1.0 - t, t};
+            Itv lz[2]  = {1.0 - r, r};
+
+            double dlx[2] = {-1.0 / hx, 1.0 / hx};
+            double dly[2] = {-1.0 / hy, 1.0 / hy};
+            double dlz[2] = {-1.0 / hz, 1.0 / hz};
+
+            const int ix[8] = {0, 1, 1, 0, 0, 1, 1, 0};
+            const int iy[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+            const int iz[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+
+            g(0) = 0.0;
+            g(1) = 0.0;
+            g(2) = 0.0;
+
+            for (int i = 0; i < 8; ++i) {
+                const double ui = v[FK(i)];
+
+                g(0) += ui * dlx[ix[i]] * ly[iy[i]]  * lz[iz[i]];
+                g(1) += ui * lx[ix[i]]  * dly[iy[i]] * lz[iz[i]];
+                g(2) += ui * lx[ix[i]]  * ly[iy[i]]  * dlz[iz[i]];
+            }
+
+            g(0).eps = 0.0;
+            g(1).eps = 0.0;
+            g(2).eps = 0.0;
         } else {
             // P1 on simplex: gradient is element-constant (all Dl[i] are pure doubles)
             Rd Dl[Element::nv];

@@ -74,3 +74,18 @@ LagrangeDC2::LagrangeDC2(int k) : BaseFE_Array<Mesh2, ContinuityType::discontinu
 // // {&DataFE<MeshHexa>::P2,&DataFE<MeshHexa>::P2,&DataFE<MeshHexa>::P2}
 // // ,{&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3,&DataFE<Mesh3>::P3}
 //                                                                                             };
+
+// Gustaf
+template <>
+std::vector<std::vector<const GTypeOfFE<MeshHexa> *>>
+BaseFE_Array<MeshHexa, ContinuityType::continuous>::FE_ = {
+    {&DataFE<MeshHexa>::P0, &DataFE<MeshHexa>::P0, &DataFE<MeshHexa>::P0},
+    {&DataFE<MeshHexa>::P1, &DataFE<MeshHexa>::P1, &DataFE<MeshHexa>::P1}
+};
+
+template <>
+BaseFE_Array<MeshHexa, ContinuityType::continuous>::BaseFE_Array(int k)
+    : GTypeOfFESum<MeshHexa>(this->FE_.at(k)) {}
+
+LagrangeHexa3::LagrangeHexa3(int k)
+    : BaseFE_Array<MeshHexa, ContinuityType::continuous>(k) {}

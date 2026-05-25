@@ -273,6 +273,121 @@ AlgoimQuadratureRule<MeshQuad2> quadGenFace(const MeshQuad2::Element& K, Phi& ph
 }
 
 
+// Gustaf: MeshHexa specialization
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenVol(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option) {
+    using R3 = typename MeshHexa::Rd;
+
+    const auto& V0 = K.at(0); // vertex 0: min x, y, z
+    const auto& V6 = K.at(6); // opposite vertex: max x, y, z
+
+    algoim::uvector<double, 3> xyzmin{V0[0], V0[1], V0[2]};
+    algoim::uvector<double, 3> xyzmax{V6[0], V6[1], V6[2]};
+
+    algoim::QuadratureRule<3> q =
+        algoim::quadGen<3>(
+            phi,
+            algoim::HyperRectangle<double, 3>(xyzmin, xyzmax),
+            -1,
+            -1,
+            option.algoim_vol_quad_deg_
+        );
+
+    AlgoimQuadratureRule<MeshHexa> rule;
+    for (size_t ipq = 0; ipq < q.nodes.size(); ++ipq) {
+        rule.points.push_back(R3(q.nodes[ipq].x(0),
+                                 q.nodes[ipq].x(1),
+                                 q.nodes[ipq].x(2)));
+        rule.weights.push_back(q.nodes[ipq].w);
+    }
+
+    return rule;
+}
+
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenSurf(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option) {
+    using R3 = typename MeshHexa::Rd;
+
+    const auto& V0 = K.at(0); // vertex 0: min x, y, z
+    const auto& V6 = K.at(6); // opposite vertex: max x, y, z
+
+    algoim::uvector<double, 3> xyzmin{V0[0], V0[1], V0[2]};
+    algoim::uvector<double, 3> xyzmax{V6[0], V6[1], V6[2]};
+
+    algoim::QuadratureRule<3> q =
+        algoim::quadGen<3>(
+            phi,
+            algoim::HyperRectangle<double, 3>(xyzmin, xyzmax),
+            3,
+            -1,
+            option.algoim_surface_quad_deg_
+        );
+
+    AlgoimQuadratureRule<MeshHexa> rule;
+    for (size_t ipq = 0; ipq < q.nodes.size(); ++ipq) {
+        R3 x(q.nodes[ipq].x(0),
+             q.nodes[ipq].x(1),
+             q.nodes[ipq].x(2));
+
+        rule.points.push_back(x);
+        rule.weights.push_back(q.nodes[ipq].w);
+        rule.normals.push_back(phi.normal(x));
+    }
+
+    return rule;
+}
+
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int ifac) {
+    using R3 = typename MeshHexa::Rd;
+
+    const auto& V0 = K.at(0);
+    const auto& V6 = K.at(6);
+
+    algoim::uvector<double, 3> xyzmin{V0[0], V0[1], V0[2]};
+    algoim::uvector<double, 3> xyzmax{V6[0], V6[1], V6[2]};
+
+    int dim  = -1;
+    int side = -1;
+
+    switch (ifac) {
+        case 0: dim = 2; side = 0; break; // z-min: face {0,1,2,3}
+        case 1: dim = 1; side = 0; break; // y-min: face {0,1,5,4}
+        case 2: dim = 0; side = 1; break; // x-max: face {1,2,6,5}
+        case 3: dim = 1; side = 1; break; // y-max: face {2,3,7,6}
+        case 4: dim = 0; side = 0; break; // x-min: face {3,0,4,7}
+        case 5: dim = 2; side = 1; break; // z-max: face {4,5,6,7}
+        default:
+            assert(false && "Unexpected face index in quadGenFace<MeshHexa>");
+    }
+
+    algoim::QuadratureRule<3> q =
+        algoim::quadGen<3>(
+            phi,
+            algoim::HyperRectangle<double, 3>(xyzmin, xyzmax),
+            dim,
+            side,
+            option.algoim_surface_quad_deg_
+        );
+
+    R3 normal(0., 0., 0.);
+    normal[dim] = (side == 0) ? -1.0 : 1.0;
+
+    AlgoimQuadratureRule<MeshHexa> rule;
+    for (size_t ipq = 0; ipq < q.nodes.size(); ++ipq) {
+        rule.points.push_back(R3(q.nodes[ipq].x(0),
+                                 q.nodes[ipq].x(1),
+                                 q.nodes[ipq].x(2)));
+        rule.weights.push_back(q.nodes[ipq].w);
+        rule.normals.push_back(normal);
+    }
+
+    return rule;
+}
+
+// End of Gustaf
+
+
 template <typeMesh Mesh, typename Phi>
 void AlgoimCutFEMUnified<Mesh, Phi>::addElementContribution(const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq, double cst_time) {
     const fespace_t& Vh(VF.get_spaceV(0));
@@ -446,8 +561,70 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
         std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
         std::vector<int> idxU = (same) ? idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
 
+        // Gustaf: Not having this casues stochastic segfaults, but I am not quite happy with the mathematical implications of adding this
+        // std::vector<int> idxV = Vhv.idxAllElementFromBackMesh(kb, VF[l].get_domain_test_function());
+
+        if (idxV.empty()) {
+        #ifdef USE_MPI
+            std::cerr << "Rank " << MPIcf::my_rank()
+        #else
+            std::cerr << "Rank serial"
+        #endif
+                    << ": empty idxV in addInterfaceContribution"
+                    << ", kb = " << kb
+                    << ", test domain = " << VF[l].get_domain_test_function()
+                    << std::endl;
+        #ifdef USE_MPI
+            MPIcf::Abort(1);
+        #else
+            std::abort();
+        #endif
+        }
+
+        // std::vector<int> idxU = same ? idxV : Vhu.idxAllElementFromBackMesh(kb, VF[l].get_domain_trial_function());
+
+        if (idxU.empty()) {
+        #ifdef USE_MPI
+            std::cerr << "Rank " << MPIcf::my_rank()
+        #else
+            std::cerr << "Rank serial"
+        #endif
+                    << ": empty idxU in addInterfaceContribution"
+                    << ", kb = " << kb
+                    << ", trial domain = " << VF[l].get_domain_trial_function()
+                    << std::endl;
+        #ifdef USE_MPI
+            MPIcf::Abort(1);
+        #else
+            std::abort();
+        #endif
+        }
+        // end of gustaf block
+
         int kv = VF[l].onWhatElementIsTestFunction(idxV);
         int ku = VF[l].onWhatElementIsTrialFunction(idxU);
+        // Gustaf
+        if (kv < 0 || kv >= Vhv.get_nb_element()) {
+            std::cerr << "Invalid kv = " << kv
+                    << ", Vhv.get_nb_element() = " << Vhv.get_nb_element()
+                    << ", kb = " << kb << std::endl;
+        #ifdef USE_MPI
+            MPIcf::Abort(1);
+        #else
+            std::abort();
+        #endif
+        }
+
+        if (ku < 0 || ku >= Vhu.get_nb_element()) {
+            std::cerr << "Invalid ku = " << ku
+                    << ", Vhu.get_nb_element() = " << Vhu.get_nb_element()
+                    << ", kb = " << kb << std::endl;
+        #ifdef USE_MPI
+            MPIcf::Abort(1);
+        #else
+            std::abort();
+        #endif
+        }
 
         const auto &FKu(Vhu[ku]);
         const auto &FKv(Vhv[kv]);
@@ -935,3 +1112,54 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
 //         addInterfaceContributionExact(f, VF, *gamma[itq], iface, tid, &In, cst_time, itq);
 //     }
 // }
+
+
+// Gustaf
+template <typeMesh Mesh, typename Phi>
+void AlgoimCutFEMUnified<Mesh, Phi>::addBilinear(
+    const itemVFlist_t& VF,
+    const Interface<mesh_t>& interface
+) {
+    assert(!VF.isRHS());
+
+    progress bar("Add Bilinear Algoim Interface",
+                 interface.last_element(),
+                 globalVariable::verbose);
+
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int ifac = interface.first_element();
+         ifac < interface.last_element();
+         ifac += interface.next_element()) {
+
+        bar += interface.next_element();
+
+        this->addInterfaceContribution(VF, interface, ifac, 0., nullptr, 1., 0);
+        this->addLocalContribution();
+    }
+
+    bar.end();
+}
+
+template <typeMesh Mesh, typename Phi>
+void AlgoimCutFEMUnified<Mesh, Phi>::addLinear(
+    const itemVFlist_t& VF,
+    const Interface<mesh_t>& interface
+) {
+    assert(VF.isRHS());
+
+    progress bar("Add Linear Algoim Interface",
+                 interface.last_element(),
+                 globalVariable::verbose);
+
+#pragma omp parallel for num_threads(this->get_num_threads())
+    for (int ifac = interface.first_element();
+         ifac < interface.last_element();
+         ifac += interface.next_element()) {
+
+        bar += interface.next_element();
+
+        this->addInterfaceContribution(VF, interface, ifac, 0., nullptr, 1., 0);
+    }
+
+    bar.end();
+}
