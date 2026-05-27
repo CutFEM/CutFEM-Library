@@ -25,11 +25,19 @@ AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& ph
 // Gustaf
 template<typename Phi>
 AlgoimQuadratureRule<MeshHexa> quadGenVol(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option);
-
 template<typename Phi>
 AlgoimQuadratureRule<MeshHexa> quadGenSurf(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
 AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int ifac);
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenVol(const Mesh3::Element& K, Phi& phi, const ProblemOption& option);
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenSurf(const Mesh3::Element& K, Phi& phi, const ProblemOption& option);
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenFace(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int ifac);
 
 
 

@@ -495,3 +495,264 @@ void TypeOfFE_P2Lagrange3d::FB(const What_d whatd, const Element &K, const R3 &P
 static TypeOfFE_P2Lagrange3d P2_3d;
 GTypeOfFE<Mesh3> &P2Lagrange3d(P2_3d);
 template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::P2 = P2_3d;
+
+
+// Q2 tensor-product Lagrange element on 3D hexahedra
+class TypeOfFE_P2QLagrange3d : public GTypeOfFE<MeshHexa> {
+    typedef MeshHexa Mesh;
+    typedef typename Mesh::Element E;
+    static const int nbNodeOnItem[4];
+
+  public:
+    static const int k   = 2;
+    static const int ndf = 27; // 8 vertices + 12 edges + 6 faces + 1 volume
+
+    static int Data[];
+    static double alpha_Pi_h[];
+
+    TypeOfFE_P2QLagrange3d() : GTypeOfFE<MeshHexa>(ndf, 1, Data, ndf, ndf, alpha_Pi_h) {
+        GTypeOfFE<Mesh>::basisFctType    = BasisFctType::P2;
+        GTypeOfFE<Mesh>::polynomialOrder = k;
+
+        // Local node ordering:
+        //
+        //  0--7:  vertices, in MeshHexa vertex order
+        //  8--19: edge midpoints, in Element::nvedge order
+        // 20--25: face centres, in Element::nvface order
+        // 26:     cell centre
+        //
+        // This must agree with GenericElement<DataHexa>::nvedge and nvface.
+
+        static const R3 Pt[27] = {
+            // vertices
+            R3(0.0, 0.0, 0.0), // 0
+            R3(1.0, 0.0, 0.0), // 1
+            R3(1.0, 1.0, 0.0), // 2
+            R3(0.0, 1.0, 0.0), // 3
+            R3(0.0, 0.0, 1.0), // 4
+            R3(1.0, 0.0, 1.0), // 5
+            R3(1.0, 1.0, 1.0), // 6
+            R3(0.0, 1.0, 1.0), // 7
+
+            // edge midpoints, matching DataHexa::nvedge
+            R3(0.5, 0.0, 0.0), // 8:  edge 0  {0,1}
+            R3(1.0, 0.5, 0.0), // 9:  edge 1  {1,2}
+            R3(0.5, 1.0, 0.0), // 10: edge 2  {2,3}
+            R3(0.0, 0.5, 0.0), // 11: edge 3  {3,0}
+            R3(0.0, 0.0, 0.5), // 12: edge 4  {0,4}
+            R3(1.0, 0.0, 0.5), // 13: edge 5  {1,5}
+            R3(1.0, 1.0, 0.5), // 14: edge 6  {2,6}
+            R3(0.0, 1.0, 0.5), // 15: edge 7  {3,7}
+            R3(0.5, 0.0, 1.0), // 16: edge 8  {4,5}
+            R3(1.0, 0.5, 1.0), // 17: edge 9  {5,6}
+            R3(0.5, 1.0, 1.0), // 18: edge 10 {6,7}
+            R3(0.0, 0.5, 1.0), // 19: edge 11 {7,4}
+
+            // face centres, matching DataHexa::nvface
+            R3(0.5, 0.5, 0.0), // 20: face 0 {0,1,2,3}, z-min
+            R3(0.5, 0.0, 0.5), // 21: face 1 {0,1,5,4}, y-min
+            R3(1.0, 0.5, 0.5), // 22: face 2 {1,2,6,5}, x-max
+            R3(0.5, 1.0, 0.5), // 23: face 3 {2,3,7,6}, y-max
+            R3(0.0, 0.5, 0.5), // 24: face 4 {3,0,4,7}, x-min
+            R3(0.5, 0.5, 1.0), // 25: face 5 {4,5,6,7}, z-max
+
+            // cell centre
+            R3(0.5, 0.5, 0.5)  // 26
+        };
+
+        for (int i = 0; i < ndf; ++i) {
+            Pt_Pi_h[i]  = Pt[i];
+            ipj_Pi_h[i] = IPJ(i, i, 0);
+        }
+    }
+
+    void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
+};
+
+const int TypeOfFE_P2QLagrange3d::nbNodeOnItem[4] = {1, 1, 1, 1};
+
+int TypeOfFE_P2QLagrange3d::Data[] = {
+    // support number of the node of the df
+     0,  1,  2,  3,  4,  5,  6,  7,  8,
+     9, 10, 11, 12, 13, 14, 15, 16, 17,
+    18, 19, 20, 21, 22, 23, 24, 25, 26,
+
+    // number of the df on the node
+     0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,
+
+    // node of the df
+     0,  1,  2,  3,  4,  5,  6,  7,  8,
+     9, 10, 11, 12, 13, 14, 15, 16, 17,
+    18, 19, 20, 21, 22, 23, 24, 25, 26,
+
+    // which are the df on sub FE
+     0,  1,  2,  3,  4,  5,  6,  7,  8,
+     9, 10, 11, 12, 13, 14, 15, 16, 17,
+    18, 19, 20, 21, 22, 23, 24, 25, 26,
+
+    // nb node on what: vertex, edge, face, volume
+    1, 1, 1, 1,
+
+    // for each component j=0,N-1, the sub FE associated
+    0,
+
+    // begin_dfcomp
+    0,
+
+    // end_dfcomp
+    27
+};
+
+double TypeOfFE_P2QLagrange3d::alpha_Pi_h[] = {
+    1., 1., 1., 1., 1., 1., 1., 1., 1.,
+    1., 1., 1., 1., 1., 1., 1., 1., 1.,
+    1., 1., 1., 1., 1., 1., 1., 1., 1.
+};
+
+void TypeOfFE_P2QLagrange3d::FB(const What_d whatd, const Element &K, const R3 &P, RNMK_ &val) const {
+    assert(val.N() >= ndf);
+    assert(val.M() == 1);
+
+    const R hx = K[1].x - K[0].x;
+    const R hy = K[3].y - K[0].y;
+    const R hz = K[4].z - K[0].z;
+
+    assert(hx > 0.);
+    assert(hy > 0.);
+    assert(hz > 0.);
+
+    const R x = P.x;
+    const R y = P.y;
+    const R z = P.z;
+
+    // 1D Q2 basis on [0,1]:
+    //
+    // index 0: lower endpoint
+    // index 1: upper endpoint
+    // index 2: midpoint
+    const R psi_x[3] = {
+        1. - 3. * x + 2. * x * x,
+        x * (2. * x - 1.),
+        4. * x * (1. - x)
+    };
+
+    const R psi_y[3] = {
+        1. - 3. * y + 2. * y * y,
+        y * (2. * y - 1.),
+        4. * y * (1. - y)
+    };
+
+    const R psi_z[3] = {
+        1. - 3. * z + 2. * z * z,
+        z * (2. * z - 1.),
+        4. * z * (1. - z)
+    };
+
+    const R dpsi_x[3] = {
+        (-3. + 4. * x) / hx,
+        ( 4. * x - 1.) / hx,
+        ( 4. - 8. * x) / hx
+    };
+
+    const R dpsi_y[3] = {
+        (-3. + 4. * y) / hy,
+        ( 4. * y - 1.) / hy,
+        ( 4. - 8. * y) / hy
+    };
+
+    const R dpsi_z[3] = {
+        (-3. + 4. * z) / hz,
+        ( 4. * z - 1.) / hz,
+        ( 4. - 8. * z) / hz
+    };
+
+    const R ddpsi_x[3] = {
+         4. / (hx * hx),
+         4. / (hx * hx),
+        -8. / (hx * hx)
+    };
+
+    const R ddpsi_y[3] = {
+         4. / (hy * hy),
+         4. / (hy * hy),
+        -8. / (hy * hy)
+    };
+
+    const R ddpsi_z[3] = {
+         4. / (hz * hz),
+         4. / (hz * hz),
+        -8. / (hz * hz)
+    };
+
+    // Tensor-product indices for the 27 local nodes.
+    // These must match Pt[27] above.
+    static const int ix[27] = {
+        0, 1, 1, 0, 0, 1, 1, 0,
+        2, 1, 2, 0, 0, 1, 1, 0, 2, 1, 2, 0,
+        2, 2, 1, 2, 0, 2,
+        2
+    };
+
+    static const int iy[27] = {
+        0, 0, 1, 1, 0, 0, 1, 1,
+        0, 2, 1, 2, 0, 0, 1, 1, 0, 2, 1, 2,
+        2, 0, 2, 1, 2, 2,
+        2
+    };
+
+    static const int iz[27] = {
+        0, 0, 0, 0, 1, 1, 1, 1,
+        0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1,
+        0, 2, 2, 2, 2, 1,
+        2
+    };
+
+    val = 0.;
+
+    if (whatd & Fop_D0) {
+        RN_ f0(val('.', 0, op_id));
+
+        for (int i = 0; i < ndf; ++i) {
+            f0[i] = psi_x[ix[i]] * psi_y[iy[i]] * psi_z[iz[i]];
+        }
+    }
+
+    if (whatd & Fop_D1) {
+        RN_ f0x(val('.', 0, op_dx));
+        RN_ f0y(val('.', 0, op_dy));
+        RN_ f0z(val('.', 0, op_dz));
+
+        for (int i = 0; i < ndf; ++i) {
+            f0x[i] = dpsi_x[ix[i]] * psi_y[iy[i]]  * psi_z[iz[i]];
+            f0y[i] = psi_x[ix[i]]  * dpsi_y[iy[i]] * psi_z[iz[i]];
+            f0z[i] = psi_x[ix[i]]  * psi_y[iy[i]]  * dpsi_z[iz[i]];
+        }
+    }
+
+    if (whatd & Fop_D2) {
+        RN_ f0xx(val('.', 0, op_dxx));
+        RN_ f0yy(val('.', 0, op_dyy));
+        RN_ f0zz(val('.', 0, op_dzz));
+        RN_ f0xy(val('.', 0, op_dxy));
+        RN_ f0xz(val('.', 0, op_dxz));
+        RN_ f0yz(val('.', 0, op_dyz));
+
+        for (int i = 0; i < ndf; ++i) {
+            f0xx[i] = ddpsi_x[ix[i]] * psi_y[iy[i]]   * psi_z[iz[i]];
+            f0yy[i] = psi_x[ix[i]]   * ddpsi_y[iy[i]] * psi_z[iz[i]];
+            f0zz[i] = psi_x[ix[i]]   * psi_y[iy[i]]   * ddpsi_z[iz[i]];
+
+            f0xy[i] = dpsi_x[ix[i]] * dpsi_y[iy[i]] * psi_z[iz[i]];
+            f0xz[i] = dpsi_x[ix[i]] * psi_y[iy[i]]  * dpsi_z[iz[i]];
+            f0yz[i] = psi_x[ix[i]]  * dpsi_y[iy[i]] * dpsi_z[iz[i]];
+        }
+    }
+}
+
+static TypeOfFE_P2QLagrange3d P2Q_3d;
+GTypeOfFE<MeshHexa> &P2QLagrange3d(P2Q_3d);
+
+template <>
+GTypeOfFE<MeshHexa> &DataFE<MeshHexa>::P2 = P2Q_3d;

@@ -385,6 +385,311 @@ AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi,
     return rule;
 }
 
+// Gustaf: Mesh3 specialization
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenVol(const Mesh3::Element& K, Phi& phi, const ProblemOption& option) {
+    // Quadrature generation strategy:
+    // 1. Map the tetrahedron K in physical coordinates to the reference tetrahedron
+    //    (0,0,0)-(1,0,0)-(0,1,0)-(0,0,1).
+    // 2. K_ref is represented as the unit cube intersected with {psi < 0},
+    //    where psi = x + y + z - 1.
+    // 3. Add the intersection with {phi < 0}.
+    // 4. Generate quadrature using Bernstein polynomials for phi and psi.
+    // 5. Map quadrature nodes and weights back to the physical tetrahedron.
+
+    using real = algoim::real;
+    using Vec3 = algoim::uvector<real, 3>;
+    using R3   = typename Mesh3::Rd;
+
+    AlgoimQuadratureRule<Mesh3> rule;
+
+    const R3 A = K.at(0);
+    const R3 B = K.at(1);
+    const R3 C = K.at(2);
+    const R3 D = K.at(3);
+
+    const R3 AB(A, B);
+    const R3 AC(A, C);
+    const R3 AD(A, D);
+
+    const double detJ = det(AB, AC, AD);
+    if (std::abs(detJ) < 1e-30) {
+        return rule;
+    }
+
+    const auto F = [&](const Vec3& xi) -> R3 {
+        return A + xi(0) * AB + xi(1) * AC + xi(2) * AD;
+    };
+
+    const auto psi_ref = [](const Vec3& xi) -> real {
+        return xi(0) + xi(1) + xi(2) - real(1);
+    };
+
+    const int bernstein_deg = option.algoim_bernstein_deg_;
+    const int q1d           = option.algoim_vol_quad_deg_;
+    const int n             = bernstein_deg + 1;
+
+    algoim::uvector<int, 3> P(n, n, n);
+
+    std::vector<real> phi_data(n * n * n);
+    std::vector<real> psi_data(n * n * n);
+
+    algoim::xarray<real, 3> phiB(phi_data.data(), P);
+    algoim::xarray<real, 3> psiB(psi_data.data(), P);
+
+    algoim::bernstein::bernsteinInterpolate<3>(
+        [&](const Vec3& xi) -> real {
+            return phi(F(xi));
+        },
+        phiB
+    );
+
+    algoim::bernstein::bernsteinInterpolate<3>(
+        [&](const Vec3& xi) -> real {
+            return psi_ref(xi);
+        },
+        psiB
+    );
+
+    algoim::ImplicitPolyQuadrature<3> ipquad(phiB, psiB);
+
+    ipquad.integrate(algoim::AutoMixed, q1d,
+        [&](const Vec3& xi, real w_ref) {
+            // Keep only points inside the reference tetrahedron.
+            if (psi_ref(xi) >= real(0)) {
+                return;
+            }
+
+            // Keep only the negative phase of phi.
+            if (algoim::bernstein::evalBernsteinPoly(phiB, xi) >= real(0)) {
+                return;
+            }
+
+            const R3 x = F(xi);
+
+            rule.points.emplace_back(x);
+            rule.weights.emplace_back(double(w_ref) * std::abs(detJ));
+        }
+    );
+
+    return rule;
+}
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenSurf(const Mesh3::Element& K, Phi& phi, const ProblemOption& option) {
+    // Surface quadrature on {phi = 0} inside a tetrahedron.
+    //
+    // The tetrahedron is represented in the unit cube by psi_ref < 0,
+    // where psi_ref = xi0 + xi1 + xi2 - 1.
+    //
+    // integrate_surf may return points on either phi = 0 or psi_ref = 0.
+    // We keep only the phi = 0 part and discard the artificial tetrahedron boundary.
+
+    using real = algoim::real;
+    using Vec3 = algoim::uvector<real, 3>;
+    using R3   = typename Mesh3::Rd;
+
+    AlgoimQuadratureRule<Mesh3> rule;
+
+    const R3 A = K.at(0);
+    const R3 B = K.at(1);
+    const R3 C = K.at(2);
+    const R3 D = K.at(3);
+
+    const R3 AB(A, B);
+    const R3 AC(A, C);
+    const R3 AD(A, D);
+
+    const double detJ = det(AB, AC, AD);
+    if (std::abs(detJ) < 1e-30) {
+        return rule;
+    }
+
+    const auto F = [&](const Vec3& xi) -> R3 {
+        return A + xi(0) * AB + xi(1) * AC + xi(2) * AD;
+    };
+
+    const auto psi_ref = [](const Vec3& xi) -> real {
+        return xi(0) + xi(1) + xi(2) - real(1);
+    };
+
+    const int bernstein_deg = option.algoim_bernstein_deg_;
+    const int q1d           = option.algoim_surface_quad_deg_;
+    const int n             = bernstein_deg + 1;
+
+    algoim::uvector<int, 3> P(n, n, n);
+
+    std::vector<real> phi_data(n * n * n);
+    std::vector<real> psi_data(n * n * n);
+
+    algoim::xarray<real, 3> phiB(phi_data.data(), P);
+    algoim::xarray<real, 3> psiB(psi_data.data(), P);
+
+    algoim::bernstein::bernsteinInterpolate<3>(
+        [&](const Vec3& xi) -> real {
+            return phi(F(xi));
+        },
+        phiB
+    );
+
+    algoim::bernstein::bernsteinInterpolate<3>(
+        [&](const Vec3& xi) -> real {
+            return psi_ref(xi);
+        },
+        psiB
+    );
+
+    algoim::ImplicitPolyQuadrature<3> ipquad(phiB, psiB);
+
+    ipquad.integrate_surf(algoim::AutoMixed, q1d,
+        [&](const Vec3& xi, real /*w_ref*/, const Vec3& wn_ref) {
+            const real ph = algoim::bernstein::evalBernsteinPoly(phiB, xi);
+            const real ps = psi_ref(xi);
+
+            // Must be inside the reference tetrahedron.
+            if (ps >= real(0)) {
+                return;
+            }
+
+            // Discard the artificial boundary psi_ref = 0.
+            // This mirrors the Mesh2 logic.
+            if (std::abs(ps) < std::abs(ph)) {
+                return;
+            }
+
+            const R3 x = F(xi);
+
+            // Cofactor columns for J = [AB AC AD]:
+            //
+            // cof(J) e0 = AC x AD
+            // cof(J) e1 = AD x AB
+            // cof(J) e2 = AB x AC
+            //
+            // This maps weighted reference normals to weighted physical normals:
+            // (n dS)_phys = cof(J) (n dS)_ref.
+            const R3 c0 = AC ^ AD;
+            const R3 c1 = AD ^ AB;
+            const R3 c2 = AB ^ AC;
+
+            R3 wn_phys = wn_ref(0) * c0 + wn_ref(1) * c1 + wn_ref(2) * c2;
+
+            const double w = wn_phys.norme();
+            if (w <= 0.) {
+                return;
+            }
+
+            R3 n_phys = wn_phys / w;
+
+            rule.points.emplace_back(x);
+            rule.weights.emplace_back(w);
+            rule.normals.emplace_back(n_phys);
+        }
+    );
+
+    return rule;
+}
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenFace(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int ifac) {
+    // Face quadrature on one triangular face of a tetrahedron.
+    //
+    // The face is parameterised by
+    //
+    //     F(u,v) = A + u AB + v AC
+    //
+    // over the reference triangle u >= 0, v >= 0, u + v <= 1.
+    // The reference triangle is represented inside the unit square by
+    //
+    //     psi_face(u,v) = u + v - 1 < 0.
+    //
+    // We integrate over the part where phi(F(u,v)) < 0.
+
+    using real = algoim::real;
+    using Vec2 = algoim::uvector<real, 2>;
+    using R3   = typename Mesh3::Rd;
+    using Element = typename Mesh3::Element;
+
+    assert(ifac >= 0 && ifac < 4);
+
+    AlgoimQuadratureRule<Mesh3> rule;
+
+    const int iv0 = Element::nvface[ifac][0];
+    const int iv1 = Element::nvface[ifac][1];
+    const int iv2 = Element::nvface[ifac][2];
+
+    const R3 A = K.at(iv0);
+    const R3 B = K.at(iv1);
+    const R3 C = K.at(iv2);
+
+    const R3 AB(A, B);
+    const R3 AC(A, C);
+
+    const double detJ_face = (AB ^ AC).norme();
+    if (detJ_face < 1e-30) {
+        return rule;
+    }
+
+    const auto F = [&](const Vec2& uv) -> R3 {
+        return A + uv(0) * AB + uv(1) * AC;
+    };
+
+    const auto psi_face = [](const Vec2& uv) -> real {
+        return uv(0) + uv(1) - real(1);
+    };
+
+    const int bernstein_deg = option.algoim_bernstein_deg_;
+    const int q1d           = option.algoim_surface_quad_deg_;
+    const int n             = bernstein_deg + 1;
+
+    algoim::uvector<int, 2> P(n, n);
+
+    std::vector<real> phi_data(n * n);
+    std::vector<real> psi_data(n * n);
+
+    algoim::xarray<real, 2> phiB(phi_data.data(), P);
+    algoim::xarray<real, 2> psiB(psi_data.data(), P);
+
+    algoim::bernstein::bernsteinInterpolate<2>(
+        [&](const Vec2& uv) -> real {
+            return phi(F(uv));
+        },
+        phiB
+    );
+
+    algoim::bernstein::bernsteinInterpolate<2>(
+        [&](const Vec2& uv) -> real {
+            return psi_face(uv);
+        },
+        psiB
+    );
+
+    algoim::ImplicitPolyQuadrature<2> ipquad(phiB, psiB);
+
+    const R3 normal = K.n(ifac);
+
+    ipquad.integrate(algoim::AutoMixed, q1d,
+        [&](const Vec2& uv, real w_ref) {
+            // Keep only points inside the triangular face.
+            if (psi_face(uv) >= real(0)) {
+                return;
+            }
+
+            // Keep only the negative phase of phi on this face.
+            if (algoim::bernstein::evalBernsteinPoly(phiB, uv) >= real(0)) {
+                return;
+            }
+
+            const R3 x = F(uv);
+
+            rule.points.emplace_back(x);
+            rule.weights.emplace_back(double(w_ref) * detJ_face);
+            rule.normals.emplace_back(normal);
+        }
+    );
+
+    return rule;
+}
+
 // End of Gustaf
 
 

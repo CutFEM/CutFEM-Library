@@ -80,7 +80,8 @@ template <>
 std::vector<std::vector<const GTypeOfFE<MeshHexa> *>>
 BaseFE_Array<MeshHexa, ContinuityType::continuous>::FE_ = {
     {&DataFE<MeshHexa>::P0, &DataFE<MeshHexa>::P0, &DataFE<MeshHexa>::P0},
-    {&DataFE<MeshHexa>::P1, &DataFE<MeshHexa>::P1, &DataFE<MeshHexa>::P1}
+    {&DataFE<MeshHexa>::P1, &DataFE<MeshHexa>::P1, &DataFE<MeshHexa>::P1},
+    {&DataFE<MeshHexa>::P2, &DataFE<MeshHexa>::P2, &DataFE<MeshHexa>::P2}
 };
 
 template <>

@@ -454,6 +454,100 @@ FunFEM<M>::operator()(const algoim::uvector<algoim::Interval<M::Rd::d>, M::Rd::d
             // Zero out accumulated eps from interval arithmetic
             val.eps = 0.0;
             return val;
+        } else if constexpr (std::is_same_v<Mesh, MeshHexa>) {
+            // Q2 tensor-product on hexahedron: 27 DOFs
+
+            const double x0 = K[0][0], y0 = K[0][1], z0 = K[0][2];
+            const double hx = K[1][0] - x0;
+            const double hy = K[3][1] - y0;
+            const double hz = K[4][2] - z0;
+
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            Itv r = (x(2) - z0) / hz;
+
+            Itv psi_x[3] = {
+                1.0 - 3.0 * s + 2.0 * s * s,
+                s * (2.0 * s - 1.0),
+                4.0 * s * (1.0 - s)
+            };
+
+            Itv psi_y[3] = {
+                1.0 - 3.0 * t + 2.0 * t * t,
+                t * (2.0 * t - 1.0),
+                4.0 * t * (1.0 - t)
+            };
+
+            Itv psi_z[3] = {
+                1.0 - 3.0 * r + 2.0 * r * r,
+                r * (2.0 * r - 1.0),
+                4.0 * r * (1.0 - r)
+            };
+
+            static const int ix[27] = {
+                0, 1, 1, 0, 0, 1, 1, 0,
+                2, 1, 2, 0, 0, 1, 1, 0, 2, 1, 2, 0,
+                2, 2, 1, 2, 0, 2,
+                2
+            };
+
+            static const int iy[27] = {
+                0, 0, 1, 1, 0, 0, 1, 1,
+                0, 2, 1, 2, 0, 0, 1, 1, 0, 2, 1, 2,
+                2, 0, 2, 1, 2, 2,
+                2
+            };
+
+            static const int iz[27] = {
+                0, 0, 0, 0, 1, 1, 1, 1,
+                0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1,
+                0, 2, 2, 2, 2, 1,
+                2
+            };
+
+            Itv val(0.0);
+
+            for (int i = 0; i < 27; ++i) {
+                val += v[FK(i)] * psi_x[ix[i]] * psi_y[iy[i]] * psi_z[iz[i]];
+            }
+
+            val.eps = 0.0;
+            return val;
+        } else if constexpr (std::is_same_v<Mesh, Mesh3>) {
+            // P2 Lagrange on tetrahedron:
+            // 4 vertex DOFs + 6 edge DOFs.
+            //
+            // Local ordering:
+            //   0..3 : vertices
+            //   4..9 : edges in Element::nvedge order
+
+            Rd Dl[4];
+            K.Gradlambda(Dl);
+
+            const Rd& A = static_cast<const Rd&>(K[0]);
+
+            Itv l[4];
+            computeBarycentricCoords<Itv, 4, d>(x, Dl, A, l);
+
+            Itv val(0.0);
+
+            // Vertex basis functions:
+            // phi_i = lambda_i * (2 lambda_i - 1)
+            for (int i = 0; i < 4; ++i) {
+                val += v[FK(i)] * l[i] * (2.0 * l[i] - 1.0);
+            }
+
+            // Edge basis functions:
+            // phi_ij = 4 lambda_i lambda_j
+            for (int e = 0; e < 6; ++e) {
+                const int i0 = Element::nvedge[e][0];
+                const int i1 = Element::nvedge[e][1];
+
+                val += v[FK(4 + e)] * 4.0 * l[i0] * l[i1];
+            }
+
+            val.eps = 0.0;
+            return val;
         } else {
             assert(0 && "P2 Interval eval not yet implemented for this mesh type");
             return {};
@@ -591,6 +685,144 @@ FunFEM<M>::grad(const algoim::uvector<algoim::Interval<M::Rd::d>, M::Rd::d>& x) 
             }
             g(0).eps = 0.0;  // Polynomial gradient is exact
             g(1).eps = 0.0;
+        } else if constexpr (std::is_same_v<Mesh, MeshHexa>) {
+            // Q2 tensor-product on hexahedron: 27 DOFs
+
+            const double x0 = K[0][0], y0 = K[0][1], z0 = K[0][2];
+            const double hx = K[1][0] - x0;
+            const double hy = K[3][1] - y0;
+            const double hz = K[4][2] - z0;
+
+            Itv s = (x(0) - x0) / hx;
+            Itv t = (x(1) - y0) / hy;
+            Itv r = (x(2) - z0) / hz;
+
+            Itv psi_x[3] = {
+                1.0 - 3.0 * s + 2.0 * s * s,
+                s * (2.0 * s - 1.0),
+                4.0 * s * (1.0 - s)
+            };
+
+            Itv psi_y[3] = {
+                1.0 - 3.0 * t + 2.0 * t * t,
+                t * (2.0 * t - 1.0),
+                4.0 * t * (1.0 - t)
+            };
+
+            Itv psi_z[3] = {
+                1.0 - 3.0 * r + 2.0 * r * r,
+                r * (2.0 * r - 1.0),
+                4.0 * r * (1.0 - r)
+            };
+
+            Itv dpsi_x[3] = {
+                (-3.0 + 4.0 * s) / hx,
+                ( 4.0 * s - 1.0) / hx,
+                ( 4.0 - 8.0 * s) / hx
+            };
+
+            Itv dpsi_y[3] = {
+                (-3.0 + 4.0 * t) / hy,
+                ( 4.0 * t - 1.0) / hy,
+                ( 4.0 - 8.0 * t) / hy
+            };
+
+            Itv dpsi_z[3] = {
+                (-3.0 + 4.0 * r) / hz,
+                ( 4.0 * r - 1.0) / hz,
+                ( 4.0 - 8.0 * r) / hz
+            };
+
+            static const int ix[27] = {
+                0, 1, 1, 0, 0, 1, 1, 0,
+                2, 1, 2, 0, 0, 1, 1, 0, 2, 1, 2, 0,
+                2, 2, 1, 2, 0, 2,
+                2
+            };
+
+            static const int iy[27] = {
+                0, 0, 1, 1, 0, 0, 1, 1,
+                0, 2, 1, 2, 0, 0, 1, 1, 0, 2, 1, 2,
+                2, 0, 2, 1, 2, 2,
+                2
+            };
+
+            static const int iz[27] = {
+                0, 0, 0, 0, 1, 1, 1, 1,
+                0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1,
+                0, 2, 2, 2, 2, 1,
+                2
+            };
+
+            g(0) = 0.0;
+            g(1) = 0.0;
+            g(2) = 0.0;
+
+            for (int i = 0; i < 27; ++i) {
+                const double ui = v[FK(i)];
+
+                g(0) += ui * dpsi_x[ix[i]] * psi_y[iy[i]]  * psi_z[iz[i]];
+                g(1) += ui * psi_x[ix[i]]  * dpsi_y[iy[i]] * psi_z[iz[i]];
+                g(2) += ui * psi_x[ix[i]]  * psi_y[iy[i]]  * dpsi_z[iz[i]];
+            }
+
+            g(0).eps = 0.0;
+            g(1).eps = 0.0;
+            g(2).eps = 0.0;
+                } else if constexpr (std::is_same_v<Mesh, Mesh3>) {
+            // P2 Lagrange gradient on tetrahedron:
+            // 4 vertex DOFs + 6 edge DOFs.
+            //
+            // Local ordering:
+            //   0..3 : vertices
+            //   4..9 : edges in Element::nvedge order
+
+            Rd Dl[4];
+            K.Gradlambda(Dl);
+
+            const Rd& A = static_cast<const Rd&>(K[0]);
+
+            Itv l[4];
+            computeBarycentricCoords<Itv, 4, d>(x, Dl, A, l);
+
+            g(0) = 0.0;
+            g(1) = 0.0;
+            g(2) = 0.0;
+
+            // Vertex basis functions:
+            //
+            // phi_i = lambda_i * (2 lambda_i - 1)
+            //
+            // grad(phi_i) = (4 lambda_i - 1) grad(lambda_i)
+            for (int i = 0; i < 4; ++i) {
+                const double ui = v[FK(i)];
+                const Itv coeff = ui * (4.0 * l[i] - 1.0);
+
+                for (int j = 0; j < 3; ++j) {
+                    g(j) += coeff * Dl[i][j];
+                }
+            }
+
+            // Edge basis functions:
+            //
+            // phi_ij = 4 lambda_i lambda_j
+            //
+            // grad(phi_ij)
+            //   = 4 (lambda_j grad(lambda_i) + lambda_i grad(lambda_j))
+            for (int e = 0; e < 6; ++e) {
+                const int i0 = Element::nvedge[e][0];
+                const int i1 = Element::nvedge[e][1];
+
+                const double ue = v[FK(4 + e)];
+
+                for (int j = 0; j < 3; ++j) {
+                    g(j) += 4.0 * ue * (l[i1] * Dl[i0][j] + l[i0] * Dl[i1][j]);
+                }
+            }
+
+            g(0).eps = 0.0;
+            g(1).eps = 0.0;
+            g(2).eps = 0.0;
         } else {
             assert(0 && "P2 Interval grad not yet implemented for this mesh type");
         }
