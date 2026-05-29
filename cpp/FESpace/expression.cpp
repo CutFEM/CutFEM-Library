@@ -89,6 +89,14 @@ std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Norm
     return std::make_shared<ExpressionNormal3>(f1);
 }
 
+std::shared_ptr<ExpressionDSx2<Mesh2>> dxS(const FunFEM<Mesh2> &f1, int ci) {
+    return std::make_shared<ExpressionDSx2<Mesh2>>(f1, ci);
+}
+
+std::shared_ptr<ExpressionDSy2<Mesh2>> dyS(const FunFEM<Mesh2> &f1, int ci) {
+    return std::make_shared<ExpressionDSy2<Mesh2>>(f1, ci);
+}
+
 std::shared_ptr<ExpressionAverage> average(const std::shared_ptr<ExpressionVirtual> &f1, const double kk1,
                                            const double kk2) {
     return std::make_shared<ExpressionAverage>(f1, kk1, kk2);

@@ -1449,8 +1449,9 @@ template <typeMesh M> class ExpressionDSx2 : public ExpressionVirtual {
     ExpressionFunFEM<M> dxu1, dxu1nxnx, dyu1nxny;
 
   public:
-    ExpressionDSx2(const FunFEM<M> &fh1)
-        : fun(fh1), dxu1(fh1, 0, op_dx, 0, 0), dxu1nxnx(fh1, 0, op_dx, 0, 0), dyu1nxny(fh1, 0, op_dy, 0, 0) {
+    ExpressionDSx2(const FunFEM<M> &fh1, int ci = 0)
+        : fun(fh1), dxu1(fh1, ci, op_dx, 0, 0), dxu1nxnx(fh1, ci, op_dx, 0, 0),
+          dyu1nxny(fh1, ci, op_dy, 0, 0) {
         dxu1nxnx.addNormal(0);
         dxu1nxnx.addNormal(0);
         dyu1nxny.addNormal(0);
@@ -1488,6 +1489,7 @@ template <typeMesh M> class ExpressionDSx2 : public ExpressionVirtual {
 };
 
 template <typeMesh M> std::shared_ptr<ExpressionDSx2<M>> dxS(const FunFEM<M> &f1);
+std::shared_ptr<ExpressionDSx2<Mesh2>> dxS(const FunFEM<Mesh2> &f1, int ci);
 
 template <typeMesh M> class ExpressionDSy2 : public ExpressionVirtual {
     // typedef Mesh2 M;
@@ -1495,8 +1497,9 @@ template <typeMesh M> class ExpressionDSy2 : public ExpressionVirtual {
     ExpressionFunFEM<M> dxu2, dxu2nxny, dyu2nyny;
 
   public:
-    ExpressionDSy2(const FunFEM<M> &fh1)
-        : fun(fh1), dxu2(fh1, 1, op_dy, 0, 0), dxu2nxny(fh1, 1, op_dx, 0, 0), dyu2nyny(fh1, 1, op_dy, 0, 0) {
+    ExpressionDSy2(const FunFEM<M> &fh1, int ci = 1)
+        : fun(fh1), dxu2(fh1, ci, op_dy, 0, 0), dxu2nxny(fh1, ci, op_dx, 0, 0),
+          dyu2nyny(fh1, ci, op_dy, 0, 0) {
         dxu2nxny.addNormal(0);
         dxu2nxny.addNormal(1);
         dyu2nyny.addNormal(1);
@@ -1534,6 +1537,7 @@ template <typeMesh M> class ExpressionDSy2 : public ExpressionVirtual {
 };
 
 template <typeMesh M> std::shared_ptr<ExpressionDSy2<M>> dyS(const FunFEM<M> &f1);
+std::shared_ptr<ExpressionDSy2<Mesh2>> dyS(const FunFEM<Mesh2> &f1, int ci);
 
 template <typeMesh M> class ExpressionDivS2 : public ExpressionVirtual {
     // typedef Mesh2 M;
