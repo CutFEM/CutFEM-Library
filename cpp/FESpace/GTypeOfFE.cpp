@@ -99,7 +99,12 @@ static int *builddata_d(const std::vector<int> nbItem, const std::span<dataTypeO
     }
     DF[k] = n;
 
-    int nwhat = 15;
+    int nwhat = 0;
+    for (int n : nbItem) {
+        nwhat += n;
+    }
+    nwhat = std::max(15, nwhat); // For Q2 hexes
+
     KN<int> w(nwhat), nn(nwhat);
     w  = 0;
     nn = 0;

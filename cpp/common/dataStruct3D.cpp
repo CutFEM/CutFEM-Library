@@ -160,3 +160,13 @@ int Tet::faceOrient(int i) const { // def the permutatution of orient the face
     }
     return fo;
 }
+
+// Gustaf
+R Hexa::mesureBord(int i) const {
+    assert(i >= 0 && i < 6);
+
+    R3 e1(at(nvface[i][0]), at(nvface[i][1]));
+    R3 e2(at(nvface[i][0]), at(nvface[i][3]));
+
+    return (e1 ^ e2).norm();
+}

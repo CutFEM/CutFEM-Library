@@ -202,7 +202,13 @@ struct DataQuad3 {
     typedef V::Rd Rd;
     typedef Edge3 Face;
 
-    static R mesure(V *pv[NbOfVertices]) { return det(*pv[0], *pv[1], *pv[2]); }
+    // static R mesure(V *pv[NbOfVertices]) { return det(*pv[0], *pv[1], *pv[2]); }
+    // Gustaf
+    static R mesure(V *pv[NbOfVertices]) {
+        R3 e1(*pv[0], *pv[1]);
+        R3 e2(*pv[0], *pv[3]);
+        return (e1 ^ e2).norme();
+    }
     typedef R2 RdHat;
     typedef R1 RdHatBord;
     static RdHat PBord(const int *nvb, const RdHatBord &P) {
@@ -306,30 +312,28 @@ class Tet : public GenericElement<DataTet> {
     int faceOrient(int i) const;
 
     R3 toKref(const R3 &P) const {
-        R l[4];
         const R3 &A = at(0);
         const R3 &B = at(1);
         const R3 &C = at(2);
         const R3 &D = at(3);
-        R3 PA(P, A), PB(P, B), PC(P, C), PD(P, D);
-        l[0] = fabs(det(PB, PC, PD) / (6 * mes));
-        l[1] = fabs(det(PC, PA, PD) / (6 * mes));
-        l[2] = fabs(det(PB, PA, PD) / (6 * mes));
-        l[3] = 1 - l[0] - l[1] - l[2];
-        return l[0] * R3::KHat[0] + l[1] * R3::KHat[1] + l[2] * R3::KHat[2] + l[3] * R3::KHat[3];
+
+        const R3 AB(A, B);
+        const R3 AC(A, C);
+        const R3 AD(A, D);
+        const R3 AP(A, P);
+
+        const R detJ = det(AB, AC, AD);
+        assert(std::abs(detJ) > 1e-30);
+
+        const R l1 = det(AP, AC, AD) / detJ;
+        const R l2 = det(AB, AP, AD) / detJ;
+        const R l3 = det(AB, AC, AP) / detJ;
+
+        return R3(l1, l2, l3);
     }
+
     R3 mapToReferenceElement(const R3 &P) const {
-        R l[4];
-        const R3 &A = at(0);
-        const R3 &B = at(1);
-        const R3 &C = at(2);
-        const R3 &D = at(3);
-        R3 PA(P, A), PB(P, B), PC(P, C), PD(P, D);
-        l[0] = fabs(det(PB, PC, PD) / (6 * mes));
-        l[1] = fabs(det(PC, PA, PD) / (6 * mes));
-        l[2] = fabs(det(PB, PA, PD) / (6 * mes));
-        l[3] = 1 - l[0] - l[1] - l[2];
-        return l[0] * R3::KHat[0] + l[1] * R3::KHat[1] + l[2] * R3::KHat[2] + l[3] * R3::KHat[3];
+        return toKref(P);
     }
 
     R3 toKref(const R2 &P, int i) const;
@@ -436,6 +440,9 @@ class Hexa : public GenericElement<DataHexa> {
 
     // R2 toKref(const R1& P, int i) const;
     // R mesureBord(int i) const ;
+
+    // Gustaf
+    R mesureBord(int i) const;
 };
 
 // Forward declaration

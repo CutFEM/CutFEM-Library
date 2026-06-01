@@ -22,6 +22,24 @@ AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi
 template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option);
 
+// Gustaf
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenVol(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option);
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenSurf(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option);
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int ifac);
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenVol(const Mesh3::Element& K, Phi& phi, const ProblemOption& option);
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenSurf(const Mesh3::Element& K, Phi& phi, const ProblemOption& option);
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenFace(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int ifac);
+
+
 
 template <typeMesh Mesh, typename Phi>
 class AlgoimCutFEMUnified : public BaseCutFEM<Mesh>, public Solver {
@@ -67,6 +85,10 @@ public:
     // template <typename Fct>
     // void addInterfaceContributionExact(const Fct &f, const itemVFlist_t& VF, const Interface<mesh_t>& interface, int ifac, double tid,
     //                               const TimeSlab* In, double cst_time, int itq);
+
+    // Gustaf
+    void addBilinear(const itemVFlist_t& VF, const Interface<mesh_t>& interface);
+    void addLinear(const itemVFlist_t& VF, const Interface<mesh_t>& interface);
 
     void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1, 
                             const std::pair<int, int> &e2, const TimeSlab *In, 

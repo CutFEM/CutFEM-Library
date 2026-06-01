@@ -530,108 +530,124 @@ GTypeOfFE<Mesh3> &P1Lagrange3d(P1_3d);
 template <> GTypeOfFE<Mesh3> &DataFE<Mesh3>::P1 = P1_3d;
 
 // P1 for Hexa 3D
-// class TypeOfFE_P1QLagrange3d : public GTypeOfFE<MeshHexa> {
-//
-//   typedef   MeshHexa Mesh;
-//   typedef  typename Mesh::Element  E;
-//   static const int nbNodeOnItem[4];
-// public:
-//
-//   static const int k = 1;
-//   static const int ndf = (k + 1) * (k + 1) * (k + 1);
-//   static int Data[];
-//   static double alpha_Pi_h[];
-//
-//   TypeOfFE_P1QLagrange3d(): GTypeOfFE<MeshHexa>(8, 1, Data, 8, 8, alpha_Pi_h)
-//   {
-//
-//     static const R3 Pt[8] = {R3(0., 0., 0.), R3(1., 0., 0.), R3(1., 1., 0.),
-//     R3(0., 1., 0.),
-//                              R3(0., 0., 1.), R3(1., 0., 1.), R3(1., 1., 1.),
-//                              R3(0., 1., 1.)    };
-//
-//     for(int i=0;i<ndf;++i) {
-//       Pt_Pi_h[i] = Pt[i];
-//       ipj_Pi_h[i] = IPJ(i,i,0);
-//     }
-//   }
-//
-//
-//   void FB(const What_d ,const Element & ,const Rd &, RNMK_ &) const;
-// } ;
-//
-// const int TypeOfFE_P1QLagrange3d::nbNodeOnItem[4] = {1,0,0,0};
-// int TypeOfFE_P1QLagrange3d::Data[] = {
-//   0, 1, 2, 3, 4, 5, 6, 7,    // the support number  of the node of the df
-//   0, 0, 0, 0, 0, 0, 0, 0,    // the number of the df on  the node
-//   0, 1, 2, 3, 4, 5, 6, 7,   // the node of the df
-//   0, 1, 2, 3, 4, 5, 6, 7,   // which are de df on sub FE
-//   1, 0, 0, 0,    // nb node on what
-//   0,          // for each compontant $j=0,N-1$ it give the sub FE associated
-//   0,          // begin_dfcomp
-//   8           // end_dfcomp
-// };
-//
-// double TypeOfFE_P1QLagrange3d::alpha_Pi_h[] = {1. ,1.
-// ,1., 1., 1., 1., 1., 1.};
-//
-// void TypeOfFE_P1QLagrange3d::FB(const What_d whatd, const Element & K,
-// 			       const R3 & P,RNMK_ & val) const {
-//   R lx[] = {1.-P.x,P.x};
-//   R ly[] = {1.-P.y,P.y};
-//   R lz[] = {1.-P.z,P.z};
-//
-//   double hx = K[1].x - K[0].x;
-//   double hy = K[3].y - K[0].y;
-//   double hz = K[4].z - K[0].z;
-//
-//   std::cout << hx << "\t" << hy << "\t" << hz << std::endl;
-//   getchar();
-//   // Linear_Transformation<Element> map(K);
-//
-//   assert(val.N() >= Element::nv);
-//   assert(val.M()==1 );
-//
-//   val=0;
-//   RN_ f0(val('.',0,op_id));
-//
-//   if (whatd & Fop_D0) {
-//     f0[0] = lx[0]*ly[0]*lz[0];
-//     f0[1] = lx[1]*ly[0]*lz[0];
-//     f0[2] = lx[1]*ly[1]*lz[0];
-//     f0[3] = lx[0]*ly[1]*lz[0];
-//     f0[4] = lx[0]*ly[0]*lz[1];
-//     f0[5] = lx[1]*ly[0]*lz[1];
-//     f0[6] = lx[1]*ly[1]*lz[1];
-//     f0[7] = lx[0]*ly[1]*lz[1];
-//   }
-//   //
-//   // if (whatd & Fop_D1) {
-//   //   R2 phi_hat[4];
-//   //   R Dl[] = {-1, 1};
-//   //   phi_hat[0][0] = Dl[0]*ly[0];
-//   //   phi_hat[0][1] = lx[0]*Dl[0];
-//   //   phi_hat[1][0] = Dl[1]*ly[0];
-//   //   phi_hat[1][1] = lx[1]*Dl[0];
-//   //   phi_hat[2][0] = Dl[1]*ly[1];
-//   //   phi_hat[2][1] = lx[1]*Dl[1];
-//   //   phi_hat[3][0] = Dl[0]*ly[1];
-//   //   phi_hat[3][1] = lx[0]*Dl[1];
-//   //
-//   //
-//   // //   K.Gradlambda(Dl);
-//   //   if (whatd & Fop_dx)  {
-//   //     RN_ f0x(val('.',0,op_dx));
-//   //     map.transform_gradient(phi_hat, f0x, op_dx);
-//   //   }
-//   //
-//   //   if (whatd & Fop_dy) {
-//   //     RN_ f0y(val('.',0,op_dy));
-//   //     map.transform_gradient(phi_hat, f0y, op_dy);
-//   //   }
-//   // }
-// }
-//
-// static TypeOfFE_P1QLagrange3d  P1Q_3d;
-// GTypeOfFE<MeshHexa> & P1QLagrange3d(P1Q_3d);
-// template<> GTypeOfFE<MeshHexa> & DataFE<MeshHexa>::P1=P1Q_3d;
+class TypeOfFE_P1QLagrange3d : public GTypeOfFE<MeshHexa> {
+
+    typedef MeshHexa Mesh;
+    typedef typename Mesh::Element E;
+    static const int nbNodeOnItem[4];
+
+  public:
+    static const int k   = 1;
+    static const int ndf = (k + 1) * (k + 1) * (k + 1);
+    static int Data[];
+    static double alpha_Pi_h[];
+
+    TypeOfFE_P1QLagrange3d() : GTypeOfFE<MeshHexa>(8, 1, Data, 8, 8, alpha_Pi_h) {
+        GTypeOfFE<Mesh>::basisFctType    = BasisFctType::P1;
+        GTypeOfFE<Mesh>::polynomialOrder = k;
+
+        static const R3 Pt[8] = {
+            R3(0., 0., 0.), R3(1., 0., 0.), R3(1., 1., 0.), R3(0., 1., 0.),
+            R3(0., 0., 1.), R3(1., 0., 1.), R3(1., 1., 1.), R3(0., 1., 1.)
+        };
+
+        for (int i = 0; i < ndf; ++i) {
+            Pt_Pi_h[i]  = Pt[i];
+            ipj_Pi_h[i] = IPJ(i, i, 0);
+        }
+    }
+
+    void FB(const What_d, const Element &, const Rd &, RNMK_ &) const;
+};
+
+const int TypeOfFE_P1QLagrange3d::nbNodeOnItem[4] = {1, 0, 0, 0};
+int TypeOfFE_P1QLagrange3d::Data[] = {
+  0, 1, 2, 3, 4, 5, 6, 7,    // the support number  of the node of the df
+  0, 0, 0, 0, 0, 0, 0, 0,    // the number of the df on  the node
+  0, 1, 2, 3, 4, 5, 6, 7,   // the node of the df
+  0, 1, 2, 3, 4, 5, 6, 7,   // which are de df on sub FE
+  1, 0, 0, 0,    // nb node on what
+  0,          // for each compontant $j=0,N-1$ it give the sub FE associated
+  0,          // begin_dfcomp
+  8           // end_dfcomp
+};
+
+double TypeOfFE_P1QLagrange3d::alpha_Pi_h[] = {1., 1., 1., 1., 1., 1., 1., 1.};
+
+void TypeOfFE_P1QLagrange3d::FB(const What_d whatd, const Element & K,
+			       const R3 & P,RNMK_ & val) const {
+  R lx[] = {1.-P.x,P.x};
+  R ly[] = {1.-P.y,P.y};
+  R lz[] = {1.-P.z,P.z};
+
+  R hx = K[1].x - K[0].x;
+  R hy = K[3].y - K[0].y;
+  R hz = K[4].z - K[0].z;
+
+  assert(hx > 0.);
+  assert(hy > 0.);
+  assert(hz > 0.);
+
+  // Linear_Transformation<Element> map(K);
+
+  assert(val.N() >= Element::nv);
+  assert(val.M()==1 );
+
+  val=0;
+  RN_ f0(val('.',0,op_id));
+
+  if (whatd & Fop_D0) {
+    f0[0] = lx[0]*ly[0]*lz[0];
+    f0[1] = lx[1]*ly[0]*lz[0];
+    f0[2] = lx[1]*ly[1]*lz[0];
+    f0[3] = lx[0]*ly[1]*lz[0];
+    f0[4] = lx[0]*ly[0]*lz[1];
+    f0[5] = lx[1]*ly[0]*lz[1];
+    f0[6] = lx[1]*ly[1]*lz[1];
+    f0[7] = lx[0]*ly[1]*lz[1];
+  }
+
+  if (whatd & Fop_D1) {
+    RN_ f0x(val('.', 0, op_dx));
+    RN_ f0y(val('.', 0, op_dy));
+    RN_ f0z(val('.', 0, op_dz));
+
+    R Dlx[] = {-1. / hx, 1. / hx};
+    R Dly[] = {-1. / hy, 1. / hy};
+    R Dlz[] = {-1. / hz, 1. / hz};
+
+    f0x[0] = Dlx[0] * ly[0] * lz[0];
+    f0x[1] = Dlx[1] * ly[0] * lz[0];
+    f0x[2] = Dlx[1] * ly[1] * lz[0];
+    f0x[3] = Dlx[0] * ly[1] * lz[0];
+    f0x[4] = Dlx[0] * ly[0] * lz[1];
+    f0x[5] = Dlx[1] * ly[0] * lz[1];
+    f0x[6] = Dlx[1] * ly[1] * lz[1];
+    f0x[7] = Dlx[0] * ly[1] * lz[1];
+
+    f0y[0] = lx[0] * Dly[0] * lz[0];
+    f0y[1] = lx[1] * Dly[0] * lz[0];
+    f0y[2] = lx[1] * Dly[1] * lz[0];
+    f0y[3] = lx[0] * Dly[1] * lz[0];
+    f0y[4] = lx[0] * Dly[0] * lz[1];
+    f0y[5] = lx[1] * Dly[0] * lz[1];
+    f0y[6] = lx[1] * Dly[1] * lz[1];
+    f0y[7] = lx[0] * Dly[1] * lz[1];
+
+    f0z[0] = lx[0] * ly[0] * Dlz[0];
+    f0z[1] = lx[1] * ly[0] * Dlz[0];
+    f0z[2] = lx[1] * ly[1] * Dlz[0];
+    f0z[3] = lx[0] * ly[1] * Dlz[0];
+    f0z[4] = lx[0] * ly[0] * Dlz[1];
+    f0z[5] = lx[1] * ly[0] * Dlz[1];
+    f0z[6] = lx[1] * ly[1] * Dlz[1];
+    f0z[7] = lx[0] * ly[1] * Dlz[1];
+}
+
+
+}
+
+static TypeOfFE_P1QLagrange3d  P1Q_3d;
+GTypeOfFE<MeshHexa> & P1QLagrange3d(P1Q_3d);
+template <>
+GTypeOfFE<MeshHexa> &DataFE<MeshHexa>::P1 = P1Q_3d;
