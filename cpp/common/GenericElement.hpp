@@ -54,6 +54,32 @@ inline R3 ExtNormal(const std::array<GenericVertex<R3> *, 4> &v, const std::vect
     return R3(*v[f.at(0)], *v[f.at(2)]) ^ R3(*v[f.at(0)], *v[f.at(1)]);
 }
 
+// Gustaf
+inline R3 ExtNormal(const std::array<GenericVertex<R3> *, 8> &v, const std::vector<int> &f) {
+    R3 e1(*v[f.at(0)], *v[f.at(1)]);
+    R3 e2(*v[f.at(0)], *v[f.at(3)]);
+    R3 n = e1 ^ e2;
+
+    R3 xc(0., 0., 0.);
+    R3 xf(0., 0., 0.);
+
+    for (int i = 0; i < 8; ++i) {
+        xc += *(R3 *)v[i];
+    }
+    xc = (1.0 / 8.0) * xc;
+
+    for (int i = 0; i < 4; ++i) {
+        xf += *(R3 *)v[f.at(i)];
+    }
+    xf = (1.0 / 4.0) * xf;
+
+    if ((n, xf - xc) < 0.) {
+        n = -1.0 * n;
+    }
+
+    return n;
+}
+
 template <typename Data> class GenericElement : public Label {
   public:
     typedef typename Data::V Vertex;

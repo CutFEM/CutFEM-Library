@@ -284,6 +284,12 @@ template <> RefPartition<Hexa>::InitializerCL::InitializerCL() {
       return;
 }
 
+// Gustaf
+template <> RefPartition<Quad3>::InitializerCL::InitializerCL() {
+   if (init_count_++ > 0)
+      return;
+}
+
 template <> bool RefPartition<Edge2>::assign(const SignPattern<Edge2> &cut) {
    end_ = begin_ = elements_ + start_array;
 
@@ -748,6 +754,44 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
    }
    return is_uncut();
 }
+// Gustaf
+template <>
+bool RefPartition<Quad3>::assign(const SignPattern<Quad3> &cut) {
+   end_ = begin_ = elements_ + start_array;
+
+   if (cut.empty()) {
+      // Most common case: no cut.
+      AddQuadrilateral(0, 1, 2, 3, cut.sign(0));
+
+   } else if (cut.no_zero_vertex()) {
+      is_cut_ = true;
+
+      if (cut.sign_element.sum() != 0) {
+         // Interface cuts two adjacent edges:
+         // one triangle on one side and one pentagon on the other.
+         const Ubyte v  = Quad3::commonVertOfEdges[cut[0]][cut[1]];
+         Ubyte list_v[] = {v, cut(0), cut(1)};
+         AddElement(list_v, cut.sign(v));
+
+         const Ubyte v_op = (v + 2) % 4;
+         AddPentagone(cut(0), Quad3::oppVertOfEdge(cut[0], v),
+                      cut(1), Quad3::oppVertOfEdge(cut[1], v),
+                      v_op, -cut.sign(v));
+      } else {
+         // Interface cuts opposite edges:
+         // split into two quadrilaterals.
+         const Ubyte v0 = Quad3::nvedge[cut[0]][0];
+         const Ubyte u0 = Quad3::nvedge[cut[0]][1];
+         const Ubyte v1 = (u0 + 2) % 4;
+         const Ubyte u1 = (v0 + 2) % 4;
+
+         AddQuadrilateral(v0, cut(0), v1, cut(1), cut.sign(v0));
+         AddQuadrilateral(u1, cut(1), u0, cut(0), -cut.sign(v0));
+      }
+   }
+
+   return is_uncut();
+}
 
 template <>
 Ubyte RefPartition<Hexa>::first_uncut_edge(const SignPattern<Hexa> &cut) const {
@@ -832,4 +876,26 @@ void Partition<Tet>::get_list_node(std::vector<R3> &node, int s) const {
 template <>
 void Partition<Triangle3>::get_list_node(std::vector<R3> &node, int s) const {
    assert(0);
+}
+
+// Gustaf
+template <>
+void Partition<Quad3>::get_list_node(std::vector<R3> &node, int s) const {
+   node.resize(Quad3::nv + Quad3::ne);
+
+   for (int i = 0; i < Quad3::nv; ++i) {
+      node[i] = T[i];
+   }
+
+   for (int e = 0; e < Quad3::ne; ++e) {
+      const Ubyte v0 = Quad3::nvedge[e][0];
+      const Ubyte v1 = Quad3::nvedge[e][1];
+
+      if (ls[v0] == ls[v1]) {
+         node[Quad3::nv + e] = T[v0];
+      } else {
+         const R t = -ls[v0] / (ls[v1] - ls[v0]);
+         node[Quad3::nv + e] = (1. - t) * ((R3)T[v0]) + t * ((R3)T[v1]);
+      }
+   }
 }

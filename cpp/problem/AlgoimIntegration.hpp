@@ -412,6 +412,62 @@ double L2L2_norm_surf(const FunFEM<mesh_t> &fh, const fct_t &f, const TimeInterf
 }
 
 
+// L^infty norm on Algoim Surface
+template <typeMesh Mesh, typename L, typename FEX>
+double max_norm_surface(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, const Interface<Mesh> &interface, L &phi) {
+
+    using fespace_t = GFESpace<Mesh>;
+    using FElement  = typename fespace_t::FElement;
+    using Element   = typename Mesh::Element;
+    using Rd        = typename FElement::Rd;
+
+    double val = 0.;
+
+    for (int iface = interface.first_element(); iface < interface.last_element(); iface += interface.next_element()) {
+
+        const int kb = interface.idxElementOfFace(iface); // idx on backMesh
+        const Element &K(interface.get_element(kb));
+
+        if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<Mesh>>) {
+            phi.setElementFromBackMesh(kb, 0);
+        }
+        
+        auto quad_rule = quadGenSurf(K, phi, defaultProblemOption);
+        
+        if (quad_rule.size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in max_norm_surface\n";
+            continue;
+        }
+
+        for (size_t ipq = 0; ipq < quad_rule.size(); ++ipq) {
+            Rd mip = quad_rule.points[ipq];
+            
+            double a = std::abs(fh->evalOnBackMesh(kb, 0, mip) - fex(mip, fh->cu));
+            val = std::max(val, a);
+        }
+    }
+    
+    double val_receive = 0;
+#ifdef USE_MPI
+    MPIcf::AllReduce(val, val_receive, MPI_MAX);
+#else
+    val_receive = val;
+#endif
+
+    return val_receive;
+}
+
+template <typeMesh M, typename L, typename FEX>
+double max_norm_surface(const FunFEM<M> &fh, const FEX &fex, const Interface<M> &interface, L &phi, int c0, int num_comp) {
+    double val = 0.;
+    for (int i = c0; i < num_comp + c0; ++i) {
+        auto ui = fh.expr(i);
+        val = std::max(val, max_norm_surface(ui, fex, interface, phi));
+    }
+    return val;
+}
+
+
 // L2(L2(Omega(t)), 0, T)
 template <typeMesh mesh_t, typename L, typename fct_t>
 double L2L2_norm(const FunFEM<mesh_t> &fh, const fct_t &f, const ActiveMesh<mesh_t> &Th, const TimeSlab &In,
