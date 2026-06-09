@@ -875,11 +875,11 @@ template <typeMesh mesh_t> TestFunction<mesh_t> curl(const TestFunction<mesh_t> 
         int irow = i;
         int jrow = 0;
 
-        rotU1.push({irow, jrow}, uj); // push duj/dxk
-        rotU2.push({irow, jrow}, uk); // push duk/dxj
+        rotU1.push({irow, jrow}, uk); // push duk/dxj
+        rotU2.push({irow, jrow}, uj); // push duj/dxk
     }
 
-    return rotU1 - rotU2; // return duj/dxk - duk/dxj
+    return rotU1 - rotU2; // return duk/dxj - duj/dxk, e.g. x-comp: duz/dy - duy/dz
 }
 
 /**
@@ -950,6 +950,83 @@ template <typeMesh mesh_t> TestFunction<mesh_t> Eps(const TestFunction<mesh_t> &
     TestFunction<mesh_t> gradU = grad(T);
     TestFunction<mesh_t> epsU  = 0.5 * gradU + 0.5 * transpose(gradU);
     return epsU;
+}
+
+/**
+ * @brief Project a tensor-valued TestFunction tangentially on both sides.
+ *
+ * @note projectS(F) = P F P, with P = I - n tensor n.
+ *
+ * @tparam mesh_t Mesh
+ * @param T Tensor-valued test function
+ * @return TestFunction<mesh_t>
+ */
+template <typeMesh mesh_t> TestFunction<mesh_t> projectS(const TestFunction<mesh_t> &T) {
+    auto [N, M] = T.size();
+    int D       = mesh_t::D;
+    assert(N == D && M == D);
+
+    TestFunction<mesh_t> projectedT;
+    for (int i = 0; i < D; ++i) {
+        for (int j = 0; j < D; ++j) {
+            projectedT.push({i, j}, T.getList(i, j));
+
+            for (int k = 0; k < D; ++k) {
+                auto left_projection = T.getList(k, j);
+                for (auto &item : left_projection.U) {
+                    item.c *= -1.;
+                    item.addNormal(i);
+                    item.addNormal(k);
+                }
+                projectedT.push({i, j}, left_projection);
+            }
+
+            for (int l = 0; l < D; ++l) {
+                auto right_projection = T.getList(i, l);
+                for (auto &item : right_projection.U) {
+                    item.c *= -1.;
+                    item.addNormal(l);
+                    item.addNormal(j);
+                }
+                projectedT.push({i, j}, right_projection);
+            }
+
+            for (int k = 0; k < D; ++k) {
+                for (int l = 0; l < D; ++l) {
+                    auto double_projection = T.getList(k, l);
+                    for (auto &item : double_projection.U) {
+                        item.addNormal(i);
+                        item.addNormal(k);
+                        item.addNormal(l);
+                        item.addNormal(j);
+                    }
+                    projectedT.push({i, j}, double_projection);
+                }
+            }
+        }
+    }
+
+    simplify(projectedT);
+    return projectedT;
+}
+
+/**
+ * @brief Compute the surface symmetric strain tensor of a vector TestFunction.
+ *
+ * @note EpsS(T) = P * 0.5 * (gradS(T) + gradS(T)^T) * P.
+ *
+ * @tparam mesh_t Mesh
+ * @param T Vector-valued test function
+ * @return TestFunction<mesh_t>
+ */
+template <typeMesh mesh_t> TestFunction<mesh_t> EpsS(const TestFunction<mesh_t> &T) {
+    auto [N, M] = T.size();
+    int D       = mesh_t::D;
+    assert(N == D && M == 1);
+
+    TestFunction<mesh_t> gradST = gradS(T);
+    TestFunction<mesh_t> epsST  = 0.5 * gradST + 0.5 * transpose(gradST);
+    return projectS(epsST);
 }
 
 /**
@@ -1214,14 +1291,14 @@ template <typeMesh mesh_t> TestFunction<mesh_t> dzS(const TestFunction<mesh_t> &
 
 
 /**
- * @brief Compute the cross product of a normal and a TestFunction
+ * @brief Compute the cross product of a TestFunction and a normal, ie T x n
  *
  * @tparam mesh_t Mesh
- * @param n Normal
  * @param T Test function
+ * @param n Normal
  * @return TestFunction<mesh_t> of dimension 3
  */
-template <typeMesh mesh_t> TestFunction<mesh_t> cross(const Normal &n, const TestFunction<mesh_t> &T) {
+template <typeMesh mesh_t> TestFunction<mesh_t> cross(const TestFunction<mesh_t> &T, const Normal &n) {
     // T = [u0, u1, u2]
     int D       = mesh_t::D;
     auto [N, M] = T.size();
@@ -1261,15 +1338,15 @@ template <typeMesh mesh_t> TestFunction<mesh_t> cross(const Normal &n, const Tes
         int irow = i;
         int jrow = 0;
 
-        rotU1.push({irow, jrow}, uj); // push duj/dxk
-        rotU2.push({irow, jrow}, uk); // push duk/dxj
+        rotU1.push({irow, jrow}, uj); // push nk uj
+        rotU2.push({irow, jrow}, uk); // push nj uk
     }
 
-    return rotU1 - rotU2; // return duj/dxk - duk/dxj
+    return rotU1 - rotU2; // return nk uj - nj uk, e.g. x-comp: nz uy - ny uz
 }
 
-template <typeMesh mesh_t> TestFunction<mesh_t> cross(const TestFunction<mesh_t> &T, const Normal &n) {
-    return -1 * cross(n, T);
+template <typeMesh mesh_t> TestFunction<mesh_t> cross(const Normal &n, const TestFunction<mesh_t> &T) {
+    return -1 * cross(T, n);
 }
 
 template <typeMesh mesh_t>
