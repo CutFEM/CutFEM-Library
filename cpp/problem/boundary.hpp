@@ -1,6 +1,11 @@
 #ifndef CUTFEM_PROBLEM_BOUNDARY_HPP
 #define CUTFEM_PROBLEM_BOUNDARY_HPP
 
+#include <algorithm>
+#include <cassert>
+#include <list>
+#include <stdexcept>
+#include <type_traits>
 #include <vector>
 #include "../common/point.hpp"
 #include "../FESpace/FESpace.hpp"
@@ -13,7 +18,8 @@ template <int D> class DofData {
   public:
     DofData() = default;
 
-    DofData(int k, int dom, int ci, v_t P) : k(k), domain(dom), ci(ci), P(P) {}
+    DofData(int k, int dom, int ci, v_t P, int local_face = -1)
+        : k(k), domain(dom), ci(ci), P(P), local_face(local_face) {}
 
     DofData(DofData &&)            = default;
     DofData &operator=(DofData &&) = default;
@@ -26,7 +32,69 @@ template <int D> class DofData {
     int ci;
     
     v_t P;
+
+    int local_face{-1};
 };
+
+namespace detail_boundary_dirichlet {
+
+inline bool contains_entity(const std::vector<int> &entities, int entity) {
+    return std::find(entities.begin(), entities.end(), entity) != entities.end();
+}
+
+template <typename Element, int D> bool dof_on_boundary_hyperface(int id_item, int face_idx) {
+    if (id_item < Element::nv) {
+        if constexpr (D == 3)
+            return contains_entity(Element::nvface.at(face_idx), id_item);
+        else
+            return contains_entity(Element::nvedge.at(face_idx), id_item);
+    }
+
+    if (id_item < Element::nv + Element::ne) {
+        const int edge_idx = id_item - Element::nv;
+        if constexpr (D == 3)
+            return contains_entity(Element::edgeOfFace.at(face_idx), edge_idx);
+        else
+            return edge_idx == face_idx;
+    }
+
+    if constexpr (D == 3) {
+        if (id_item < Element::nv + Element::ne + Element::nf) {
+            const int local_face_idx = id_item - Element::nv - Element::ne;
+            return local_face_idx == face_idx;
+        }
+    }
+
+    return false;
+}
+
+inline bool single_trace_component_space(BasisFctType type) {
+    return type == BasisFctType::RT0 || type == BasisFctType::RT1 || type == BasisFctType::RT2 ||
+           type == BasisFctType::BDM1 || type == BasisFctType::BDM2 || type == BasisFctType::Ned0;
+}
+
+template <typename Fct, typename Rd>
+double eval_component(const Fct &f, Rd P, int component, int domain) {
+    if constexpr (std::is_invocable_r_v<double, Fct, double *, int, int>) {
+        double *raw = P;
+        return f(raw, component, domain);
+    } else if constexpr (std::is_invocable_r_v<double, Fct, double *, int>) {
+        double *raw = P;
+        return f(raw, component);
+    } else if constexpr (std::is_invocable_r_v<double, Fct, std::span<double>, int, int>) {
+        std::span<double> raw = P;
+        return f(raw, component, domain);
+    } else if constexpr (std::is_invocable_r_v<double, Fct, std::span<double>, int>) {
+        std::span<double> raw = P;
+        return f(raw, component);
+    } else if constexpr (std::is_invocable_r_v<double, Fct, Rd, int, int>) {
+        return f(P, component, domain);
+    } else {
+        return f(P, component);
+    }
+}
+
+} // namespace detail_boundary_dirichlet
 
 template <typename M> class BoundaryDirichlet {
 
@@ -44,12 +112,16 @@ template <typename M> class BoundaryDirichlet {
     BoundaryDirichlet(const cutspace_t &Vh, const int domain = 0);      // set strong BC on outer boundary of the active mesh corresponding to domain "domain" of a CutFEM problem
     BoundaryDirichlet(const cutspace_t &Vh, const BarycentricActiveMesh2& active_mesh, const int domain = 0);
     BoundaryDirichlet(const space_t &Vh, std::list<int> lab = {});     // set strong BC on the boundary of a standard fitted FEM mesh
+    BoundaryDirichlet(const space_t &Vh, std::vector<int> lab);
 
-    void apply_inhomogeneous(std::map<std::pair<int, int>, double> &A);
+    void apply_inhomogeneous(std::map<std::pair<int, int>, double> &A, size_t dof_start = 0);
     template <typename Fct>
-    void apply(std::span<double> b, const Fct &f);      // exact function f
-    void apply(std::span<double> b, const fct_t &f);    // fem function f
-    void apply(std::span<double> b, double val);
+    void apply(std::span<double> b, const Fct &f, size_t dof_start = 0);      // exact function f
+    template <typename Fct>
+    double apply_rt0_flux_moments(std::span<double> b, const Fct &f, size_t dof_start = 0,
+                                  int quadrature_order = 9);
+    void apply(std::span<double> b, const fct_t &f, size_t dof_start = 0);    // fem function f
+    void apply(std::span<double> b, double val, size_t dof_start = 0);
     // Column elimination + RHS shift for inhomogeneous g:
     // for r!=I: b[r] -= A(r,I)*g, and set A(r,I)=0. Keeps A(I,I)=1.
     void finalize_inhomogeneous(std::map<std::pair<int,int>, double>& A,
@@ -60,6 +132,8 @@ template <typename M> class BoundaryDirichlet {
     // void apply_homogeneous(std::map<std::pair<int, int>, double> &A, std::span<double> b);
 
     std::map<int, dof_data_t> boundary_dofs;
+    const mesh_t *mesh{nullptr};
+    const GTypeOfFE<mesh_t> *fe_type{nullptr};
 };
 
 // template <typename M>
@@ -136,6 +210,9 @@ template <typename M>
 BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, std::vector<int> lab) {
     const auto &Th    = Vh.Th;
     const auto &cutTh = Vh.get_mesh();
+    mesh = &Th;
+    fe_type = Vh.TFE(0);
+    const bool all_label = lab.size() == 0;
 
     // loop over boundary elements
     for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element(); idx_be += cutTh.next_boundary_element()) {
@@ -168,7 +245,7 @@ BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, std::vector<int> l
 
         // Check if the current boundary element label is in the list of labels to process, or if all labels are being processed
         auto it_lab = std::find(lab.begin(), lab.end(), BE.lab);
-        if (it_lab == lab.end())
+        if (!(all_label || it_lab != lab.end()))
             continue;
 
         // Skip processing if the element is cut
@@ -181,44 +258,18 @@ BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, std::vector<int> l
 
         // int ndof_node = FK.getBasisFct()->getDofEntities()[0];
         // int ndof_edge = FK.getBasisFct().getDofEntities()[1];
-        int ndof_edge_per_component = FK.tfe->ndfonEdge / Vh.N;
+        const int nb_component_loops = detail_boundary_dirichlet::single_trace_component_space(Vh.basisFctType) ? 1 : Vh.N;
 
-        for (int ic = 0; ic < Vh.N; ++ic) {
+        for (int ic = 0; ic < nb_component_loops; ++ic) {
             for (size_t df_loc = 0, df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df, ++df_loc) {
 
-                // here need a fct that give the item from the dof for P3 for example
-                int id_item       = df_loc;
-                bool is_on_border = false;
+                int id_item       = FK.DFOnWhat(df);
+                bool is_on_border = detail_boundary_dirichlet::dof_on_boundary_hyperface<elt_t, D>(id_item, idx_bdry_face);
 
-                // std::cout << "I'm here\n";
-
-                // case 1: dof is on node. E.g. (0, 1, 2) if triangle
-                if (id_item < T.nv) {
-                    for (int i = 0; i < elt_t::nva; ++i) {
-                        // std::cout << "nva = " << elt_t::nva << ", idx_bdry_face = " << idx_bdry_face << ", i = " << i << "\n";
-                        int i_e = elt_t::nvedge.at(idx_bdry_face).at(i);
-                        if (i_e == id_item) {
-                            is_on_border = true;
-                            break;
-                        }
-                    }
-                }
-                // case 2: dof is on an edge (or face)
-                else if (id_item < T.nv + T.ne * ndof_edge_per_component) { // df if on an edge
-
-                    int id_face = (id_item - T.nv) / ndof_edge_per_component;
-                    // std::cout << "id_item = " << id_item << std::endl;
-                    // std::cout << "id_item - T.nv = " << id_item - T.nv << std::endl;
-                    // std::cout << "id_face = " << id_face << std::endl;
-                    // std::cout << "ndof_edge = " << ndof_edge_per_component << std::endl;
-                    if (id_face == idx_bdry_face) {
-                        is_on_border = true;
-                    }
-                }
                 if (is_on_border) {
                     Rd P                   = dof_point.at(df_loc);
                     size_t df_glob         = FK.loc2glb(df);
-                    boundary_dofs[df_glob] = DofData<D>(kb, domain, ic, P);
+                    boundary_dofs[df_glob] = DofData<D>(kb, domain, ic, P, idx_bdry_face);
                 }
             }
         }
@@ -231,6 +282,8 @@ template <typename M>
 BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, const int domain) {
     const auto &Th    = Vh.Th;  // background mesh
     const auto &cutTh = Vh.get_mesh();  // active mesh
+    mesh = &Th;
+    fe_type = Vh.TFE(0);
 
     // loop over boundary elements
     //for (int idx_be = cutTh.first_boundary_element(); idx_be < cutTh.last_boundary_element(); idx_be += cutTh.next_boundary_element()) {
@@ -257,41 +310,20 @@ BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, const int domain) 
             std::vector<Rd> dof_points(FK.tfe->NbPtforInterpolation);
             FK.tfe->global_dofs(T, dof_points);
 
-            int ndof_edge_per_component = FK.tfe->ndfonEdge / Vh.N;
+            const int nb_component_loops = detail_boundary_dirichlet::single_trace_component_space(Vh.basisFctType) ? 1 : Vh.N;
         
-            for (int ic = 0; ic < Vh.N; ++ic) {
+            for (int ic = 0; ic < nb_component_loops; ++ic) {
                 for (size_t df_loc = 0, df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df, ++df_loc) {
 
-                    // here need a fct that give the item from the dof for P3 for example
-                    int id_item       = df_loc;
-                    bool is_on_border = false;
+                    int id_item       = FK.DFOnWhat(df);
+                    bool is_on_border = detail_boundary_dirichlet::dof_on_boundary_hyperface<elt_t, D>(id_item, ifac);
 
-                    // case 1: dof is on node. E.g. (0, 1, 2) if triangle
-                    if (id_item < T.nv) {
-                        for (int i = 0; i < elt_t::nva; ++i) {
-
-                            int i_e = elt_t::nvedge.at(ifac).at(i);
-                            if (i_e == id_item) {
-                                is_on_border = true;
-                                break;
-                            }
-                        }
-                    }
-                    // case 2: dof is on an edge (or face)
-                    else if (id_item < T.nv + T.ne * ndof_edge_per_component) { // df if on an edge
-
-                        int id_face = (id_item - T.nv) / ndof_edge_per_component;
-
-                        if (id_face == ifac) {
-                            is_on_border = true;
-                        }
-                    }
                     if (is_on_border) {
 
                         Rd P                   = dof_points.at(df_loc);
                         //std::cout << "Boundary point P = " << P << "\n";
                         size_t df_glob         = FK.loc2glb(df);
-                        boundary_dofs[df_glob] = DofData<D>(kb, domain, ic, P);
+                        boundary_dofs[df_glob] = DofData<D>(kb, domain, ic, P, ifac);
                     }
                 }
             }
@@ -304,8 +336,14 @@ BoundaryDirichlet<M>::BoundaryDirichlet(const cutspace_t &Vh, const int domain) 
 
 
 
+template <typename M>
+BoundaryDirichlet<M>::BoundaryDirichlet(const space_t &Vh, std::vector<int> lab)
+    : BoundaryDirichlet(Vh, std::list<int>(lab.begin(), lab.end())) {}
+
 template <typename M> BoundaryDirichlet<M>::BoundaryDirichlet(const space_t &Vh, std::list<int> lab) {
     const mesh_t &Th = Vh.Th;
+    mesh = &Th;
+    fe_type = Vh.TFE(0);
 
     bool all_label = (lab.size() == 0);
 
@@ -345,53 +383,36 @@ template <typename M> BoundaryDirichlet<M>::BoundaryDirichlet(const space_t &Vh,
         // }
 
 
-        int ndof_edge_per_component = FK.tfe->ndfonEdge / Vh.N;
+        const int nb_component_loops = detail_boundary_dirichlet::single_trace_component_space(Vh.basisFctType) ? 1 : Vh.N;
 
-        for (int ic = 0; ic < Vh.N; ++ic) {
+        for (int ic = 0; ic < nb_component_loops; ++ic) {
             for (size_t df_loc = 0, df = FK.dfcbegin(ic); df < FK.dfcend(ic); ++df, ++df_loc) {
 
-                // here need a fct that give the item from the dof for P3 for example
-                int id_item       = df_loc;
-                bool is_on_border = false;
+                int id_item       = FK.DFOnWhat(df);
+                bool is_on_border = detail_boundary_dirichlet::dof_on_boundary_hyperface<elt_t, D>(id_item, face_idx);
 
-                // case 1: dof is on node. E.g. (0, 1, 2) if triangle
-                if (id_item < T.nv) {
-                    for (int i = 0; i < elt_t::nva; ++i) {
-                        int i_e = elt_t::nvedge.at(face_idx).at(i);
-                        if (i_e == id_item) {
-                            is_on_border = true;
-                            break;
-                        }
-                    }
-                }
-                // case 2: dof is on an edge (or face)
-                else if (id_item < T.nv + T.ne * ndof_edge_per_component) { // df if on an edge
-
-                    int id_face = (id_item - T.nv) / ndof_edge_per_component;
-                    if (id_face == face_idx) {
-                        is_on_border = true;
-                    }
-                }
                 if (is_on_border) {
                     Rd P                   = dof_point.at(df_loc);
                     size_t df_glob         = FK.loc2glb(df);
-                    boundary_dofs[df_glob] = DofData<D>(elt_idx, domain, ic, P);
+                    boundary_dofs[df_glob] = DofData<D>(elt_idx, domain, ic, P, face_idx);
                 }
             }
         }
     }
 }
 
-template <typename M> void BoundaryDirichlet<M>::apply_inhomogeneous(std::map<std::pair<int, int>, double> &A_map) {
+template <typename M> void BoundaryDirichlet<M>::apply_inhomogeneous(std::map<std::pair<int, int>, double> &A_map,
+                                                                      size_t dof_start) {
 
     using it_t = std::map<std::pair<int, int>, double>::iterator;
 
     size_t nz_rm  = 0;
     it_t it_start = A_map.begin();
     for (auto &[df, dof_data] : boundary_dofs) {
+        const int I_dof = static_cast<int>(df + dof_start);
 
-        std::pair<int, int> min_val = std::make_pair(df, 0);
-        std::pair<int, int> max_val = std::make_pair(df + 1, 0);
+        std::pair<int, int> min_val = std::make_pair(I_dof, 0);
+        std::pair<int, int> max_val = std::make_pair(I_dof + 1, 0);
 
         auto it_begin = std::find_if(it_start, A_map.end(), [&min_val](auto &a) { return a.first >= min_val; });
         auto it_end   = std::find_if(it_begin, A_map.end(), [&max_val](auto &a) { return a.first >= max_val; });
@@ -399,7 +420,7 @@ template <typename M> void BoundaryDirichlet<M>::apply_inhomogeneous(std::map<st
         nz_rm += std::distance(it_begin, it_end);
         A_map.erase(it_begin, it_end);
 
-        A_map[std::make_pair(df, df)] = 1.0;
+        A_map[std::make_pair(I_dof, I_dof)] = 1.0;
 
         it_start = it_end;
         nz_rm--;
@@ -409,26 +430,114 @@ template <typename M> void BoundaryDirichlet<M>::apply_inhomogeneous(std::map<st
     // std::cout << A_map.size() + nz_rm << " ?= " << nz << std::endl;
 }
 
-template <typename M> void BoundaryDirichlet<M>::apply(std::span<double> b, const fct_t &f) {
+template <typename M> void BoundaryDirichlet<M>::apply(std::span<double> b, const fct_t &f, size_t dof_start) {
 
     for (auto &[df, dof_data] : boundary_dofs) {
-        b[df] = f.evalOnBackMesh(dof_data.k, dof_data.domain, dof_data.P, dof_data.ci, op_id);
+        b[df + dof_start] = f.v[df];
     }
 }
 
 template <typename M> 
 template <typename Fct>
-void BoundaryDirichlet<M>::apply(std::span<double> b, const Fct &f) {
+void BoundaryDirichlet<M>::apply(std::span<double> b, const Fct &f, size_t dof_start) {
 
     for (auto &[df, dof_data] : boundary_dofs) {
-        b[df] = f(dof_data.P, dof_data.ci);
+        b[df + dof_start] = detail_boundary_dirichlet::eval_component(f, dof_data.P, dof_data.ci, dof_data.domain);
     }
 }
 
-template <typename M> void BoundaryDirichlet<M>::apply(std::span<double> b, double val) {
+template <typename M>
+template <typename Fct>
+double BoundaryDirichlet<M>::apply_rt0_flux_moments(std::span<double> b, const Fct &f, size_t dof_start,
+                                                    int quadrature_order) {
+    if (!mesh || !fe_type)
+        throw std::runtime_error("BoundaryDirichlet has no associated mesh/finite-element metadata.");
+
+    if constexpr (D != 3) {
+        throw std::runtime_error("apply_rt0_flux_moments is currently implemented for 3D RT0 face moments only.");
+    } else {
+        auto rt0_basis_flux_scale = [this](const elt_t &T, int local_face) -> double {
+            if (fe_type == &DataFE<mesh_t>::RT0)
+                return 1.;
+            if (fe_type == &DataFE<mesh_t>::RT0_scaled_volume)
+                return D * T.measure();
+            if (fe_type == &DataFE<mesh_t>::RT0_scaled_edge)
+                return T.Edge(0).norm();
+            if (fe_type == &DataFE<mesh_t>::RT0_scaled_face)
+                return T.mesureBord(local_face);
+
+            throw std::runtime_error(
+                "apply_rt0_flux_moments supports RT0 and the 3D RT0 scaled variants only.");
+        };
+
+        struct MomentData {
+            int df;
+            double value;
+            double area;
+            int orientation;
+            double flux_scale;
+        };
+
+        std::vector<MomentData> moments;
+        moments.reserve(boundary_dofs.size());
+
+        using qfb_t = GQuadratureFormular<typename elt_t::RdHatBord>;
+        const qfb_t &qfb(*QF_Simplex<typename elt_t::RdHatBord>(quadrature_order));
+
+        double local_total_flux = 0.;
+        double local_total_area = 0.;
+
+        for (const auto &[df, dof_data] : boundary_dofs) {
+            assert(dof_data.local_face >= 0);
+
+            const elt_t &T((*mesh)[dof_data.k]);
+            const int orientation = T.faceOrient(dof_data.local_face);
+            Rd area_normal = T.N_notNormalized(dof_data.local_face);
+            area_normal *= orientation / 2.;
+            const double flux_scale = rt0_basis_flux_scale(T, dof_data.local_face);
+
+            double signed_flux = 0.;
+            for (int ipq = 0; ipq < qfb.getNbrOfQuads(); ++ipq) {
+                typename qfb_t::QuadraturePoint ip(qfb[ipq]);
+                const Rd Phat = T.mapToReferenceElement(ip, dof_data.local_face);
+                const Rd P = T(Phat);
+
+                Rd uD;
+                for (int c = 0; c < D; ++c)
+                    uD[c] = detail_boundary_dirichlet::eval_component(f, P, c, dof_data.domain);
+
+                signed_flux += ip.getWeight() * (uD, area_normal);
+            }
+
+            const double area = area_normal.norm();
+            const double value = signed_flux / flux_scale;
+            moments.push_back({df, value, area, orientation, flux_scale});
+            local_total_flux += value * orientation * flux_scale;
+            local_total_area += area;
+        }
+
+        double total_flux = local_total_flux;
+        double total_area = local_total_area;
+#ifdef USE_MPI
+        MPIcf::AllReduce(local_total_flux, total_flux, MPI_SUM);
+        MPIcf::AllReduce(local_total_area, total_area, MPI_SUM);
+#endif
+
+        for (const auto &moment : moments) {
+            double value = moment.value;
+            if (total_area > 0.)
+                value -= total_flux * moment.orientation * moment.area / (total_area * moment.flux_scale);
+            b[static_cast<size_t>(moment.df) + dof_start] = value;
+        }
+
+        return total_flux;
+    }
+}
+
+template <typename M> void BoundaryDirichlet<M>::apply(std::span<double> b, double val, size_t dof_start) {
 
     for (auto &[df, dof_data] : boundary_dofs) {
-        b[df] = val;
+        b[df + dof_start] = val;
     }
 }
 
