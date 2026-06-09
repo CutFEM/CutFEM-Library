@@ -21,6 +21,8 @@ template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option);
+template<typename Phi>
+AlgoimQuadratureRule<MeshQuad2> quadGenFace(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option, int ifac);
 
 
 template <typeMesh Mesh, typename Phi>

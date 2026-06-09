@@ -64,6 +64,7 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
         // pick component: inside triangle AND phi<0
         if (psi_ref(xi) >= 0) return; // exact
         if (algoim::bernstein::evalBernsteinPoly(phiB, xi) >= 0) return;
+        // if (phi(F(xi)) >= 0) return;
 
         Vec2 x = F(xi);
         rule.points.emplace_back(R2(x(0), x(1)));
@@ -149,6 +150,7 @@ AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const
     [&](const Vec2& xi, real /*w_ref*/, const Vec2& wn_ref)
     {
         const real ph  = algoim::bernstein::evalBernsteinPoly(phiB, xi);
+        // const real ph = phi(F(xi));
         const real ps  = psi_ref(xi); // exact
         if (ps >= 0) return;          // must be inside triangle
 
