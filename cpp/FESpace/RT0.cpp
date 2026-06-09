@@ -663,8 +663,8 @@ void TypeOfFE_RT0_scaled_face_3d::FB(const What_d whatd, const Element &K, const
     bfMat   = 0;
     
     R cc    = 1. / (d * K.measure()); 
-    R ci[4] = {cc * K.faceOrient(0) * K.N_notNormalized(0).norm(), cc * K.faceOrient(1) * K.N_notNormalized(1).norm(), 
-               cc * K.faceOrient(2) * K.N_notNormalized(2).norm(), cc * K.faceOrient(3) * K.N_notNormalized(3).norm()}; 
+    R ci[4] = {cc * K.faceOrient(0) * K.mesureBord(0), cc * K.faceOrient(1) * K.mesureBord(1),
+               cc * K.faceOrient(2) * K.mesureBord(2), cc * K.faceOrient(3) * K.mesureBord(3)};
 
     if (whatd & Fop_D0) {
         R3 X  = K(PHat);
