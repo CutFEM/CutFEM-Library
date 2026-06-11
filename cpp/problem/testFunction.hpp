@@ -1024,9 +1024,7 @@ template <typeMesh mesh_t> TestFunction<mesh_t> EpsS(const TestFunction<mesh_t> 
     int D       = mesh_t::D;
     assert(N == D && M == 1);
 
-    TestFunction<mesh_t> gradST = gradS(T);
-    TestFunction<mesh_t> epsST  = 0.5 * gradST + 0.5 * transpose(gradST);
-    return projectS(epsST);
+    return projectS(Eps(T));
 }
 
 /**
