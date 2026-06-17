@@ -59,6 +59,9 @@ class AlgoimCutFEMUnified : public BaseCutFEM<Mesh>, public Solver {
 
 public:
 
+    using BaseCutFEM<mesh_t>::addBilinear;
+    using BaseCutFEM<mesh_t>::addLinear;
+
     AlgoimCutFEMUnified(const fespace_t& vh, Phi& phi, const ProblemOption& opt = defaultProblemOption)
       : BaseCutFEM<mesh_t>(vh, opt),
         Solver(opt),
@@ -95,6 +98,8 @@ public:
     void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1, 
                             const std::pair<int, int> &e2, const TimeSlab *In, 
                             int itq, double cst_time) override;
+
+
 
     // void addBilinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
     // void addLinearAlgoim(const itemVFlist_t &VF, const ActiveMesh<mesh_t> &Th);
