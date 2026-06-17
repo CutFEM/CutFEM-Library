@@ -160,8 +160,8 @@ Partition<typename InterfaceLevelSet_P2<M>::Element> InterfaceLevelSet_P2<M>::ge
     return coarse_partition;
 }
 
-// Face partition for a cut face, using P2 sub-triangle refinement (3D) or
-// P1 fallback (2D).
+// Face partition for a cut face, using P2 sub-edge refinement (2D) or
+// P2 sub-triangle refinement (3D).
 template <typeMesh M>
 Partition<typename InterfaceLevelSet_P2<M>::Element::Face>
 InterfaceLevelSet_P2<M>::get_partition_face(const typename Element::Face &face, int k, int ifac) const {
@@ -170,11 +170,59 @@ InterfaceLevelSet_P2<M>::get_partition_face(const typename Element::Face &face, 
     using RdHatFace = typename FaceType::RdHat;
 
     if constexpr (M::D == 2) {
-        // 2D: face (edge) has nv=2 vertices; use P1 partition with coarse vertex signs.
-        double loc_ls[FaceType::nv];
-        for (int i = 0; i < FaceType::nv; ++i)
-            loc_ls[i] = ls_p2_[k][Element::nvhyperFace[ifac][i]];
-        return Partition<FaceType>(face, loc_ls);
+        // 2D: face is an edge with 2 vertices + 1 midpoint. Same scheme as 3D:
+        // split into 2 half-edges at the midpoint, P1-cut each half, and map
+        // the resulting pieces back to the coarse face reference space. This
+        // keeps the face cut points consistent with the bulk partition and
+        // handles doubly-cut edges (both endpoints same sign, midpoint opposite).
+        double face_vals[3];
+        face_vals[0] = ls_p2_[k][Element::nvhyperFace[ifac][0]];
+        face_vals[1] = ls_p2_[k][Element::nvhyperFace[ifac][1]];
+        // In 2D, face ifac IS edge ifac: midpoint at local P2 index nv + ifac.
+        face_vals[2] = ls_p2_[k][Element::nv + ifac];
+
+        // Local face nodes: 0,1 = endpoints (ref coords 0,1), 2 = midpoint (0.5).
+        static constexpr int sub_idx[2][2]  = {{0, 2}, {2, 1}};
+        static constexpr double ref_node[3] = {0.0, 1.0, 0.5};
+
+        // Custom partition for the coarse face.
+        Partition<FaceType> coarse_face_partition(face, true);
+
+        for (int s = 0; s < 2; ++s) {
+            double sub_vals[FaceType::nv];
+            for (int j = 0; j < FaceType::nv; ++j)
+                sub_vals[j] = face_vals[sub_idx[s][j]];
+
+            Partition<FaceType> sub_part(face, sub_vals);
+
+            // Reference coords of the half-edge endpoints in the coarse face ref space.
+            RdHatFace sub_corners[FaceType::nv];
+            for (int j = 0; j < FaceType::nv; ++j)
+                sub_corners[j] = RdHatFace(ref_node[sub_idx[s][j]]);
+
+            for (auto it = sub_part.element_begin(0); it != sub_part.element_end(0); ++it) {
+                const int sign = sub_part.whatSign(it);
+
+                // Compute coarse face reference coordinates directly.
+                RdHatFace mapped_pts[FaceType::nv];
+                for (int i = 0; i < FaceType::nv; ++i) {
+                    const Uint idx = (*it)[i];
+                    if (idx < static_cast<Uint>(FaceType::nv)) {
+                        // Endpoint: coarse face ref coords are sub_corners[idx].
+                        mapped_pts[i] = sub_corners[idx];
+                    } else {
+                        // Cut point on the half-edge at parameter t.
+                        const int e_loc = static_cast<int>(idx) - FaceType::nv;
+                        const int v0    = FaceType::nvedge[e_loc][0];
+                        const int v1    = FaceType::nvedge[e_loc][1];
+                        const double t  = -sub_vals[v0] / (sub_vals[v1] - sub_vals[v0]);
+                        mapped_pts[i]   = (1.0 - t) * sub_corners[v0] + t * sub_corners[v1];
+                    }
+                }
+                coarse_face_partition.add_simplex(sign, mapped_pts);
+            }
+        }
+        return coarse_face_partition;
     } else {
         // 3D: face is a triangle with 3 vertices + 3 edge midpoints.
         // Use SubElementTable<Triangle2> (same index structure as any triangle face).
