@@ -482,6 +482,88 @@ void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, const
     }
 }
 
+// Averaging variant of interpolateOnBackGroundMesh.  On a cut cell, instead of
+// giving each background node the value of the single phase the node sits in
+// (the per-node sign(ls) pick), it gives each node the arithmetic mean of all
+// the cut sub-elements' polynomials evaluated at that node.  Because the cut FE
+// functions live in the background element's polynomial space, this nodal
+// average is exact: uh|_K = (1/m) sum_s u_s as a polynomial, so evaluating uh
+// anywhere in K -- in particular at a point on the interface -- returns the true
+// average(u) there.  That is the single-valued surface velocity used by the
+// interface weak forms, and it removes the spurious O(h) cut-cell gradient
+// error (and hence the large spurious divergence) of the sign-pick
+// reconstruction.  On uncut cells (one sub-element) it is identical to
+// interpolateOnBackGroundMesh.
+template <typename Mesh>
+void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh,
+                                  [[maybe_unused]] const FunFEM<Mesh> &ls) {
+
+    using Rd = typename Mesh::Rd;
+
+    const auto &Vh_cut = *fh.Vh;
+    const auto &cutTh  = Vh_cut.get_mesh();
+    const auto &Vh     = *uh.Vh;
+
+    std::ranges::fill(uh.v, 0.);
+    for (int k = 0; k < Vh.NbElement(); ++k) {
+        const auto &FK(Vh[k]);
+
+        std::vector<int> idx_K = cutTh.idxAllElementFromBackMesh(k, -1);
+        const double inv_n     = 1. / static_cast<double>(idx_K.size());
+        for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
+            Rd x = FK.Pt(i);
+            for (int ci = 0; ci < Rd::d; ++ci) {
+                double val = 0.;
+                for (int kcut : idx_K)
+                    val += fh.eval(kcut, x, ci);
+                uh(FK(i + FK.dfcbegin(ci))) = inv_n * val;
+            }
+        }
+    }
+}
+
+// Hdiv-conforming variant (RT, BDM): uses Pi_h to apply the correct flux
+// moment conditions instead of pointwise nodal evaluation.
+template <typename Mesh>
+void interpolateOnBackGroundMeshHdiv(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, const FunFEM<Mesh> &ls) {
+    using Rd = typename Mesh::Rd;
+
+    const auto &Vh_cut = *fh.Vh;
+    const auto &cutTh  = Vh_cut.get_mesh();
+    const auto &Vh     = *uh.Vh;
+    const int d        = Rd::d;
+
+    KNM<R> Vpf(Vh.TFE(0)->NbPtforInterpolation, d);
+    KN<R>  ggf(Vh.MaxNbDFPerElement);
+
+    std::ranges::fill(uh.v, 0.);
+
+    for (int k = 0; k < Vh.NbElement(); ++k) {
+        const auto &FK(Vh[k]);
+        const int nbdf = FK.NbDoF();
+
+        auto idx_K = cutTh.idxAllElementFromBackMesh(k, -1);
+
+        for (int p = 0; p < FK.tfe->NbPtforInterpolation; ++p) {
+            Rd x   = FK.Pt(p);
+            int kcut;
+            if (idx_K.size() > 1) {
+                R lsval = ls.eval(k, x);
+                kcut    = (lsval > 0) ? idx_K[0] : idx_K[1];
+            } else {
+                kcut = idx_K[0];
+            }
+            for (int ci = 0; ci < d; ++ci)
+                Vpf(p, ci) = fh.eval(kcut, x, ci);
+        }
+
+        FK.Pi_h(Vpf, ggf);
+
+        for (int df = 0; df < nbdf; ++df)
+            uh(FK(df)) = ggf[df];
+    }
+}
+
 template <typename Mesh>
 void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, const FunFEM<Mesh> &ls, double tt) {
 
