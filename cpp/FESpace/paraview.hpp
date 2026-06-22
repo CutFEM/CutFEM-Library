@@ -127,6 +127,71 @@ template <class M> class Paraview {
                 ntNotcut_++;
             }
         }
+
+        void build_interface(const Interface<Mesh> &interface) {
+
+            ntCut_    = 0;
+            ntNotcut_ = 0;
+            nv_       = 0;
+
+            const int n_interface = interface.nbElement();
+            clearAndResize(n_interface + 1);
+
+            const int nve_face  = Interface<Mesh>::nve;
+            const int cell_type = (nve_face == 2) ? 3 : 5; // VTK_LINE in 2D, VTK_TRIANGLE in 3D
+
+            int kk = 0;
+            for (int iface = 0; iface < n_interface; ++iface) {
+                check_and_resize_array(kk);
+
+                const int kb = interface.idxElementOfFace(iface);
+                idx_in_Vh[kk] = std::make_pair(kb, 0);
+                num_cell[kk]  = std::make_pair(nve_face, cell_type);
+
+                for (int i = 0; i < nve_face; ++i) {
+                    mesh_node[kk].push_back(interface(iface, i));
+                }
+
+                nv_ += nve_face;
+                ntNotcut_++;
+                kk++;
+            }
+
+            shrinkToFit(kk + 1);
+        }
+
+        void build_interface_midpoints(const Interface<Mesh> &interface) {
+
+            ntCut_    = 0;
+            ntNotcut_ = 0;
+            nv_       = 0;
+
+            const int n_interface = interface.nbElement();
+            clearAndResize(n_interface + 1);
+
+            int kk = 0;
+            for (int iface = 0; iface < n_interface; ++iface) {
+                check_and_resize_array(kk);
+
+                const int kb = interface.idxElementOfFace(iface);
+                idx_in_Vh[kk] = std::make_pair(kb, 0);
+                num_cell[kk]  = std::make_pair(1, 1); // VTK_VERTEX
+
+                Rd midpoint(interface(iface, 0));
+                for (int i = 1; i < Interface<Mesh>::nve; ++i) {
+                    midpoint += interface(iface, i);
+                }
+                midpoint *= 1.0 / Interface<Mesh>::nve;
+
+                mesh_node[kk].push_back(midpoint);
+
+                nv_ += 1;
+                ntNotcut_++;
+                kk++;
+            }
+
+            shrinkToFit(kk + 1);
+        }
         void build(const ActiveMesh<Mesh> &cutTh);
         void build(const ActiveMesh<Mesh> &cutTh, int itq);
         void buildCut(const ActiveMesh<Mesh> &cutTh) {
@@ -1946,6 +2011,55 @@ template <class M> class Paraview {
         mesh_data.build(Th);
         this->writeFileMesh();
         this->writeFileCell();
+    }
+
+    void writeBackgroundMesh(const Mesh &Th, std::string name) {
+        nbDataFile = 0;
+        outFile_   = name;
+        mesh_data.build(Th);
+        this->writeFileMesh();
+        this->writeFileCell();
+    }
+
+    void writeInterfaceMesh(const Interface<Mesh> &interface, std::string name) {
+        nbDataFile = 0;
+        outFile_   = name;
+        mesh_data.build_interface(interface);
+        this->writeFileMesh();
+        this->writeFileCell();
+    }
+
+    void writeInterfaceNormals(const Interface<Mesh> &interface, std::string name, double scale = 1.0) {
+        nbDataFile = 0;
+        outFile_   = name;
+        mesh_data.build_interface_midpoints(interface);
+        this->writeFileMesh();
+        this->writeFileCell();
+
+        std::ofstream data(outFile_.c_str(), std::ofstream::out | std::ofstream::app);
+        data << "POINT_DATA " << mesh_data.nbNode() << std::endl;
+        data << "VECTORS normal float" << std::endl;
+
+        for (int iface = 0; iface < interface.nbElement(); ++iface) {
+            Rd n(interface.normal(iface));
+            n *= scale;
+            if constexpr (Rd::d == 2) {
+                data << paraviewFormat(n[0]) << "\t" << paraviewFormat(n[1]) << "\t0.0" << std::endl;
+            } else {
+                data << paraviewFormat(n[0]) << "\t" << paraviewFormat(n[1]) << "\t" << paraviewFormat(n[2])
+                     << std::endl;
+            }
+        }
+
+        data.close();
+        nbDataFile = 1;
+    }
+
+    void writeInterfaceDebug(const Interface<Mesh> &interface, const std::string &prefix,
+                             double normal_scale = 1.0) {
+        this->writeBackgroundMesh(interface.get_mesh(), prefix + "_background.vtk");
+        this->writeInterfaceMesh(interface, prefix + "_interface.vtk");
+        this->writeInterfaceNormals(interface, prefix + "_normals.vtk", normal_scale);
     }
 
     // Writes interface triangles with outward normals as CELL_DATA into a single VTK file.
