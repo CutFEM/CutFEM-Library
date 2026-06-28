@@ -3,7 +3,8 @@
 #define ALGOIM_INTERFACE_TPP
 
 template <typeMesh M, typename L>
-AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_, int label) : Interface<M>(Mesh), phi(phi_) {
+AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_, int label)
+    : Interface<M>(Mesh), phi_owned_(make_level_set_view<M, L>(phi_)), phi(*phi_owned_) {
 
     make_algoim_patch(label);
 }
@@ -18,6 +19,8 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
     this->element_of_face_.resize(0);
     // this->outward_normal_.resize(0);
     this->face_of_element_.clear();
+    cut_elements.clear();
+    number_of_cut_elements = 0;
 
     ProblemOption options;
     options.order_space_element_quadrature_ = 3;
@@ -44,11 +47,12 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
             phi.setElementFromBackMesh(k);
         }
         auto q = quadGenSurf(K, phi, options);
-        // double cut_threshold = 1e-6;
+        double surface_measure = 0.0;
+        for (const double weight : q.weights)
+            surface_measure += std::abs(weight);
 
-
-        //if ((q.points.size() == 0) || (std::accumulate(q.weights.begin(), q.weights.end(), 0.0) < cut_threshold)) {
-        if (q.size() == 0) {
+        const double cut_threshold = 1.0e-12 * std::max(1.0, K.hElement());
+        if (q.size() == 0 || surface_measure <= cut_threshold) {
             // K is not cut
             continue;
         } else {
@@ -58,6 +62,36 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
             number_of_cut_elements += 1;
         }
     }
+}
+
+template <typeMesh M, typename L>
+const AlgoimQuadratureRule<M> *AlgoimInterface<M, L>::get_cut_quadrature(int k) const {
+    const auto it = cut_elements.find(k);
+    if (it == cut_elements.end())
+        return nullptr;
+    return &it->second;
+}
+
+// Prefer a freshly regenerated surface rule; if regeneration missed a borderline
+// cell that the AlgoimInterface already accepted, fall back to the rule cached on
+// the interface. Returns a pointer into either `generated_quad_rule` (which must
+// outlive the use) or the interface's stored rule.
+template <typeMesh mesh_t, typename L>
+const AlgoimQuadratureRule<mesh_t> *
+algoim_surface_rule_or_cached(const Interface<mesh_t> &interface, const int kb,
+                              const AlgoimQuadratureRule<mesh_t> &generated_quad_rule) {
+    if (generated_quad_rule.size() > 0)
+        return &generated_quad_rule;
+
+    if (const auto *algoim_interface =
+            dynamic_cast<const AlgoimInterface<mesh_t, std::remove_cvref_t<L>> *>(&interface)) {
+        if (const auto *cached_quad_rule = algoim_interface->get_cut_quadrature(kb);
+            cached_quad_rule && cached_quad_rule->size() > 0) {
+            return cached_quad_rule;
+        }
+    }
+
+    return &generated_quad_rule;
 }
 
 /**
@@ -76,8 +110,35 @@ SignElement<typename AlgoimInterface<M, L>::Element> AlgoimInterface<M, L>::get_
         phi.setElementFromBackMesh(k);
     }
     double loc_ls[Element::nv]; // list with size = number of vertices on the element
+    bool has_zero_vertex = false;
     for (int i = 0; i < Element::nv; ++i) {
         loc_ls[i] = phi(this->backMesh->operator[](k).at(i));
+        has_zero_vertex = has_zero_vertex || (loc_ls[i] == 0.0);
+    }
+
+    if (has_zero_vertex) {
+        typename M::Rd center;
+        for (int i = 0; i < Element::nv; ++i) {
+            center += this->backMesh->operator[](k).at(i);
+        }
+        center /= static_cast<double>(Element::nv);
+
+        double replacement = phi(center);
+        if (replacement == 0.0) {
+            for (int i = 0; i < Element::nv; ++i) {
+                if (loc_ls[i] != 0.0) {
+                    replacement = loc_ls[i];
+                    break;
+                }
+            }
+        }
+        if (replacement == 0.0)
+            replacement = 1.0;
+
+        for (int i = 0; i < Element::nv; ++i) {
+            if (loc_ls[i] == 0.0)
+                loc_ls[i] = replacement;
+        }
     }
     return SignElement<Element>(loc_ls);
 }

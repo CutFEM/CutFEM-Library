@@ -23,8 +23,14 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     // save cut elements as a map of background mesh index of cut element, and corresponding interface quadrature rule
 
-    L phi;
-    // const L &phi;
+    // The level set is held through a unique_ptr (built by make_level_set_view)
+    // so that a non-copyable FunFEM can be stored as an independent non-owning
+    // view; the reference `phi` preserves the original by-value member interface
+    // used throughout this class.  The viewed/copied level set must outlive this
+    // interface (true for the per-time-node level sets owned by the geometry in
+    // the active-surface driver).
+    std::unique_ptr<L> phi_owned_;
+    L &phi;
     const int quadrature_order = 5;
     int number_of_cut_elements{0};
     // std::map<int, algoim::QuadratureRule<2>> cut_elements;
@@ -35,6 +41,7 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     // std::map<int, algoim::QuadratureRule<2>> get_cut_elements() { return cut_elements; }
     std::map<int, AlgoimQuadratureRule<M>> get_cut_elements() { return cut_elements; }
+    const AlgoimQuadratureRule<M> *get_cut_quadrature(int k) const;
     int get_nb_cut_elements() { return cut_elements.size(); }
     SignElement<Element> get_SignElement(int k) const override;
     Partition<Element> get_partition(int k) const override;

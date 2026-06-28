@@ -10,6 +10,8 @@
       http://dx.doi.org/10.2140/camcos.2014.9.107
 */
 
+#include <cmath>
+
 #include "uvector.hpp"
 #include "utility.hpp"
 
@@ -127,7 +129,7 @@ namespace algoim
                 for (int i = 0; i < N; ++i)
                     msqr += util::sqr(gradf(i));
                 if (msqr > util::sqr(0.5*r))
-                    gradf *= 0.5*r/sqrt(msqr);
+                    gradf *= 0.5*r/std::sqrt(msqr);
 
                 // Update
                 for (int i = 0; i < N; ++i)
@@ -145,7 +147,7 @@ namespace algoim
                 // Clamp delta2, the tangential direction, necessary when interface undergoes high curvature
                 double msqr = sqrnorm(delta2);
                 if (msqr > util::sqr(0.1*r))
-                    delta2 *= 0.1*r/sqrt(msqr);
+                    delta2 *= 0.1*r/std::sqrt(msqr);
                 x -= delta1 + delta2;
             }
 

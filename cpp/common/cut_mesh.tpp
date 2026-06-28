@@ -619,11 +619,10 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const Interfac
             // std::cout << "domain \t" << d << " Mesh::Element back " << kb << "\t =>
             // loc id " << k << std::endl;
             auto it_gamma = interface_id_[0].find(std::make_pair(d, k));
-            // const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
-            bool is_cut   = interface.isCut(kb);
+            const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(kb);
+            const bool is_cut = interface.isCut(kb) || signK.cut();
 
             // REMOVE THE Mesh::Element IN THE INPUT DOMAIN
-            // if (!signK.cut()) {
             if (!is_cut) {
 
                 it_k = idx_from_background_mesh_[d].erase(it_k);
@@ -695,8 +694,10 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInte
                 const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(kb);
                 const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(kb);
 
-                const bool Ki_cut  = interface(t)->isCut(kb);
-                const bool Kii_cut = interface(t + 1)->isCut(kb);
+                const bool Ki_cut =
+                    interface(t)->isCut(kb) || signKi.cut();
+                const bool Kii_cut =
+                    interface(t + 1)->isCut(kb) || signKii.cut();
 
                 // if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
                 if (Ki_cut || Kii_cut || signKi.sign() * signKii.sign() <= 0) {
@@ -728,10 +729,10 @@ template <typename Mesh> void ActiveMesh<Mesh>::createSurfaceMesh(const TimeInte
                     interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(old_interface[i], ss[i]));
                 }
                 // IS CUT SO NEED TO ADD INTERFACE AND SIGN
-                // const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(kb);
-                bool K_is_cut = interface(it)->isCut(kb);
+                const SignElement<typename ActiveMesh<Mesh>::Element> signK =
+                    interface(it)->get_SignElement(kb);
+                const bool K_is_cut = interface(it)->isCut(kb) || signK.cut();
 
-                // if (signK.cut()) {
                 if (K_is_cut) {
                     interface_id_[it][std::make_pair(d, nt[d])].push_back(std::make_pair(interface[it], 0));
                 } else {
@@ -777,7 +778,9 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &
             const SignElement<typename ActiveMesh<Mesh>::Element> signKi  = interface(t)->get_SignElement(k);
             const SignElement<typename ActiveMesh<Mesh>::Element> signKii = interface(t + 1)->get_SignElement(k);
             s                                                             = signKi.sign();
-            if (signKi.cut() || signKii.cut() || signKi.sign() * signKii.sign() <= 0) {
+            const bool Ki_is_cut  = interface(t)->isCut(k) || signKi.cut();
+            const bool Kii_is_cut = interface(t + 1)->isCut(k) || signKii.cut();
+            if (Ki_is_cut || Kii_is_cut || signKi.sign() * signKii.sign() <= 0) {
                 active_element = true;
                 break;
             }
@@ -787,14 +790,15 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const TimeInterface<Mesh> &
             for (int it = 0; it < n_tid; ++it) {
                 const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface(it)->get_SignElement(k);
                 int st                                                      = signK.sign();
-                if (!signK.cut() && st == -1) {
+                const bool K_is_cut = interface(it)->isCut(k) || signK.cut();
+                if (!K_is_cut && st == -1) {
                     not_in_active_mesh_[0][it][nt0] = true;
                 }
-                if (!signK.cut() && st == 1) {
+                if (!K_is_cut && st == 1) {
                     not_in_active_mesh_[1][it][nt1] = true;
                 }
 
-                if (signK.cut()) {
+                if (K_is_cut) {
                     interface_id_[it][std::make_pair(0, nt0)].push_back(std::make_pair(interface[it], 1));
                     interface_id_[it][std::make_pair(1, nt1)].push_back(std::make_pair(interface[it], -1));
                 }
@@ -1285,10 +1289,13 @@ template <typename Mesh> void ActiveMesh<Mesh>::init(const Interface<Mesh> &inte
         // Get the sign of the current element
         const SignElement<typename ActiveMesh<Mesh>::Element> signK = interface.get_SignElement(k);
 
-        const bool K_is_cut = interface.isCut(k);
+        const bool K_is_cut = interface.isCut(k) || signK.cut();
 
-        // If the element is cut, add it to both domains
-        if (signK.cut()) {
+        // If the element is cut, add it to both domains.  Use the union of
+        // interface.isCut(k) and vertex-sign cuts: the first catches
+        // higher-order cuts, the second catches sign-changing cells that the
+        // high-order detector did not register.
+        if (K_is_cut) {
             // Push the index of the element into both positive and negative domain index arrays
             idx_in_background_mesh_[0].push_back(k);
             idx_from_background_mesh_[0][k] = nt0;

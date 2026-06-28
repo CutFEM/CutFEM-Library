@@ -73,6 +73,17 @@ template <typename Mesh> class TimeInterface {
             interface_[i] = std::make_unique<AlgoimInterface<MeshQuad2, Fct>>(Th, ls);
         }
     }
+    // Explicitly build an algoim (high-order) interface at time node i, even when
+    // the level set is a FunFEM.  The default init() routes a FunFEM to the
+    // piecewise-linear InterfaceLevelSet(_P2); use this when the cut quadrature
+    // must come from algoim (e.g. paired with AlgoimCutFEMUnified, whose assembly
+    // regenerates the rule from its own phi_ and so needs a topology consistent
+    // with algoim's cut detection).
+    template <typename Fct> void initAlgoim(int i, const Mesh &Th, const Fct &ls) {
+        assert(0 <= i && i < n_);
+        interface_[i] = std::make_unique<AlgoimInterface<mesh_t, Fct>>(Th, ls);
+    }
+
     // template <typename Fct> void init(const Mesh &Th, const KN<Fct> &ls);
     // {
     //     assert(n_ == ls.size());

@@ -13,8 +13,9 @@
         http://dx.doi.org/10.2140/camcos.2014.9.107
     for more information. */
 
-#include <vector>
 #include <cassert>
+#include <cmath>
+#include <vector>
 #include "real.hpp"
 #include "uvector.hpp"
 #include "utility.hpp"
@@ -107,7 +108,7 @@ namespace algoim
                 if (msqr == 0.0)
                     n(0) = 1.0;
                 else
-                    n /= sqrt(msqr);
+                    n /= std::sqrt(msqr);
 
                 // Compute alpha range
                 T minAlpha = std::numeric_limits<T>::max();

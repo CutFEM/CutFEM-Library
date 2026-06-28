@@ -7,39 +7,56 @@
 #include "../algoim/quadrature_multipoly.hpp"
 #include "../algoim/algoim_quad_rule.hpp"
 #include <iostream>
+#include <utility>
 
 
 // Specializations for different mesh types - implemented in AlgoimCutFEM.tpp
 template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
+AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const ProblemOption& option, int domain);
+template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenFace(const Mesh2::Element& K, Phi& phi, const ProblemOption& option, int ifac);
+template<typename Phi>
+AlgoimQuadratureRule<Mesh2> quadGenFace(const Mesh2::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain);
 
 template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
+AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option, int domain);
+template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenFace(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option, int ifac);
+template<typename Phi>
+AlgoimQuadratureRule<MeshQuad2> quadGenFace(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain);
 
 // Gustaf
 template<typename Phi>
 AlgoimQuadratureRule<MeshHexa> quadGenVol(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenVol(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int domain);
+template<typename Phi>
 AlgoimQuadratureRule<MeshHexa> quadGenSurf(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option);
 template<typename Phi>
 AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int ifac);
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain);
 
 template<typename Phi>
 AlgoimQuadratureRule<Mesh3> quadGenVol(const Mesh3::Element& K, Phi& phi, const ProblemOption& option);
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenVol(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int domain);
 
 template<typename Phi>
 AlgoimQuadratureRule<Mesh3> quadGenSurf(const Mesh3::Element& K, Phi& phi, const ProblemOption& option);
 
 template<typename Phi>
 AlgoimQuadratureRule<Mesh3> quadGenFace(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int ifac);
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenFace(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain);
 
 
 
@@ -57,10 +74,22 @@ class AlgoimCutFEMUnified : public BaseCutFEM<Mesh>, public Solver {
     ProblemOption options_;
     Phi &phi_;
 
+    // When true, interface (surface) integrals use the high-order cut quadrature
+    // STORED on the AlgoimInterface passed in (i.e. the rule built per time node
+    // from that node's own level set), instead of regenerating it from the single
+    // phi_ at assembly time.  This makes a moving space-time interface behave
+    // exactly like the standard CutFEM TimeInterface (n stored interfaces, one per
+    // time-quadrature node), which is required for slab-to-slab mass conservation.
+    // Default false preserves the regeneration behavior used by the analytic
+    // examples (e.g. coupled.cpp).
+    bool use_stored_interface_rule_ = false;
+
 public:
 
     using BaseCutFEM<mesh_t>::addBilinear;
     using BaseCutFEM<mesh_t>::addLinear;
+
+    void setUseStoredInterfaceRule(bool v) { use_stored_interface_rule_ = v; }
 
     AlgoimCutFEMUnified(const fespace_t& vh, Phi& phi, const ProblemOption& opt = defaultProblemOption)
       : BaseCutFEM<mesh_t>(vh, opt),

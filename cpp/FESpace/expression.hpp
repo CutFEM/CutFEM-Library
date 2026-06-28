@@ -273,7 +273,7 @@ template <typename M> class FunFEM : public FunFEMVirtual {
     void init(const KN_<R> &a) {
         assert(v.size() == a.size());
         for (int i = 0; i < v.size(); ++i)
-            data_[i] = a(i);
+            v[i] = a(i);
 
         assert(pool_databf);
     }
@@ -2035,6 +2035,21 @@ template <typename M> class ExpressionF : public ExpressionVirtual {
     int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
     ~ExpressionF() {}
 };
+
+// Build a heap-stored level set to hold by unique_ptr inside the algoim cut
+// classes (which need a stable, non-aliasing handle but cannot store a
+// non-copyable FunFEM by value). For a FunFEM we build an independent non-owning
+// *view* over the caller's dof data (shares the values, distinct object); for
+// any other (analytic) level-set type we copy. The viewed/copied level set must
+// outlive the holder. Shared by AlgoimInterface and AlgoimMacro.
+template <typename M, typename L> std::unique_ptr<L> make_level_set_view(const L &src) {
+    if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
+        std::span<double> data = src.array();
+        return std::make_unique<L>(*src.Vh, data);
+    } else {
+        return std::make_unique<L>(src);
+    }
+}
 
 #include "expression.tpp"
 

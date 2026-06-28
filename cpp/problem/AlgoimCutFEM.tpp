@@ -1,4 +1,36 @@
 
+namespace algoim_cut_detail {
+
+template <typename Phi>
+class NegatedLevelSet {
+public:
+    explicit NegatedLevelSet(Phi &phi) : phi_(phi) {}
+
+    template <typename X>
+    auto operator()(const X &x) const {
+        return -phi_(x);
+    }
+
+    template <typename X>
+    auto grad(const X &x) const {
+        auto g = phi_.grad(x);
+        g *= -1.0;
+        return g;
+    }
+
+    template <typename... Args>
+    auto normal(Args &&...args) const {
+        auto n = phi_.normal(std::forward<Args>(args)...);
+        n *= -1.0;
+        return n;
+    }
+
+private:
+    Phi &phi_;
+};
+
+} // namespace algoim_cut_detail
+
 // Mesh2 specialization
 template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const ProblemOption& option) {
@@ -73,6 +105,17 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
 
     return rule;
 }
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const ProblemOption& option, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenVol(K, positive_phi, option);
+    }
+    return quadGenVol(K, phi, option);
+}
+
 template <typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option) {
     // Quadrature generation strategy:
@@ -196,6 +239,16 @@ AlgoimQuadratureRule<Mesh2> quadGenFace(const Mesh2::Element& K, Phi& phi, const
     return rule;
 }
 
+template<typename Phi>
+AlgoimQuadratureRule<Mesh2> quadGenFace(const Mesh2::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenFace(K, positive_phi, option, ifac);
+    }
+    return quadGenFace(K, phi, option, ifac);
+}
+
 
 
 
@@ -221,6 +274,17 @@ AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi
     // std::cout << "quad_rule.size() = " << rule.size() << " in quadGenVol for MeshQuad2\n";
     return rule;
 }
+
+template<typename Phi>
+AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenVol(K, positive_phi, option);
+    }
+    return quadGenVol(K, phi, option);
+}
+
 template <typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option) {
     // Get coordinates of current quadrilateral
@@ -239,7 +303,7 @@ AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& ph
         rule.weights.push_back(q.nodes[ipq].w);
         rule.normals.push_back(phi.normal(R2(q.nodes[ipq].x(0), q.nodes[ipq].x(1))));
     }
-    
+
     return rule;
 }
 template<typename Phi>
@@ -274,6 +338,16 @@ AlgoimQuadratureRule<MeshQuad2> quadGenFace(const MeshQuad2::Element& K, Phi& ph
     return rule;
 }
 
+template<typename Phi>
+AlgoimQuadratureRule<MeshQuad2> quadGenFace(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenFace(K, positive_phi, option, ifac);
+    }
+    return quadGenFace(K, phi, option, ifac);
+}
+
 
 // Gustaf: MeshHexa specialization
 template<typename Phi>
@@ -304,6 +378,16 @@ AlgoimQuadratureRule<MeshHexa> quadGenVol(const MeshHexa::Element& K, Phi& phi, 
     }
 
     return rule;
+}
+
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenVol(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenVol(K, positive_phi, option);
+    }
+    return quadGenVol(K, phi, option);
 }
 
 template<typename Phi>
@@ -385,6 +469,16 @@ AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi,
     }
 
     return rule;
+}
+
+template<typename Phi>
+AlgoimQuadratureRule<MeshHexa> quadGenFace(const MeshHexa::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenFace(K, positive_phi, option, ifac);
+    }
+    return quadGenFace(K, phi, option, ifac);
 }
 
 // Gustaf: Mesh3 specialization
@@ -475,6 +569,16 @@ AlgoimQuadratureRule<Mesh3> quadGenVol(const Mesh3::Element& K, Phi& phi, const 
     );
 
     return rule;
+}
+
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenVol(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenVol(K, positive_phi, option);
+    }
+    return quadGenVol(K, phi, option);
 }
 
 template<typename Phi>
@@ -692,6 +796,16 @@ AlgoimQuadratureRule<Mesh3> quadGenFace(const Mesh3::Element& K, Phi& phi, const
     return rule;
 }
 
+template<typename Phi>
+AlgoimQuadratureRule<Mesh3> quadGenFace(const Mesh3::Element& K, Phi& phi, const ProblemOption& option, int ifac, int domain) {
+    assert(domain == 0 || domain == 1);
+    if (domain == 0) {
+        algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
+        return quadGenFace(K, positive_phi, option, ifac);
+    }
+    return quadGenFace(K, phi, option, ifac);
+}
+
 // End of Gustaf
 
 
@@ -714,10 +828,9 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addElementContribution(const itemVFlist_t& 
     } else {
         phi_.t = tid;
     }
-    auto quad_rule = quadGenVol(K, phi_, options_);
+    auto quad_rule = quadGenVol(K, phi_, options_, domain);
 
     if (quad_rule.points.size() == 0) {
-        std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in AlgoimCutFEMUnified::addElementContribution\n";
         return;
     }
 
@@ -842,18 +955,40 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
     const int kb = interface.idxElementOfFace(ifac);
     const auto &K(interface.get_element(kb));
 
-    if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
-        phi_.setTime(tid);
-        phi_.setElementFromBackMesh(kb, 0);
-    } else {
-        phi_.t = tid;
-    }
-    // Get quadrature rule - template argument deduction from K and phi_
-    auto quad_rule = quadGenSurf(K, phi_, options_);
+    // Select the surface cut-quadrature rule.
+    AlgoimQuadratureRule<Mesh> generated_quad_rule;            // storage if regenerated
+    const AlgoimQuadratureRule<Mesh> *quad_rule = nullptr;
 
-    if (quad_rule.size() == 0) {
-        std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in AlgoimCutFEMUnified::addInterfaceContribution\n";
-        return;
+    if (use_stored_interface_rule_) {
+        // Read the rule stored on this (per-node) AlgoimInterface, built from the
+        // node's own level set -- the standard-CutFEM TimeInterface behavior.  No
+        // dependence on phi_ at all, so distinct time nodes integrate exactly
+        // their own surfaces (needed for slab-to-slab mass conservation).
+        if (const auto *algoim_interface =
+                dynamic_cast<const AlgoimInterface<Mesh, std::remove_cvref_t<Phi>> *>(&interface)) {
+            quad_rule = algoim_interface->get_cut_quadrature(kb);
+        }
+        if (quad_rule == nullptr || quad_rule->size() == 0) {
+            // Not a stored-rule interface, or this cell is uncut there.
+            return;
+        }
+    } else {
+        if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
+            phi_.setTime(tid);
+            phi_.setElementFromBackMesh(kb, 0);
+        } else {
+            phi_.t = tid;
+        }
+        // Get quadrature rule - template argument deduction from K and phi_.
+        // If regeneration misses a borderline cell that the AlgoimInterface already
+        // accepted, fall back to the cached rule stored on the interface.
+        generated_quad_rule = quadGenSurf(K, phi_, options_);
+        quad_rule = algoim_surface_rule_or_cached<Mesh, Phi>(interface, kb, generated_quad_rule);
+
+        if (quad_rule->size() == 0) {
+            std::cout << "Warning: no surface quadrature points for cut element element kb = " << kb << " in AlgoimCutFEMUnified::addInterfaceContribution\n";
+            return;
+        }
     }
 
     for (int l = 0; l < VF.size(); ++l) {
@@ -946,17 +1081,17 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
         What_d Fop = Fwhatd(lastop);
 
         // Loop over quadrature points
-        for (size_t ipq = 0; ipq < quad_rule.size(); ++ipq) {
+        for (size_t ipq = 0; ipq < quad_rule->size(); ++ipq) {
             
-            Rd mip = quad_rule.points[ipq];
-            const double weight = quad_rule.weights[ipq];
+            Rd mip = quad_rule->points[ipq];
+            const double weight = quad_rule->weights[ipq];
             
             assert(weight > 0);
             
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = weight * cst_time;
 
-            const Rd normal = quad_rule.normals[ipq];
+            const Rd normal = quad_rule->normals[ipq];
 
             assert(std::fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);
@@ -1020,7 +1155,7 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
         phi_.t = tid;
     }
 
-    auto quad_rule = quadGenFace(K, phi_, options_, ifac);
+    auto quad_rule = quadGenFace(K, phi_, options_, ifac, domain);
 
     // Loop over the variational formulation items
     for (int l = 0; l < VF.size(); ++l) {
