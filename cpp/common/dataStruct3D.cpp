@@ -161,6 +161,32 @@ int Tet::faceOrient(int i) const { // def the permutatution of orient the face
     return fo;
 }
 
+R3 Hexa::toKref(const R2 &P, int i) const {
+    assert(i >= 0 && i < 6);
+
+    switch (i) {
+    case 0: // z-min: {0,1,2,3}
+        return R3(P.x, P.y, 0.0);
+    case 1: // y-min: {0,1,5,4}
+        return R3(P.x, 0.0, P.y);
+    case 2: // x-max: {1,2,6,5}
+        return R3(1.0, P.x, P.y);
+    case 3: // y-max: {2,3,7,6}
+        return R3(1.0 - P.x, 1.0, P.y);
+    case 4: // x-min: {3,0,4,7}
+        return R3(0.0, 1.0 - P.x, P.y);
+    case 5: // z-max: {4,5,6,7}
+        return R3(P.x, P.y, 1.0);
+    default:
+        assert(0);
+        return R3();
+    }
+}
+
+R3 Hexa::mapToReferenceElement(const R2 &P, int i) const {
+    return toKref(P, i);
+}
+
 // Gustaf
 R Hexa::mesureBord(int i) const {
     assert(i >= 0 && i < 6);

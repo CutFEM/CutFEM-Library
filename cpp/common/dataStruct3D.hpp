@@ -438,7 +438,8 @@ class Hexa : public GenericElement<DataHexa> {
     //   return 1./3*((*vertices[0])+(*vertices[1])+(*vertices[2]));
     // }
 
-    // R2 toKref(const R1& P, int i) const;
+    R3 toKref(const R2& P, int i) const;
+    R3 mapToReferenceElement(const R2& P, int i) const;
     // R mesureBord(int i) const ;
 
     // Gustaf

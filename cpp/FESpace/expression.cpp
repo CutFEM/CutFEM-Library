@@ -88,6 +88,9 @@ std::shared_ptr<ExpressionNormal2Q> operator*(const FunFEM<MeshQuad2> &f1, const
 std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Normal &n) {
     return std::make_shared<ExpressionNormal3>(f1);
 }
+std::shared_ptr<ExpressionNormal3H> operator*(const FunFEM<MeshHexa> &f1, const Normal &n) {
+    return std::make_shared<ExpressionNormal3H>(f1);
+}
 
 std::shared_ptr<ExpressionDSx2<Mesh2>> dxS(const FunFEM<Mesh2> &f1, int ci) {
     return std::make_shared<ExpressionDSx2<Mesh2>>(f1, ci);
@@ -147,3 +150,25 @@ std::shared_ptr<ExpressionDSx3> dxS(const FunFEM<Mesh3> &f1, int ci) { return st
 std::shared_ptr<ExpressionDSy3> dyS(const FunFEM<Mesh3> &f1, int ci) { return std::make_shared<ExpressionDSy3>(f1, ci); }
 std::shared_ptr<ExpressionDSz3> dzS(const FunFEM<Mesh3> &f1, int ci) { return std::make_shared<ExpressionDSz3>(f1, ci); }
 std::shared_ptr<ExpressionDivS3> divS(const FunFEM<Mesh3> &f1) { return std::make_shared<ExpressionDivS3>(f1); }
+
+std::shared_ptr<ExpressionDSx3H> dxS(const FunFEM<MeshHexa> &f1, int ci) {
+    return std::make_shared<ExpressionDSx3H>(f1, ci);
+}
+std::shared_ptr<ExpressionDSx3H> dxS(const FunFEM<MeshHexa> &f1) {
+    return std::make_shared<ExpressionDSx3H>(f1, 0);
+}
+std::shared_ptr<ExpressionDSy3H> dyS(const FunFEM<MeshHexa> &f1, int ci) {
+    return std::make_shared<ExpressionDSy3H>(f1, ci);
+}
+std::shared_ptr<ExpressionDSy3H> dyS(const FunFEM<MeshHexa> &f1) {
+    return std::make_shared<ExpressionDSy3H>(f1, 1);
+}
+std::shared_ptr<ExpressionDSz3H> dzS(const FunFEM<MeshHexa> &f1, int ci) {
+    return std::make_shared<ExpressionDSz3H>(f1, ci);
+}
+std::shared_ptr<ExpressionDSz3H> dzS(const FunFEM<MeshHexa> &f1) {
+    return std::make_shared<ExpressionDSz3H>(f1, 2);
+}
+std::shared_ptr<ExpressionDivS3H> divS(const FunFEM<MeshHexa> &f1) {
+    return std::make_shared<ExpressionDivS3H>(f1);
+}

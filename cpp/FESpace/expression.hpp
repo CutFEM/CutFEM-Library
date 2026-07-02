@@ -776,7 +776,7 @@ class ExpressionMultConst : public ExpressionVirtual {
     ExpressionMultConst(const std::shared_ptr<ExpressionVirtual> &fh1, const Normal_Component_Y &nny)
         : fun1(fh1), c(1.), nx(false), ny(true), nz(false), p(R2(1, 1)) {}
     ExpressionMultConst(const std::shared_ptr<ExpressionVirtual> &fh1, const Normal_Component_Z &nnz)
-        : fun1(fh1), c(1.), nx(false), ny(true), nz(true), p(R2(1, 1)) {}
+        : fun1(fh1), c(1.), nx(false), ny(false), nz(true), p(R2(1, 1)) {}
     R operator()(long i) const { return c * ((*fun1)(i)); }
 
     R eval(const int k, const R *x, const R *normal) const {
@@ -805,6 +805,8 @@ std::shared_ptr<ExpressionMultConst> operator*(const std::shared_ptr<ExpressionV
                                                const Normal_Component_X &cc);
 std::shared_ptr<ExpressionMultConst> operator*(const std::shared_ptr<ExpressionVirtual> &f1,
                                                const Normal_Component_Y &cc);
+std::shared_ptr<ExpressionMultConst> operator*(const std::shared_ptr<ExpressionVirtual> &f1,
+                                               const Normal_Component_Z &cc);
 std::shared_ptr<ExpressionMultConst> operator*(const ParameterCutFEM &v, const std::shared_ptr<ExpressionVirtual> &f1);
 
 class ExpressionAbs : public ExpressionVirtual {
@@ -1237,6 +1239,51 @@ class ExpressionNormal3 : public ExpressionVirtual {
     ~ExpressionNormal3() {}
 };
 std::shared_ptr<ExpressionNormal3> operator*(const FunFEM<Mesh3> &f1, const Normal &n);
+
+class ExpressionNormal3H : public ExpressionVirtual {
+    typedef MeshHexa M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> uxnx, uyny, uznz;
+
+  public:
+    ExpressionNormal3H(const FunFEM<M> &fh1)
+        : fun(fh1), uxnx(fh1, 0, op_id, 0, 0), uyny(fh1, 1, op_id, 0, 0), uznz(fh1, 2, op_id, 0, 0) {
+        assert(fh1.Vh->N != 1);
+        uxnx.addNormal(0);
+        uyny.addNormal(1);
+        uznz.addNormal(2);
+    }
+
+    R operator()(long i) const {
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        std::cout << " evaluating f*n expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        std::cout << " evaluating f*n expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return uxnx.evalOnBackMesh(k, dom, x, normal) + uyny.evalOnBackMesh(k, dom, x, normal) +
+               uznz.evalOnBackMesh(k, dom, x, normal);
+    }
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return uxnx.evalOnBackMesh(k, dom, x, t, normal) + uyny.evalOnBackMesh(k, dom, x, t, normal) +
+               uznz.evalOnBackMesh(k, dom, x, t, normal);
+    }
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+    ~ExpressionNormal3H() {}
+};
+std::shared_ptr<ExpressionNormal3H> operator*(const FunFEM<MeshHexa> &f1, const Normal &n);
 
 /**
  * @brief n x u, where u is an expression of a 3D vector field
@@ -1767,6 +1814,197 @@ class ExpressionDivS3 : public ExpressionVirtual {
     ~ExpressionDivS3() {}
 };
 std::shared_ptr<ExpressionDivS3> divS(const FunFEM<Mesh3> &f1);
+
+class ExpressionDSx3H : public ExpressionVirtual {
+    typedef MeshHexa M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> dxu1, dxu1nxnx, dyu1nxny, dzu1nxnz;
+
+  public:
+    ExpressionDSx3H(const FunFEM<M> &fh1, int ci)
+        : fun(fh1), dxu1(fh1, ci, op_dx, 0, 0), dxu1nxnx(fh1, ci, op_dx, 0, 0),
+          dyu1nxny(fh1, ci, op_dy, 0, 0), dzu1nxnz(fh1, ci, op_dz, 0, 0) {
+        dxu1nxnx.addNormal(0);
+        dxu1nxnx.addNormal(0);
+        dyu1nxny.addNormal(0);
+        dyu1nxny.addNormal(1);
+        dzu1nxnz.addNormal(0);
+        dzu1nxnz.addNormal(2);
+    }
+
+    R operator()(long i) const {
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        std::cout << " evaluating DSx expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        std::cout << " evaluating DSx expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return dxu1.evalOnBackMesh(k, dom, x, normal) - dxu1nxnx.evalOnBackMesh(k, dom, x, normal) -
+               dyu1nxny.evalOnBackMesh(k, dom, x, normal) - dzu1nxnz.evalOnBackMesh(k, dom, x, normal);
+    }
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return dxu1.evalOnBackMesh(k, dom, x, t, normal) - dxu1nxnx.evalOnBackMesh(k, dom, x, t, normal) -
+               dyu1nxny.evalOnBackMesh(k, dom, x, t, normal) - dzu1nxnz.evalOnBackMesh(k, dom, x, t, normal);
+    }
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+    ~ExpressionDSx3H() {}
+};
+std::shared_ptr<ExpressionDSx3H> dxS(const FunFEM<MeshHexa> &f1, int ci);
+std::shared_ptr<ExpressionDSx3H> dxS(const FunFEM<MeshHexa> &f1);
+
+class ExpressionDSy3H : public ExpressionVirtual {
+    typedef MeshHexa M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> dxu2, dxu2nxny, dyu2nyny, dzu2nynz;
+
+  public:
+    ExpressionDSy3H(const FunFEM<M> &fh1, int ci)
+        : fun(fh1), dxu2(fh1, ci, op_dy, 0, 0), dxu2nxny(fh1, ci, op_dx, 0, 0),
+          dyu2nyny(fh1, ci, op_dy, 0, 0), dzu2nynz(fh1, ci, op_dz, 0, 0) {
+        dxu2nxny.addNormal(0);
+        dxu2nxny.addNormal(1);
+        dyu2nyny.addNormal(1);
+        dyu2nyny.addNormal(1);
+        dzu2nynz.addNormal(1);
+        dzu2nynz.addNormal(2);
+    }
+
+    R operator()(long i) const {
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        std::cout << " evaluating DSy expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        std::cout << " evaluating DSy expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return dxu2.evalOnBackMesh(k, dom, x, normal) - dxu2nxny.evalOnBackMesh(k, dom, x, normal) -
+               dyu2nyny.evalOnBackMesh(k, dom, x, normal) - dzu2nynz.evalOnBackMesh(k, dom, x, normal);
+    }
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return dxu2.evalOnBackMesh(k, dom, x, t, normal) - dxu2nxny.evalOnBackMesh(k, dom, x, t, normal) -
+               dyu2nyny.evalOnBackMesh(k, dom, x, t, normal) - dzu2nynz.evalOnBackMesh(k, dom, x, t, normal);
+    }
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+    ~ExpressionDSy3H() {}
+};
+std::shared_ptr<ExpressionDSy3H> dyS(const FunFEM<MeshHexa> &f1, int ci);
+std::shared_ptr<ExpressionDSy3H> dyS(const FunFEM<MeshHexa> &f1);
+
+class ExpressionDSz3H : public ExpressionVirtual {
+    typedef MeshHexa M;
+    const FunFEM<M> &fun;
+    ExpressionFunFEM<M> dxu3, dxu3nxnz, dyu3nynz, dzu3nznz;
+
+  public:
+    ExpressionDSz3H(const FunFEM<M> &fh1, int ci)
+        : fun(fh1), dxu3(fh1, ci, op_dz, 0, 0), dxu3nxnz(fh1, ci, op_dx, 0, 0),
+          dyu3nynz(fh1, ci, op_dy, 0, 0), dzu3nznz(fh1, ci, op_dz, 0, 0) {
+        dxu3nxnz.addNormal(0);
+        dxu3nxnz.addNormal(2);
+        dyu3nynz.addNormal(1);
+        dyu3nynz.addNormal(2);
+        dzu3nznz.addNormal(2);
+        dzu3nznz.addNormal(2);
+    }
+
+    R operator()(long i) const {
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        std::cout << " evaluating DSz expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        std::cout << " evaluating DSz expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return dxu3.evalOnBackMesh(k, dom, x, normal) - dxu3nxnz.evalOnBackMesh(k, dom, x, normal) -
+               dyu3nynz.evalOnBackMesh(k, dom, x, normal) - dzu3nznz.evalOnBackMesh(k, dom, x, normal);
+    }
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return dxu3.evalOnBackMesh(k, dom, x, t, normal) - dxu3nxnz.evalOnBackMesh(k, dom, x, t, normal) -
+               dyu3nynz.evalOnBackMesh(k, dom, x, t, normal) - dzu3nznz.evalOnBackMesh(k, dom, x, t, normal);
+    }
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+    ~ExpressionDSz3H() {}
+};
+std::shared_ptr<ExpressionDSz3H> dzS(const FunFEM<MeshHexa> &f1, int ci);
+std::shared_ptr<ExpressionDSz3H> dzS(const FunFEM<MeshHexa> &f1);
+
+class ExpressionDivS3H : public ExpressionVirtual {
+    typedef MeshHexa M;
+    const FunFEM<M> &fun;
+    const std::shared_ptr<ExpressionDSx3H> dx;
+    const std::shared_ptr<ExpressionDSy3H> dy;
+    const std::shared_ptr<ExpressionDSz3H> dz;
+
+  public:
+    ExpressionDivS3H(const FunFEM<M> &fh1)
+        : fun(fh1), dx(std::make_shared<ExpressionDSx3H>(fh1, 0)),
+          dy(std::make_shared<ExpressionDSy3H>(fh1, 1)),
+          dz(std::make_shared<ExpressionDSz3H>(fh1, 2)) {}
+
+    R operator()(long i) const {
+        assert(0);
+        return 0;
+    };
+
+    R eval(const int k, const R *x, const R *normal) const {
+        std::cout << " evaluating divS expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+    R eval(const int k, const R *x, const R t, const R *normal) const {
+        std::cout << " evaluating divS expression without giving the normal as input " << std::endl;
+        assert(0);
+        return 0;
+    }
+
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R *normal) const {
+        assert(normal);
+        return dx->evalOnBackMesh(k, dom, x, normal) + dy->evalOnBackMesh(k, dom, x, normal) +
+               dz->evalOnBackMesh(k, dom, x, normal);
+    }
+    R evalOnBackMesh(const int k, const int dom, const R *x, const R t, const R *normal) const {
+        assert(normal);
+        return dx->evalOnBackMesh(k, dom, x, t, normal) + dy->evalOnBackMesh(k, dom, x, t, normal) +
+               dz->evalOnBackMesh(k, dom, x, t, normal);
+    }
+    int idxElementFromBackMesh(int kb, int dd = 0) const { return fun.idxElementFromBackMesh(kb, dd); }
+    ~ExpressionDivS3H() {}
+};
+std::shared_ptr<ExpressionDivS3H> divS(const FunFEM<MeshHexa> &f1);
 
 // template<typename M>
 // class ExpressionAverage { //}: public ExpressionVirtual{
