@@ -226,9 +226,9 @@ QP3 *GaussLegendre3D(int exact) {
     for (int i = 0; i < n1; ++i) {
         for (int j = 0; j < n1; ++j) {
             for (int k = 0; k < n1; ++k) {
-                p[ii].x = quad1D[i];
-                p[ii].y = quad1D[j];
-                p[ii].z = quad1D[k];
+                p[ii].x = quad1D[i].x;
+                p[ii].y = quad1D[j].x;
+                p[ii].z = quad1D[k].x;
                 p[ii].a = quad1D[i].a * quad1D[j].a * quad1D[k].a;
                 ++ii;
             }
