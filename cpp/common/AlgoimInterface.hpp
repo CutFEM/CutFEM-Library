@@ -2,6 +2,9 @@
 #ifndef ALGOIM_INTERFACE_HPP
 #define ALGOIM_INTERFACE_HPP
 
+#include <cmath>
+#include <limits>
+
 #include "interface_levelSet.hpp"
 #include "../algoim/quadrature_general.hpp"
 #include "../solver/solver.hpp"
@@ -37,6 +40,23 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
     std::map<int, AlgoimQuadratureRule<M>> cut_elements;
 
   public:
+    // Narrow-band cut detection.  make_algoim_patch() otherwise runs the
+    // expensive algoim::quadGen on EVERY background element just to decide
+    // whether it is cut; only the O(surface) cut cells actually need it.  When
+    // narrow_band_diag_factor > 0 (and the level set is a FunFEM), an element
+    // whose nodal level-set values are all strictly one sign and whose smallest
+    // nodal magnitude exceeds narrow_band_diag_factor * (cell diagonal) is
+    // skipped without calling quadGen.
+    //
+    // Rigorously safe (never skips a genuinely cut element) when the level set
+    // is |grad phi| <= narrow_band_diag_factor Lipschitz: for any x in the cell
+    // there is a node v within one diagonal, so |phi(x)| >= min_node|phi| -
+    // factor*diag > 0 with constant sign.  The signed-distance level sets used
+    // by the active-surface drivers satisfy this with factor = 1; the default
+    // 1.5 adds margin for imperfect reinitialization / P2 curvature.  Set to 0
+    // to recover the original quadGen-on-every-element behavior.
+    static inline double narrow_band_diag_factor = 1.5;
+
     AlgoimInterface(const mesh_t &Mesh, const L &phi_, int label = 0);
 
     // std::map<int, algoim::QuadratureRule<2>> get_cut_elements() { return cut_elements; }

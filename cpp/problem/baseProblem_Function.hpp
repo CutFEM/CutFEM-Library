@@ -24,14 +24,52 @@ void BaseFEM<M>::addToMatrix(const itemVF_t &VFi, const FElement &FKu, const FEl
     // Get the current thread ID
     int thread_id = omp_get_thread_num();
 
-    // For each local DOF in the test function, i
-    for (int i = FKv.dfcbegin(VFi.cv); i < FKv.dfcend(VFi.cv); ++i) {
-        // For each local DOF in the trial function, j
-        for (int j = FKu.dfcbegin(VFi.cu); j < FKu.dfcend(VFi.cu); ++j) {
-            // Compute the contribution to the local matrix
-            this->addToLocalContribution(FKv.loc2glb(i), FKu.loc2glb(j), thread_id) +=
-                Cint * fv(i, VFi.cv, VFi.dv) * fu(j, VFi.cu, VFi.du);
-        }
+    // This is the innermost assembly hot spot: it is called once per quadrature
+    // point per variational-form item.  Successive calls within one item hit the
+    // exact same (rows, cols) index block, so the rank-1 updates are accumulated
+    // in a dense per-thread scratch block and pushed to the local contribution
+    // map only when the block changes (or at the per-element flush in
+    // addLocalContribution).  The accumulation order per entry is unchanged, so
+    // the assembled values are bitwise identical to the direct version.
+    DenseBlockScratch &S = this->block_scratch_[thread_id];
+
+    const int iv0 = FKv.dfcbegin(VFi.cv), ni = FKv.dfcend(VFi.cv) - iv0;
+    const int ju0 = FKu.dfcbegin(VFi.cu), nj = FKu.dfcend(VFi.cu) - ju0;
+    const int oi  = this->index_i0_[thread_id];
+    const int oj  = this->index_j0_[thread_id];
+
+    bool same_block = S.active && int(S.rows.size()) == ni && int(S.cols.size()) == nj;
+    if (same_block)
+        for (int i = 0; i < ni && same_block; ++i)
+            same_block = (S.rows[i] == FKv.loc2glb(iv0 + i) + oi);
+    if (same_block)
+        for (int j = 0; j < nj && same_block; ++j)
+            same_block = (S.cols[j] == FKu.loc2glb(ju0 + j) + oj);
+
+    if (!same_block) {
+        this->flushBlockScratch(thread_id);
+        S.rows.resize(ni);
+        S.cols.resize(nj);
+        for (int i = 0; i < ni; ++i)
+            S.rows[i] = FKv.loc2glb(iv0 + i) + oi;
+        for (int j = 0; j < nj; ++j)
+            S.cols[j] = FKu.loc2glb(ju0 + j) + oj;
+        S.block.assign(size_t(ni) * nj, 0.0);
+        S.active = true;
+    }
+
+    // gather the trial-function line once, then rank-1 update the dense block
+    if (int(S.fu_line.size()) < nj)
+        S.fu_line.resize(nj);
+    for (int j = 0; j < nj; ++j)
+        S.fu_line[j] = fu(ju0 + j, VFi.cu, VFi.du);
+
+    for (int i = 0; i < ni; ++i) {
+        const double ci  = Cint * fv(iv0 + i, VFi.cv, VFi.dv);
+        double *bi       = S.block.data() + size_t(i) * nj;
+        const double *fj = S.fu_line.data();
+        for (int j = 0; j < nj; ++j)
+            bi[j] += ci * fj[j];
     }
 }
 

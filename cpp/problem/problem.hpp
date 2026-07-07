@@ -19,6 +19,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include <string>
 #include <map>
 #include <list>
+#include <algorithm>
+#include <cstdint>
+#include <vector>
 
 #include "../parallel/cfmpi.hpp"
 #include "../parallel/cfomp.hpp"
@@ -40,6 +43,98 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "mapping.hpp"
 #include "../solver/solver.hpp"
 
+// Flat open-addressing hash map for the per-element local contribution
+// accumulation.  The assembly hot loop calls find-or-insert once per
+// quadrature point per (i,j) pair; with std::map this dominates the whole
+// assembly (tree rebalancing + node allocation per access).  This container
+// keeps the same find-or-insert / iterate / clear interface at O(1) amortized
+// cost with zero allocation in steady state.  Keys are the packed global
+// (row, col) pair; iteration is in insertion order.
+class LocalContributionMap {
+    static constexpr uint64_t kEmpty = ~uint64_t(0);
+
+    std::vector<uint64_t> keys_;
+    std::vector<double> vals_;
+    std::vector<uint32_t> occupied_; // occupied slots, insertion order
+    uint64_t mask_ = 0;
+
+    static uint64_t pack(int i, int j) { return (uint64_t(uint32_t(i)) << 32) | uint64_t(uint32_t(j)); }
+    static uint64_t hash(uint64_t k) {
+        k *= 0x9E3779B97F4A7C15ull; // Fibonacci hashing
+        return k ^ (k >> 32);
+    }
+    void rehash(size_t n_slots) {
+        std::vector<uint64_t> old_keys(std::move(keys_));
+        std::vector<double> old_vals(std::move(vals_));
+        std::vector<uint32_t> old_occ(std::move(occupied_));
+        keys_.assign(n_slots, kEmpty);
+        vals_.assign(n_slots, 0.0);
+        occupied_.clear();
+        occupied_.reserve(n_slots);
+        mask_ = n_slots - 1;
+        for (uint32_t s_old : old_occ) {
+            uint64_t key = old_keys[s_old];
+            size_t s     = hash(key) & mask_;
+            while (keys_[s] != kEmpty)
+                s = (s + 1) & mask_;
+            keys_[s] = key;
+            vals_[s] = old_vals[s_old];
+            occupied_.push_back(uint32_t(s));
+        }
+    }
+
+  public:
+    LocalContributionMap() { rehash(size_t(1) << 12); }
+
+    double &operator()(int i, int j) {
+        if ((occupied_.size() + 1) * 10 > keys_.size() * 7)
+            rehash(keys_.size() * 2); // keep load factor below 0.7
+        const uint64_t key = pack(i, j);
+        size_t s           = hash(key) & mask_;
+        while (true) {
+            if (keys_[s] == key)
+                return vals_[s];
+            if (keys_[s] == kEmpty) {
+                keys_[s] = key;
+                vals_[s] = 0.0;
+                occupied_.push_back(uint32_t(s));
+                return vals_[s];
+            }
+            s = (s + 1) & mask_;
+        }
+    }
+
+    // f(row, col, value), in insertion order
+    template <typename F> void for_each(F &&f) const {
+        for (uint32_t s : occupied_)
+            f(int(keys_[s] >> 32), int(uint32_t(keys_[s])), vals_[s]);
+    }
+
+    void clear() {
+        if (occupied_.size() * 4 > keys_.size())
+            std::fill(keys_.begin(), keys_.end(), kEmpty);
+        else
+            for (uint32_t s : occupied_)
+                keys_[s] = kEmpty;
+        occupied_.clear();
+    }
+
+    size_t size() const { return occupied_.size(); }
+    bool empty() const { return occupied_.empty(); }
+};
+
+// Dense accumulation block for one (rows x cols) element contribution.  The
+// assembly quadrature loop hits the same (rows, cols) index pattern once per
+// quadrature point; accumulating those rank-1 updates densely and touching the
+// hash map only once per block removes the find-or-insert from the innermost
+// loop entirely (see BaseFEM::addToMatrix).
+struct DenseBlockScratch {
+    std::vector<int> rows, cols; // global indices, space offsets baked in
+    std::vector<double> block;   // rows.size() x cols.size(), row-major
+    std::vector<double> fu_line; // gather buffer for the trial-function line
+    bool active = false;
+};
+
 // Base class for problem.
 // contain info about the linear system
 template <typename Mesh> class ShapeOfProblem {
@@ -59,7 +154,8 @@ template <typename Mesh> class ShapeOfProblem {
     Matrix mat_;
     std::vector<int> index_i0_{0};
     std::vector<int> index_j0_{0};
-    std::vector<Matrix> local_contribution_matrix_;
+    std::vector<LocalContributionMap> local_contribution_matrix_;
+    std::vector<DenseBlockScratch> block_scratch_;
 
     // pointer on a std::map
     // the user can give is own std::map
@@ -103,6 +199,7 @@ template <typename Mesh> class ShapeOfProblem {
     void set_multithreading_tool() {
         // mat_.resize(thread_count_max_);
         local_contribution_matrix_.resize(thread_count_max_);
+        block_scratch_.resize(thread_count_max_);
         index_i0_.resize(thread_count_max_);
         index_j0_.resize(thread_count_max_);
         set_map();
@@ -165,7 +262,7 @@ template <typename Mesh> class ShapeOfProblem {
     // matrix. This function is used to add a contribution to the
     // element (i,j) of the local_contribution_matrix_.
     double &addToLocalContribution(int i, int j) {
-        return local_contribution_matrix_[0][std::make_pair(i + index_i0_[0], j + index_j0_[0])];
+        return local_contribution_matrix_[0](i + index_i0_[0], j + index_j0_[0]);
     }
 
     // double &addToLocalContribution_Opt(int i, int j) { return loc_mat(i, j); }
@@ -186,31 +283,46 @@ template <typename Mesh> class ShapeOfProblem {
     // modify the value of a double in the local contribution
     // matrix.
     double &addToLocalContribution(int i, int j, int thread_id) {
-        return local_contribution_matrix_[thread_id]
-                                         [std::make_pair(i + index_i0_[thread_id], j + index_j0_[thread_id])];
+        return local_contribution_matrix_[thread_id](i + index_i0_[thread_id], j + index_j0_[thread_id]);
+    }
+
+    // Move a pending dense block into the per-thread local contribution map.
+    void flushBlockScratch(int thread_id) {
+        DenseBlockScratch &S = block_scratch_[thread_id];
+        if (!S.active)
+            return;
+        LocalContributionMap &L = local_contribution_matrix_[thread_id];
+        const size_t nj         = S.cols.size();
+        for (size_t i = 0; i < S.rows.size(); ++i) {
+            const double *bi = S.block.data() + i * nj;
+            for (size_t j = 0; j < nj; ++j)
+                L(S.rows[i], S.cols[j]) += bi[j];
+        }
+        S.active = false;
     }
 
     void addLocalContribution() {
-        int thread_id              = omp_get_thread_num();
+        int thread_id = omp_get_thread_num();
+        flushBlockScratch(thread_id);
         this->index_i0_[thread_id] = 0;
         this->index_j0_[thread_id] = 0;
         auto &A(*pmat_);
 
 #pragma omp critical
-        for (const auto &aij : local_contribution_matrix_[thread_id]) {
-            A[std::make_pair(aij.first.first, aij.first.second)] += aij.second;
-        }
+        local_contribution_matrix_[thread_id].for_each(
+            [&A](int i, int j, double v) { A[std::make_pair(i, j)] += v; });
         local_contribution_matrix_[thread_id].clear();
     }
 
     void addLocalContributionLagrange(int nend) {
+        flushBlockScratch(0);
         this->index_j0_[0] = 0;
         this->index_i0_[0] = 0;
 #pragma omp critical
-        for (auto q = local_contribution_matrix_[0].begin(); q != this->local_contribution_matrix_[0].end(); ++q) {
-            (*this)(q->first.first, nend) += q->second;
-            (*this)(nend, q->first.first) += q->second;
-        }
+        local_contribution_matrix_[0].for_each([this, nend](int i, int, double v) {
+            (*this)(i, nend) += v;
+            (*this)(nend, i) += v;
+        });
         this->local_contribution_matrix_[0].clear();
     }
 

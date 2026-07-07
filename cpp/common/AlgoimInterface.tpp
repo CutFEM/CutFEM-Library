@@ -45,6 +45,36 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
 
         if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
             phi.setElementFromBackMesh(k);
+
+            // Cheap narrow-band pre-filter: skip elements that provably cannot be
+            // cut (all nodal values one sign and farther than one cell diagonal
+            // from the interface), avoiding the expensive quadGen call.  Only for
+            // FunFEM level sets, where phi(node) is a plain double evaluation.
+            if (narrow_band_diag_factor > 0.0) {
+                double min_abs = std::numeric_limits<double>::max();
+                double sign_sum = 0.0;
+                bool has_zero_node = false;
+                for (int i = 0; i < Element::nv; ++i) {
+                    const double val = phi(K.at(i));
+                    if (val == 0.0)
+                        has_zero_node = true;
+                    sign_sum += (val > 0.0) ? 1.0 : -1.0;
+                    min_abs = std::min(min_abs, std::abs(val));
+                }
+
+                // Cell diagonal = distance between diagonally opposite corners
+                // (node 0 and node nv-2: index 2 for a quad, 6 for a hexa).
+                const auto &A = K.at(0);
+                const auto &B = K.at(Element::nv - 2);
+                double diag_sq = 0.0;
+                for (int d = 0; d < mesh_t::Rd::d; ++d)
+                    diag_sq += (B[d] - A[d]) * (B[d] - A[d]);
+                const double diag = std::sqrt(diag_sq);
+
+                const bool all_same_sign = std::abs(sign_sum) == static_cast<double>(Element::nv);
+                if (!has_zero_node && all_same_sign && min_abs > narrow_band_diag_factor * diag)
+                    continue; // element cannot be cut
+            }
         }
         auto q = quadGenSurf(K, phi, options);
         double surface_measure = 0.0;
