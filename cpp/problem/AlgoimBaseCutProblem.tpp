@@ -1054,7 +1054,10 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContribution(const itemVFlist_t &VF, co
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = weight * cst_time;
 
-            const Rd normal(phi.normal(mip));
+            // Match the standard-CutFEM interface convention (BaseFEM::
+            // addInterfaceContribution uses -interface.normal): the level-set
+            // normal is +grad(phi), so negate.
+            const Rd normal(-phi.normal(mip));
 
             assert(fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);
@@ -1151,7 +1154,8 @@ void AlgoimBaseCutFEM<M, L>::addLagrangeContribution(const itemVFlist_t &VF, con
             const Rd face_ip    = K.mapToReferenceElement(mip);
             double Cint         = weight;
 
-            const Rd normal(phi.normal(mip));
+            // Negated: standard-CutFEM interface normal convention (see above).
+            const Rd normal(-phi.normal(mip));
             assert(fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);
             // std::cout << VF[l].c << "\n";
@@ -1262,7 +1266,10 @@ void AlgoimBaseCutFEM<M, L>::addInterfaceContributionExact(const Fct &f, const i
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = weight * cst_time;
 
-            const Rd normal(phi.normal(mip));
+            // Match the standard-CutFEM interface convention (BaseFEM::
+            // addInterfaceContribution uses -interface.normal): the level-set
+            // normal is +grad(phi), so negate.
+            const Rd normal(-phi.normal(mip));
 
             assert(fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);

@@ -1232,7 +1232,7 @@ double integral_algoim(const fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, in
         if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
             phi.setElementFromBackMesh(kb);
         }
-        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption, domain);
 
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, int c0)\n";
@@ -1293,7 +1293,7 @@ double integral_algoim(const ActiveMesh<mesh_t> &Th, const std::shared_ptr<const
         if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<mesh_t>>) {
             phi.setElementFromBackMesh(kb);
         }
-        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption, domain);
 
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, int c0)\n";
@@ -1350,7 +1350,7 @@ double integral_algoim(const double c, const ActiveMesh<mesh_t> &Th, Phi &phi) {
         if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
             phi.setElementFromBackMesh(kb);
         }
-        auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
+        auto quad_rule = quadGenVol(K, phi, defaultProblemOption, domain);
 
         if (quad_rule.points.size() == 0) {
             std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const ActiveMesh<mesh_t> &Th, L &phi, int c0)\n";
@@ -1430,7 +1430,7 @@ double integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Ph
             if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<mesh_t>>) {
                 phi.setElementFromBackMesh(kb);
             }
-            auto quad_rule = quadGenVol(K, phi, defaultProblemOption);
+            auto quad_rule = quadGenVol(K, phi, defaultProblemOption, domain);
 
             if (quad_rule.points.size() == 0) {
                 std::cout << "Warning: no volume quadrature points for cut element element kb = " << kb << " in integral_algoim(fct_t &fh, const int cu, const ActiveMesh<mesh_t> &Th, Phi &phi, const TimeSlab &In, const QuadratureFormular1d &qTime)\n";

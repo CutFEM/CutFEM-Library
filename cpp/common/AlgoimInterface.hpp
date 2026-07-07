@@ -4,11 +4,14 @@
 
 #include <cmath>
 #include <limits>
+#include <memory>
 
 #include "interface_levelSet.hpp"
 #include "../algoim/quadrature_general.hpp"
 #include "../solver/solver.hpp"
 #include "../algoim/algoim_quad_rule.hpp"
+
+template <typename M, typename L> std::unique_ptr<L> make_level_set_view(const L &src);
 
 /**
  * @brief Interface class that uses the algoim quadrature generation to find cut elements.

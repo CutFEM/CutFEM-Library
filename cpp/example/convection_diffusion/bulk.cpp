@@ -59,12 +59,12 @@ const double beta_max = M_PI * 0.5;
 // Level-set function
 double fun_levelSet(double *P, const int i, const R t) {
     R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0);
+    return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0);
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - R0 * R0);
+    return -((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - R0 * R0);
 }
 
 template <int N> struct Levelset {
@@ -74,14 +74,14 @@ template <int N> struct Levelset {
     // level set function
     template <typename V> typename V::value_type operator()(const V &P) const {
         R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-        return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17 - 1e-14);
+        return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17 - 1e-14);
     }
 
     // gradient of level set function
     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
 
-        return algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
-                                     2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
+        return -algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
+                                      2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
     }
 
     // normal = grad(phi)/norm(grad(phi))
@@ -89,7 +89,7 @@ template <int N> struct Levelset {
         R norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
                       pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
-        return R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
+        return -R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
                   2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
     }
 };
@@ -210,7 +210,7 @@ double fun_one(double *P, const int i) { return 1.; }
 double rho(double *P, const double t) { return (W - C * P[1] * P[1]) * t; }
 
 double fun_levelSet(double *P, const int i, const double t) {
-    return (P[0] - rho(P, t)) * (P[0] - rho(P, t)) + P[1] * P[1] - R0 * R0;
+    return -((P[0] - rho(P, t)) * (P[0] - rho(P, t)) + P[1] * P[1] - R0 * R0);
 }
 
 template <int N> struct Levelset {
@@ -219,14 +219,14 @@ template <int N> struct Levelset {
 
     // level set function
     template <typename V> typename V::value_type operator()(const V &P) const {
-        return (P[0] - (W - C * P[1] * P[1]) * t) * (P[0] - (W - C * P[1] * P[1]) * t) + P[1] * P[1] - R0 * R0 - 1e-14;
+        return -((P[0] - (W - C * P[1] * P[1]) * t) * (P[0] - (W - C * P[1] * P[1]) * t) + P[1] * P[1] - R0 * R0 - 1e-14);
     }
 
     // gradient of level set function
     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
 
-        return algoim::uvector<T, N>(2. * (x(0) - (W - C * x(1) * x(1)) * t),
-                                     4. * C * t * x(1) * (x(0) - t * (W - C * x(1) * x(1))) + 2. * x(1));
+        return -algoim::uvector<T, N>(2. * (x(0) - (W - C * x(1) * x(1)) * t),
+                                      4. * C * t * x(1) * (x(0) - t * (W - C * x(1) * x(1))) + 2. * x(1));
     }
 
     // normal = grad(phi)/norm(grad(phi))
@@ -234,7 +234,7 @@ template <int N> struct Levelset {
         R norm = sqrt(pow(2. * (P[0] - (W - C * P[1] * P[1]) * t), 2) +
                       pow(4. * C * t * P[1] * (P[0] - t * (W - C * P[1] * P[1])) + 2. * P[1], 2));
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
-        return R2(2. * (P[0] - (W - C * P[1] * P[1]) * t) / norm,
+        return -R2(2. * (P[0] - (W - C * P[1] * P[1]) * t) / norm,
                   (4. * C * t * P[1] * (P[0] - t * (W - C * P[1] * P[1])) + 2. * P[1]) / norm);
     }
 };
@@ -545,7 +545,7 @@ int main(int argc, char **argv) {
             // Create active meshes
             activemesh_t Thi(Th);
 
-            Thi.truncate(interface, 1);
+            Thi.truncate(interface, -1);
 
             //  Cut FE space
             cut_fespace_t Wh(Thi, Vh);

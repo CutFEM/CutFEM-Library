@@ -39,12 +39,12 @@ const double DGamma = 1.;   // diffusion surface
 // Level-set function
 double fun_levelSet(double *P, const int i, const double t) {
     double xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17);
+    return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17);
 }
 
 // Level-set function initial
 double fun_levelSet(double *P, const int i) {
-    return ((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17 * 0.17);
+    return -((P[0] - 0.5) * (P[0] - 0.5) + (P[1] - 0.22) * (P[1] - 0.22) - 0.17 * 0.17);
 }
 
 template <int N> struct Levelset {
@@ -54,14 +54,14 @@ template <int N> struct Levelset {
     // level set function
     template <typename V> typename V::value_type operator()(const V &P) const {
         R xc = 0.5 + 0.28 * sin(M_PI * t), yc = 0.5 - 0.28 * cos(M_PI * t);
-        return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17 - 1e-14);
+        return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - 0.17 * 0.17 - 1e-14);
     }
 
     // gradient of level set function
     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &x) const {
 
-        return algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
-                                     2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
+        return -algoim::uvector<T, N>(2.0 * (x(0) - 0.5 - 0.28 * sin(M_PI * t)),
+                                      2.0 * (x(1) - 0.5 + 0.28 * cos(M_PI * t)));
     }
 
     // normal = grad(phi)/norm(grad(phi))
@@ -69,7 +69,7 @@ template <int N> struct Levelset {
         double norm = sqrt(pow(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))), 2) +
                            pow(2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))), 2));
         // R normalize = 1. / sqrt(4. * P[0] * P[0] + 4. * P[1] * P[1]);
-        return R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
+        return -R2(2.0 * (P[0] - (0.5 + 0.28 * sin(M_PI * t))) / norm,
                   2.0 * (P[1] - (0.5 - 0.28 * cos(M_PI * t))) / norm);
     }
 };
@@ -2836,11 +2836,11 @@ const double R0     = 1.;
 // Level-set function
 double fun_levelSet(double *P, const int i, const double t) {
     double xc = 0, yc = (1 - P[0] * P[0]) * t;
-    return ((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0);
+    return -((P[0] - xc) * (P[0] - xc) + (P[1] - yc) * (P[1] - yc) - R0 * R0);
 }
 
 // Level-set function initial
-double fun_levelSet(double *P, const int i) { return (P[0] * P[0] + P[1] * P[1] - R0 * R0); }
+double fun_levelSet(double *P, const int i) { return -(P[0] * P[0] + P[1] * P[1] - R0 * R0); }
 
 template <int N> struct Levelset {
 
@@ -2848,22 +2848,22 @@ template <int N> struct Levelset {
 
     // level set function
     template <typename V> typename V::value_type operator()(const V &P) const {
-        return P[0] * P[0] + (P[1] - (1 - P[0] * P[0]) * t) * (P[1] - (1 - P[0] * P[0]) * t) - R0 * R0 - 1e-14;
+        return -(P[0] * P[0] + (P[1] - (1 - P[0] * P[0]) * t) * (P[1] - (1 - P[0] * P[0]) * t) - R0 * R0 - 1e-14);
     }
 
     // gradient of level set function
     template <typename T> algoim::uvector<T, N> grad(const algoim::uvector<T, N> &X) const {
         const T &x = X[0];
         const T &y = X[1];
-        return algoim::uvector<T, N>(x * 2.0 + t * x * (y + t * (x * x - 1.0)) * 4.0,
-                                     y * 2.0 + t * (x * x - 1.0) * 2.0);
+        return -algoim::uvector<T, N>(x * 2.0 + t * x * (y + t * (x * x - 1.0)) * 4.0,
+                                      y * 2.0 + t * (x * x - 1.0) * 2.0);
     }
 
     // normal = grad(phi)/norm(grad(phi))
     R2 normal(std::span<double> P) const {
         double x = P[0], y = P[1];
 
-        return R2(((x * 2.0 + t * x * (y * 2.0 + t * (x * x - 1.0) * 2.0) * 2.0) * 1.0 /
+        return -R2(((x * 2.0 + t * x * (y * 2.0 + t * (x * x - 1.0) * 2.0) * 2.0) * 1.0 /
                    sqrt(pow(x * 2.0 + t * x * (y * 2.0 + t * (x * x - 1.0) * 2.0) * 2.0, 2.0) / 4.0 +
                         pow(y * 2.0 + t * (x * x - 1.0) * 2.0, 2.0) / 4.0)) /
                       2.0,
@@ -5805,8 +5805,8 @@ std::vector<const GTypeOfFE<Mesh1> *> FE_time = {&DataFE<Mesh1>::P0Poly, &DataFE
 
 // Define method, stabilization, and polynomial order
 #define droplet          // example (circle/droplet)
-#define conservative // method (conservative/non_conservative)
-#define macro         // stabilization (fullstab/macro)
+#define non_conservative // method (conservative/non_conservative)
+#define fullstab         // stabilization (fullstab/macro)
 #define K 2              // polynomial order in time (0/1/2)
 #define M 2              // polynomial order in space (1/2)
 
@@ -6010,7 +6010,7 @@ int main(int argc, char **argv) {
             // Create active meshes
             activemesh_t Thi(Th);
 
-            Thi.truncate(interface, 1);
+            Thi.truncate(interface, -1);
 
             //  Cut FE space
             cut_fespace_t Wh(Thi, Vh);

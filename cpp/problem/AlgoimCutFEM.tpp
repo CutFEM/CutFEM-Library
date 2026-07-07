@@ -834,8 +834,21 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addElementContribution(const itemVFlist_t& 
         return;
     }
 
+    // Data for the VirtualParameter coefficient lists (CutFEMParameter etc.).
+    // These were previously NEVER evaluated in the algoim paths -- coefficients
+    // like a per-domain viscosity eta were silently dropped on cut elements
+    // (uncut elements go through the coefficient-aware standard BaseFEM path),
+    // caught by the polynomial-reproduction MMS in
+    // workfiles/src/active_surfaces/algoim_axisymmetric_stokes_mms.cpp.
+    const double h_    = K.get_h();
+    const double measK = K.measure();
+    double meas_cut    = 0.0;
+    for (const double w : quad_rule.weights) meas_cut += w;
+
     for (int l=0; l<VF.size(); ++l) {
         if (!VF[l].on(domain)) continue;
+
+        const double coef_param = VF[l].computeCoefElement(h_, meas_cut, measK, meas_cut, domain);
 
         const fespace_t& Vhv(VF.get_spaceV(l));
         const fespace_t& Vhu(VF.get_spaceU(l));
@@ -863,7 +876,7 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addElementContribution(const itemVFlist_t& 
             if (!same) FKu.BF(Fop, cut_ip, fu);
 
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
-            Cint *= VF[l].c;
+            Cint *= coef_param * VF[l].c;
 
             if (In) {
                 if (VF.isRHS()) this->addToRHS(VF[l], *In, FKv, fv, Cint);
@@ -991,6 +1004,21 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
         }
     }
 
+    // Data for the VirtualParameter coefficient lists (CutFEMParameter etc.);
+    // previously never evaluated here, silently dropping e.g. the per-domain
+    // viscosity eta in Nitsche consistency terms (caught by the MMS in
+    // workfiles/src/active_surfaces/algoim_axisymmetric_stokes_mms.cpp).
+    // NOTE: the per-side cut measures are not computed in this path (they
+    // would need two extra volume rules); measK is passed instead, so
+    // MEASURE-WEIGHTED kappa parameters are NOT supported here -- constant
+    // kappas and per-domain parameters (the only ones used with algoim
+    // drivers) are exact.
+    const double h_        = K.get_h();
+    const double measK     = K.measure();
+    double meas_surf       = 0.0;
+    for (const double w : quad_rule->weights) meas_surf += w;
+    const std::array<double, 2> measCut{measK, measK};
+
     for (int l = 0; l < VF.size(); ++l) {
 
         // if(!VF[l].on(domain)) continue;
@@ -1074,6 +1102,8 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
         int domv = FKv.get_domain();
         this->initIndex(FKu, FKv);
 
+        const double coef_param = VF[l].computeCoefInterface(h_, meas_surf, measK, measCut, {domu, domv});
+
         // BF MEMORY MANAGEMENT -
         int lastop = getLastop(VF[l].du, VF[l].dv);
         RNMK_ fv(this->databf_, FKv.NbDoF(), FKv.N, lastop);
@@ -1091,7 +1121,16 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
             const Rd face_ip = K.mapToReferenceElement(mip);
             double Cint      = weight * cst_time;
 
-            const Rd normal = quad_rule->normals[ipq];
+            // Algoim rules carry +grad(phi)/|grad(phi)| normals.  The standard-CutFEM
+            // interface assembly (BaseFEM::addInterfaceContribution) uses
+            // -interface.normal(ifac), i.e. the OPPOSITE orientation, and every
+            // two-phase Nitsche form in the drivers is written for that convention.
+            // Negate so both assembly paths agree; without this, all odd-in-n
+            // interface terms (Nitsche consistency/adjoint, pressure-normal pairs)
+            // get the wrong sign -- an O(1) consistency error at the interface
+            // (caught by the polynomial-reproduction MMS in
+            // workfiles/src/active_surfaces/algoim_axisymmetric_stokes_mms.cpp).
+            const Rd normal = -quad_rule->normals[ipq];
 
             assert(std::fabs(normal.norm() - 1) < 1e-14);
             double coef = VF[l].computeCoefFromNormal(normal);
@@ -1103,7 +1142,7 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContribution(const itemVFlist_t
 
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kb, kb), std::make_pair(domu, domv), mip, tid,
                                                            normal);
-            Cint *= coef * VF[l].c;
+            Cint *= coef_param * coef * VF[l].c;
 
             // std::cout << "ALGOIMCUTFEM: kb = " << kb << ", Cint = " << Cint << std::endl;
             // getchar();
@@ -1157,10 +1196,19 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
 
     auto quad_rule = quadGenFace(K, phi_, options_, ifac, domain);
 
+    // VirtualParameter coefficient lists (e.g. eta-scaled ghost penalties);
+    // previously never evaluated in the algoim face path.
+    const double h_    = K.get_h();
+    const double measK = K.measure();
+    double meas_face   = 0.0;
+    for (const double w : quad_rule.weights) meas_face += w;
+
     // Loop over the variational formulation items
     for (int l = 0; l < VF.size(); ++l) {
         if (!VF[l].on(domain))
             continue;
+
+        const double coef_param = VF[l].computeCoefElement(h_, meas_face, measK, measK, domain);
 
         // FINITE ELEMENT SPACES && ELEMENTS
         const fespace_t &Vhv(VF.get_spaceV(l));
@@ -1209,7 +1257,7 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
 
             Cint *= VF[l].evaluateFunctionOnBackgroundMesh(std::make_pair(kbu, kbv), std::make_pair(domain, domain),
                                                             mip, tid, normal);
-            Cint *= coef * VF[l].c;
+            Cint *= coef_param * coef * VF[l].c;
 
             if (In) {
                 if (VF.isRHS())
