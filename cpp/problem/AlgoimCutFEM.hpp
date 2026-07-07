@@ -120,10 +120,6 @@ public:
     // void addInterfaceContributionExact(const Fct &f, const itemVFlist_t& VF, const Interface<mesh_t>& interface, int ifac, double tid,
     //                               const TimeSlab* In, double cst_time, int itq);
 
-    // Gustaf
-    void addBilinear(const itemVFlist_t& VF, const Interface<mesh_t>& interface);
-    void addLinear(const itemVFlist_t& VF, const Interface<mesh_t>& interface);
-
     void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1, 
                             const std::pair<int, int> &e2, const TimeSlab *In, 
                             int itq, double cst_time) override;
