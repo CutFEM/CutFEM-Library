@@ -398,8 +398,25 @@ void BaseFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, con
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        // The trial/test space of an item may live on a DIFFERENT active mesh
+        // than the space driving the element loop (e.g. a bulk velocity tested
+        // against a surface-mesh multiplier in an element-stabilization term).
+        // Element indices are only comparable through the background mesh:
+        // indexing a foreign space directly with k silently assembles with the
+        // basis of an unrelated element.  Map via kb and skip the item if that
+        // mesh does not contain this element; when the spaces share the mesh
+        // the mapping returns k itself, so same-mesh behavior is unchanged.
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv); //, iam);
         // BF MEMORY MANAGEMENT -
         bool same   = (&Vhu == &Vhv);
@@ -480,8 +497,17 @@ void BaseFEM<M>::addElementContribution(const Fct &f, const itemVFlist_t &VF, co
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv); //, iam);
 
         // BF MEMORY MANAGEMENT -
@@ -1135,6 +1161,7 @@ void BaseFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element &K,
     // if(idxK.size() != 1) return;
     // when many subdomain are involve. Cut element but not cut boundary
     int k                 = idxK[subDomId]; // VF[0].onWhatElementIsTestFunction (idxK);
+    int domain            = Vh[k].get_domain();
 
     // GET THE QUADRATURE RULE
     const QFB &qfb(this->get_quadrature_formular_dK());
@@ -1148,12 +1175,19 @@ void BaseFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element &K,
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
-        assert(Vhv.get_nb_element() == Vhu.get_nb_element());
         bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
-        const FElement &FKu(Vhu[k]);
-        const FElement &FKv(Vhv[k]);
-        int domain = FKv.get_domain();
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
         this->initIndex(FKu, FKv);
 
         // BF MEMORY MANAGEMENT -
@@ -1215,6 +1249,7 @@ void BaseFEM<M>::addInnerBorderContribution(const itemVFlist_t &VF, const int k,
 
     // U and V HAS TO BE ON THE SAME MESH
     int kb = Vh.idxElementInBackMesh(k);
+    int domain = FK.get_domain();
 
     // GET THE QUADRATURE RULE
     const QFB &qfb(this->get_quadrature_formular_dK());
@@ -1228,12 +1263,19 @@ void BaseFEM<M>::addInnerBorderContribution(const itemVFlist_t &VF, const int k,
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
-        assert(Vhv.get_nb_element() == Vhu.get_nb_element());
         bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
-        const FElement &FKu(Vhu[k]);
-        const FElement &FKv(Vhv[k]);
-        int domain = FKv.get_domain();
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
         this->initIndex(FKu, FKv);
 
         // BF MEMORY MANAGEMENT -
@@ -1393,6 +1435,7 @@ void BaseFEM<M>::addOuterBorderContribution(const itemVFlist_t &VF, const int k,
 
     // U and V HAS TO BE ON THE SAME MESH
     int kb = Vh.idxElementInBackMesh(k);
+    int domain = FK.get_domain();
 
     // GET THE QUADRATURE RULE
     const QFB &qfb(this->get_quadrature_formular_dK());
@@ -1409,9 +1452,17 @@ void BaseFEM<M>::addOuterBorderContribution(const itemVFlist_t &VF, const int k,
         // assert(Vhv.get_nb_element() == Vhu.get_nb_element());
         bool same = (VF.isRHS() || (&Vhu == &Vhv));
 
-        const FElement &FKu(Vhu[k]);
-        const FElement &FKv(Vhv[k]);
-        int domain = FKv.get_domain();
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKu(Vhu[ku]);
+        const FElement &FKv(Vhv[kv]);
         this->initIndex(FKu, FKv);
 
         // BF MEMORY MANAGEMENT -
@@ -2072,8 +2123,17 @@ void BaseFEM<M>::addElementInterfaceContribution(const itemVFlist_t &VF, const I
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
         const FESpace &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv); //, iam);
         // BF MEMORY MANAGEMENT -
         bool same   = (&Vhu == &Vhv);
@@ -2540,7 +2600,12 @@ void BaseFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const int k, co
 
         // FINTE ELEMENT SPACES && ELEMENTS
         const FESpace &Vhv(VF.get_spaceV(l));
-        const FElement &FKv(Vhv[k]);
+        int kv = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
         this->initIndex(FKv, FKv);
 
         // BF MEMORY MANAGEMENT -
@@ -2788,12 +2853,7 @@ void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Ele
     assert(idxK.size() == 1);
     // if(idxK.size() != 1) return;
     int k = VF[0].onWhatElementIsTestFunction(idxK);
-
-    // FINTE ELEMENT SPACES && ELEMENTS
-    const FESpace &Vhv(VF.get_spaceV(0));
-    const FElement &FKv(Vhv[k]);
-    int domain = FKv.get_domain();
-    this->initIndex(FKv, FKv);
+    int domain = Vh[k].get_domain();
 
     // GET THE QUADRATURE RULE
     const QFB &qfb(this->get_quadrature_formular_dK());
@@ -2804,6 +2864,16 @@ void BaseFEM<M>::addLagrangeBorderContribution(const itemVFlist_t &VF, const Ele
     for (int l = 0; l < VF.size(); ++l) {
         if (!VF[l].on(domain))
             continue;
+
+        // FINTE ELEMENT SPACES && ELEMENTS
+        const FESpace &Vhv(VF.get_spaceV(l));
+        int kv = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        this->initIndex(FKv, FKv);
 
         // BF MEMORY MANAGEMENT -
         int lastop = getLastop(VF[l].du, VF[l].dv);

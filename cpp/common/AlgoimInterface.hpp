@@ -62,6 +62,14 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
     AlgoimInterface(const mesh_t &Mesh, const L &phi_, int label = 0);
 
+    // Options-aware constructor: use the SAME bernstein degree / 1D quadrature
+    // degree for the cut-classification rules as the assembly will use.  The
+    // default constructor keeps the historical (bernstein 2, quad degree 5)
+    // classification, which is only consistent with assemblies run at
+    // bernstein 2; with higher-degree level sets the cut topology and the
+    // assembly rules otherwise disagree on borderline cells.
+    AlgoimInterface(const mesh_t &Mesh, const L &phi_, int bernstein_deg, int quad_deg, int label = 0);
+
     // std::map<int, algoim::QuadratureRule<2>> get_cut_elements() { return cut_elements; }
     std::map<int, AlgoimQuadratureRule<M>> get_cut_elements() { return cut_elements; }
     const AlgoimQuadratureRule<M> *get_cut_quadrature(int k) const;
@@ -91,6 +99,11 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
     double get_t() { return phi.t; }
 
   private:
+    // Rule-generation parameters for cut classification (see options-aware
+    // constructor); defaults preserve the historical behavior.
+    int patch_bernstein_deg_ = 2;
+    int patch_quad_deg_      = 5;
+
     void make_algoim_patch(int label);
 };
 

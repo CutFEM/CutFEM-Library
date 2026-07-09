@@ -663,8 +663,17 @@ void BaseCutFEM<M>::addElementContribution(const itemVFlist_t &VF, const int k, 
             // FINTE ELEMENT SPACES && ELEMENTS
             const FESpace &Vhv(VF.get_spaceV(l));
             const FESpace &Vhu(VF.get_spaceU(l));
-            const FElement &FKv(Vhv[k]);
-            const FElement &FKu(Vhu[k]);
+            int kv = k, ku = k;
+            if (&Vhv != &Vh) {
+                kv = Vhv.idxElementFromBackMesh(kb, domain);
+                if (kv < 0) continue;
+            }
+            if (&Vhu != &Vh) {
+                ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+                if (ku < 0) continue;
+            }
+            const FElement &FKv(Vhv[kv]);
+            const FElement &FKu(Vhu[ku]);
             this->initIndex(FKu, FKv);
 
             // BF MEMORY MANAGEMENT -
@@ -756,8 +765,17 @@ void BaseCutFEM<M>::addElementContribution(const Fct &f, const itemVFlist_t &VF,
             // FINTE ELEMENT SPACES && ELEMENTS
             const FESpace &Vhv(VF.get_spaceV(l));
             const FESpace &Vhu(VF.get_spaceU(l));
-            const FElement &FKv(Vhv[k]);
-            const FElement &FKu(Vhu[k]);
+            int kv = k, ku = k;
+            if (&Vhv != &Vh) {
+                kv = Vhv.idxElementFromBackMesh(kb, domain);
+                if (kv < 0) continue;
+            }
+            if (&Vhu != &Vh) {
+                ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+                if (ku < 0) continue;
+            }
+            const FElement &FKv(Vhv[kv]);
+            const FElement &FKu(Vhu[ku]);
             this->initIndex(FKu, FKv);
 
             // BF MEMORY MANAGEMENT -
@@ -881,8 +899,17 @@ void BaseCutFEM<M>::addElementContributionOtherSide(const itemVFlist_t &VF, cons
             // FINTE ELEMENT SPACES && ELEMENTS
             const FESpace &Vhv(VF.get_spaceV(l));
             const FESpace &Vhu(VF.get_spaceU(l));
-            const FElement &FKv(Vhv[k]);
-            const FElement &FKu(Vhu[k]);
+            int kv = k, ku = k;
+            if (&Vhv != &Vh) {
+                kv = Vhv.idxElementFromBackMesh(kb, domain);
+                if (kv < 0) continue;
+            }
+            if (&Vhu != &Vh) {
+                ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+                if (ku < 0) continue;
+            }
+            const FElement &FKv(Vhv[kv]);
+            const FElement &FKu(Vhu[ku]);
             this->initIndex(FKu, FKv);
 
             // BF MEMORY MANAGEMENT -
@@ -1467,6 +1494,7 @@ void BaseCutFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element 
     for (int e = 0; e < Ne; ++e) {
 
         int k = idxK[e];
+        int domain = Vh[k].get_domain();
         typename Element::Face face;
         const Cut_Part<typename Element::Face> cutFace(Th.get_cut_face(face, k, ifac, itq));
         const Cut_Part<Element> cutK(Th.get_cut_part(k, itq));
@@ -1484,11 +1512,18 @@ void BaseCutFEM<M>::addBorderContribution(const itemVFlist_t &VF, const Element 
                 // FINITE ELEMENT SPACES && ELEMENTS
                 const FESpace &Vhv(VF.get_spaceV(l));
                 const FESpace &Vhu(VF.get_spaceU(l));
-                assert(Vhv.get_nb_element() == Vhu.get_nb_element());
                 bool same = (VF.isRHS() || (&Vhu == &Vhv));
-                const FElement &FKu(Vhu[k]);
-                const FElement &FKv(Vhv[k]);
-                int domain = FKv.get_domain();
+                int kv = k, ku = k;
+                if (&Vhv != &Vh) {
+                    kv = Vhv.idxElementFromBackMesh(kb, domain);
+                    if (kv < 0) continue;
+                }
+                if (&Vhu != &Vh) {
+                    ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+                    if (ku < 0) continue;
+                }
+                const FElement &FKu(Vhu[ku]);
+                const FElement &FKv(Vhv[kv]);
                 this->initIndex(FKu, FKv);
 
                 // BF MEMORY MANAGEMENT -
@@ -2866,7 +2901,12 @@ void BaseCutFEM<M>::addLagrangeContribution(const itemVFlist_t &VF, const int k,
                 continue;
             // FINTE ELEMENT SPACES && ELEMENTS
             const FESpace &Vhv(VF.get_spaceV(l));
-            const FElement &FKv(Vhv[k]);
+            int kv = k;
+            if (&Vhv != &Vh) {
+                kv = Vhv.idxElementFromBackMesh(kb, domain);
+                if (kv < 0) continue;
+            }
+            const FElement &FKv(Vhv[kv]);
             this->initIndex(FKv, FKv);
 
             // BF MEMORY MANAGEMENT -
@@ -3084,7 +3124,12 @@ void BaseCutFEM<M>::addLagrangeContributionOtherSide(const itemVFlist_t &VF, con
                 continue;
             // FINTE ELEMENT SPACES && ELEMENTS
             const FESpace &Vhv(VF.get_spaceV(l));
-            const FElement &FKv(Vhv[k]);
+            int kv = k;
+            if (&Vhv != &Vh) {
+                kv = Vhv.idxElementFromBackMesh(kb, domain);
+                if (kv < 0) continue;
+            }
+            const FElement &FKv(Vhv[kv]);
             this->initIndex(FKv, FKv);
 
             // BF MEMORY MANAGEMENT -

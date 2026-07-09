@@ -9,6 +9,14 @@ AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_, int label)
     make_algoim_patch(label);
 }
 
+template <typeMesh M, typename L>
+AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_, int bernstein_deg, int quad_deg, int label)
+    : Interface<M>(Mesh), phi_owned_(make_level_set_view<M, L>(phi_)), phi(*phi_owned_),
+      patch_bernstein_deg_(bernstein_deg), patch_quad_deg_(quad_deg) {
+
+    make_algoim_patch(label);
+}
+
 template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(int label) {
 
     using mesh_t  = M;
@@ -24,7 +32,9 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
 
     ProblemOption options;
     options.order_space_element_quadrature_ = 3;
-    options.algoim_bernstein_deg_ = 2;
+    options.algoim_bernstein_deg_    = patch_bernstein_deg_;
+    options.algoim_surface_quad_deg_ = patch_quad_deg_;
+    options.algoim_vol_quad_deg_     = patch_quad_deg_;
 
     const mesh_t &Th = *(this->backMesh); // background mesh
 

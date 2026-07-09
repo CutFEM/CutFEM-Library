@@ -47,8 +47,17 @@ void AlgoimBaseCutFEM<M, L>::addElementContribution(const itemVFlist_t &VF, cons
         // Finite element spaces and elements
         const fespace_t &Vhv(VF.get_spaceV(l));
         const fespace_t &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv);
 
         // Basis functions memory management
@@ -166,8 +175,17 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionExact(const Fct &f, const ite
         // Finite element spaces and elements
         const fespace_t &Vhv(VF.get_spaceV(l));
         const fespace_t &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv);
 
         // Basis functions memory management
@@ -284,8 +302,17 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionExact(const Fct &f, const ite
         // Finite element spaces and elements
         const fespace_t &Vhv(VF.get_spaceV(l));
         const fespace_t &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv);
 
         // Basis functions memory management
@@ -426,8 +453,17 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionSensitive(const itemVFlist_t 
         // Finite element spaces and elements
         const fespace_t &Vhv(VF.get_spaceV(l));
         const fespace_t &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv);
 
         // Basis functions memory management
@@ -522,8 +558,17 @@ void AlgoimBaseCutFEM<M, L>::addElementContributionExactSensitive(const Fct &f, 
         // Finite element spaces and elements
         const fespace_t &Vhv(VF.get_spaceV(l));
         const fespace_t &Vhu(VF.get_spaceU(l));
-        const FElement &FKv(Vhv[k]);
-        const FElement &FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const FElement &FKv(Vhv[kv]);
+        const FElement &FKu(Vhu[ku]);
         this->initIndex(FKu, FKv);
 
         // Basis functions memory management
@@ -1890,8 +1935,17 @@ void AlgoimBaseCutFEM<M, L>::addLinearExact(const Fct &f, const itemVFlist_t &VF
                 // Finite element spaces and elements
                 const fespace_t &Vhv(VF.get_spaceV(l));
                 const fespace_t &Vhu(VF.get_spaceU(l));
-                const FElement &FKv(Vhv[k]);
-                const FElement &FKu(Vhu[k]);
+                int kv = k, ku = k;
+                if (&Vhv != &Vh) {
+                    kv = Vhv.idxElementFromBackMesh(kb, domain);
+                    if (kv < 0) continue;
+                }
+                if (&Vhu != &Vh) {
+                    ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+                    if (ku < 0) continue;
+                }
+                const FElement &FKv(Vhv[kv]);
+                const FElement &FKu(Vhu[ku]);
                 this->initIndex(FKu, FKv);
 
                 // Basis functions memory management
@@ -2093,8 +2147,17 @@ void TriAlgoimBaseCutFEM<M,Phi>::addElementContribution(
 
         const fespace_t& Vhv(VF.get_spaceV(l));
         const fespace_t& Vhu(VF.get_spaceU(l));
-        const auto& FKv(Vhv[k]);
-        const auto& FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const auto& FKv(Vhv[kv]);
+        const auto& FKu(Vhu[ku]);
         this->initIndex(FKu, FKv);
 
         bool same  = (&Vhu == &Vhv);

@@ -25,6 +25,27 @@ struct ProblemOption {
     int algoim_bernstein_deg_           = 2;
     int algoim_surface_quad_deg_        = 5;
     int algoim_vol_quad_deg_            = 5;
+    // 1D quadrature strategy for the multipoly (triangle/tet) algoim path:
+    // 0 = AlwaysGL, 1 = AlwaysTS, 2 = AutoMixed (algoim::QuadStrategy values).
+    // AutoMixed falls back to tanh-sinh on base integrals with detected
+    // vertical tangents, whose accuracy at moderate q is ~1e-5..1e-8 -- far
+    // below the Gauss-Legendre branch.  Keep AutoMixed for robustness on wild
+    // cuts; use AlwaysGL when the quadrature consistency error must be small
+    // (e.g. pressure-robust Stokes at small nu).
+    int algoim_quad_strategy_           = 2;
+    // Post-process the Mesh2 (triangle multipoly) cut rules so that the
+    // discrete divergence theorem  int_{K cap Omega} div F = int_{K cap Gamma}
+    // F.n + int_{faces cap Omega} F.n  holds EXACTLY (to solver precision) for
+    // all polynomial fields F up to degree algoim_ibp_degree_, elementwise.
+    // Two-stage constrained least-squares correction: (1) the surface rule's
+    // vector weights w*n are corrected against exact 1D face integrals using
+    // divergence-free polynomial test fields; (2) the volume weights are
+    // moment-fitted to the divergence-theorem moments defined by the corrected
+    // boundary rule.  This removes the quadrature inconsistency that is
+    // amplified by |p|/nu in pressure-robust Stokes (see
+    // workfiles/src/stokes/algoim_quadrature_probe.cpp).
+    bool algoim_ibp_consistent_         = false;
+    int algoim_ibp_degree_              = 6;
     int order_space_bord_quadrature_    = 5;
     int order_time_quadrature_          = 3;
     std::string solver_name_            = "mumps";

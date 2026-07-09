@@ -31,6 +31,455 @@ private:
 
 } // namespace algoim_cut_detail
 
+// IBP-consistent quadrature correction (triangle multipoly path).
+//
+// Enforces the discrete divergence theorem on each cut element K:
+//   int_{K cap {phi<0}} div F  =  int_{K cap {phi=0}} F.n  +  int_{edges cap {phi<0}} F.n
+// exactly (to small dense-solver precision) for all polynomial fields F with
+// deg F <= m := ProblemOption::algoim_ibp_degree_.  Rationale: the raw
+// multipoly rules carry O(1e-3..1e-5) divergence-theorem defects on cut cells
+// whose geometry is hard at the element scale; in pressure-robust Stokes these
+// defects enter the momentum residual scaled by |p|/nu.  The element-edge
+// (face) integrals are 1D integrals of the Bernstein level set's edge traces,
+// computable to machine precision, and serve as the trusted reference.
+//
+// Stage 1 (correct_surface_rule): minimally correct the surface rule's VECTOR
+// weights w_q n_q such that  sum_q F(y_q) . (w_q n_q) = - sum_faces int F.n
+// for all divergence-free polynomial F = curl(psi), deg psi <= m+1.  This is
+// the part of the divergence theorem that constrains the surface rule alone.
+// The constraint set for the region {phi<0} and its complement coincide up to
+// the sign of the weights (full-edge integrals of div-free fields vanish
+// exactly), so the corrected rule is valid for both sides / either sign
+// convention of the caller.
+//
+// Stage 2 (correct_volume_rule): after Stage 1 the volume moments
+// T(p) = B(P) with div P = p are well-defined (independent of the chosen
+// antiderivative P); minimally correct the volume weights to reproduce T(p)
+// for all deg p <= m-1.
+namespace algoim_ibp {
+
+using real = algoim::real;
+
+// Solve (M + ridge*I) y = r for symmetric PSD M (n x n, row-major, by value).
+inline bool ridge_cholesky_solve(std::vector<double> M, const std::vector<double> &r, int n,
+                                 std::vector<double> &y, double ridge_rel = 1e-12) {
+    double dmax = 0;
+    for (int i = 0; i < n; ++i) dmax = std::max(dmax, M[i * n + i]);
+    const double ridge = std::max(dmax, 1.0) * ridge_rel;
+    for (int i = 0; i < n; ++i) M[i * n + i] += ridge;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j <= i; ++j) {
+            double s = M[i * n + j];
+            for (int k = 0; k < j; ++k) s -= M[i * n + k] * M[j * n + k];
+            if (i == j) {
+                if (!(s > 0) || !std::isfinite(s)) return false;
+                M[i * n + i] = std::sqrt(s);
+            } else
+                M[i * n + j] = s / M[j * n + j];
+        }
+    }
+    y = r;
+    for (int i = 0; i < n; ++i) {
+        double s = y[i];
+        for (int k = 0; k < i; ++k) s -= M[i * n + k] * y[k];
+        y[i] = s / M[i * n + i];
+    }
+    for (int i = n - 1; i >= 0; --i) {
+        double s = y[i];
+        for (int k = i + 1; k < n; ++k) s -= M[k * n + i] * y[k];
+        y[i] = s / M[i * n + i];
+    }
+    return true;
+}
+
+// Symmetric Jacobi eigendecomposition: M (n x n, row-major, destroyed).
+// Eigenvalues in lam; eigenvectors are the COLUMNS of Q (Q[i*n+j] = i-th
+// component of eigenvector j).
+inline void jacobi_eig(std::vector<double> &M, int n, std::vector<double> &lam,
+                       std::vector<double> &Q) {
+    Q.assign(n * n, 0.0);
+    for (int i = 0; i < n; ++i) Q[i * n + i] = 1.0;
+    for (int sweep = 0; sweep < 100; ++sweep) {
+        double off = 0;
+        for (int p = 0; p < n; ++p)
+            for (int q = p + 1; q < n; ++q) off += M[p * n + q] * M[p * n + q];
+        if (off < 1e-28) break;
+        for (int p = 0; p < n; ++p)
+            for (int q = p + 1; q < n; ++q) {
+                const double apq = M[p * n + q];
+                if (std::abs(apq) < 1e-300) continue;
+                const double tau = (M[q * n + q] - M[p * n + p]) / (2 * apq);
+                const double t = (tau >= 0 ? 1.0 : -1.0) / (std::abs(tau) + std::sqrt(1 + tau * tau));
+                const double c = 1 / std::sqrt(1 + t * t), s = t * c;
+                for (int k = 0; k < n; ++k) {
+                    const double mkp = M[k * n + p], mkq = M[k * n + q];
+                    M[k * n + p] = c * mkp - s * mkq;
+                    M[k * n + q] = s * mkp + c * mkq;
+                }
+                for (int k = 0; k < n; ++k) {
+                    const double mpk = M[p * n + k], mqk = M[q * n + k];
+                    M[p * n + k] = c * mpk - s * mqk;
+                    M[q * n + k] = s * mpk + c * mqk;
+                }
+                for (int k = 0; k < n; ++k) {
+                    const double qkp = Q[k * n + p], qkq = Q[k * n + q];
+                    Q[k * n + p] = c * qkp - s * qkq;
+                    Q[k * n + q] = s * qkp + c * qkq;
+                }
+            }
+    }
+    lam.resize(n);
+    for (int i = 0; i < n; ++i) lam[i] = M[i * n + i];
+}
+
+// Truncated min-norm update: solve  min ||d||  s.t.  A d = r  through the
+// eigendecomposition of A A^T, DROPPING eigendirections with lam < tol*lam_max
+// instead of inverting them.  Near-singular constraint directions (high-degree
+// moments on short arcs, tiny slivers) would otherwise amplify machine-level
+// residuals into O(1e-6) weight noise; truncation leaves those directions
+// uncorrected (their raw residual is retained, which is the lesser evil).
+// A final trust-region cap ||d|| <= cap rejects pathological updates entirely;
+// the caller then keeps the raw rule.
+inline bool trust_region_update(const std::vector<double> &A, const std::vector<double> &r, int nc,
+                                size_t nu, double cap, std::vector<double> &d) {
+    std::vector<double> M(nc * nc, 0.0), lam, Q;
+    for (int i = 0; i < nc; ++i)
+        for (int j = 0; j <= i; ++j) {
+            double s = 0;
+            for (size_t k = 0; k < nu; ++k) s += A[i * nu + k] * A[j * nu + k];
+            M[i * nc + j] = M[j * nc + i] = s;
+        }
+    jacobi_eig(M, nc, lam, Q);
+    double lmax = 0;
+    for (int i = 0; i < nc; ++i) lmax = std::max(lmax, lam[i]);
+    if (!(lmax > 0) || !std::isfinite(lmax)) return false;
+
+    std::vector<double> y(nc, 0.0);
+    for (int j = 0; j < nc; ++j) {
+        if (!(lam[j] > 1e-12 * lmax)) continue;
+        double cj = 0;
+        for (int i = 0; i < nc; ++i) cj += Q[i * nc + j] * r[i];
+        const double coef = cj / lam[j];
+        for (int i = 0; i < nc; ++i) y[i] += coef * Q[i * nc + j];
+    }
+
+    d.assign(nu, 0.0);
+    double nrm2 = 0;
+    for (size_t q = 0; q < nu; ++q) {
+        double s = 0;
+        for (int i = 0; i < nc; ++i) s += A[i * nu + q] * y[i];
+        d[q] = s;
+        nrm2 += s * s;
+    }
+    return std::isfinite(nrm2) && std::sqrt(nrm2) <= cap;
+}
+
+// 1D quadrature for the {phiB < 0} portions of the three (reference-)triangle
+// edges, returned as physical points with OUTWARD vector weights (unit outward
+// normal times arc measure).  phiB is the Bernstein level set on the unit
+// square used by the volume/surface rules; its edge traces are polynomials
+// (degree bern_deg on the two legs, 2*bern_deg on the diagonal), so the roots
+// and the resulting portions are essentially exact.
+inline void inside_face_rule(const Mesh2::Element &K, const algoim::xarray<real, 2> &phiB,
+                             int bern_deg, int q1d, std::vector<std::array<double, 2>> &pts,
+                             std::vector<std::array<double, 2>> &vw) {
+    using R2 = typename Mesh2::Rd;
+    pts.clear();
+    vw.clear();
+
+    const R2 v0(K.at(0)[0], K.at(0)[1]);
+    const R2 v1(K.at(1)[0], K.at(1)[1]);
+    const R2 v2(K.at(2)[0], K.at(2)[1]);
+
+    for (int e = 0; e < 3; ++e) {
+        // reference parametrization, physical endpoints A->B, opposite vertex C
+        R2 A, B, C;
+        if (e == 0) { A = v0; B = v1; C = v2; }        // ref (t, 0)
+        else if (e == 1) { A = v0; B = v2; C = v1; }   // ref (0, t)
+        else { A = v1; B = v2; C = v0; }               // ref (1-t, t)
+
+        const int dtr = (e == 2) ? 2 * bern_deg : bern_deg;
+
+        std::vector<real> gdata(dtr + 1);
+        algoim::xarray<real, 1> g(gdata.data(), algoim::uvector<int, 1>(dtr + 1));
+        algoim::bernstein::bernsteinInterpolate<1>(
+            [&](const algoim::uvector<real, 1> &t) -> real {
+                const real tt = t(0);
+                algoim::uvector<real, 2> xi;
+                if (e == 0)      xi = algoim::uvector<real, 2>(tt, real(0));
+                else if (e == 1) xi = algoim::uvector<real, 2>(real(0), tt);
+                else             xi = algoim::uvector<real, 2>(real(1) - tt, tt);
+                return algoim::bernstein::evalBernsteinPoly(phiB, xi);
+            },
+            g);
+
+        // Robust roots of the edge trace by monotone splitting: split [0,1] at
+        // the roots of g' (monotone pieces), then bisect every sign change.
+        // The fast Bernstein root-finder alone can MISS near-tangent double
+        // crossings (tiny dips of the trace, common where the interface runs
+        // nearly parallel to an edge), which would corrupt the face reference
+        // by the dip length.
+        auto geval = [&](double t) -> double {
+            return double(algoim::bernstein::evalBernsteinPoly(g, algoim::uvector<real, 1>(t)));
+        };
+        std::vector<double> knots;
+        knots.push_back(0.0);
+        if (dtr >= 2) {
+            std::vector<real> gd(dtr);
+            for (int i = 0; i < dtr; ++i) gd[i] = dtr * (gdata[i + 1] - gdata[i]);
+            std::vector<real> droots(std::max(dtr - 1, 1));
+            const int ndr = algoim::bernstein::bernsteinUnitIntervalRealRoots(gd.data(), dtr, droots.data());
+            for (int i = 0; i < ndr; ++i)
+                if (droots[i] > 0.0 && droots[i] < 1.0) knots.push_back(double(droots[i]));
+        }
+        knots.push_back(1.0);
+        std::sort(knots.begin(), knots.end());
+
+        std::vector<double> brk;
+        brk.push_back(0.0);
+        for (size_t i = 0; i + 1 < knots.size(); ++i) {
+            const double a = knots[i], b = knots[i + 1];
+            if (b - a <= 1e-15) continue;
+            double ga = geval(a), gb = geval(b);
+            if (!(ga * gb < 0)) continue; // no sign change on this monotone piece
+            double lo = a, hi = b;
+            if (ga > 0) std::swap(lo, hi); // g(lo) < 0 < g(hi)
+            for (int it = 0; it < 55; ++it) {
+                const double mid = 0.5 * (lo + hi);
+                if (geval(mid) < 0) lo = mid;
+                else hi = mid;
+            }
+            brk.push_back(0.5 * (lo + hi));
+        }
+        brk.push_back(1.0);
+        std::sort(brk.begin(), brk.end());
+
+        // physical edge geometry: outward unit normal and length
+        const double dxe = B[0] - A[0], dye = B[1] - A[1];
+        const double len = std::sqrt(dxe * dxe + dye * dye);
+        if (len <= 0) continue;
+        double n0 = dye / len, n1 = -dxe / len;
+        if (n0 * (C[0] - A[0]) + n1 * (C[1] - A[1]) > 0) { n0 = -n0; n1 = -n1; }
+
+        for (size_t i = 0; i + 1 < brk.size(); ++i) {
+            const double ta = brk[i], tb = brk[i + 1];
+            if (tb - ta <= 1e-14) continue;
+            const double tm = 0.5 * (ta + tb);
+            if (algoim::bernstein::evalBernsteinPoly(g, algoim::uvector<real, 1>(tm)) >= 0)
+                continue; // outside {phi<0}
+            for (int j = 0; j < q1d; ++j) {
+                const double t = ta + (tb - ta) * double(algoim::GaussQuad::x(q1d, j));
+                const double w = (tb - ta) * len * double(algoim::GaussQuad::w(q1d, j));
+                pts.push_back({A[0] + t * dxe, A[1] + t * dye});
+                vw.push_back({w * n0, w * n1});
+            }
+        }
+    }
+}
+
+// Stage 1: correct the surface rule's vector weights (see file-top comment).
+// Convention: `rule` normals are +grad(phi)/|grad(phi)|, outward for the
+// region {phi < 0} that phiB's negative side defines.
+inline void correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2::Element &K,
+                                 const algoim::xarray<real, 2> &phiB, int bern_deg, int m) {
+    using R2       = typename Mesh2::Rd;
+    const size_t ns = rule.points.size();
+    if (ns == 0) return;
+
+    std::vector<std::array<double, 2>> fpts, fvw;
+    inside_face_rule(K, phiB, bern_deg, 10, fpts, fvw);
+
+    const double cx = (K.at(0)[0] + K.at(1)[0] + K.at(2)[0]) / 3.;
+    const double cy = (K.at(0)[1] + K.at(1)[1] + K.at(2)[1]) / 3.;
+    const double hs = K.get_h();
+
+    // divergence-free basis F = curl(psi), psi = xi^a eta^b, 1 <= a+b <= m+1
+    std::vector<std::pair<int, int>> basis;
+    for (int d = 1; d <= m + 1; ++d)
+        for (int a = 0; a <= d; ++a) basis.push_back({a, d - a});
+    const int nc = (int)basis.size();
+
+    auto Feval = [&](int i, double x, double y, double F[2]) {
+        const auto [a, b] = basis[i];
+        const double xi = (x - cx) / hs, eta = (y - cy) / hs;
+        F[0] = (b == 0) ? 0.0 : b * std::pow(xi, a) * std::pow(eta, b - 1);
+        F[1] = (a == 0) ? 0.0 : -a * std::pow(xi, a - 1) * std::pow(eta, b);
+    };
+
+    const size_t nu = 2 * ns; // unknowns: vector-weight components
+    // constraint matrix (fixed: node positions don't change) and constant
+    // face contributions; row-normalized for conditioning
+    std::vector<double> A(nc * nu), face(nc), rownorm(nc);
+    for (int i = 0; i < nc; ++i) {
+        double F[2];
+        for (size_t q = 0; q < ns; ++q) {
+            Feval(i, rule.points[q][0], rule.points[q][1], F);
+            A[i * nu + 2 * q]     = F[0];
+            A[i * nu + 2 * q + 1] = F[1];
+        }
+        double fc = 0;
+        for (size_t q = 0; q < fpts.size(); ++q) {
+            Feval(i, fpts[q][0], fpts[q][1], F);
+            fc += F[0] * fvw[q][0] + F[1] * fvw[q][1];
+        }
+        face[i] = fc;
+
+        double rn = 0;
+        for (size_t j = 0; j < nu; ++j) rn += A[i * nu + j] * A[i * nu + j];
+        rownorm[i] = std::sqrt(rn);
+        if (rownorm[i] > 0)
+            for (size_t j = 0; j < nu; ++j) A[i * nu + j] /= rownorm[i];
+    }
+
+    // working state: vector weights
+    std::vector<double> omega(nu);
+    double wsum = 0;
+    for (size_t q = 0; q < ns; ++q) {
+        omega[2 * q]     = rule.weights[q] * rule.normals[q][0];
+        omega[2 * q + 1] = rule.weights[q] * rule.normals[q][1];
+        wsum += rule.weights[q];
+    }
+
+    // residual (in row-normalized units) of the constraints at a given omega
+    auto residual = [&](const std::vector<double> &om, std::vector<double> &r) -> double {
+        double rmax = 0;
+        for (int i = 0; i < nc; ++i) {
+            double acc = face[i];
+            for (size_t j = 0; j < nu; ++j) acc += rownorm[i] * A[i * nu + j] * om[j];
+            r[i] = (rownorm[i] > 0) ? -acc / rownorm[i] : 0.0;
+            rmax = std::max(rmax, std::abs(r[i]));
+        }
+        return rmax;
+    };
+
+    // iterative refinement with monotone acceptance: each pass re-solves the
+    // constraints from the freshly evaluated residual (classic refinement,
+    // pushes the single-solve ~1e-12 relative accuracy toward machine -- for
+    // problems with large pressure scales, e.g. coriolis w=1e4, that factor
+    // shows up directly in the velocity error); a pass is committed only if
+    // the residual actually decreases.
+    const double cap = 0.25 * (wsum + hs * 1e-8);
+    const double tol = 3e-16 * (1.0 + wsum);
+    std::vector<double> r(nc), rtry(nc), d, otry(nu);
+    double rmax = residual(omega, r);
+    bool changed = false;
+    for (int pass = 0; pass < 4 && rmax >= tol; ++pass) {
+        if (!trust_region_update(A, r, nc, nu, cap, d)) break;
+        for (size_t j = 0; j < nu; ++j) otry[j] = omega[j] + d[j];
+        const double rmax_try = residual(otry, rtry);
+        if (!(rmax_try < rmax)) break; // no improvement: keep previous state
+        omega.swap(otry);
+        r.swap(rtry);
+        rmax    = rmax_try;
+        changed = true;
+    }
+    if (!changed) return;
+
+    for (size_t q = 0; q < ns; ++q) {
+        const double o0 = omega[2 * q], o1 = omega[2 * q + 1];
+        const double nn = std::sqrt(o0 * o0 + o1 * o1);
+        if (!(nn > 1e-14 * hs) || !std::isfinite(nn)) continue; // keep original entry
+        rule.weights[q] = nn;
+        rule.normals[q] = R2(o0 / nn, o1 / nn);
+    }
+}
+
+// Stage 2: moment-fit the volume weights to the divergence-theorem moments
+// defined by the (Stage-1-corrected) surface rule plus the face rule.
+// `surf` must carry outward normals for the region {phi < 0} (i.e. the rule
+// produced by quadGenSurf for the same phi whose negative side `vol`
+// integrates).
+inline void correct_volume_rule(AlgoimQuadratureRule<Mesh2> &vol,
+                                const AlgoimQuadratureRule<Mesh2> &surf, const Mesh2::Element &K,
+                                const algoim::xarray<real, 2> &phiB, int bern_deg, int m) {
+    const size_t nv = vol.points.size(), ns = surf.points.size();
+    if (nv == 0 || ns == 0) return;
+
+    std::vector<std::array<double, 2>> fpts, fvw;
+    inside_face_rule(K, phiB, bern_deg, 10, fpts, fvw);
+
+    const double cx = (K.at(0)[0] + K.at(1)[0] + K.at(2)[0]) / 3.;
+    const double cy = (K.at(0)[1] + K.at(1)[1] + K.at(2)[1]) / 3.;
+    const double hs = K.get_h();
+
+    // moment basis p = xi^a eta^b, 0 <= a+b <= m-1; antiderivative
+    // P = (hs * xi^{a+1} eta^b / (a+1), 0) satisfies div P = p.
+    std::vector<std::pair<int, int>> basis;
+    for (int d = 0; d <= m - 1; ++d)
+        for (int a = 0; a <= d; ++a) basis.push_back({a, d - a});
+    const int nc = (int)basis.size();
+
+    auto peval = [&](int i, double x, double y) -> double {
+        const auto [a, b] = basis[i];
+        const double xi = (x - cx) / hs, eta = (y - cy) / hs;
+        return std::pow(xi, a) * std::pow(eta, b);
+    };
+    auto P1eval = [&](int i, double x, double y) -> double {
+        const auto [a, b] = basis[i];
+        const double xi = (x - cx) / hs, eta = (y - cy) / hs;
+        return hs * std::pow(xi, a + 1) * std::pow(eta, b) / (a + 1);
+    };
+
+    std::vector<double> V(nc * nv), r(nc);
+    std::vector<double> T(nc), rownorm(nc);
+    for (int i = 0; i < nc; ++i) {
+        // target moment from the boundary rules (fixed across passes)
+        double Ti = 0;
+        for (size_t q = 0; q < ns; ++q)
+            Ti += surf.weights[q] * P1eval(i, surf.points[q][0], surf.points[q][1]) * surf.normals[q][0];
+        for (size_t q = 0; q < fpts.size(); ++q)
+            Ti += P1eval(i, fpts[q][0], fpts[q][1]) * fvw[q][0];
+        T[i] = Ti;
+
+        for (size_t q = 0; q < nv; ++q)
+            V[i * nv + q] = peval(i, vol.points[q][0], vol.points[q][1]);
+
+        double rn = 0;
+        for (size_t j = 0; j < nv; ++j) rn += V[i * nv + j] * V[i * nv + j];
+        rownorm[i] = std::sqrt(rn);
+        if (rownorm[i] > 0)
+            for (size_t j = 0; j < nv; ++j) V[i * nv + j] /= rownorm[i];
+    }
+
+    std::vector<double> wq(vol.weights.begin(), vol.weights.end());
+    double wsum = 0;
+    for (size_t q = 0; q < nv; ++q) wsum += wq[q];
+
+    auto residual = [&](const std::vector<double> &w, std::vector<double> &rr) -> double {
+        double rmax = 0;
+        for (int i = 0; i < nc; ++i) {
+            double acc = 0;
+            for (size_t q = 0; q < nv; ++q) acc += w[q] * V[i * nv + q];
+            rr[i] = (rownorm[i] > 0) ? (T[i] / rownorm[i] - acc) : 0.0;
+            rmax  = std::max(rmax, std::abs(rr[i]));
+        }
+        return rmax;
+    };
+
+    // iterative refinement with monotone acceptance (see correct_surface_rule)
+    const double cap = 0.25 * (wsum + hs * hs * 1e-8);
+    const double tol = 3e-16 * (1.0 + wsum);
+    std::vector<double> rtry(nc), d, wtry(nv);
+    double rmax  = residual(wq, r);
+    bool changed = false;
+    for (int pass = 0; pass < 4 && rmax >= tol; ++pass) {
+        if (!trust_region_update(V, r, nc, nv, cap, d)) break;
+        for (size_t q = 0; q < nv; ++q) wtry[q] = wq[q] + d[q];
+        const double rmax_try = residual(wtry, rtry);
+        if (!(rmax_try < rmax)) break;
+        wq.swap(wtry);
+        r.swap(rtry);
+        rmax    = rmax_try;
+        changed = true;
+    }
+    if (!changed) return;
+
+    for (size_t q = 0; q < nv; ++q)
+        if (std::isfinite(wq[q])) vol.weights[q] = wq[q];
+}
+
+} // namespace algoim_ibp
+
 // Mesh2 specialization
 template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const ProblemOption& option) {
@@ -91,7 +540,8 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
     // Compute quadrature using the implicit polynomial quadrature method
     algoim::ImplicitPolyQuadrature<2> ipquad(phiB, psiB);
 
-    ipquad.integrate(algoim::AutoMixed, q1d, [&](const Vec2& xi, real w_ref)
+    const auto strategy = static_cast<algoim::QuadStrategy>(option.algoim_quad_strategy_);
+    ipquad.integrate(strategy, q1d, [&](const Vec2& xi, real w_ref)
     {
         // pick component: inside triangle AND phi<0
         if (psi_ref(xi) >= 0) return; // exact
@@ -102,6 +552,18 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
         rule.points.emplace_back(R2(x(0), x(1)));
         rule.weights.emplace_back(double(w_ref) * std::abs(detJ));
     });
+
+    if (option.algoim_ibp_consistent_ && rule.points.size() > 0) {
+        // Stage 2 of the IBP correction: fit the volume weights to the
+        // divergence-theorem moments of the (Stage-1-corrected) boundary rule.
+        // quadGenSurf below is called with the same phi, so its normals are
+        // outward for the region {phi<0} integrated here, and (with the flag
+        // set) it returns the Stage-1-corrected rule the assembly also uses.
+        auto surf = quadGenSurf(K, phi, option);
+        if (surf.points.size() > 0)
+            algoim_ibp::correct_volume_rule(rule, surf, K, phiB, bernstein_deg,
+                                            option.algoim_ibp_degree_);
+    }
 
     return rule;
 }
@@ -189,7 +651,8 @@ AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const
     const real tol_inside = real(1e-14);
     const real tol_psi0   = real(1e-10);
 
-    ipquad.integrate_surf(algoim::AutoMixed, q1d,
+    const auto strategy = static_cast<algoim::QuadStrategy>(option.algoim_quad_strategy_);
+    ipquad.integrate_surf(strategy, q1d,
     [&](const Vec2& xi, real /*w_ref*/, const Vec2& wn_ref)
     {
         const real ph  = algoim::bernstein::evalBernsteinPoly(phiB, xi);
@@ -226,7 +689,13 @@ AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const
         // rule.normals.emplace_back(normal);
     });
 
-
+    if (option.algoim_ibp_consistent_ && rule.points.size() > 0) {
+        // Stage 1 of the IBP correction: make the vector weights w*n satisfy
+        // the divergence theorem for div-free polynomial fields against exact
+        // 1D integrals over the element-edge portions.
+        algoim_ibp::correct_surface_rule(rule, K, phiB, bernstein_deg,
+                                         option.algoim_ibp_degree_);
+    }
 
     return rule;
 }
@@ -852,8 +1321,17 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addElementContribution(const itemVFlist_t& 
 
         const fespace_t& Vhv(VF.get_spaceV(l));
         const fespace_t& Vhu(VF.get_spaceU(l));
-        const auto& FKv(Vhv[k]);
-        const auto& FKu(Vhu[k]);
+        int kv = k, ku = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        if (&Vhu != &Vh) {
+            ku = (&Vhu == &Vhv) ? kv : Vhu.idxElementFromBackMesh(kb, domain);
+            if (ku < 0) continue;
+        }
+        const auto& FKv(Vhv[kv]);
+        const auto& FKu(Vhu[ku]);
         this->initIndex(FKu, FKv);
 
         bool same  = (&Vhu == &Vhv);
@@ -1602,5 +2080,4 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
 //         addInterfaceContributionExact(f, VF, *gamma[itq], iface, tid, &In, cst_time, itq);
 //     }
 // }
-
 
