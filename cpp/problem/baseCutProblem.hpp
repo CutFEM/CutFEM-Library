@@ -208,7 +208,7 @@ template <typename Mesh> class BaseCutFEM : public BaseFEM<Mesh> {
                                bool init = true);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &Th, const TimeSlab &In, int itq,
                                bool init = true);
-    void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
+    virtual void addLagrangeContribution(const itemVFlist_t &VF, const int k, const TimeSlab *In, int itq, double cst_time);
     void addLagrangeMultiplier(const itemVFlist_t &VF, double val, const CutMesh &, const CBorder &b,
                                std::list<int> label = {});
     void addLagrangeBorderContribution(const itemVFlist_t &VF, const Element &K, const BorderElement &BE, int ifac,

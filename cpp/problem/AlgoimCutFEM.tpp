@@ -1754,6 +1754,88 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
 }
 
 
+template <typeMesh Mesh, typename Phi>
+void AlgoimCutFEMUnified<Mesh, Phi>::addBorderContribution(
+    const itemVFlist_t &, const element_t &, const border_element_t &, int,
+    const TimeSlab *, int, double) {
+    throw std::logic_error(
+        "AlgoimCutFEMUnified cut-boundary integration is not implemented; "
+        "refusing the legacy linear get_cut_face/get_cut_part fallback");
+}
+
+
+template <typeMesh Mesh, typename Phi>
+void AlgoimCutFEMUnified<Mesh, Phi>::addLagrangeContribution(const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq, double cst_time) {
+    const fespace_t& Vh(VF.get_spaceV(0));
+    const fe_element_t& FK(Vh[k]);
+    const element_t&  K(FK.T);
+
+    const int domain = FK.get_domain();
+    const int kb     = Vh.idxElementInBackMesh(k);
+    const int iam    = omp_get_thread_num();
+
+    auto tq    = this->get_quadrature_time(itq);
+    double tid = (In) ? (double)In->map(tq) : 0.;
+    if constexpr (std::is_same_v<std::remove_cvref_t<Phi>, FunFEM<Mesh>>) {
+        phi_.setTime(tid);
+        phi_.setElementFromBackMesh(kb);
+    } else {
+        phi_.t = tid;
+    }
+    auto quad_rule = quadGenVol(K, phi_, options_, domain);
+
+    if (quad_rule.points.empty()) {
+        return;
+    }
+
+    const double h_    = K.get_h();
+    const double measK = K.measure();
+    double meas_cut    = 0.0;
+    for (const double w : quad_rule.weights) meas_cut += w;
+
+    for (int l=0; l<VF.size(); ++l) {
+        if (!VF[l].on(domain)) continue;
+
+        const double coef_param = VF[l].computeCoefElement(h_, meas_cut, measK, meas_cut, domain);
+
+        const fespace_t& Vhv(VF.get_spaceV(l));
+        int kv = k;
+        if (&Vhv != &Vh) {
+            kv = Vhv.idxElementFromBackMesh(kb, domain);
+            if (kv < 0) continue;
+        }
+        const auto& FKv(Vhv[kv]);
+        this->initIndex(FKv, FKv);
+
+        int lastop = getLastop(VF[l].du, VF[l].dv);
+
+        long offset = iam * this->offset_bf_;
+        RNMK_ fv(this->databf_ + offset, FKv.NbDoF(), FKv.N, lastop);
+        What_d Fop = Fwhatd(lastop);
+
+        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq) {
+            const Rd mip = quad_rule.points[ipq];
+            const Rd cut_ip = K.mapToReferenceElement(mip);
+            double Cint = quad_rule.weights[ipq] * cst_time;
+
+            FKv.BF(Fop, cut_ip, fv);
+            Cint *= VF[l].evaluateFunctionOnBackgroundMesh(kb, domain, mip, tid);
+            Cint *= coef_param * VF[l].c;
+
+            // A pressure-mean Lagrange item is represented as a linear form, but
+            // its integral belongs in the multiplier row and column of the matrix.
+            // The one-basis-function overload is the same path used by
+            // BaseCutFEM::addLagrangeContribution; addToRHS/addToMatrix(FKu,FKv)
+            // would assemble an entirely different problem.
+            if (In) {
+                this->addToMatrix(VF[l], *In, FKv, fv, Cint);
+            } else {
+                this->addToMatrix(VF[l], FKv, fv, Cint);
+            }
+        }
+    }
+}
+
 // template <typeMesh Mesh, typename Phi>
 // template <typename Fct>
 // void AlgoimCutFEMUnified<Mesh, Phi>::addInterfaceContributionExact(const Fct &f, const itemVFlist_t& VF, const Interface<mesh_t>& interface, int ifac, double tid,
@@ -2080,4 +2162,3 @@ void AlgoimCutFEMUnified<Mesh, Phi>::addFaceContribution(const itemVFlist_t &VF,
 //         addInterfaceContributionExact(f, VF, *gamma[itq], iface, tid, &In, cst_time, itq);
 //     }
 // }
-

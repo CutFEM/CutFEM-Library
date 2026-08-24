@@ -203,16 +203,9 @@ template <typeMesh M, typename L>
 Partition<typename AlgoimInterface<M, L>::Element::Face>
 AlgoimInterface<M, L>::get_partition_face(const typename AlgoimInterface<M, L>::Element::Face &face, int k,
                                           int ifac) const {
-    using Element = typename AlgoimInterface<M, L>::Element;
-
-    assert(0);
-    double loc_ls[Element::Face::nv];
-    // for (int i = 0; i < Element::Face::nv; ++i) {
-    //     int j     = Element::nvhyperFace[ifac][i];
-    //     int iglb  = this->backMesh->at(k, j);
-    //     loc_ls[i] = ls_[iglb];
-    // }
-    return Partition<typename Element::Face>(face, loc_ls);
+    throw std::logic_error(
+        "AlgoimInterface::get_partition_face is a legacy linear-interface API; "
+        "use Algoim quadGenFace integration instead");
 }
 
 template <typeMesh M, typename L>

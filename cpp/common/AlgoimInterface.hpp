@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 
 #include "interface_levelSet.hpp"
 #include "../algoim/quadrature_general.hpp"

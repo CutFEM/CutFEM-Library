@@ -68,6 +68,7 @@ class AlgoimCutFEMUnified : public BaseCutFEM<Mesh>, public Solver {
     using itemVFlist_t  = ListItemVF<mesh_t>;
     using fe_element_t  = typename fespace_t::FElement;
     using element_t     = typename mesh_t::Element;
+    using border_element_t = typename mesh_t::BorderElement;
     using Rd            = typename fe_element_t::Rd;
     using matrix_t      = std::map<std::pair<int, int>, R>;
 
@@ -123,6 +124,13 @@ public:
     void addFaceContribution(const itemVFlist_t &VF, const std::pair<int, int> &e1, 
                             const std::pair<int, int> &e2, const TimeSlab *In, 
                             int itq, double cst_time) override;
+
+    void addBorderContribution(const itemVFlist_t &VF, const element_t &K,
+                               const border_element_t &BE, int ifac,
+                               const TimeSlab *In, int itq,
+                               double cst_time) override;
+
+    void addLagrangeContribution(const itemVFlist_t& VF, const int k, const TimeSlab* In, int itq, double cst_time) override;
 
 
 

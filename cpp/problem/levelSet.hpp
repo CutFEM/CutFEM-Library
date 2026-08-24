@@ -150,8 +150,14 @@ void move_bw_euler(const FunFEM<Mesh3> &up, const FunFEM<Mesh3> &beta, double dt
 
 // std::vector<double> move(const FunFEM<Mesh2> &up, const FunFEM<Mesh2> &betap, const FunFEM<Mesh2> &beta, double dt);
 
+namespace detail {
+
+// Assembly of the streamline-diffusion (SUPG) Crank-Nicolson transport system
+// for the level-set equation.  Factored out of move_2D so that the plain solve
+// and the solve with boundary data share exactly the same discretization.
 template <typename Mesh>
-void move_2D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mesh> &Beta, double dt, FunFEM<Mesh> &ls) {
+void assemble_move_2D(FEM<Mesh> &levelSet, const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap,
+                      const FunFEM<Mesh> &Beta, double dt) {
     typedef GFESpace<Mesh> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename FESpace::Rd Rd;
@@ -160,7 +166,6 @@ void move_2D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mes
 
     const FESpace &Vh(*up.Vh);
 
-    FEM<Mesh> levelSet(Vh);
     KNMK<double> fu(Vh[0].NbDoF(), 1, op_Dall); //  the value for basic fonction
 
     const QF &qf(levelSet.get_quadrature_formular_K());
@@ -198,13 +203,109 @@ void move_2D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mes
                     Cint * (((1. / dt) * Up - 0.5 * (Bpx * dxup + Bpy * dyup)) *
                             (fu(i, 0, op_id) + Tsd * (Bx * fu(i, 0, op_dx) + By * fu(i, 0, op_dy))));
             }
-
-            //     if(label_strongBC.size() > 0){
-            //       ExpressionFunFEM<Mesh2> Up(up, 0, op_id);
-            //       this->addStrongBC(Up, label_strongBC);
-            //     }
         }
     }
+}
+
+// Dofs of Vh sitting on boundary elements that carry one of `label`, paired with
+// the value `gh` prescribes there.  The dof selection mirrors
+// BaseFEM::setDirichlet, but the loop runs over ALL boundary elements on every
+// rank instead of the MPI-strided range of first/next_boundary_element(): the
+// row replacement below has to be applied identically on every rank, otherwise
+// one rank overwrites a row while the others still hold their assembled
+// contribution to it.  An empty `label` means "every boundary element".
+template <typename Mesh>
+std::map<int, double> boundary_dof_values(const GFESpace<Mesh> &Vh, const Mesh &Th, const FunFEM<Mesh> &gh,
+                                          const std::list<int> &label) {
+    typedef typename Mesh::Element Element;
+    typedef typename Mesh::BorderElement BorderElement;
+    typedef typename GFESpace<Mesh>::FElement FElement;
+
+    const bool all_label = label.empty();
+    std::map<int, double> dof2set;
+
+    for (int idx_be = 0; idx_be < Th.nbBrdElmts(); ++idx_be) {
+
+        int ifac;
+        const int k = Th.BoundaryElement(idx_be, ifac);
+        const Element &K(Th[k]);
+        const BorderElement &BE(Th.be(idx_be));
+        const FElement &FK(Vh[k]);
+
+        if (!all_label && !util::contain(label, BE.lab))
+            continue;
+
+        for (int df = FK.dfcbegin(0); df < FK.dfcend(0); ++df) {
+
+            const int id_item = FK.DFOnWhat(df);
+
+            if (id_item < K.nv) { // vertex dof: keep it if the vertex bounds this face
+                for (int i = 0; i < Element::nva; ++i) {
+                    if (Element::nvedge.at(ifac).at(i) == id_item) {
+                        const int df_glob = FK.loc2glb(df);
+                        dof2set.insert({df_glob, gh(df_glob)});
+                        break;
+                    }
+                }
+            } else if (id_item < K.nv + K.ne) { // edge dof: keep it if it is this face
+                if (id_item - K.nv == ifac) {
+                    const int df_glob = FK.loc2glb(df);
+                    dof2set.insert({df_glob, gh(df_glob)});
+                }
+            }
+            // interior dofs are never on the boundary
+        }
+    }
+    return dof2set;
+}
+
+} // namespace detail
+
+template <typename Mesh>
+void move_2D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mesh> &Beta, double dt, FunFEM<Mesh> &ls) {
+
+    const GFESpace<Mesh> &Vh(*up.Vh);
+
+    FEM<Mesh> levelSet(Vh);
+    detail::assemble_move_2D(levelSet, up, Betap, Beta, dt);
+
+    levelSet.solve();
+    ls.init(levelSet.rhs_);
+}
+
+// Same transport solve, but with the level-set values on the boundary elements
+// carrying one of `label` replaced by the data `gh`.
+//
+// The level-set equation is hyperbolic, so it is well posed only once data is
+// prescribed on the inflow boundary  dOmega_in = { x in dOmega : Beta.n < 0 },
+// and there is no physics-based choice for that data.  See Gross & Reusken,
+// "Numerical Methods for Two-Phase Incompressible Flows" (2011), Sect. 6.3.1 and
+// Remark 7.5.1; `gh` is meant to carry their artificial Dirichlet data (7.47),
+//
+//     gh(x,t) = phi_ref(x) - u(x,t_ref).grad(phi_ref)(x) * (t - t_ref),
+//
+// i.e. a first-order Taylor extrapolation in time from a reference state.
+//
+// Two caveats, both deliberate:
+//  * The constraint is applied to the whole labelled boundary, not only to its
+//    inflow part.  On the outflow part this over-determines the hyperbolic
+//    problem, but the prescribed values then differ from the transported ones
+//    only by the O((t-t_ref)^2) truncation error of the extrapolation, so with a
+//    short extrapolation window the difference is negligible.
+//  * Pass only labels whose boundary actually carries Beta.n != 0.  A boundary
+//    with Beta.n = 0 is characteristic: it needs no data, and prescribing data
+//    there fights the transport and produces a boundary layer of width ~h.
+template <typename Mesh>
+void move_2D(const FunFEM<Mesh> &up, const FunFEM<Mesh> &Betap, const FunFEM<Mesh> &Beta, double dt, FunFEM<Mesh> &ls,
+             const FunFEM<Mesh> &gh, const std::list<int> &label) {
+
+    const GFESpace<Mesh> &Vh(*up.Vh);
+
+    FEM<Mesh> levelSet(Vh);
+    detail::assemble_move_2D(levelSet, up, Betap, Beta, dt);
+
+    std::map<int, double> dof2set = detail::boundary_dof_values(Vh, Vh.Th, gh, label);
+    eraseAndSetRow(levelSet.get_nb_dof(), *levelSet.pmat_, levelSet.rhs_, dof2set);
 
     levelSet.solve();
     ls.init(levelSet.rhs_);
