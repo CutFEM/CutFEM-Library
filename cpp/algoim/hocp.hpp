@@ -7,6 +7,8 @@
        Communications in Applied Mathematics and Computational Science, 9(1), 107-141 (2014),
        http://dx.doi.org/10.2140/camcos.2014.9.107 */
 
+#include <cmath>
+#include <limits>
 #include <vector>
 #include "multiloop.hpp"
 #include "kdtree.hpp"
@@ -125,8 +127,27 @@ namespace algoim
             uvector<double,N> ref = x - (cell.i*dx + xmin);
             cp = points[index] - (cell.i*dx + xmin);
 
-            // Execute Newton's method
-            newtonCP<N,Poly>(cp, ref, cell.poly, overlapr, cptolsqr, 20);
+            // Execute Newton's method. A seed alone is not a successful closest
+            // point: newtonCP reports a negative status when it leaves the local
+            // overlap ball or exhausts its iterations.
+            const int newton_status = newtonCP<N,Poly>(cp, ref, cell.poly, overlapr, cptolsqr, 20);
+            if (newton_status <= 0)
+                return false;
+
+            // newtonCP also terminates early for an almost-zero level-set
+            // gradient. Validate the returned constraint explicitly so that an
+            // ill-posed stationary point is not exposed as a valid surface point.
+            for (int a = 0; a < N; ++a)
+                if (!std::isfinite(cp(a)))
+                    return false;
+            const double phi_residual = std::abs(cell.poly(cp));
+            const double gradient_norm = norm(cell.poly.grad(cp));
+            const double surface_tolerance =
+                8.0 * std::max(std::sqrt(cptolsqr), 64.0 * std::numeric_limits<double>::epsilon())
+                * std::max(1.0, gradient_norm);
+            if (!std::isfinite(phi_residual) || !std::isfinite(gradient_norm)
+                || phi_residual > surface_tolerance)
+                return false;
 
             // If the signed distance is also requested, the sign can (usually) be determined
             // according to alignment of the normal and polynomial gradient at the closest point
@@ -134,9 +155,9 @@ namespace algoim
             {
                 uvector<double,N> grad = cell.poly.grad(cp);
                 if (dot(ref - cp, grad) >= 0.0)
-                    *signedDist = norm(ref - x);
+                    *signedDist = norm(ref - cp);
                 else
-                    *signedDist = -norm(ref - x);
+                    *signedDist = -norm(ref - cp);
             }
 
             // Adjust the closest point such that it is in the global coordinate system

@@ -318,8 +318,10 @@ void build_extension_velocity(const GFESpace<M> &Vh,
     using Rd = typename M::Rd;
 
     const HocpClosestPointMap<M, L> hocp_cp(gamma.get_mesh(), phi);
-    const std::vector<SurfaceSample<Rd>> samples =
-        hocp_cp.ready() ? std::vector<SurfaceSample<Rd>>{} : collect_surface_samples(gamma, phi);
+    // Keep a geometric fallback even when the HOCP book is available. Individual
+    // Newton queries can fail their convergence/residual checks on a degraded
+    // level set; using a surface sample is safer than injecting a zero velocity.
+    const std::vector<SurfaceSample<Rd>> samples = collect_surface_samples(gamma, phi);
 
     static bool reported_closest_point_backend = false;
     if (!reported_closest_point_backend && MPIcf::IamMaster()) {
