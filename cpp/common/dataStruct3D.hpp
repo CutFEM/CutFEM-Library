@@ -454,6 +454,13 @@ template <> const std::vector<std::vector<int>> GenericElement<DataTriangle3>::e
 template <> const std::vector<std::vector<int>> GenericElement<DataTriangle3>::faceOfEdge;
 template <> const std::vector<std::vector<int>> GenericElement<DataTriangle3>::commonVertOfEdges;
 
+template <> const std::vector<std::vector<int>> GenericElement<DataQuad3>::nvedge;
+template <> const std::vector<std::vector<int>> GenericElement<DataQuad3>::nvface;
+template <> const std::vector<std::vector<int>> GenericElement<DataQuad3>::nvhyperFace;
+template <> const std::vector<std::vector<int>> GenericElement<DataQuad3>::edgeOfFace;
+template <> const std::vector<std::vector<int>> GenericElement<DataQuad3>::faceOfEdge;
+template <> const std::vector<std::vector<int>> GenericElement<DataQuad3>::commonVertOfEdges;
+
 template <> const std::vector<std::vector<int>> GenericElement<DataTet>::nvedge;
 template <> const std::vector<std::vector<int>> GenericElement<DataTet>::nvface;
 template <> const std::vector<std::vector<int>> GenericElement<DataTet>::nvhyperFace;
