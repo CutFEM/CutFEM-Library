@@ -84,6 +84,14 @@ template <typename Mesh> class TimeInterface {
         interface_[i] = std::make_unique<AlgoimInterface<mesh_t, Fct>>(Th, ls);
     }
 
+    template <typename Fct>
+    void initAlgoim(int i, const Mesh &Th, const Fct &ls,
+                    const ProblemOption &option) {
+        assert(0 <= i && i < n_);
+        interface_[i] =
+            std::make_unique<AlgoimInterface<mesh_t, Fct>>(Th, ls, option);
+    }
+
     // template <typename Fct> void init(const Mesh &Th, const KN<Fct> &ls);
     // {
     //     assert(n_ == ls.size());

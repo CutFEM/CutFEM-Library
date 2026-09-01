@@ -109,18 +109,17 @@ std::vector<SurfaceSample<typename M::Rd>>
 collect_surface_samples(const AlgoimInterface<M, L> &gamma, L &phi) {
     using Rd = typename M::Rd;
     std::vector<SurfaceSample<Rd>> samples;
-
-    ProblemOption option = algoim_options();
+    (void)phi;
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const int kb = static_cast<int>(gamma.idxElementOfFace(iface));
-        const auto &K = gamma.get_element(kb);
-        phi.setElementFromBackMesh(kb, 0);
-        const auto quad_rule = quadGenSurf(K, phi, option);
+        const AlgoimQuadratureRule<M> *quad_rule = gamma.get_cut_quadrature(kb);
+        if (quad_rule == nullptr)
+            continue;
 
-        samples.reserve(samples.size() + quad_rule.points.size());
-        for (size_t ipq = 0; ipq < quad_rule.points.size(); ++ipq)
-            samples.push_back({quad_rule.points[ipq], kb});
+        samples.reserve(samples.size() + quad_rule->points.size());
+        for (size_t ipq = 0; ipq < quad_rule->points.size(); ++ipq)
+            samples.push_back({quad_rule->points[ipq], kb});
     }
 
     return samples;

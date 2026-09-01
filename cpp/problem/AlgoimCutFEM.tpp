@@ -724,6 +724,46 @@ AlgoimQuadratureRule<Mesh2> quadGenFace(const Mesh2::Element& K, Phi& phi, const
 // MeshQuad2 specialization
 template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option) {
+    if (option.algoim_use_multipoly_) {
+        using real = algoim::real;
+        using Vec2 = algoim::uvector<real, 2>;
+        using R2 = typename MeshQuad2::Rd;
+
+        const Vec2 v0(K.at(0)[0], K.at(0)[1]);
+        const Vec2 e1(K.at(1)[0] - K.at(0)[0], K.at(1)[1] - K.at(0)[1]);
+        const Vec2 e2(K.at(3)[0] - K.at(0)[0], K.at(3)[1] - K.at(0)[1]);
+        const real detJ = e1(0) * e2(1) - e1(1) * e2(0);
+
+        AlgoimQuadratureRule<MeshQuad2> rule;
+        if (std::abs(detJ) <= real(1e-30))
+            return rule;
+
+        const auto F = [&](const Vec2 &xi) -> Vec2 {
+            return v0 + e1 * xi(0) + e2 * xi(1);
+        };
+
+        const int degree = option.algoim_bernstein_deg_;
+        const int n = degree + 1;
+        algoim::uvector<int, 2> ext(n, n);
+        std::vector<real> phi_data(static_cast<size_t>(n * n));
+        algoim::xarray<real, 2> phiB(phi_data.data(), ext);
+        algoim::bernstein::bernsteinInterpolate<2>(
+            [&](const Vec2 &xi) -> real { return phi(F(xi)); }, phiB);
+
+        algoim::ImplicitPolyQuadrature<2> ipquad(phiB);
+        const auto strategy =
+            static_cast<algoim::QuadStrategy>(option.algoim_quad_strategy_);
+        ipquad.integrate(strategy, option.algoim_vol_quad_deg_,
+                         [&](const Vec2 &xi, real w_ref) {
+            if (algoim::bernstein::evalBernsteinPoly(phiB, xi) >= 0)
+                return;
+            const Vec2 x = F(xi);
+            rule.points.emplace_back(R2(x(0), x(1)));
+            rule.weights.emplace_back(double(w_ref) * std::abs(detJ));
+        });
+        return rule;
+    }
+
     // Get coordinates of current quadrilateral
     const auto &V0(K.at(0)); // vertex 0
     const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
@@ -756,6 +796,76 @@ AlgoimQuadratureRule<MeshQuad2> quadGenVol(const MeshQuad2::Element& K, Phi& phi
 
 template <typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option) {
+    if (option.algoim_use_multipoly_) {
+        using real = algoim::real;
+        using Vec2 = algoim::uvector<real, 2>;
+        using R2 = typename MeshQuad2::Rd;
+
+        const Vec2 v0(K.at(0)[0], K.at(0)[1]);
+        const Vec2 e1(K.at(1)[0] - K.at(0)[0], K.at(1)[1] - K.at(0)[1]);
+        const Vec2 e2(K.at(3)[0] - K.at(0)[0], K.at(3)[1] - K.at(0)[1]);
+        const real detJ = e1(0) * e2(1) - e1(1) * e2(0);
+
+        AlgoimQuadratureRule<MeshQuad2> rule;
+        if (std::abs(detJ) <= real(1e-30))
+            return rule;
+
+        const auto F = [&](const Vec2 &xi) -> Vec2 {
+            return v0 + e1 * xi(0) + e2 * xi(1);
+        };
+        const auto cofJ_mul = [&](const Vec2 &v) -> Vec2 {
+            return Vec2(e2(1) * v(0) - e1(1) * v(1),
+                       -e2(0) * v(0) + e1(0) * v(1));
+        };
+
+        const int degree = option.algoim_bernstein_deg_;
+        const int n = degree + 1;
+        algoim::uvector<int, 2> ext(n, n);
+        std::vector<real> phi_data(static_cast<size_t>(n * n));
+        algoim::xarray<real, 2> phiB(phi_data.data(), ext);
+        algoim::bernstein::bernsteinInterpolate<2>(
+            [&](const Vec2 &xi) -> real { return phi(F(xi)); }, phiB);
+
+        algoim::ImplicitPolyQuadrature<2> ipquad(phiB);
+        const auto strategy =
+            static_cast<algoim::QuadStrategy>(option.algoim_quad_strategy_);
+        ipquad.integrate_surf(
+            strategy, option.algoim_surface_quad_deg_,
+            [&](const Vec2 &xi, real w_ref, const Vec2 &wn_ref) {
+                // The multipoly aggregate path supplies distinct scalar-surface
+                // and flux-vector rules.  Assembly needs a positive scalar
+                // measure and a pointwise unit normal, so use w_ref for measure
+                // and recover the normal from the polynomial gradient.  Taking
+                // |wn_ref| as the measure overcounts aggregate rules.
+                Vec2 g_ref =
+                    algoim::bernstein::evalBernsteinPolyGradient(phiB, xi);
+                real gnorm = algoim::norm(g_ref);
+                if (!(gnorm > real(64) * std::numeric_limits<real>::epsilon())) {
+                    // At an exact singular point the mathematical normal is not
+                    // unique.  Such points have zero surface measure; retain a
+                    // finite representative direction if Algoim emitted one.
+                    g_ref = wn_ref;
+                    gnorm = algoim::norm(g_ref);
+                    if (!(gnorm > 0))
+                        return;
+                }
+                const Vec2 n_ref = g_ref / gnorm;
+                Vec2 mapped_normal = cofJ_mul(n_ref);
+                if (detJ < 0)
+                    mapped_normal *= real(-1);
+                const real surface_jacobian = algoim::norm(mapped_normal);
+                if (!(surface_jacobian > 0) || !(w_ref > 0))
+                    return;
+
+                const Vec2 x = F(xi);
+                const Vec2 normal = mapped_normal / surface_jacobian;
+                rule.points.emplace_back(R2(x(0), x(1)));
+                rule.weights.emplace_back(double(w_ref * surface_jacobian));
+                rule.normals.emplace_back(R2(normal(0), normal(1)));
+            });
+        return rule;
+    }
+
     // Get coordinates of current quadrilateral
     const auto &V0(K.at(0)); // vertex 0
     const auto &V2(K.at(2)); // vertex 2 (diagonally opposed)
@@ -778,6 +888,85 @@ AlgoimQuadratureRule<MeshQuad2> quadGenSurf(const MeshQuad2::Element& K, Phi& ph
 template<typename Phi>
 AlgoimQuadratureRule<MeshQuad2> quadGenFace(const MeshQuad2::Element& K, Phi& phi, const ProblemOption& option, int ifac) {
     using R2 = typename MeshQuad2::Rd;
+
+    if (option.algoim_use_multipoly_) {
+        using real = algoim::real;
+        using Vec1 = algoim::uvector<real, 1>;
+        using Vec2 = algoim::uvector<real, 2>;
+
+        const Vec2 v0(K.at(0)[0], K.at(0)[1]);
+        const Vec2 e1(K.at(1)[0] - K.at(0)[0], K.at(1)[1] - K.at(0)[1]);
+        const Vec2 e2(K.at(3)[0] - K.at(0)[0], K.at(3)[1] - K.at(0)[1]);
+        const auto F = [&](const Vec2 &xi) -> Vec2 {
+            return v0 + e1 * xi(0) + e2 * xi(1);
+        };
+
+        auto reference_point = [&](const real s) -> Vec2 {
+            switch (ifac) {
+            case 0: return Vec2(s, real(0));
+            case 1: return Vec2(real(1), s);
+            case 2: return Vec2(s, real(1));
+            case 3: return Vec2(real(0), s);
+            default: assert(false && "Unexpected MeshQuad2 face index");
+            }
+            return Vec2(real(0), real(0));
+        };
+
+        Vec2 tangent;
+        Vec2 outward;
+        switch (ifac) {
+        case 0:
+            tangent = e1;
+            outward = Vec2(e1(1), -e1(0));
+            break;
+        case 1:
+            tangent = e2;
+            outward = Vec2(e2(1), -e2(0));
+            break;
+        case 2:
+            tangent = e1;
+            outward = Vec2(-e1(1), e1(0));
+            break;
+        case 3:
+            tangent = e2;
+            outward = Vec2(-e2(1), e2(0));
+            break;
+        default:
+            assert(false && "Unexpected MeshQuad2 face index");
+        }
+
+        const real edge_jacobian = algoim::norm(tangent);
+        const real normal_norm = algoim::norm(outward);
+        AlgoimQuadratureRule<MeshQuad2> rule;
+        if (!(edge_jacobian > 0) || !(normal_norm > 0))
+            return rule;
+        outward /= normal_norm;
+
+        const int degree = option.algoim_bernstein_deg_;
+        const int n = degree + 1;
+        algoim::uvector<int, 1> ext(n);
+        std::vector<real> phi_data(static_cast<size_t>(n));
+        algoim::xarray<real, 1> phiB(phi_data.data(), ext);
+        algoim::bernstein::bernsteinInterpolate<1>(
+            [&](const Vec1 &s) -> real {
+                return phi(F(reference_point(s(0))));
+            },
+            phiB);
+
+        algoim::ImplicitPolyQuadrature<1> ipquad(phiB);
+        const auto strategy =
+            static_cast<algoim::QuadStrategy>(option.algoim_quad_strategy_);
+        ipquad.integrate(strategy, option.algoim_surface_quad_deg_,
+                         [&](const Vec1 &s, real w_ref) {
+            if (algoim::bernstein::evalBernsteinPoly(phiB, s) >= 0)
+                return;
+            const Vec2 x = F(reference_point(s(0)));
+            rule.points.emplace_back(R2(x(0), x(1)));
+            rule.weights.emplace_back(double(w_ref * edge_jacobian));
+            rule.normals.emplace_back(R2(outward(0), outward(1)));
+        });
+        return rule;
+    }
     
     const auto &V0(K[0]);
     const auto &V2(K[2]);

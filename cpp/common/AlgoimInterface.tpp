@@ -11,8 +11,20 @@ AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_, int label)
 
 template <typeMesh M, typename L>
 AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_, int bernstein_deg, int quad_deg, int label)
-    : Interface<M>(Mesh), phi_owned_(make_level_set_view<M, L>(phi_)), phi(*phi_owned_),
-      patch_bernstein_deg_(bernstein_deg), patch_quad_deg_(quad_deg) {
+    : Interface<M>(Mesh), phi_owned_(make_level_set_view<M, L>(phi_)), phi(*phi_owned_) {
+
+    patch_options_.algoim_bernstein_deg_ = bernstein_deg;
+    patch_options_.algoim_surface_quad_deg_ = quad_deg;
+    patch_options_.algoim_vol_quad_deg_ = quad_deg;
+
+    make_algoim_patch(label);
+}
+
+template <typeMesh M, typename L>
+AlgoimInterface<M, L>::AlgoimInterface(const M &Mesh, const L &phi_,
+                                       const ProblemOption &option, int label)
+    : Interface<M>(Mesh), phi_owned_(make_level_set_view<M, L>(phi_)),
+      phi(*phi_owned_), patch_options_(option) {
 
     make_algoim_patch(label);
 }
@@ -30,11 +42,8 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
     cut_elements.clear();
     number_of_cut_elements = 0;
 
-    ProblemOption options;
+    ProblemOption options = patch_options_;
     options.order_space_element_quadrature_ = 3;
-    options.algoim_bernstein_deg_    = patch_bernstein_deg_;
-    options.algoim_surface_quad_deg_ = patch_quad_deg_;
-    options.algoim_vol_quad_deg_     = patch_quad_deg_;
 
     const mesh_t &Th = *(this->backMesh); // background mesh
 
@@ -271,9 +280,11 @@ template <typeMesh M, typename L> bool AlgoimInterface<M, L>::isCutFace(int k, i
         return false;
     }
 
-    ProblemOption options;
+    // Use the same backend and polynomial representation as the interface
+    // patch.  In particular, a MultiPoly interface must not silently fall back
+    // to the general quadGen path when ActiveMesh asks whether a face is cut.
+    ProblemOption options = patch_options_;
     options.algoim_surface_quad_deg_ = 3;
-    options.algoim_bernstein_deg_    = 2;
     
     if constexpr (std::is_same_v<std::remove_cvref_t<L>, FunFEM<M>>) {
         phi.setElementFromBackMesh(k);

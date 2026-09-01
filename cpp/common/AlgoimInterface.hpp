@@ -71,6 +71,11 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
     // assembly rules otherwise disagree on borderline cells.
     AlgoimInterface(const mesh_t &Mesh, const L &phi_, int bernstein_deg, int quad_deg, int label = 0);
 
+    // Full quadrature configuration, including the MeshQuad2 backend.  Use
+    // this when the stored cut-classification rule must be identical to the
+    // rule used later by assembly and diagnostics.
+    AlgoimInterface(const mesh_t &Mesh, const L &phi_, const ProblemOption &option, int label = 0);
+
     // std::map<int, algoim::QuadratureRule<2>> get_cut_elements() { return cut_elements; }
     std::map<int, AlgoimQuadratureRule<M>> get_cut_elements() { return cut_elements; }
     const AlgoimQuadratureRule<M> *get_cut_quadrature(int k) const;
@@ -101,9 +106,8 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
 
   private:
     // Rule-generation parameters for cut classification (see options-aware
-    // constructor); defaults preserve the historical behavior.
-    int patch_bernstein_deg_ = 2;
-    int patch_quad_deg_      = 5;
+    // constructors); defaults preserve the historical behavior.
+    ProblemOption patch_options_;
 
     void make_algoim_patch(int label);
 };
