@@ -82,6 +82,21 @@ namespace algoim
         }
     }
 
+    // Diagnostic status reported through the optional out-parameter of
+    // ComputeHighOrderCP::compute.  The return value and the numerical path are
+    // unchanged; this only names WHY a query was rejected, so that a caller can
+    // distinguish an empty/degenerate seed cloud from a diverging Newton solve
+    // from a converged point that misses the surface-residual tolerance.
+    enum ClosestPointStatus
+    {
+        cp_ok = 0,
+        cp_no_seed_in_band,
+        cp_newton_left_ball,
+        cp_newton_max_steps,
+        cp_nonfinite,
+        cp_residual_above_tolerance
+    };
+
     /* The ComputeHighOrderCP struct is the main engine for computing high-order accurate closest points.
        It accepts as parameters:
          - bandrsqr: squared radius of the narrow band
@@ -112,14 +127,19 @@ namespace algoim
 
         // Given x, compute the closest point to x; returns false if the closest seed point is outside
         // the narrow band
-        bool compute(const uvector<double,N>& x, uvector<double,N>& cp, double* signedDist = 0) const
+        bool compute(const uvector<double,N>& x, uvector<double,N>& cp, double* signedDist = 0,
+                     int* status = 0) const
         {
+            if (status)
+                *status = cp_ok;
+            const auto fail = [status](int reason) { if (status) *status = reason; return false; };
+
             // Find the closest point in the cloud
             int index = kdtree.nearest(x, bandrsqr);
 
             // If there is no point within the defined band radius, return false
             if (index < 0)
-                return false;
+                return fail(cp_no_seed_in_band);
 
             // Fetch the polynomial corresponding to the closest point in the cloud and calculate the reference point
             // and initial guess of the closest point in the local coordinate system
@@ -132,14 +152,14 @@ namespace algoim
             // overlap ball or exhausts its iterations.
             const int newton_status = newtonCP<N,Poly>(cp, ref, cell.poly, overlapr, cptolsqr, 20);
             if (newton_status <= 0)
-                return false;
+                return fail(newton_status == -1 ? cp_newton_left_ball : cp_newton_max_steps);
 
             // newtonCP also terminates early for an almost-zero level-set
             // gradient. Validate the returned constraint explicitly so that an
             // ill-posed stationary point is not exposed as a valid surface point.
             for (int a = 0; a < N; ++a)
                 if (!std::isfinite(cp(a)))
-                    return false;
+                    return fail(cp_nonfinite);
             const double phi_residual = std::abs(cell.poly(cp));
             const double gradient_norm = norm(cell.poly.grad(cp));
             const double surface_tolerance =
@@ -147,7 +167,7 @@ namespace algoim
                 * std::max(1.0, gradient_norm);
             if (!std::isfinite(phi_residual) || !std::isfinite(gradient_norm)
                 || phi_residual > surface_tolerance)
-                return false;
+                return fail(cp_residual_above_tolerance);
 
             // If the signed distance is also requested, the sign can (usually) be determined
             // according to alignment of the normal and polynomial gradient at the closest point

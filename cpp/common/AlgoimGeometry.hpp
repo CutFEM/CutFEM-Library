@@ -208,13 +208,21 @@ class HocpClosestPointMap {
 
     bool ready() const { return static_cast<bool>(hocp_); }
 
-    bool closest_point(const Rd &query, Rd &cp, int &kb) const {
-        if (!hocp_)
+    // `status`, when given, receives an algoim::ClosestPointStatus value naming
+    // why a query was rejected.  Diagnostic only: the numerical path and the
+    // return value are identical whether or not it is requested.
+    bool closest_point(const Rd &query, Rd &cp, int &kb, int *status = nullptr) const {
+        if (status)
+            *status = algoim::cp_ok;
+        if (!hocp_) {
+            if (status)
+                *status = algoim::cp_no_seed_in_band;
             return false;
+        }
 
         Vec x = to_uvector(query);
         Vec cp_vec;
-        if (!hocp_->compute(x, cp_vec))
+        if (!hocp_->compute(x, cp_vec, nullptr, status))
             return false;
 
         for (int a = 0; a < N; ++a)
@@ -226,6 +234,43 @@ class HocpClosestPointMap {
     }
 
     int seed_count() const { return static_cast<int>(points_.size()); }
+    int cell_polynomial_count() const { return static_cast<int>(cells_.size()); }
+
+    // ---- Diagnostics for the sampling path the cell polynomials are built from ----
+    // createCellPolynomials sees the level set ONLY through GridPhi, i.e. through an
+    // element lookup followed by a FunFEM evaluation.  If that evaluation is wrong, every
+    // polynomial, seed and closest point is built on a corrupted field while the level-set
+    // coefficients themselves look perfect.  These accessors let a driver replay exactly
+    // that sampling and compare it against a reference, without duplicating the geometry.
+    int grid_extent(int a) const { return extent_(a); }
+
+    Rd grid_point(const std::array<int, N> &idx) const {
+        Vec x = xmin_;
+        for (int a = 0; a < N; ++a)
+            x(a) += std::clamp(idx[a], 0, extent_(a) - 1) * dx_(a);
+        return to_point<Rd>(x);
+    }
+
+    double sample_grid_levelset(const std::array<int, N> &idx, L &phi) const {
+        IVec i;
+        for (int a = 0; a < N; ++a)
+            i(a) = idx[a];
+        GridPhi grid_phi{this, &phi};
+        return grid_phi(i);
+    }
+
+    // Names for the diagnostic status codes, for driver-side reporting.
+    static const char *status_name(int status) {
+        switch (status) {
+        case algoim::cp_ok: return "ok";
+        case algoim::cp_no_seed_in_band: return "no_seed_in_band";
+        case algoim::cp_newton_left_ball: return "newton_left_overlap_ball";
+        case algoim::cp_newton_max_steps: return "newton_max_steps";
+        case algoim::cp_nonfinite: return "nonfinite_closest_point";
+        case algoim::cp_residual_above_tolerance: return "residual_above_tolerance";
+        default: return "unknown";
+        }
+    }
 
   private:
     static std::vector<double> unique_coordinates(std::vector<double> values) {
