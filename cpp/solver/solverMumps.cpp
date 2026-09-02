@@ -16,6 +16,9 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../common/logger.hpp"
 #include "solverMumps.hpp"
 
+#include <sstream>
+#include <stdexcept>
+
 #define ICNTL(I) icntl[(I) - 1]
 #define INFO(I) info[(I) - 1]
 #define INFOG(I) infog[(I) - 1]
@@ -40,8 +43,8 @@ MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
     factorizationMatrix();
     solvingLinearSystem();
 
-    // if(verbose > 1)
-    info();
+    if (s.verbose_ > 0)
+        info();
 }
 
 MUMPS::MUMPS(matmap &A, std::span<double> b, std::size_t nrhs, bool clean) : mat(A), rhs(b), cleanMatrix(clean) {
@@ -69,6 +72,7 @@ void MUMPS::initializeSetting() {
     // Initialization of one instance of the package
     mumps_par.job = JOB_INIT_;
     dmumps_c(&mumps_par);
+    mumps_initialized_ = true;
 
     //------------------------------------------------------
     mumps_par.ICNTL(1) = -1;
@@ -150,17 +154,11 @@ void MUMPS::analyzeMatrix() {
     mumps_par.job = JOB_ANALYSIS_;
     dmumps_c(&mumps_par);
 
-    R ierr        = mumps_info(1);
     auto t1       = now();
     timeAnalysis_ = seconds(t0, t1);
 
     LOG_DEBUG << " ordering actually used " << mumps_par.INFOG(7) << logger::endl;
-
-    if (ierr != 0) {
-        std::cout << " Error in analysis phase of MUMPS : ierr = " << ierr << std::endl;
-        std::cout << mumps_par.INFO(2) << std::endl;
-        std::cout << mumps_par.ICNTL(2) << std::endl;
-    }
+    checkPhase("analysis");
 }
 
 void MUMPS::factorizationMatrix() {
@@ -169,15 +167,10 @@ void MUMPS::factorizationMatrix() {
     mumps_par.job = JOB_FACTORIZATION_;
     dmumps_c(&mumps_par);
 
-    R ierr  = mumps_info(1);
     auto t1 = now();
 
     timeFactorization_ = seconds(t0, t1);
-
-    if (ierr != 0) {
-        std::cout << " Error in factorization phase of MUMPS : ierr = " << ierr << std::endl;
-        // std::cout << " info(2) \t" << mumps_info(2) << std::endl;
-    }
+    checkPhase("factorization");
 }
 
 void MUMPS::solvingLinearSystem() {
@@ -187,14 +180,9 @@ void MUMPS::solvingLinearSystem() {
     mumps_par.job = JOB_SOLVE_;
     dmumps_c(&mumps_par);
 
-    R ierr = mumps_info(1);
-
     auto t1      = now();
     timeSolving_ = seconds(t0, t1);
-
-    if (ierr != 0) {
-        std::cout << " Error in solving phase of MUMPS : ierr = " << ierr << std::endl;
-    }
+    checkPhase("solve");
 
     // Distribution of the DOFs of the solution on each processor
     // (the right-hand side, stored on the host, stores the solution)
@@ -202,6 +190,26 @@ void MUMPS::solvingLinearSystem() {
     // if(MPIcf::IamMaster())  {
     //   mapp->inverseMapp(rhsMapp, rhs);
     // }
+}
+
+void MUMPS::checkPhase(const char *phase) {
+    const int ierr  = mumps_info(1);
+    const int info2 = mumps_info(2);
+    if (ierr == 0)
+        return;
+
+    std::ostringstream message;
+    message << "MUMPS " << phase << " failed: INFO(1)=" << ierr << ", INFO(2)=" << info2;
+    finalize();
+    throw std::runtime_error(message.str());
+}
+
+void MUMPS::finalize() noexcept {
+    if (!mumps_initialized_)
+        return;
+    mumps_par.job = JOB_END_;
+    dmumps_c(&mumps_par);
+    mumps_initialized_ = false;
 }
 
 void MUMPS::info() {

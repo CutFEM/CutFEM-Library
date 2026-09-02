@@ -44,6 +44,8 @@
 #include <limits>
 #include <memory>
 #include <span>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "AlgoimInterface.hpp"
@@ -305,22 +307,31 @@ class HocpClosestPointMap {
 //  Closest-point extension velocity beta(x) = vel(cp(x)) on the space Vh.
 //  `vel` is the (single-valued) background-mesh velocity; reading it at the
 //  closest point cp(x) on Gamma yields the surface velocity that the interface
-//  terms are built on.  Prefers the HOCP map, falls back to the brute-force
-//  surface samples.  The backend is reported once (master rank).
+//  terms are built on.  By default it prefers the HOCP map and falls back to
+//  brute-force surface samples.  Pass allow_surface_sample_fallback=false for
+//  a strict HOCP-only path that rejects the whole beta field on any failed
+//  query.  The backend is reported once (master rank).
 // ---------------------------------------------------------------------------
 template <typename M, typename L>
 void build_extension_velocity(const GFESpace<M> &Vh,
                               const AlgoimInterface<M, L> &gamma,
                               L &phi,
                               const L &vel,
-                              L &beta) {
+                              L &beta,
+                              const bool allow_surface_sample_fallback = true) {
     using Rd = typename M::Rd;
 
     const HocpClosestPointMap<M, L> hocp_cp(gamma.get_mesh(), phi);
-    // Keep a geometric fallback even when the HOCP book is available. Individual
-    // Newton queries can fail their convergence/residual checks on a degraded
-    // level set; using a surface sample is safer than injecting a zero velocity.
-    const std::vector<SurfaceSample<Rd>> samples = collect_surface_samples(gamma, phi);
+    if (!hocp_cp.ready() && !allow_surface_sample_fallback)
+        throw std::runtime_error(
+            "HOCP closest-point extension map is unavailable; no fallback allowed");
+
+    // Existing drivers retain the geometric fallback by default. Production
+    // drivers that require one unambiguous geometry path can disable it; their
+    // temporary beta field is then discarded if any HOCP query fails.
+    const std::vector<SurfaceSample<Rd>> samples = allow_surface_sample_fallback
+        ? collect_surface_samples(gamma, phi)
+        : std::vector<SurfaceSample<Rd>>{};
 
     static bool reported_closest_point_backend = false;
     if (!reported_closest_point_backend && MPIcf::IamMaster()) {
@@ -328,10 +339,13 @@ void build_extension_velocity(const GFESpace<M> &Vh,
                   << (hocp_cp.ready() ? "Algoim HOC closest point" : "surface quadrature sample fallback");
         if (hocp_cp.ready())
             std::cout << " (" << hocp_cp.seed_count() << " seeds)";
+        if (!allow_surface_sample_fallback)
+            std::cout << " [strict: no fallback]";
         std::cout << "\n";
         reported_closest_point_backend = true;
     }
 
+    std::size_t failed_queries = 0;
     auto fun_ext = [&](int /*t*/, std::span<double> P, int comp) -> double {
         Rd Pq;
         for (int a = 0; a < Rd::d; ++a)
@@ -339,6 +353,9 @@ void build_extension_velocity(const GFESpace<M> &Vh,
         int kb = -1;
         Rd cp;
         if (!hocp_cp.closest_point(Pq, cp, kb)) {
+            ++failed_queries;
+            if (!allow_surface_sample_fallback)
+                return 0.0; // beta is discarded after the collective check
             if (samples.empty())
                 return 0.0;
             cp = closest_point_on_interface(samples, Pq, kb);
@@ -348,6 +365,19 @@ void build_extension_velocity(const GFESpace<M> &Vh,
         return vel.eval(kb, cp, comp, op_id);
     };
     interpolate(Vh, beta.array(), fun_ext);
+
+    if (!allow_surface_sample_fallback) {
+        const unsigned long local_failures =
+            static_cast<unsigned long>(failed_queries);
+        unsigned long global_failures = 0;
+        MPIcf::AllReduce(local_failures, global_failures, MPI_MAX);
+        if (global_failures != 0)
+            throw std::runtime_error(
+                "HOCP closest-point extension failed at "
+                + std::to_string(global_failures)
+                + " local interpolation queries on at least one MPI rank; "
+                  "no fallback applied");
+    }
 }
 
 // ---------------------------------------------------------------------------

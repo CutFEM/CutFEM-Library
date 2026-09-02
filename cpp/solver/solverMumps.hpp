@@ -32,6 +32,7 @@ class MUMPS {
     static const int JOB_END_           = -2;
     static const int USE_COMM_WORLD_    = -987654;
     bool cleanMatrix                    = true;
+    bool mumps_initialized_             = false;
 
   public:
     //  int verbose = 0;
@@ -63,16 +64,15 @@ class MUMPS {
     void analyzeMatrix();
     void factorizationMatrix();
     void solvingLinearSystem();
+    void checkPhase(const char *phase);
+    void finalize() noexcept;
     void info();
 
     int mumps_info(int i) { return mumps_par.info[i - 1]; }
     int mumps_icntl(int i) { return mumps_par.icntl[i - 1]; }
 
   public:
-    ~MUMPS() {
-        mumps_par.job = JOB_END_;
-        dmumps_c(&mumps_par);
-    }
+    ~MUMPS() { finalize(); }
 };
 
 #endif

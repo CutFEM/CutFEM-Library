@@ -25,11 +25,12 @@ struct ProblemOption {
     int algoim_bernstein_deg_           = 2;
     int algoim_surface_quad_deg_        = 5;
     int algoim_vol_quad_deg_            = 5;
-    // Use Saye's multivariate-polynomial quadrature on MeshQuad2 cells.  The
-    // default keeps the general smooth-level-set quadGen path for existing
-    // drivers; polynomial moving-interface drivers can opt in explicitly.
+    // Use Saye's multivariate-polynomial quadrature on tensor-product
+    // MeshQuad2/MeshHexa cells.  The default keeps the general smooth-level-set
+    // quadGen path for existing drivers; polynomial moving-interface drivers
+    // can opt in explicitly.
     bool algoim_use_multipoly_           = false;
-    // 1D quadrature strategy for the multipoly (triangle/tet) algoim path:
+    // 1D quadrature strategy for the MultiPoly algoim path:
     // 0 = AlwaysGL, 1 = AlwaysTS, 2 = AutoMixed (algoim::QuadStrategy values).
     // AutoMixed falls back to tanh-sinh on base integrals with detected
     // vertical tangents, whose accuracy at moderate q is ~1e-5..1e-8 -- far

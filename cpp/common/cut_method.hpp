@@ -64,7 +64,7 @@ template <typename T> class SignElement {
     bool cut() const { return abs(sum_) != nve; }
     byte sign() const { return (sum_ == nve) ? 1 : ((sum_ == -nve) ? -1 : 0); }
     int sum() const { return sum_; }
-    int nb_node_positif() const { assert(0); }
+    int nb_node_positif() const { assert(0); return 0;}
 };
 
 // This class that save information obout the vertix and edge cut
