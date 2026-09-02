@@ -251,6 +251,12 @@ class HocpClosestPointMap {
         return to_point<Rd>(x);
     }
 
+    // The element GridPhi pairs with a grid point.  Exposed so a driver can check the
+    // structured-numbering assumption (index = ix + nx*iy + nx*ny*iz) against the mesh.
+    int grid_element(const std::array<int, N> &idx) const {
+        return locate_element(grid_point(idx));
+    }
+
     double sample_grid_levelset(const std::array<int, N> &idx, L &phi) const {
         IVec i;
         for (int a = 0; a < N; ++a)
