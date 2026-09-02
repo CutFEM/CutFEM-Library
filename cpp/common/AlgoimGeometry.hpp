@@ -173,9 +173,10 @@ class HocpClosestPointMap {
                 idx(a) = std::clamp(idx(a), 0, map->extent_(a) - 1);
 
             const Vec x = map->xmin_ + idx * map->dx_;
-            const int kb = map->locate_element(to_point<Rd>(x));
-            phi->setElementFromBackMesh(kb, 0);
-            return (*phi)(x);
+            const Rd point = to_point<Rd>(x);
+            const int kb = map->locate_element(point);
+            const int k = phi->idxElementFromBackMesh(kb, 0);
+            return phi->eval(k, point, 0, op_id);
         }
     };
 
