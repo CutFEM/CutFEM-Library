@@ -251,6 +251,15 @@ class HocpClosestPointMap {
         return to_point<Rd>(x);
     }
 
+    // The structured grid inferred from the mesh vertices.  Everything the map does is
+    // built on these six numbers; if they are wrong, every sampled value, cell polynomial
+    // and seed is wrong even though the level-set coefficients are perfect.
+    Rd grid_origin() const { return to_point<Rd>(xmin_); }
+    Rd grid_upper() const { return to_point<Rd>(xmax_); }
+    double grid_spacing(int a) const { return h_(a); }
+    double grid_sample_spacing(int a) const { return dx_(a); }
+    int grid_cells(int a) const { return ncells_(a); }
+
     // The element GridPhi pairs with a grid point.  Exposed so a driver can check the
     // structured-numbering assumption (index = ix + nx*iy + nx*ny*iz) against the mesh.
     int grid_element(const std::array<int, N> &idx) const {
