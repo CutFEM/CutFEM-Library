@@ -227,8 +227,8 @@ void MUMPS::checkPhase(const char *phase) {
     int ierr  = 0;
     int info2 = 0;
     if (MPIcf::IamMaster()) {
-        ierr  = mumps_info(1);
-        info2 = mumps_info(2);
+        ierr  = mumps_par.infog[0];
+        info2 = mumps_par.infog[1];
     }
     MPIcf::Bcast(ierr, MPIcf::Master(), 1);
     MPIcf::Bcast(info2, MPIcf::Master(), 1);
@@ -236,7 +236,8 @@ void MUMPS::checkPhase(const char *phase) {
         return;
 
     std::ostringstream message;
-    message << "MUMPS " << phase << " failed: INFO(1)=" << ierr << ", INFO(2)=" << info2;
+    message << "MUMPS " << phase << " failed: INFOG(1)="
+    << ierr << ", INFOG(2)=" << info2;
     finalize();
     throw std::runtime_error(message.str());
 }
