@@ -97,8 +97,10 @@ inline Rd to_point(const UV &v) {
 // ---------------------------------------------------------------------------
 //  Brute-force closest-point fallback: sample the surface quadrature points of
 //  the interface and, for a query point, return the nearest sample (and the
-//  background element it lives on).  Used only when the HOCP map cannot be
-//  built (e.g. an unstructured background mesh).
+//  background element it lives on).  Every MPI rank needs the complete sample
+//  cloud because extension interpolation is performed on the complete,
+//  replicated background space.  Restricting this loop with first_element()/
+//  next_element() would give each rank a different fallback geometry.
 // ---------------------------------------------------------------------------
 template <typename Rd>
 struct SurfaceSample {
@@ -113,7 +115,7 @@ collect_surface_samples(const AlgoimInterface<M, L> &gamma, L &phi) {
     std::vector<SurfaceSample<Rd>> samples;
     (void)phi;
 
-    for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
+    for (int iface = 0; iface < static_cast<int>(gamma.size()); ++iface) {
         const int kb = static_cast<int>(gamma.idxElementOfFace(iface));
         const AlgoimQuadratureRule<M> *quad_rule = gamma.get_cut_quadrature(kb);
         if (quad_rule == nullptr)
@@ -366,79 +368,402 @@ class HocpClosestPointMap {
 
 // ---------------------------------------------------------------------------
 //  Closest-point extension velocity beta(x) = vel(cp(x)) on the space Vh.
-//  `vel` is the (single-valued) background-mesh velocity; reading it at the
-//  closest point cp(x) on Gamma yields the surface velocity that the interface
-//  terms are built on.  By default it prefers the HOCP map and falls back to
-//  brute-force surface samples.  Pass allow_surface_sample_fallback=false for
-//  a strict HOCP-only path that rejects the whole beta field on any failed
-//  query.  The backend is reported once (master rank).
+//
+//  A closest-point map is only needed in a tube around Gamma.  Asking for it
+//  throughout a large box introduces avoidable queries at the medial axis,
+//  where a closest point is non-unique.  A finite band therefore uses
+//
+//      beta = u(cp(x))                                      |phi| <= core*h,
+//      beta = w u(cp(x)) + (1-w) u(x)              core*h < |phi| < outer*h,
+//      beta = u(x)                                         |phi| >= outer*h,
+//
+//  with the C2 quintic smootherstep w.  The sampled field is interpolated into
+//  the continuous finite-element space Vh, so the final beta_h remains C0
+//  across element boundaries.  Failed HOCP queries can either reject the field
+//  or use the nearest point in the complete stored Algoim surface-rule cloud;
+//  the resilient policy finally uses u(x) if that cloud is unavailable.
 // ---------------------------------------------------------------------------
+enum class ExtensionFailurePolicy {
+    Reject,
+    SurfaceSamplesThenRawVelocity
+};
+
+struct ExtensionVelocityOptions {
+    // Widths are multiples of gamma.get_mesh().get_mesh_size().  Infinity gives
+    // the historical whole-domain closest-point extension.
+    double pure_extension_band_cells = std::numeric_limits<double>::infinity();
+    double blend_outer_band_cells = std::numeric_limits<double>::infinity();
+    ExtensionFailurePolicy failure_policy =
+        ExtensionFailurePolicy::SurfaceSamplesThenRawVelocity;
+};
+
+template <typename Rd>
+struct ExtensionVelocityDiagnostics {
+    static constexpr int nb_status = algoim::cp_residual_above_tolerance + 1;
+    static constexpr int nb_bands = 10;
+
+    bool hocp_map_ready = false;
+    int hocp_seed_count = 0;
+    int hocp_cell_polynomial_count = 0;
+    unsigned long surface_sample_count = 0;
+    double mesh_size = 0.0;
+    double pure_extension_band_width = std::numeric_limits<double>::infinity();
+    double blend_outer_band_width = std::numeric_limits<double>::infinity();
+
+    // Counts are scalar interpolation-point visits (component 0), not unique
+    // global degrees of freedom; shared element nodes are intentionally visited
+    // more than once by interpolate().
+    unsigned long interpolation_point_visits = 0;
+    unsigned long pure_extension_point_visits = 0;
+    unsigned long blend_point_visits = 0;
+    unsigned long raw_velocity_point_visits = 0;
+    unsigned long cut_cell_point_visits = 0;
+    unsigned long cut_cell_nonpure_point_visits = 0;
+    unsigned long hocp_queries = 0;
+    unsigned long hocp_successes = 0;
+    unsigned long hocp_failures = 0;
+    unsigned long surface_sample_fallbacks = 0;
+    unsigned long raw_velocity_recoveries = 0;
+    unsigned long nonfinite_extension_component_recoveries = 0;
+    unsigned long nonfinite_raw_components = 0;
+    unsigned long mpi_count_mismatch_fields = 0;
+
+    std::array<unsigned long, nb_status> failures_by_status{};
+    std::array<unsigned long, nb_bands> queries_by_band{};
+    std::array<unsigned long, nb_bands> failures_by_band{};
+
+    bool have_first_failure = false;
+    int first_failure_rank = -1;
+    Rd first_failure_point;
+    double first_failure_phi = std::numeric_limits<double>::quiet_NaN();
+    int first_failure_status = algoim::cp_ok;
+    double nearest_failure_abs_phi = std::numeric_limits<double>::infinity();
+    double max_surface_fallback_distance = 0.0;
+    double max_surface_fallback_sdf_mismatch = 0.0;
+    double max_extension_raw_component_delta = 0.0;
+    double max_fallback_raw_component_delta = 0.0;
+};
+
+inline double extension_blend_weight(const double abs_phi,
+                                     const double core_width,
+                                     const double outer_width) {
+    if (!std::isfinite(outer_width) || abs_phi <= core_width)
+        return 1.0;
+    if (abs_phi >= outer_width)
+        return 0.0;
+    const double s = (outer_width - abs_phi) / (outer_width - core_width);
+    return s * s * s * (s * (6.0 * s - 15.0) + 10.0);
+}
+
+inline int extension_distance_band(const double abs_phi, const double mesh_size,
+                                   const int nb_bands) {
+    if (!(mesh_size > 0.0) || !std::isfinite(abs_phi))
+        return nb_bands - 1;
+    return std::clamp(static_cast<int>(std::floor(abs_phi / mesh_size)),
+                      0, nb_bands - 1);
+}
+
 template <typename M, typename L>
-void build_extension_velocity(const GFESpace<M> &Vh,
-                              const AlgoimInterface<M, L> &gamma,
-                              L &phi,
-                              const L &vel,
-                              L &beta,
-                              const bool allow_surface_sample_fallback = true) {
+ExtensionVelocityDiagnostics<typename M::Rd>
+build_extension_velocity(const GFESpace<M> &Vh,
+                         const AlgoimInterface<M, L> &gamma,
+                         L &phi,
+                         const L &vel,
+                         L &beta,
+                         const ExtensionVelocityOptions &options) {
     using Rd = typename M::Rd;
+    using Diagnostics = ExtensionVelocityDiagnostics<Rd>;
+
+    const bool whole_domain =
+        !std::isfinite(options.pure_extension_band_cells)
+        && !std::isfinite(options.blend_outer_band_cells);
+    if (!whole_domain
+        && (!(options.pure_extension_band_cells >= 0.0)
+            || !(options.blend_outer_band_cells
+                 > options.pure_extension_band_cells)
+            || !std::isfinite(options.blend_outer_band_cells))) {
+        throw std::invalid_argument(
+            "closest-point extension bands require 0 <= core < outer < infinity");
+    }
 
     const HocpClosestPointMap<M, L> hocp_cp(gamma.get_mesh(), phi);
-    if (!hocp_cp.ready() && !allow_surface_sample_fallback)
+    if (!hocp_cp.ready() && options.failure_policy == ExtensionFailurePolicy::Reject)
         throw std::runtime_error(
             "HOCP closest-point extension map is unavailable; no fallback allowed");
 
-    // Existing drivers retain the geometric fallback by default. Production
-    // drivers that require one unambiguous geometry path can disable it; their
-    // temporary beta field is then discarded if any HOCP query fails.
-    const std::vector<SurfaceSample<Rd>> samples = allow_surface_sample_fallback
+    const bool resilient = options.failure_policy
+        == ExtensionFailurePolicy::SurfaceSamplesThenRawVelocity;
+    const std::vector<SurfaceSample<Rd>> samples = resilient
         ? collect_surface_samples(gamma, phi)
         : std::vector<SurfaceSample<Rd>>{};
 
+    Diagnostics local;
+    local.hocp_map_ready = hocp_cp.ready();
+    local.hocp_seed_count = hocp_cp.seed_count();
+    local.hocp_cell_polynomial_count = hocp_cp.cell_polynomial_count();
+    local.surface_sample_count = static_cast<unsigned long>(samples.size());
+    local.mesh_size = gamma.get_mesh().get_mesh_size();
+    local.pure_extension_band_width =
+        options.pure_extension_band_cells * local.mesh_size;
+    local.blend_outer_band_width =
+        options.blend_outer_band_cells * local.mesh_size;
+
     static bool reported_closest_point_backend = false;
     if (!reported_closest_point_backend && MPIcf::IamMaster()) {
-        std::cout << "closest-point extension backend = "
-                  << (hocp_cp.ready() ? "Algoim HOC closest point" : "surface quadrature sample fallback");
-        if (hocp_cp.ready())
-            std::cout << " (" << hocp_cp.seed_count() << " seeds)";
-        if (!allow_surface_sample_fallback)
-            std::cout << " [strict: no fallback]";
-        std::cout << "\n";
+        std::cout << "closest-point extension = ";
+        if (whole_domain) {
+            std::cout << "whole-domain Algoim HOCP";
+        } else {
+            std::cout << "banded Algoim HOCP (pure through "
+                      << options.pure_extension_band_cells
+                      << " h, C2 blend to bulk velocity at "
+                      << options.blend_outer_band_cells << " h)";
+        }
+        std::cout << "; recovery = "
+                  << (resilient
+                      ? "complete stored-surface sample cloud, then raw bulk velocity"
+                      : "reject field")
+                  << "; map = " << hocp_cp.seed_count() << " seeds; samples = "
+                  << samples.size() << '\n';
         reported_closest_point_backend = true;
     }
 
-    std::size_t failed_queries = 0;
-    auto fun_ext = [&](int /*t*/, std::span<double> P, int comp) -> double {
-        Rd Pq;
-        for (int a = 0; a < Rd::d; ++a)
-            Pq[a] = P[a];
-        int kb = -1;
-        Rd cp;
-        if (!hocp_cp.closest_point(Pq, cp, kb)) {
-            ++failed_queries;
-            if (!allow_surface_sample_fallback)
-                return 0.0; // beta is discarded after the collective check
-            if (samples.empty())
-                return 0.0;
-            cp = closest_point_on_interface(samples, Pq, kb);
-            if (kb < 0)
-                return 0.0; // no interface in the mesh -> harmless
+    enum class ExtensionSource { RawVelocity, Hocp, SurfaceSample };
+    Rd cached_query;
+    Rd cached_closest_point;
+    int cached_closest_element = -1;
+    double cached_weight = 0.0;
+    ExtensionSource cached_source = ExtensionSource::RawVelocity;
+
+    auto fun_ext = [&](int elem, std::span<double> P, int comp) -> double {
+        if (comp == 0) {
+            for (int a = 0; a < Rd::d; ++a)
+                cached_query[a] = P[a];
+            cached_closest_element = -1;
+            cached_source = ExtensionSource::RawVelocity;
+
+            const double phi_query = phi.eval(elem, cached_query, 0, op_id);
+            const double abs_phi = std::fabs(phi_query);
+            cached_weight = extension_blend_weight(
+                abs_phi, local.pure_extension_band_width,
+                local.blend_outer_band_width);
+
+            ++local.interpolation_point_visits;
+            if (cached_weight == 1.0)
+                ++local.pure_extension_point_visits;
+            else if (cached_weight == 0.0)
+                ++local.raw_velocity_point_visits;
+            else
+                ++local.blend_point_visits;
+            if (gamma.isCut(elem)) {
+                ++local.cut_cell_point_visits;
+                if (cached_weight != 1.0)
+                    ++local.cut_cell_nonpure_point_visits;
+            }
+
+            if (cached_weight > 0.0) {
+                ++local.hocp_queries;
+                const int band = extension_distance_band(
+                    abs_phi, local.mesh_size, Diagnostics::nb_bands);
+                ++local.queries_by_band[band];
+
+                int status = algoim::cp_ok;
+                if (hocp_cp.closest_point(cached_query, cached_closest_point,
+                                          cached_closest_element, &status)) {
+                    cached_source = ExtensionSource::Hocp;
+                    ++local.hocp_successes;
+                } else {
+                    ++local.hocp_failures;
+                    ++local.failures_by_status[std::clamp(
+                        status, 0, Diagnostics::nb_status - 1)];
+                    ++local.failures_by_band[band];
+                    local.nearest_failure_abs_phi = std::min(
+                        local.nearest_failure_abs_phi, abs_phi);
+                    if (!local.have_first_failure) {
+                        local.have_first_failure = true;
+                        local.first_failure_point = cached_query;
+                        local.first_failure_phi = phi_query;
+                        local.first_failure_status = status;
+                    }
+
+                    if (resilient && !samples.empty()) {
+                        cached_closest_point = closest_point_on_interface(
+                            samples, cached_query, cached_closest_element);
+                        if (cached_closest_element >= 0) {
+                            cached_source = ExtensionSource::SurfaceSample;
+                            ++local.surface_sample_fallbacks;
+                            const Rd displacement =
+                                cached_query - cached_closest_point;
+                            const double distance = std::sqrt(
+                                (displacement, displacement));
+                            local.max_surface_fallback_distance = std::max(
+                                local.max_surface_fallback_distance, distance);
+                            local.max_surface_fallback_sdf_mismatch = std::max(
+                                local.max_surface_fallback_sdf_mismatch,
+                                std::fabs(distance - abs_phi));
+                        }
+                    }
+                    if (cached_source == ExtensionSource::RawVelocity)
+                        ++local.raw_velocity_recoveries;
+                }
+            }
         }
-        return vel.eval(kb, cp, comp, op_id);
+
+        const double raw_value = vel.eval(elem, cached_query, comp, op_id);
+        if (!std::isfinite(raw_value))
+            ++local.nonfinite_raw_components;
+        if (cached_source == ExtensionSource::RawVelocity)
+            return raw_value;
+
+        const double extension_value = vel.eval(
+            cached_closest_element, cached_closest_point, comp, op_id);
+        if (!std::isfinite(extension_value)) {
+            ++local.nonfinite_extension_component_recoveries;
+            return raw_value;
+        }
+
+        const double delta = std::fabs(extension_value - raw_value);
+        local.max_extension_raw_component_delta = std::max(
+            local.max_extension_raw_component_delta, delta);
+        if (cached_source == ExtensionSource::SurfaceSample)
+            local.max_fallback_raw_component_delta = std::max(
+                local.max_fallback_raw_component_delta, delta);
+        return cached_weight * extension_value
+             + (1.0 - cached_weight) * raw_value;
     };
     interpolate(Vh, beta.array(), fun_ext);
 
-    if (!allow_surface_sample_fallback) {
-        const unsigned long local_failures =
-            static_cast<unsigned long>(failed_queries);
-        unsigned long global_failures = 0;
-        MPIcf::AllReduce(local_failures, global_failures, MPI_MAX);
-        if (global_failures != 0)
-            throw std::runtime_error(
-                "HOCP closest-point extension failed at "
-                + std::to_string(global_failures)
-                + " local interpolation queries on at least one MPI rank; "
-                  "no fallback applied");
+    Diagnostics global = local;
+    const auto reduce_max = [](const unsigned long local_value) {
+        unsigned long global_value = 0;
+        MPIcf::AllReduce(local_value, global_value, MPI_MAX);
+        return global_value;
+    };
+    const auto reduce_max_double = [](const double local_value) {
+        double global_value = 0.0;
+        MPIcf::AllReduce(local_value, global_value, MPI_MAX);
+        return global_value;
+    };
+
+    int map_ready = local.hocp_map_ready ? 1 : 0;
+    int global_map_ready = 0;
+    MPIcf::AllReduce(map_ready, global_map_ready, MPI_MIN);
+    global.hocp_map_ready = global_map_ready != 0;
+    MPIcf::AllReduce(local.hocp_seed_count, global.hocp_seed_count, MPI_MAX);
+    MPIcf::AllReduce(local.hocp_cell_polynomial_count,
+                     global.hocp_cell_polynomial_count, MPI_MAX);
+    global.surface_sample_count = reduce_max(local.surface_sample_count);
+    global.interpolation_point_visits = reduce_max(local.interpolation_point_visits);
+    global.pure_extension_point_visits = reduce_max(local.pure_extension_point_visits);
+    global.blend_point_visits = reduce_max(local.blend_point_visits);
+    global.raw_velocity_point_visits = reduce_max(local.raw_velocity_point_visits);
+    global.cut_cell_point_visits = reduce_max(local.cut_cell_point_visits);
+    global.cut_cell_nonpure_point_visits = reduce_max(
+        local.cut_cell_nonpure_point_visits);
+    global.hocp_queries = reduce_max(local.hocp_queries);
+    global.hocp_successes = reduce_max(local.hocp_successes);
+    global.hocp_failures = reduce_max(local.hocp_failures);
+    global.surface_sample_fallbacks = reduce_max(local.surface_sample_fallbacks);
+    global.raw_velocity_recoveries = reduce_max(local.raw_velocity_recoveries);
+    global.nonfinite_extension_component_recoveries = reduce_max(
+        local.nonfinite_extension_component_recoveries);
+    global.nonfinite_raw_components = reduce_max(local.nonfinite_raw_components);
+    for (int i = 0; i < Diagnostics::nb_status; ++i)
+        global.failures_by_status[i] = reduce_max(local.failures_by_status[i]);
+    for (int i = 0; i < Diagnostics::nb_bands; ++i) {
+        global.queries_by_band[i] = reduce_max(local.queries_by_band[i]);
+        global.failures_by_band[i] = reduce_max(local.failures_by_band[i]);
     }
+    double nearest_failure = local.nearest_failure_abs_phi;
+    MPIcf::AllReduce(nearest_failure, global.nearest_failure_abs_phi, MPI_MIN);
+    global.max_surface_fallback_distance = reduce_max_double(
+        local.max_surface_fallback_distance);
+    global.max_surface_fallback_sdf_mismatch = reduce_max_double(
+        local.max_surface_fallback_sdf_mismatch);
+    global.max_extension_raw_component_delta = reduce_max_double(
+        local.max_extension_raw_component_delta);
+    global.max_fallback_raw_component_delta = reduce_max_double(
+        local.max_fallback_raw_component_delta);
+
+    // Geometry and interpolation are replicated, so these counters must agree
+    // across ranks.  Keep the maxima above for the forensic values and record
+    // how many key fields disagree instead of silently assuming replication.
+    const auto differs_across_ranks = [](const unsigned long local_value,
+                                         const unsigned long global_maximum) {
+        unsigned long global_minimum = 0;
+        MPIcf::AllReduce(local_value, global_minimum, MPI_MIN);
+        return global_minimum != global_maximum;
+    };
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        static_cast<unsigned long>(local.hocp_seed_count),
+        static_cast<unsigned long>(global.hocp_seed_count));
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        static_cast<unsigned long>(local.hocp_cell_polynomial_count),
+        static_cast<unsigned long>(global.hocp_cell_polynomial_count));
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.surface_sample_count, global.surface_sample_count);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.interpolation_point_visits, global.interpolation_point_visits);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.pure_extension_point_visits, global.pure_extension_point_visits);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.blend_point_visits, global.blend_point_visits);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.raw_velocity_point_visits, global.raw_velocity_point_visits);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.cut_cell_nonpure_point_visits,
+        global.cut_cell_nonpure_point_visits);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.hocp_queries, global.hocp_queries);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.hocp_failures, global.hocp_failures);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.surface_sample_fallbacks, global.surface_sample_fallbacks);
+    global.mpi_count_mismatch_fields += differs_across_ranks(
+        local.raw_velocity_recoveries, global.raw_velocity_recoveries);
+
+    int first_failure_rank = local.have_first_failure
+        ? MPIcf::my_rank() : MPIcf::size();
+    MPIcf::AllReduce(first_failure_rank, global.first_failure_rank, MPI_MIN);
+    global.have_first_failure = global.first_failure_rank < MPIcf::size();
+    if (global.have_first_failure) {
+        if (MPIcf::my_rank() != global.first_failure_rank) {
+            global.first_failure_status = algoim::cp_ok;
+            global.first_failure_phi = std::numeric_limits<double>::quiet_NaN();
+        }
+        MPIcf::Bcast(global.first_failure_status, global.first_failure_rank, 1);
+        MPIcf::Bcast(global.first_failure_phi, global.first_failure_rank, 1);
+        for (int a = 0; a < Rd::d; ++a)
+            MPIcf::Bcast(global.first_failure_point[a],
+                         global.first_failure_rank, 1);
+    }
+
+    if (options.failure_policy == ExtensionFailurePolicy::Reject
+        && global.hocp_failures != 0) {
+        throw std::runtime_error(
+            "HOCP closest-point extension failed at "
+            + std::to_string(global.hocp_failures)
+            + " scalar interpolation-point visits on at least one MPI rank; "
+              "no fallback applied");
+    }
+    return global;
+}
+
+// Backward-compatible whole-domain entry point used by the axisymmetric
+// driver.  `false` preserves the strict behavior of the former boolean API.
+template <typename M, typename L>
+ExtensionVelocityDiagnostics<typename M::Rd>
+build_extension_velocity(const GFESpace<M> &Vh,
+                         const AlgoimInterface<M, L> &gamma,
+                         L &phi,
+                         const L &vel,
+                         L &beta,
+                         const bool allow_surface_sample_fallback = true) {
+    ExtensionVelocityOptions options;
+    options.failure_policy = allow_surface_sample_fallback
+        ? ExtensionFailurePolicy::SurfaceSamplesThenRawVelocity
+        : ExtensionFailurePolicy::Reject;
+    return build_extension_velocity(Vh, gamma, phi, vel, beta, options);
 }
 
 // ---------------------------------------------------------------------------
