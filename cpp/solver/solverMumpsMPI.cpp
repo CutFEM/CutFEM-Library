@@ -105,7 +105,10 @@ void MUMPS::initializeSetting() {
 
     // Increase MAXIS (cf. doc MUMPS) for extra fill-in
     //-------------------------------------------------------
-    mumps_par.ICNTL(14) = 100;
+    // Paper-production mesh (h=0.11): 155 still produced INFOG(1)=-9 during
+    // a later factorization.  Keep the larger estimate margin and record the
+    // linked solver hash in the Dardel run manifest. This was needed on Dardel for h=0.11 and 48 cores.
+    mumps_par.ICNTL(14) = 200;
 
     // Format of the right hand side
     //-------------------------------------------------------

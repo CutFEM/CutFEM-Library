@@ -51,6 +51,11 @@ struct ProblemOption {
     // workfiles/src/stokes/algoim_quadrature_probe.cpp).
     bool algoim_ibp_consistent_         = false;
     int algoim_ibp_degree_              = 6;
+    // Maximum adaptive midpoint-subdivision depth for a Mesh2 cut triangle
+    // whose surface or volume IBP correction remains rank-deficient.  Zero
+    // keeps the original rule.  This is opt-in because each retry creates four
+    // child rules; volume corrections regenerate their matching surface rule.
+    int algoim_subdivision_depth_        = 0;
     int order_space_bord_quadrature_    = 5;
     int order_time_quadrature_          = 3;
     std::string solver_name_            = "mumps";

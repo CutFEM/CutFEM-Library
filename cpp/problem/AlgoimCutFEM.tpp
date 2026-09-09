@@ -29,6 +29,44 @@ private:
     Phi &phi_;
 };
 
+inline void append_rule(AlgoimQuadratureRule<Mesh2> &dst,
+                        const AlgoimQuadratureRule<Mesh2> &src) {
+    dst.points.insert(dst.points.end(), src.points.begin(), src.points.end());
+    dst.weights.insert(dst.weights.end(), src.weights.begin(), src.weights.end());
+    dst.normals.insert(dst.normals.end(), src.normals.begin(), src.normals.end());
+}
+
+// Split a positively oriented triangle into its four midpoint children and
+// concatenate the rules generated on them.  The temporary child vertices stay
+// alive for the duration of each generator call.
+template <typename Generator>
+AlgoimQuadratureRule<Mesh2> subdivide_triangle_rule(const Mesh2::Element &K,
+                                                     Generator &&generate) {
+    using R2 = typename Mesh2::Rd;
+    using Vertex = typename Mesh2::Vertex;
+
+    const std::array<R2, 6> points = {
+        R2(K.at(0)), R2(K.at(1)), R2(K.at(2)),
+        0.5 * (R2(K.at(0)) + R2(K.at(1))),
+        0.5 * (R2(K.at(1)) + R2(K.at(2))),
+        0.5 * (R2(K.at(2)) + R2(K.at(0)))
+    };
+    constexpr int children[4][3] = {
+        {0, 3, 5}, {3, 1, 4}, {5, 4, 2}, {3, 4, 5}
+    };
+
+    AlgoimQuadratureRule<Mesh2> result;
+    for (const auto &indices : children) {
+        std::array<Vertex, 3> vertices;
+        for (int i = 0; i < 3; ++i)
+            static_cast<R2 &>(vertices[i]) = points[indices[i]];
+        int local_indices[3] = {0, 1, 2};
+        Mesh2::Element child(vertices.data(), local_indices);
+        append_rule(result, generate(child));
+    }
+    return result;
+}
+
 } // namespace algoim_cut_detail
 
 // IBP-consistent quadrature correction (triangle multipoly path).
@@ -280,11 +318,11 @@ inline void inside_face_rule(const Mesh2::Element &K, const algoim::xarray<real,
 // Stage 1: correct the surface rule's vector weights (see file-top comment).
 // Convention: `rule` normals are +grad(phi)/|grad(phi)|, outward for the
 // region {phi < 0} that phiB's negative side defines.
-inline void correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2::Element &K,
+inline bool correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2::Element &K,
                                  const algoim::xarray<real, 2> &phiB, int bern_deg, int m) {
     using R2       = typename Mesh2::Rd;
     const size_t ns = rule.points.size();
-    if (ns == 0) return;
+    if (ns == 0) return true;
 
     std::vector<std::array<double, 2>> fpts, fvw;
     inside_face_rule(K, phiB, bern_deg, 10, fpts, fvw);
@@ -362,7 +400,6 @@ inline void correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2:
     const double tol = 3e-16 * (1.0 + wsum);
     std::vector<double> r(nc), rtry(nc), d, otry(nu);
     double rmax = residual(omega, r);
-    bool changed = false;
     for (int pass = 0; pass < 4 && rmax >= tol; ++pass) {
         if (!trust_region_update(A, r, nc, nu, cap, d)) break;
         for (size_t j = 0; j < nu; ++j) otry[j] = omega[j] + d[j];
@@ -371,17 +408,22 @@ inline void correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2:
         omega.swap(otry);
         r.swap(rtry);
         rmax    = rmax_try;
-        changed = true;
     }
-    if (!changed) return;
-
+    bool valid_weights = true;
     for (size_t q = 0; q < ns; ++q) {
         const double o0 = omega[2 * q], o1 = omega[2 * q + 1];
         const double nn = std::sqrt(o0 * o0 + o1 * o1);
-        if (!(nn > 1e-14 * hs) || !std::isfinite(nn)) continue; // keep original entry
+        if (!(nn > 1e-14 * hs) || !std::isfinite(nn)) {
+            valid_weights = false;
+            continue; // keep original entry
+        }
         rule.weights[q] = nn;
         rule.normals[q] = R2(o0 / nn, o1 / nn);
     }
+    // A failed/incomplete correction is the signal for quadGenSurf to retry
+    // on midpoint children.  The relaxed acceptance threshold distinguishes
+    // roundoff-limited solves from genuinely rank-deficient rule supports.
+    return valid_weights && rmax <= 100.0 * tol;
 }
 
 // Stage 2: moment-fit the volume weights to the divergence-theorem moments
@@ -389,11 +431,11 @@ inline void correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2:
 // `surf` must carry outward normals for the region {phi < 0} (i.e. the rule
 // produced by quadGenSurf for the same phi whose negative side `vol`
 // integrates).
-inline void correct_volume_rule(AlgoimQuadratureRule<Mesh2> &vol,
+inline bool correct_volume_rule(AlgoimQuadratureRule<Mesh2> &vol,
                                 const AlgoimQuadratureRule<Mesh2> &surf, const Mesh2::Element &K,
                                 const algoim::xarray<real, 2> &phiB, int bern_deg, int m) {
     const size_t nv = vol.points.size(), ns = surf.points.size();
-    if (nv == 0 || ns == 0) return;
+    if (nv == 0 || ns == 0) return true;
 
     std::vector<std::array<double, 2>> fpts, fvw;
     inside_face_rule(K, phiB, bern_deg, 10, fpts, fvw);
@@ -461,7 +503,6 @@ inline void correct_volume_rule(AlgoimQuadratureRule<Mesh2> &vol,
     const double tol = 3e-16 * (1.0 + wsum);
     std::vector<double> rtry(nc), d, wtry(nv);
     double rmax  = residual(wq, r);
-    bool changed = false;
     for (int pass = 0; pass < 4 && rmax >= tol; ++pass) {
         if (!trust_region_update(V, r, nc, nv, cap, d)) break;
         for (size_t q = 0; q < nv; ++q) wtry[q] = wq[q] + d[q];
@@ -470,12 +511,10 @@ inline void correct_volume_rule(AlgoimQuadratureRule<Mesh2> &vol,
         wq.swap(wtry);
         r.swap(rtry);
         rmax    = rmax_try;
-        changed = true;
     }
-    if (!changed) return;
-
     for (size_t q = 0; q < nv; ++q)
         if (std::isfinite(wq[q])) vol.weights[q] = wq[q];
+    return rmax <= 100.0 * tol;
 }
 
 } // namespace algoim_ibp
@@ -560,9 +599,18 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
         // outward for the region {phi<0} integrated here, and (with the flag
         // set) it returns the Stage-1-corrected rule the assembly also uses.
         auto surf = quadGenSurf(K, phi, option);
-        if (surf.points.size() > 0)
-            algoim_ibp::correct_volume_rule(rule, surf, K, phiB, bernstein_deg,
-                                            option.algoim_ibp_degree_);
+        if (surf.points.size() > 0) {
+            const bool correction_ok = algoim_ibp::correct_volume_rule(
+                rule, surf, K, phiB, bernstein_deg, option.algoim_ibp_degree_);
+            if (!correction_ok && option.algoim_subdivision_depth_ > 0) {
+                ProblemOption child_option = option;
+                --child_option.algoim_subdivision_depth_;
+                return algoim_cut_detail::subdivide_triangle_rule(
+                    K, [&](const Mesh2::Element &child) {
+                        return quadGenVol(child, phi, child_option);
+                    });
+            }
+        }
     }
 
     return rule;
@@ -693,8 +741,16 @@ AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const
         // Stage 1 of the IBP correction: make the vector weights w*n satisfy
         // the divergence theorem for div-free polynomial fields against exact
         // 1D integrals over the element-edge portions.
-        algoim_ibp::correct_surface_rule(rule, K, phiB, bernstein_deg,
-                                         option.algoim_ibp_degree_);
+        const bool correction_ok = algoim_ibp::correct_surface_rule(
+            rule, K, phiB, bernstein_deg, option.algoim_ibp_degree_);
+        if (!correction_ok && option.algoim_subdivision_depth_ > 0) {
+            ProblemOption child_option = option;
+            --child_option.algoim_subdivision_depth_;
+            return algoim_cut_detail::subdivide_triangle_rule(
+                K, [&](const Mesh2::Element &child) {
+                    return quadGenSurf(child, phi, child_option);
+                });
+        }
     }
 
     return rule;
