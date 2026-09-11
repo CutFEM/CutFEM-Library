@@ -10,6 +10,11 @@ evidence, locate the relevant private project through the machine's path map.
   Do not silently route a geometry-dependent contribution through legacy cut partitioning.
 - Patch stabilization integrates its intended full background patch, not physical cut volume.
 - Preserve all CutFEMParameter coefficients in unified assembly.
+- `ListItemVF::reduce()` sums only items that `ItemVF::operator==` deems identical up to the
+  scalar `c`; that comparison must include every factor of the term (parameter lists `coefu`/
+  `coefv` and `pfunU`/`pfunV` included). Only exactly cancelled items are dropped, and a fully
+  cancelled list keeps one zero item because assembly takes the FE space from `VF[0]`.
+  `cpp/example/tests/test_itemvf_reduce.cpp` checks this.
 - Structured GridPhi evaluation must address the explicitly resolved FE element rather than
   relying on mutable cached-element state in FunFEM.
 - Maintain MPI-consistent replicated geometry/fallback data when every rank evaluates a

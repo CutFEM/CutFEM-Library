@@ -104,13 +104,17 @@ template <typeMesh M> struct ItemVF {
         pfunV = V.pfun;
     }
 
-    bool operator==(const ItemVF &F) {
+    // True when both items describe the same term up to the scalar c, so that
+    // ListItemVF::reduce() may sum their coefficients. Parameter coefficients and
+    // nonlinear transforms multiply the term and therefore have to match as well.
+    bool operator==(const ItemVF &F) const {
 
         if (cu == F.cu && cv == F.cv && du == F.du && dv == F.dv && F.face_sideU_ == face_sideU_ &&
             face_sideV_ == F.face_sideV_ && dtu == F.dtu && dtv == F.dtv && domainU_id_ == F.domainU_id_ &&
             domainV_id_ == F.domainV_id_ && fespaceU == F.fespaceU && fespaceV == F.fespaceV &&
             expru.get() == F.expru.get() && exprv.get() == F.exprv.get() && ar_nu == F.ar_nu && ar_nv == F.ar_nv &&
-            conormalU_ == F.conormalU_ && conormalV_ == F.conormalV_) {
+            conormalU_ == F.conormalU_ && conormalV_ == F.conormalV_ && coefu == F.coefu && coefv == F.coefv &&
+            pfunU == F.pfunU && pfunV == F.pfunV) {
         } else
             return false;
         return true;
@@ -316,42 +320,26 @@ template <typeMesh M> class ListItemVF {
     }
     ListItemVF &operator+() { return *this; }
 
+    // Merge items describing the same term (see ItemVF::operator==) by summing their
+    // coefficients, then drop items whose coefficients cancel exactly. No tolerance is
+    // used: c includes user scalars, so a small coefficient can be a genuine term.
     void reduce() {
-        // get size new list
-        int l = VF.size();
-        KN<int> s(VF.size(), -1);
-        KN<int> s2k(VF.size(), -1);
-
-        for (int i = 0; i < VF.size(); ++i) {
-            if (VF[i].c == 0) {
-                l -= 1;
-                continue;
-            }
-            if (s(i) != -1)
-                continue;
-            for (int j = i + 1; j < VF.size(); ++j) {
-                if (VF.at(i).operator==(VF.at(j))) {
-                    s(j) = i;
-                    l -= 1;
-                }
-            }
+        std::vector<item_t> u;
+        u.reserve(VF.size());
+        for (const item_t &item : VF) {
+            auto same = std::find_if(u.begin(), u.end(), [&item](const item_t &x) { return x == item; });
+            if (same == u.end())
+                u.push_back(item);
+            else
+                same->c += item.c;
         }
-        if (l == VF.size())
-            return;
-        std::vector<item_t> u(l);
-        int k = 0;
 
-        for (int i = 0; i < VF.size(); ++i) {
-            if (VF[i].c == 0) {
-                continue;
-            }
-            if (s(i) == -1) {
-                s2k[i] = k;
-                u[k++] = VF[i];
-            } else {
-                u[s2k(s(i))].c += VF[i].c;
-            }
-        }
+        auto is_nul = [](const item_t &item) -> bool { return item.c == 0.; };
+        if (!std::all_of(u.begin(), u.end(), is_nul))
+            u.erase(std::remove_if(u.begin(), u.end(), is_nul), u.end());
+        else if (u.size() > 1)
+            u.erase(u.begin() + 1, u.end()); // keep one zero item: assembly reads the FE space from VF[0]
+        VF = std::move(u);
     }
 
     int get_lastOp() const {
