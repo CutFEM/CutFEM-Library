@@ -801,6 +801,11 @@ template <typename M>
 void BaseFEM<M>::addPatchContribution(const itemVFlist_t &VF, const int k, const int kn, const TimeSlab *In, int itq,
                                       double cst_time) {
 
+    // NOTHING TO ASSEMBLE IF THE FORM REDUCED TO AN EMPTY LIST
+    // (e.g. a stabilization whose penalty parameter is set to 0)
+    if (VF.size() == 0)
+        return;
+
     // typedef typename FElement::RdHat RdHat;
 
     // CHECK IF IT IS FOR RHS OR MATRIX
@@ -899,6 +904,11 @@ void BaseFEM<M>::addPatchContribution(const itemVFlist_t &VF, const int k, const
 template <typename M>
 void BaseFEM<M>::addPatchContributionMixed(const itemVFlist_t &VF, const int kb, const int kbn, const TimeSlab *In,
                                            int itq, double cst_time) {
+
+    // NOTHING TO ASSEMBLE IF THE FORM REDUCED TO AN EMPTY LIST
+    // (e.g. a stabilization whose penalty parameter is set to 0)
+    if (VF.size() == 0)
+        return;
 
     // typedef typename FElement::RdHat RdHat;
 
