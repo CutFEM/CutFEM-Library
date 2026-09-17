@@ -92,6 +92,14 @@ template <typename T> class SignPattern {
                                           ///< sorted in increasing order.
     Ubyte cut_simplex_rep_[Element::nvc]; ///< local number of the object on the
                                           ///< cut: (0..5)
+    /// False when the cut edges do not form one closed ring, so that
+    /// ordered_list_node() could not order all of them. The hexahedral
+    /// reference partition assumes a single ring; a cell whose interface has
+    /// two disconnected sheets (for example two opposite corners on one side of
+    /// the level set) has six cut edges forming two disjoint triangles, and the
+    /// ring walk closes after the first triangle. Only the first entries of
+    /// cut_simplex_ are then meaningful.
+    bool single_cut_ring_ = true;
 
     void compute_cuts();
     void get_ordered_list_node(std::vector<int> &list_cut) const;
@@ -120,6 +128,11 @@ template <typename T> class SignPattern {
 
     bool no_zero_vertex() const { return num_root_vert_ == 0; } ///< True, iff there is no vertex, in which ls vanishes.
 
+    /// True unless the cut edges failed to form one closed ring; see
+    /// single_cut_ring_.  Always true for element types that do not order their
+    /// cut list, which is every type except the hexahedron.
+    bool single_cut_ring() const { return single_cut_ring_; }
+
     Ubyte num_cut_simplexes() const { return num_root_; } ///< Number of edges and vertices with a root of ls.
     Ubyte num_zero_vertexes() const {
         return num_root_vert_;
@@ -139,6 +152,7 @@ template <typename T> class SignPattern {
 
 template <typename T> void SignPattern<T>::assign(const byte ls[Element::nv]) {
     num_root_vert_ = num_root_ = 0;
+    single_cut_ring_ = true;
 
     byte sum = 0;
     for (Ubyte i = 0; i < Element::nv; ++i)
@@ -150,6 +164,7 @@ template <typename T> void SignPattern<T>::assign(const byte ls[Element::nv]) {
 
 template <typename T> void SignPattern<T>::assign(const double ls[Element::nv]) {
     num_root_vert_ = num_root_ = 0;
+    single_cut_ring_ = true;
 
     byte sum = 0;
     for (Ubyte i = 0; i < Element::nv; ++i) {
@@ -197,7 +212,16 @@ template <typename T> void SignPattern<T>::compute_cuts() {
 
 template <typename T> void SignPattern<T>::ordered_list_node() {
 
+    // The sentinel makes an entry the walk never reaches detectably invalid
+    // instead of uninitialized stack.  Copying uninitialized list_cut entries
+    // into cut_simplex_ is what produced the edge id 127 that crashed both 3D
+    // production runs: the assert below is removed by -DNDEBUG, so the short
+    // walk went unnoticed and every later connectivity lookup indexed a
+    // connectivity table with garbage.
     Ubyte list_cut[Element::nvc];
+    for (int j = 0; j < Element::nvc; ++j)
+        list_cut[j] = static_cast<Ubyte>(Element::ne);
+
     // INITIAL EDGE && FACE
     const int e0 = this->cut_simplex_[0];
     const int f0 = T::faceOfEdge[e0][0];
@@ -207,13 +231,18 @@ template <typename T> void SignPattern<T>::ordered_list_node() {
     int e_next     = -1;
     int f_next     = f0;
     int i          = 0;
-    while (e_next != e0) {
+    while (e_next != e0 && i < num_root_ && e_previous >= 0 && e_previous < Element::ne) {
         list_cut[i] = static_cast<Ubyte>(e_previous);
         e_next      = find_other_cutEdge_on_face(e_previous, f_next);
         e_previous  = e_next;
         ++i;
     }
-    assert(i == num_root_);
+    // A ring that closes before covering every cut edge means the cut is not a
+    // single sheet.  Record that rather than assert it away; RefPartition
+    // rejects such a pattern, and callers that only need a tessellation for
+    // visualization can skip the cell.
+    single_cut_ring_ = (i == num_root_) && (e_next == e0);
+    assert(single_cut_ring_);
     for (int j = 0; j < num_root_; ++j)
         cut_simplex_[j] = list_cut[j];
 }

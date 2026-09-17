@@ -563,6 +563,15 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
       // Always-on preconditions; see the note above the helpers.
       if (!cut.no_zero_vertex())
          reject(cut, "a vertex lies exactly on the zero set");
+      // The cut list is only meaningful when the edges form one closed ring.
+      // The confirmed failure was vertex signs [-1,1,1,1,1,1,-1,1]: two
+      // opposite corners on the negative side, six cut edges forming two
+      // disjoint triangles rather than a hexagonal ring. That is a cell whose
+      // interface has two disconnected sheets, which no single-sheet
+      // tessellation can express.
+      if (!cut.single_cut_ring())
+         reject(cut, "the cut edges do not form one closed ring, so the cell's "
+                     "interface has more than one sheet");
       int nb_pos = cut.sign_element.nb_node_positif();
 
       switch (static_cast<int>(cut.num_cut_simplexes())) {
