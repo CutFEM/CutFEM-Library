@@ -586,9 +586,16 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
              "the opposite edges of a 3-edge cut do not meet in one vertex"));
 
          // sommet des 3 autres tetra de coin
-         Ubyte s0 = Hexa::oppVertOfEdge(e_op0, u1);
-         Ubyte s1 = Hexa::oppVertOfEdge(e_op1, u1);
-         Ubyte s2 = Hexa::oppVertOfEdge(e_op2, u1);
+         // These index nodeConnectivity below, so they must be real vertices.
+         Ubyte s0 = static_cast<Ubyte>(require_vertex(
+             Hexa::oppVertOfEdge(e_op0, u1), cut,
+             "3-edge cut: opposite edge e_op0 is not incident to the corner"));
+         Ubyte s1 = static_cast<Ubyte>(require_vertex(
+             Hexa::oppVertOfEdge(e_op1, u1), cut,
+             "3-edge cut: opposite edge e_op1 is not incident to the corner"));
+         Ubyte s2 = static_cast<Ubyte>(require_vertex(
+             Hexa::oppVertOfEdge(e_op2, u1), cut,
+             "3-edge cut: opposite edge e_op2 is not incident to the corner"));
 
          // center tetra
          Ubyte list_v5[] = {
@@ -701,9 +708,15 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
             // for(int i=0;i<5;++i) std::cout << (int) e[i] << "\t";
             // std::cout << std::endl;
 
-            if (e(0) == -1 || e(4) == -1)
-               reject(cut, "5-edge cut whose edges do not form the single "
-                           "supported loop");
+            // Every subsequent cut[e(k)] indexes the cut-edge list with these,
+            // so all five must have been found. e(2) and e(3) in particular are
+            // used immediately below; reading cut[-1] there produced a garbage
+            // edge id and a wild connectivity-table row pointer, which is the
+            // read that killed job 25197534 at step 420.
+            for (int k = 0; k < 5; ++k)
+               if (e(k) < 0 || e(k) >= 5)
+                  reject(cut, "5-edge cut whose edges do not form the single "
+                              "supported loop");
             if (Hexa::commonVertOfEdges[cut[e(2)]][cut[e(3)]] != -1) {
                int eee = e(3);
                e(3)    = e(4);
@@ -814,6 +827,9 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
                   }
                }
             }
+            if (v(4) == -1 || v(2) == -1)
+               reject(cut, "6-edge cut: no neighbouring vertex carries the "
+                           "matching sign, so the ring is not a single sheet");
             AddPrism(cut(1), cut(0), cut(2), cut(3), v(0), v(4),
                      cut.sign(v(0)));
             AddPrism(cut(4), cut(3), cut(5), cut(0), v(6), v(2),

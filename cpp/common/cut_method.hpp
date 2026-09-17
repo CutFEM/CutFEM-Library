@@ -37,6 +37,8 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #ifndef COMMON_CUT_METHOD_HPP_
 #define COMMON_CUT_METHOD_HPP_
 
+#include <stdexcept>
+#include <string>
 #include "../num/util.hpp"
 #include "dataStruct2D.hpp"
 #include "dataStruct3D.hpp"
@@ -384,7 +386,28 @@ template <typename E> class RefPartition {
     // each node has 3 possible states (-1, 0, 1)
     static RefPartition<E> instance_array_[E::nb_sign_pattern];
 
-    void AddElement(Ubyte v[dim + 1], int sign) { (sign == -1 ? *--begin_ : *end_++) = ElementIdx(v); }
+    // Always-on bounds check.  Every branch of the reference partitions derives
+    // its vertex ids from connectivity tables that return -1 when the requested
+    // relation does not exist; as a Ubyte that becomes 255.  Writing such an id
+    // into elements_ used to hand a wild index to every downstream consumer, and
+    // the element cursors themselves were unchecked.  Validating here covers
+    // every case of every element type at the point of use, which is cheaper to
+    // reason about than proving each derivation correct.  Valid ids are real
+    // vertices [0, nv) and cut-edge representatives [nv, nv + ne).
+    void AddElement(Ubyte v[dim + 1], int sign) {
+        for (int i = 0; i <= dim; ++i)
+            if (static_cast<int>(v[i]) >= nv + E::ne)
+                throw std::runtime_error(
+                    "RefPartition: vertex index " + std::to_string(static_cast<int>(v[i])) +
+                    " is outside [0," + std::to_string(nv + E::ne) +
+                    ") while tessellating a cut element. The cut pattern is not "
+                    "representable by the reference partition.");
+        if (sign == -1 ? begin_ == elements_ : end_ == elements_ + max_nb_element)
+            throw std::runtime_error(
+                "RefPartition: the cut pattern produced more sub-elements than the "
+                "reference partition can store.");
+        (sign == -1 ? *--begin_ : *end_++) = ElementIdx(v);
+    }
     // e,f,g are assumed to be the equally-oriented edges of the quadrilateral
     // faces.
     void AddQuadrilateral(Ubyte e0, Ubyte e1, Ubyte f0, Ubyte f1, int sign) {
