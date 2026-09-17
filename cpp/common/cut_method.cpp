@@ -36,6 +36,10 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 
 #include "cut_method.hpp"
 
+#include <sstream>
+#include <stdexcept>
+#include <string>
+
 template <> int SignElement<Hexa>::nb_node_positif() const {
    int s = util::fsign(sum_);
    return 0.5 * (8 + sum_);
@@ -494,6 +498,61 @@ template <> bool RefPartition<Tet>::assign(const SignPattern<Tet> &cut) {
    //     AddTetra( 0, 1, 2, 3, cut.sign( some_non_zero_vertex( cut)));
    return is_uncut();
 }
+namespace {
+
+// ---------------------------------------------------------------------------
+//  Validation for the hexahedral reference partition.
+//
+//  RefPartition<Hexa>::assign implements only single-sheet cut patterns: 3, 4,
+//  5 or 6 cut edges forming one loop, with a supported distribution of positive
+//  vertices, and no vertex exactly on the zero set.  Everything outside that
+//  set used to be caught by assert() alone, which production builds remove with
+//  -DNDEBUG.  An unsupported pattern then read Hexa::commonVertOfEdges[..][..]
+//  == -1 as a vertex index and wrote through it, which is how both 3D active
+//  surface production jobs died with SIGSEGV on 2026-09-12/13 while writing a
+//  ParaView file of a fragmented interface.
+//
+//  These checks are always compiled.  They cost a handful of comparisons per
+//  cut cell and turn a silent buffer overrun into a diagnosable exception that
+//  names the pattern, which a caller such as a visualization writer can catch
+//  and skip.  Supported patterns behave exactly as before.
+// ---------------------------------------------------------------------------
+std::string describe(const SignPattern<Hexa> &cut) {
+   std::ostringstream description;
+   description << "cut edges=" << static_cast<int>(cut.num_cut_simplexes())
+               << ", zero vertices=" << static_cast<int>(cut.num_zero_vertexes())
+               << ", positive vertices=" << cut.sign_element.nb_node_positif()
+               << ", vertex signs=[";
+   for (int v = 0; v < Hexa::nv; ++v)
+      description << (v == 0 ? "" : " ") << static_cast<int>(cut.sign(v));
+   description << "], cut edge ids=[";
+   for (int i = 0; i < static_cast<int>(cut.num_cut_simplexes()); ++i)
+      description << (i == 0 ? "" : " ") << static_cast<int>(cut[i]);
+   description << "]";
+   return description.str();
+}
+
+[[noreturn]] void reject(const SignPattern<Hexa> &cut, const std::string &what) {
+   throw std::runtime_error(
+       "RefPartition<Hexa>: unsupported cut configuration (" + what + "); " +
+       describe(cut) +
+       ". The trilinear reference partition only tessellates single-sheet cuts; "
+       "a cell whose interface has two sheets, a vertex on the zero set, or a "
+       "cut-edge loop outside the supported table cannot be represented. The "
+       "Algoim MultiPoly quadrature is unaffected: this path is used by the "
+       "ParaView writers and by linear-interface assembly, not by the cut rules.");
+}
+
+// Connectivity lookups return -1 when the two edges share no vertex, which
+// happens exactly for the patterns the table below cannot express.
+int require_vertex(int vertex, const SignPattern<Hexa> &cut, const char *what) {
+   if (vertex < 0 || vertex >= Hexa::nv)
+      reject(cut, what);
+   return vertex;
+}
+
+} // namespace
+
 template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
    end_ = begin_ = elements_ + start_array;
    if (cut.empty()) { // Most common case: no cut.
@@ -501,7 +560,9 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
    } else {
       is_cut_ = true;
 
-      assert(cut.no_zero_vertex());
+      // Always-on preconditions; see the note above the helpers.
+      if (!cut.no_zero_vertex())
+         reject(cut, "a vertex lies exactly on the zero set");
       int nb_pos = cut.sign_element.nb_node_positif();
 
       switch (static_cast<int>(cut.num_cut_simplexes())) {
@@ -509,7 +570,8 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
          // std::cout << " case \t 3" <<std::endl;
          // only one option, 1 tetra + 1 prisme + complet with 4 tetra
          // same way we cut a hexa into tetra (1tetra+prism => one fat tetra)
-         int v0         = Hexa::commonVertOfEdges[cut[0]][cut[1]];
+         int v0 = require_vertex(Hexa::commonVertOfEdges[cut[0]][cut[1]], cut,
+                                 "the three cut edges do not meet in one vertex");
          Ubyte list_v[] = {static_cast<Ubyte>(v0), cut(0), cut(1), cut(2)};
          AddElement(list_v, cut.sign(v0));
          AddPrism(cut(0), Hexa::oppVertOfEdge(cut[0], v0), cut(1),
@@ -519,7 +581,9 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
          int e_op0 = Hexa::oppEdgeOfEdge[cut[0]];
          int e_op1 = Hexa::oppEdgeOfEdge[cut[1]];
          int e_op2 = Hexa::oppEdgeOfEdge[cut[2]];
-         Ubyte u1  = Hexa::commonVertOfEdges[e_op0][e_op1];
+         Ubyte u1  = static_cast<Ubyte>(require_vertex(
+             Hexa::commonVertOfEdges[e_op0][e_op1], cut,
+             "the opposite edges of a 3-edge cut do not meet in one vertex"));
 
          // sommet des 3 autres tetra de coin
          Ubyte s0 = Hexa::oppVertOfEdge(e_op0, u1);
@@ -561,8 +625,10 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
             int e1 = (Hexa::commonVertOfEdges[cut[0]][cut[1]] == -1) ? 1 : 3;
             int f0 = (Hexa::commonVertOfEdges[cut[0]][cut[1]] == -1) ? 3 : 1;
             int f1 = 2;
-            int g0 = Hexa::commonVertOfEdges[cut[e0]][cut[f0]];
-            int g1 = Hexa::commonVertOfEdges[cut[e1]][cut[f1]];
+            int g0 = require_vertex(Hexa::commonVertOfEdges[cut[e0]][cut[f0]], cut,
+                                    "4-edge cut: edges e0 and f0 do not meet");
+            int g1 = require_vertex(Hexa::commonVertOfEdges[cut[e1]][cut[f1]], cut,
+                                    "4-edge cut: edges e1 and f1 do not meet");
             AddPrism(cut(e0), cut(e1), cut(f0), cut(f1), g0, g1, cut.sign(g0));
 
             // add Hexa
@@ -578,8 +644,10 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
             int ed_op01 = Hexa::oppEdgeOfEdge[cut[f1]];
             int ed_op10 = Hexa::oppEdgeOfEdge[cut[e0]];
             int ed_op11 = Hexa::oppEdgeOfEdge[cut[f0]];
-            int k0      = Hexa::commonVertOfEdges[ed_op00][ed_op01];
-            int k1      = Hexa::commonVertOfEdges[ed_op10][ed_op11];
+            int k0      = require_vertex(Hexa::commonVertOfEdges[ed_op00][ed_op01],
+                                         cut, "4-edge cut: opposite edges do not meet (k0)");
+            int k1      = require_vertex(Hexa::commonVertOfEdges[ed_op10][ed_op11],
+                                         cut, "4-edge cut: opposite edges do not meet (k1)");
             AddPrism(h0, h1, l0, l1, k0, k1, -cut.sign(g0));
          }
          // add 1 hexa on each part
@@ -597,15 +665,17 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
             AddHexa(cut(0), cut(1), cut(3), cut(2), n_neg(0), n_neg(1),
                     n_neg(3), n_neg(2), -1);
          } else {
-            std::cout << " not implemented cut in case 4 " << std::endl;
-            assert(0);
+            reject(cut, "4-edge cut with an unsupported number of positive "
+                        "vertices (expected 2, 4 or 6)");
          }
          break;
       case 5:
          // std::cout << " case \t 5" <<std::endl;
          {
             int nb_pos = cut.sign_element.nb_node_positif();
-            assert(nb_pos == 3 || nb_pos == 5);
+            if (nb_pos != 3 && nb_pos != 5)
+               reject(cut, "5-edge cut with an unsupported number of positive "
+                           "vertices (expected 3 or 5)");
             Rn v(8);
             v = -1;
             Rn e(8);
@@ -631,8 +701,9 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
             // for(int i=0;i<5;++i) std::cout << (int) e[i] << "\t";
             // std::cout << std::endl;
 
-            assert(e(0) != -1);
-            assert(e(4) != -1);
+            if (e(0) == -1 || e(4) == -1)
+               reject(cut, "5-edge cut whose edges do not form the single "
+                           "supported loop");
             if (Hexa::commonVertOfEdges[cut[e(2)]][cut[e(3)]] != -1) {
                int eee = e(3);
                e(3)    = e(4);
@@ -670,7 +741,10 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
                   std::swap(v(3), v(7));
             }
             {
-               v(6)     = Hexa::commonVertOfEdges[cut[e(3)]][cut[e(4)]];
+               v(6)     = require_vertex(
+                   Hexa::commonVertOfEdges[cut[static_cast<int>(e(3))]]
+                                          [cut[static_cast<int>(e(4))]],
+                   cut, "5-edge cut: edges e3 and e4 do not meet");
                int e_op = Hexa::oppEdgeOfEdge[cut[e(0)]];
                v(2)     = Hexa::oppVertOfEdge(e_op, v(6));
             }
@@ -700,12 +774,23 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
          {
             KN<int> v(8);
             v    = -1;
-            v(0) = Hexa::commonVertOfEdges[cut[1]][cut[2]];
-            v(1) = Hexa::commonVertOfEdges[cut[2]][cut[3]];
-            v(3) = Hexa::commonVertOfEdges[cut[0]][cut[1]];
-            v(5) = Hexa::commonVertOfEdges[cut[3]][cut[4]];
-            v(6) = Hexa::commonVertOfEdges[cut[4]][cut[5]];
-            v(7) = Hexa::commonVertOfEdges[cut[0]][cut[5]];
+            // A 6-edge cut is only tessellable when the six edges form one
+            // hexagonal ring.  Two disconnected triangles (opposite corners cut
+            // off) also give six cut edges and land here; every lookup below
+            // then returns -1.  This is the configuration a fragmenting
+            // interface produces.
+            v(0) = require_vertex(Hexa::commonVertOfEdges[cut[1]][cut[2]], cut,
+                                  "6-edge cut: edges 1 and 2 do not meet");
+            v(1) = require_vertex(Hexa::commonVertOfEdges[cut[2]][cut[3]], cut,
+                                  "6-edge cut: edges 2 and 3 do not meet");
+            v(3) = require_vertex(Hexa::commonVertOfEdges[cut[0]][cut[1]], cut,
+                                  "6-edge cut: edges 0 and 1 do not meet");
+            v(5) = require_vertex(Hexa::commonVertOfEdges[cut[3]][cut[4]], cut,
+                                  "6-edge cut: edges 3 and 4 do not meet");
+            v(6) = require_vertex(Hexa::commonVertOfEdges[cut[4]][cut[5]], cut,
+                                  "6-edge cut: edges 4 and 5 do not meet");
+            v(7) = require_vertex(Hexa::commonVertOfEdges[cut[0]][cut[5]], cut,
+                                  "6-edge cut: edges 0 and 5 do not meet");
             AddPrism(cut(0), cut(3), cut(5), cut(4), v(7), v(5),
                      cut.sign(v(5)));
             AddPrism(cut(1), cut(2), cut(0), cut(3), v(3), v(1),
@@ -750,6 +835,8 @@ template <> bool RefPartition<Hexa>::assign(const SignPattern<Hexa> &cut) {
             AddElement(list_v3, cut.sign(v(2)));
          }
          break;
+      default:
+         reject(cut, "unsupported number of cut edges (the table covers 3 to 6)");
       };
    }
    return is_uncut();
