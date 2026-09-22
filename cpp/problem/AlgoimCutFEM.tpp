@@ -1,3 +1,6 @@
+#include <limits>
+#include <sstream>
+#include <stdexcept>
 
 namespace algoim_cut_detail {
 
@@ -34,6 +37,26 @@ inline void append_rule(AlgoimQuadratureRule<Mesh2> &dst,
     dst.points.insert(dst.points.end(), src.points.begin(), src.points.end());
     dst.weights.insert(dst.weights.end(), src.weights.begin(), src.weights.end());
     dst.normals.insert(dst.normals.end(), src.normals.begin(), src.normals.end());
+    dst.ibp_subdivisions += src.ibp_subdivisions;
+    dst.ibp_capped_failures += src.ibp_capped_failures;
+    dst.ibp_correction_ok = dst.ibp_correction_ok && src.ibp_correction_ok;
+    dst.ibp_scaled_residual = std::max(dst.ibp_scaled_residual, src.ibp_scaled_residual);
+    dst.ibp_svd_attempts += src.ibp_svd_attempts;
+    dst.ibp_svd_selected += src.ibp_svd_selected;
+    dst.ibp_relative_vector_change = std::max(dst.ibp_relative_vector_change, src.ibp_relative_vector_change);
+    dst.ibp_relative_surface_mass_change = std::max(dst.ibp_relative_surface_mass_change, src.ibp_relative_surface_mass_change);
+    dst.ibp_min_normal_alignment = std::min(dst.ibp_min_normal_alignment, src.ibp_min_normal_alignment);
+}
+
+inline void require_valid_parent(const AlgoimQuadratureRule<Mesh2> &rule,
+                                 const ProblemOption &option, const char *kind) {
+    if (!option.algoim_ibp_require_valid_parent_ || rule.ibp_correction_ok) return;
+    std::ostringstream message;
+    message << "Algoim " << kind << " parent IBP fit failed: D="
+            << option.algoim_ibp_degree_ << ", residual=" << rule.ibp_scaled_residual
+            << ", tolerance=" << rule.ibp_acceptance_tolerance
+            << ", subdivisions=" << rule.ibp_subdivisions;
+    throw std::runtime_error(message.str());
 }
 
 // Split a positively oriented triangle into its four midpoint children and
@@ -212,6 +235,71 @@ inline bool trust_region_update(const std::vector<double> &A, const std::vector<
     return std::isfinite(nrm2) && std::sqrt(nrm2) <= cap;
 }
 
+struct DirectSvdFitInfo {
+    int rank = 0;
+    double discarded_rhs = 0.0; // relative norm outside the retained range
+    double update_norm = 0.0;
+};
+
+// Experimental minimum-relative-change update.  If S is diagonal with one
+// scale per vector-weight component, solve (A S) z = r and set d = S z.
+// Factoring A S directly avoids squaring its condition number in A A^T.
+// The row rescaling is a change of constraint basis, not a relaxation of the
+// independently checked moments in correct_surface_rule.
+inline bool direct_svd_update(const std::vector<double> &A, const std::vector<double> &r,
+                              int nc, size_t nu, const std::vector<double> &scale,
+                              double cap, std::vector<double> &d, DirectSvdFitInfo &info) {
+    if (nc <= 0 || nu == 0 || scale.size() != nu || nu > size_t(std::numeric_limits<int>::max()))
+        return false;
+    const int n = static_cast<int>(nu), nsing = std::min(nc, n);
+    std::vector<double> B(size_t(nc) * nu), rhs(nc), U(size_t(nc) * nsing);
+    std::vector<double> Vt(size_t(nsing) * nu), sigma(nsing), superb(std::max(nsing - 1, 1));
+    for (int i = 0; i < nc; ++i) {
+        double row_norm2 = 0.0;
+        for (size_t j = 0; j < nu; ++j) {
+            const double value = A[size_t(i) * nu + j] * scale[j];
+            B[size_t(i) * nu + j] = value;
+            row_norm2 += value * value;
+        }
+        const double row_scale = row_norm2 > 0.0 ? 1.0 / std::sqrt(row_norm2) : 1.0;
+        rhs[i] = r[i] * row_scale;
+        for (size_t j = 0; j < nu; ++j) B[size_t(i) * nu + j] *= row_scale;
+    }
+    const int status = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'S', 'S', nc, n,
+                                      B.data(), n, sigma.data(), U.data(), nsing,
+                                      Vt.data(), n, superb.data());
+    if (status != 0 || !(sigma[0] > 0.0) || !std::isfinite(sigma[0])) return false;
+
+    const double relative_cutoff = std::max(1e-12,
+        64.0 * std::numeric_limits<double>::epsilon() * std::max(nc, n));
+    std::vector<double> z(nu, 0.0), rhs_projected(nc, 0.0);
+    for (int l = 0; l < nsing; ++l) {
+        if (!(sigma[l] > relative_cutoff * sigma[0])) continue;
+        ++info.rank;
+        double component = 0.0;
+        for (int i = 0; i < nc; ++i) component += U[size_t(i) * nsing + l] * rhs[i];
+        for (int i = 0; i < nc; ++i)
+            rhs_projected[i] += U[size_t(i) * nsing + l] * component;
+        for (size_t j = 0; j < nu; ++j)
+            z[j] += Vt[size_t(l) * nu + j] * (component / sigma[l]);
+    }
+    double rhs_norm2 = 0.0, discarded_norm2 = 0.0;
+    for (int i = 0; i < nc; ++i) {
+        rhs_norm2 += rhs[i] * rhs[i];
+        discarded_norm2 += std::pow(rhs[i] - rhs_projected[i], 2);
+    }
+    info.discarded_rhs = std::sqrt(discarded_norm2 / std::max(rhs_norm2, 1e-300));
+
+    d.resize(nu);
+    double update_norm2 = 0.0;
+    for (size_t j = 0; j < nu; ++j) {
+        d[j] = scale[j] * z[j];
+        update_norm2 += d[j] * d[j];
+    }
+    info.update_norm = std::sqrt(update_norm2);
+    return std::isfinite(info.update_norm) && info.update_norm <= cap;
+}
+
 // 1D quadrature for the {phiB < 0} portions of the three (reference-)triangle
 // edges, returned as physical points with OUTWARD vector weights (unit outward
 // normal times arc measure).  phiB is the Bernstein level set on the unit
@@ -319,7 +407,8 @@ inline void inside_face_rule(const Mesh2::Element &K, const algoim::xarray<real,
 // Convention: `rule` normals are +grad(phi)/|grad(phi)|, outward for the
 // region {phi < 0} that phiB's negative side defines.
 inline bool correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2::Element &K,
-                                 const algoim::xarray<real, 2> &phiB, int bern_deg, int m) {
+                                 const algoim::xarray<real, 2> &phiB, int bern_deg, int m,
+                                 bool use_direct_svd = false) {
     using R2       = typename Mesh2::Rd;
     const size_t ns = rule.points.size();
     if (ns == 0) return true;
@@ -377,6 +466,14 @@ inline bool correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2:
         omega[2 * q + 1] = rule.weights[q] * rule.normals[q][1];
         wsum += rule.weights[q];
     }
+    const std::vector<double> raw_omega = omega;
+    std::vector<double> column_scale(nu);
+    if (use_direct_svd) {
+        const double floor = std::max(0.1 * wsum / ns, hs * 1e-14);
+        for (size_t q = 0; q < ns; ++q)
+            column_scale[2 * q] = column_scale[2 * q + 1] =
+                std::max(std::abs(rule.weights[q]), floor);
+    }
 
     // residual (in row-normalized units) of the constraints at a given omega
     auto residual = [&](const std::vector<double> &om, std::vector<double> &r) -> double {
@@ -401,7 +498,17 @@ inline bool correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2:
     std::vector<double> r(nc), rtry(nc), d, otry(nu);
     double rmax = residual(omega, r);
     for (int pass = 0; pass < 4 && rmax >= tol; ++pass) {
-        if (!trust_region_update(A, r, nc, nu, cap, d)) break;
+        bool update_ok;
+        if (use_direct_svd) {
+            DirectSvdFitInfo info;
+            update_ok = direct_svd_update(A, r, nc, nu, column_scale, cap, d, info);
+            rule.ibp_svd_rank = info.rank;
+            rule.ibp_svd_discarded_rhs = info.discarded_rhs;
+            rule.ibp_svd_update_norm = info.update_norm;
+        } else {
+            update_ok = trust_region_update(A, r, nc, nu, cap, d);
+        }
+        if (!update_ok) break;
         for (size_t j = 0; j < nu; ++j) otry[j] = omega[j] + d[j];
         const double rmax_try = residual(otry, rtry);
         if (!(rmax_try < rmax)) break; // no improvement: keep previous state
@@ -413,17 +520,78 @@ inline bool correct_surface_rule(AlgoimQuadratureRule<Mesh2> &rule, const Mesh2:
     for (size_t q = 0; q < ns; ++q) {
         const double o0 = omega[2 * q], o1 = omega[2 * q + 1];
         const double nn = std::sqrt(o0 * o0 + o1 * o1);
-        if (!(nn > 1e-14 * hs) || !std::isfinite(nn)) {
+        if (!std::isfinite(nn)) {
             valid_weights = false;
             continue; // keep original entry
+        }
+        if (!(nn > 1e-14 * hs)) {
+            if (use_direct_svd) {
+                // A zero vector weight needs no normal direction.  Preserve
+                // the original normal and verify the resulting rule below.
+                rule.weights[q] = 0.0;
+            } else {
+                valid_weights = false;
+            }
+            continue;
         }
         rule.weights[q] = nn;
         rule.normals[q] = R2(o0 / nn, o1 / nn);
     }
+    std::vector<double> applied(nu), final_r(nc);
+    for (size_t q = 0; q < ns; ++q) {
+        applied[2 * q] = rule.weights[q] * rule.normals[q][0];
+        applied[2 * q + 1] = rule.weights[q] * rule.normals[q][1];
+    }
+    double change2 = 0.0, new_wsum = 0.0, min_alignment = 1.0;
+    for (size_t q = 0; q < ns; ++q) {
+        change2 += std::pow(applied[2 * q] - raw_omega[2 * q], 2)
+                 + std::pow(applied[2 * q + 1] - raw_omega[2 * q + 1], 2);
+        const double old_norm = std::hypot(raw_omega[2 * q], raw_omega[2 * q + 1]);
+        const double new_norm = std::hypot(applied[2 * q], applied[2 * q + 1]);
+        if (old_norm > 1e-14 * hs && new_norm > 1e-14 * hs)
+            min_alignment = std::min(min_alignment,
+                (raw_omega[2 * q] * applied[2 * q]
+                + raw_omega[2 * q + 1] * applied[2 * q + 1]) / (old_norm * new_norm));
+        new_wsum += rule.weights[q];
+    }
+    rule.ibp_relative_vector_change = std::max(rule.ibp_relative_vector_change,
+        std::sqrt(change2) / std::max(wsum, hs * 1e-14));
+    rule.ibp_relative_surface_mass_change = std::max(rule.ibp_relative_surface_mass_change,
+        std::abs(new_wsum - wsum) / std::max(wsum, hs * 1e-14));
+    rule.ibp_min_normal_alignment = std::min(rule.ibp_min_normal_alignment, min_alignment);
+    rmax = residual(applied, final_r);
     // A failed/incomplete correction is the signal for quadGenSurf to retry
     // on midpoint children.  The relaxed acceptance threshold distinguishes
     // roundoff-limited solves from genuinely rank-deficient rule supports.
-    return valid_weights && rmax <= 100.0 * tol;
+    rule.ibp_scaled_residual = rmax;
+    rule.ibp_acceptance_tolerance = 100.0 * tol;
+    return valid_weights && rmax <= rule.ibp_acceptance_tolerance;
+}
+
+// Compare complete rules after converting fitted vector weights back to the
+// weights and normals used by the assembler.  A direct fit can be accurate on
+// its retained singular subspace yet fail the independent moment check; in
+// that case use the legacy candidate when it is better.  Keep a passing
+// legacy rule; otherwise use a passing SVD rule or the smaller failed
+// residual.  This opt-in prototype never weakens the acceptance threshold.
+inline bool correct_surface_rule_with_fallback(AlgoimQuadratureRule<Mesh2> &rule,
+                                                const Mesh2::Element &K,
+                                                const algoim::xarray<real, 2> &phiB,
+                                                int bern_deg, int m,
+                                                bool try_direct_svd) {
+    if (!try_direct_svd) return correct_surface_rule(rule, K, phiB, bern_deg, m);
+    auto svd = rule, legacy = rule;
+    const bool svd_ok = correct_surface_rule(svd, K, phiB, bern_deg, m, true);
+    const bool legacy_ok = correct_surface_rule(legacy, K, phiB, bern_deg, m);
+    // Once the legacy rule meets the requested moments, a smaller residual
+    // offers no known benefit for general surface integrals.  Retain that
+    // rule unless it fails; use the SVD candidate to repair such failures.
+    const bool choose_svd = !legacy_ok &&
+        (svd_ok || svd.ibp_scaled_residual < legacy.ibp_scaled_residual);
+    rule = choose_svd ? std::move(svd) : std::move(legacy);
+    ++rule.ibp_svd_attempts;
+    if (choose_svd) ++rule.ibp_svd_selected;
+    return choose_svd ? svd_ok : legacy_ok;
 }
 
 // Stage 2: moment-fit the volume weights to the divergence-theorem moments
@@ -514,7 +682,9 @@ inline bool correct_volume_rule(AlgoimQuadratureRule<Mesh2> &vol,
     }
     for (size_t q = 0; q < nv; ++q)
         if (std::isfinite(wq[q])) vol.weights[q] = wq[q];
-    return rmax <= 100.0 * tol;
+    vol.ibp_scaled_residual = rmax;
+    vol.ibp_acceptance_tolerance = 100.0 * tol;
+    return rmax <= vol.ibp_acceptance_tolerance;
 }
 
 } // namespace algoim_ibp
@@ -602,14 +772,29 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
         if (surf.points.size() > 0) {
             const bool correction_ok = algoim_ibp::correct_volume_rule(
                 rule, surf, K, phiB, bernstein_deg, option.algoim_ibp_degree_);
+            rule.ibp_correction_ok = correction_ok;
             if (!correction_ok && option.algoim_subdivision_depth_ > 0) {
                 ProblemOption child_option = option;
                 --child_option.algoim_subdivision_depth_;
-                return algoim_cut_detail::subdivide_triangle_rule(
+                child_option.algoim_ibp_require_valid_parent_ = false;
+                auto refined = algoim_cut_detail::subdivide_triangle_rule(
                     K, [&](const Mesh2::Element &child) {
                         return quadGenVol(child, phi, child_option);
                     });
+                ++refined.ibp_subdivisions;
+                // Child corrections can each be rank-deficient on tiny arcs.
+                // Refit their concatenated rule against the parent boundary
+                // moments before returning it to assembly.
+                if (!refined.points.empty())
+                    refined.ibp_correction_ok = algoim_ibp::correct_volume_rule(
+                        refined, surf, K, phiB, bernstein_deg, option.algoim_ibp_degree_);
+                else
+                    refined.ibp_correction_ok = false;
+                algoim_cut_detail::require_valid_parent(refined, option, "volume");
+                return refined;
             }
+            if (!correction_ok) ++rule.ibp_capped_failures;
+            algoim_cut_detail::require_valid_parent(rule, option, "volume");
         }
     }
 
@@ -741,16 +926,33 @@ AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const
         // Stage 1 of the IBP correction: make the vector weights w*n satisfy
         // the divergence theorem for div-free polynomial fields against exact
         // 1D integrals over the element-edge portions.
-        const bool correction_ok = algoim_ibp::correct_surface_rule(
-            rule, K, phiB, bernstein_deg, option.algoim_ibp_degree_);
+        const bool correction_ok = algoim_ibp::correct_surface_rule_with_fallback(
+            rule, K, phiB, bernstein_deg, option.algoim_ibp_degree_,
+            option.algoim_ibp_surface_svd_);
+        rule.ibp_correction_ok = correction_ok;
         if (!correction_ok && option.algoim_subdivision_depth_ > 0) {
             ProblemOption child_option = option;
             --child_option.algoim_subdivision_depth_;
-            return algoim_cut_detail::subdivide_triangle_rule(
+            child_option.algoim_ibp_require_valid_parent_ = false;
+            auto refined = algoim_cut_detail::subdivide_triangle_rule(
                 K, [&](const Mesh2::Element &child) {
                     return quadGenSurf(child, phi, child_option);
                 });
+            ++refined.ibp_subdivisions;
+            // A collection of short child arcs may have enough nodes to
+            // satisfy moments that were rank-deficient on individual arcs.
+            // Enforce the parent-cell identities on the assembled rule too.
+            if (!refined.points.empty())
+                refined.ibp_correction_ok = algoim_ibp::correct_surface_rule_with_fallback(
+                    refined, K, phiB, bernstein_deg, option.algoim_ibp_degree_,
+                    option.algoim_ibp_surface_svd_);
+            else
+                refined.ibp_correction_ok = false;
+            algoim_cut_detail::require_valid_parent(refined, option, "surface");
+            return refined;
         }
+        if (!correction_ok) ++rule.ibp_capped_failures;
+        algoim_cut_detail::require_valid_parent(rule, option, "surface");
     }
 
     return rule;

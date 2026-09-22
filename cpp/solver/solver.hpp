@@ -51,6 +51,13 @@ struct ProblemOption {
     // workfiles/src/stokes/algoim_quadrature_probe.cpp).
     bool algoim_ibp_consistent_         = false;
     int algoim_ibp_degree_              = 6;
+    // Experimental direct SVD fit for Mesh2 surface vector weights, compared
+    // with the existing fit using independently evaluated final moments.
+    // The default retains the existing solver for controlled A/B runs.
+    bool algoim_ibp_surface_svd_         = false;
+    // Opt-in hard gate: fail before assembly if a final parent cut rule does
+    // not satisfy the measured IBP moments after all requested subdivisions.
+    bool algoim_ibp_require_valid_parent_ = false;
     // Maximum adaptive midpoint-subdivision depth for a Mesh2 cut triangle
     // whose surface or volume IBP correction remains rank-deficient.  Zero
     // keeps the original rule.  This is opt-in because each retry creates four
