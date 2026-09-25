@@ -496,6 +496,15 @@ build_extension_velocity(const GFESpace<M> &Vh,
     const std::vector<SurfaceSample<Rd>> samples = resilient
         ? collect_surface_samples(gamma, phi)
         : std::vector<SurfaceSample<Rd>>{};
+    // The fallback asks for the nearest sample of the complete cloud; a k-d tree
+    // keeps that affordable when many far-field queries fail (3D whole box).
+    std::vector<algoim::uvector<double, Rd::d>> sample_points;
+    sample_points.reserve(samples.size());
+    for (const SurfaceSample<Rd> &sample : samples)
+        sample_points.push_back(to_uvector(sample.point));
+    const std::unique_ptr<algoim::KDTree<double, Rd::d>> sample_tree =
+        samples.empty() ? nullptr
+                        : std::make_unique<algoim::KDTree<double, Rd::d>>(sample_points);
 
     Diagnostics local;
     local.hocp_map_ready = hocp_cp.ready();
@@ -586,9 +595,11 @@ build_extension_velocity(const GFESpace<M> &Vh,
                         local.first_failure_status = status;
                     }
 
-                    if (resilient && !samples.empty()) {
-                        cached_closest_point = closest_point_on_interface(
-                            samples, cached_query, cached_closest_element);
+                    if (resilient && sample_tree) {
+                        const SurfaceSample<Rd> &sample = samples[
+                            sample_tree->nearest(to_uvector(cached_query))];
+                        cached_closest_point = sample.point;
+                        cached_closest_element = sample.kb;
                         if (cached_closest_element >= 0) {
                             cached_source = ExtensionSource::SurfaceSample;
                             ++local.surface_sample_fallbacks;
