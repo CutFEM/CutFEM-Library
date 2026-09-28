@@ -19,11 +19,59 @@ CutFEM-Library. If not, see <https://www.gnu.org/licenses/>
 #include "../num/print_container.hpp"
 #include "../common/logger.hpp"
 
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 #define ICNTL(I) icntl[(I) - 1]
 #define INFO(I) info[(I) - 1]
+
+namespace {
+
+// Factorization retries with a larger ICNTL(14) after INFOG(1)=-8/-9.
+constexpr int kMaxMarginRetries = 3;
+
+// Percentage added to the analysis estimate of the factorization workspace.
+// On the h=0.11 Dardel production mesh 155 still produced INFOG(1)=-9, and
+// 200 failed once after 221 slabs (job 24866665, INFOG(2)=33276), hence the
+// retry in MUMPS::factorizationMatrix(). CUTFEM_MUMPS_ICNTL14 overrides the
+// initial value, e.g. to exercise that retry on a small problem.
+int initialWorkspaceMargin() {
+    static const int margin = [] {
+        int value = 200;
+        if (const char *env = std::getenv("CUTFEM_MUMPS_ICNTL14")) {
+            char *end         = nullptr;
+            const long parsed = std::strtol(env, &end, 10);
+            if (end == env || *end != '\0' || parsed < 0 || parsed > 100000)
+                throw std::runtime_error(std::string("invalid CUTFEM_MUMPS_ICNTL14=") + env);
+            value = static_cast<int>(parsed);
+        }
+        if (MPIcf::IamMaster())
+            std::cout << "MUMPS: initial ICNTL(14)=" << value << ", up to " << kMaxMarginRetries
+                      << " factorization retries with a larger ICNTL(14) on INFOG(1)=-8/-9" << std::endl;
+        return value;
+    }();
+    return margin;
+}
+
+// INFOG(1:2) as seen by the host, broadcast so every rank takes the same branch.
+std::pair<int, int> hostInfog(const DMUMPS_STRUC_C &par) {
+    int ierr  = 0;
+    int info2 = 0;
+    if (MPIcf::IamMaster()) {
+        ierr  = par.infog[0];
+        info2 = par.infog[1];
+    }
+    MPIcf::Bcast(ierr, MPIcf::Master(), 1);
+    MPIcf::Bcast(info2, MPIcf::Master(), 1);
+    return {ierr, info2};
+}
+
+} // namespace
 
 MUMPS::MUMPS(const Solver &s, matmap &AA, std::span<double> bb)
     :
@@ -105,10 +153,7 @@ void MUMPS::initializeSetting() {
 
     // Increase MAXIS (cf. doc MUMPS) for extra fill-in
     //-------------------------------------------------------
-    // Paper-production mesh (h=0.11): 155 still produced INFOG(1)=-9 during
-    // a later factorization.  Keep the larger estimate margin and record the
-    // linked solver hash in the Dardel run manifest. This was needed on Dardel for h=0.11 and 48 cores.
-    mumps_par.ICNTL(14) = 200;
+    mumps_par.ICNTL(14) = initialWorkspaceMargin();
 
     // Format of the right hand side
     //-------------------------------------------------------
@@ -194,6 +239,25 @@ void MUMPS::factorizationMatrix() {
     mumps_par.job = JOB_FACTORIZATION_;
     dmumps_c(&mumps_par);
 
+    // -8/-9: the integer/real workspace, sized from the analysis estimate plus
+    // ICNTL(14) percent, was too small, typically because numerical pivoting
+    // delayed more pivots than the analysis predicted. MUMPS allows repeating
+    // JOB=2 with a larger ICNTL(14); the analysis, matrix and solution are
+    // unchanged. Each MUMPS object starts again from the initial margin.
+    for (int retry = 1; retry <= kMaxMarginRetries; ++retry) {
+        const auto [ierr, info2] = hostInfog(mumps_par);
+        if (ierr != -8 && ierr != -9)
+            break;
+        const int margin = mumps_par.ICNTL(14);
+        const int larger = margin + std::max(margin / 2, 50);
+        if (MPIcf::IamMaster())
+            std::cout << "  * MUMPS factorization: INFOG(1)=" << ierr << ", INFOG(2)=" << info2
+                      << " with ICNTL(14)=" << margin << "; retry " << retry << "/" << kMaxMarginRetries
+                      << " with ICNTL(14)=" << larger << std::endl;
+        mumps_par.ICNTL(14) = larger;
+        dmumps_c(&mumps_par);
+    }
+
     timeFactorization_ = MPIcf::Wtime() - timeFactorization_;
     checkPhase("factorization");
 }
@@ -227,20 +291,13 @@ void MUMPS::solvingLinearSystem() {
 }
 
 void MUMPS::checkPhase(const char *phase) {
-    int ierr  = 0;
-    int info2 = 0;
-    if (MPIcf::IamMaster()) {
-        ierr  = mumps_par.infog[0];
-        info2 = mumps_par.infog[1];
-    }
-    MPIcf::Bcast(ierr, MPIcf::Master(), 1);
-    MPIcf::Bcast(info2, MPIcf::Master(), 1);
+    const auto [ierr, info2] = hostInfog(mumps_par);
     if (ierr == 0)
         return;
 
     std::ostringstream message;
     message << "MUMPS " << phase << " failed: INFOG(1)="
-    << ierr << ", INFOG(2)=" << info2;
+    << ierr << ", INFOG(2)=" << info2 << ", ICNTL(14)=" << mumps_par.ICNTL(14);
     finalize();
     throw std::runtime_error(message.str());
 }
