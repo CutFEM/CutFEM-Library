@@ -1708,7 +1708,7 @@ void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Activ
 //         bar += gamma.next_element();
 
 //         const typename Interface<M>::Face &face = gamma[iface]; // the face
-//         if (util::contain(label, face.lab) || all_label) {
+//         if (all_label || util::contain(label, face.lab)) {
 
 //             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
 //         }
@@ -1728,7 +1728,7 @@ void AlgoimBaseCutFEM<M, L>::addLinearAlgoim(const itemVFlist_t &VF, const Activ
 //         bar += gamma.next_element();
 
 //         const typename Interface<M>::Face &face = gamma[iface]; // the face
-//         if (util::contain(label, face.lab) || all_label) {
+//         if (all_label || util::contain(label, face.lab)) {
 
 //             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
 //         }

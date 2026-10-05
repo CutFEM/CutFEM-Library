@@ -1747,7 +1747,7 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, 
         const typename Interface<M>::Face &face = gamma[iface]; // the face
         bar += gamma.next_element();
         //! Outcommented the below because it makes high-order DG fail
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
         addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
         this->addLocalContribution();
@@ -1770,7 +1770,7 @@ typedef typename FElement::RdHatBord RdHatBord;
         const typename Interface<M>::Face &face = gamma[iface]; // the face
         bar += gamma.next_element();
         
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             // GET IDX ELEMENT CONTAINING FACE ON backMes
             const int kb = gamma.idxElementOfFace(iface);
@@ -1895,7 +1895,7 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         bar += gamma.next_element();
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        // if (util::contain(label, face.lab) || all_label) {
+        // if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(VF, gamma, iface, tid, &In, 1., itq);
             this->addLocalContribution();
@@ -1935,7 +1935,7 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &gam
         bar += gamma[itq]->next_element();
         const typename Interface<M>::Face &face = (*gamma[itq])[iface]; // the face
         // std::cout << "label " << label << ", face.lab " << face.lab << std::endl;
-        // if (util::contain(label, face.lab) || all_label) {
+        // if (all_label || util::contain(label, face.lab)) {
         
         addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
         this->addLocalContribution();
@@ -1955,7 +1955,7 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, st
 
         const typename Interface<M>::Face &face = gamma[iface]; // the face
 
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0);
         }
@@ -1976,7 +1976,7 @@ void BaseFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const Interface
 
         const typename Interface<M>::Face &face = gamma[iface]; // the face
 
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(f, VF, gamma, iface, 0., nullptr, 1., 0);
         }
@@ -1999,7 +1999,7 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, co
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        // if (util::contain(label, face.lab) || all_label) {
+        // if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(VF, gamma, iface, tid, &In, 1., itq);
         // }
@@ -2022,7 +2022,7 @@ void BaseFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const Interface
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(f, VF, gamma, iface, tid, &In, 1., itq);
         }
@@ -2057,7 +2057,7 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const TimeInterface<M> &gamma
          iface += gamma[itq]->next_element()) {
         const typename Interface<M>::Face &face = (*gamma[itq])[iface]; // the face
         // below gives segmentation fault using ubuntu g++/gcc 10
-        // if (util::contain(label, face.lab) || all_label) {
+        // if (all_label || util::contain(label, face.lab)) {
 
         addInterfaceContribution(VF, *gamma[itq], iface, tid, &In, cst_time, itq);
         //}
@@ -2092,7 +2092,7 @@ void BaseFEM<M>::addLinear(const Fct &f, const itemVFlist_t &VF, const TimeInter
     for (int iface = gamma[itq]->first_element(); iface < gamma[itq]->last_element();
          iface += gamma[itq]->next_element()) {
         const typename Interface<M>::Face &face = (*gamma[itq])[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(f, VF, *gamma[itq], iface, tid, &In, cst_time, itq);
         }
@@ -2409,7 +2409,7 @@ void BaseFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamma, 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
         bar += gamma.next_element();
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0, mapping);
             this->addLocalContribution();
@@ -2428,7 +2428,7 @@ void BaseFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma, co
         bar += gamma.next_element();
 
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceContribution(VF, gamma, iface, 0., nullptr, 1., 0, mapping);
         }

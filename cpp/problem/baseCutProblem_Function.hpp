@@ -1857,7 +1857,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const Interface<M> &gamm
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceRidgeContribution(VF, gamma, iface, nullptr, 0, 1.);
         }
@@ -1888,7 +1888,7 @@ void BaseCutFEM<M>::addBilinear(const itemVFlist_t &VF, const TimeInterface<M> &
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceRidgeContribution(VF, gamma, iface, &In, itq, cst_time);
         }
@@ -1904,7 +1904,7 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const Interface<M> &gamma,
 
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceRidgeContribution(VF, gamma, iface, nullptr, 0, 1.);
         }
@@ -1932,7 +1932,7 @@ void BaseCutFEM<M>::addLinear(const itemVFlist_t &VF, const TimeInterface<M> &in
     const Interface<M> &gamma(*interface[itq]);
     for (int iface = gamma.first_element(); iface < gamma.last_element(); iface += gamma.next_element()) {
         const typename Interface<M>::Face &face = gamma[iface]; // the face
-        if (util::contain(label, face.lab) || all_label) {
+        if (all_label || util::contain(label, face.lab)) {
 
             addInterfaceRidgeContribution(VF, gamma, iface, &In, itq, cst_time);
         }
