@@ -195,7 +195,7 @@ template <typename Data> class GenericElement : public Label {
 
     Rd barycenter() const {
         Rd Q;
-        for (int i = 1; i < nv; ++i)
+        for (int i = 0; i < nv; ++i)
             Q += *(Rd *)vertices[i];
         return 1. / nv * Q;
     }
