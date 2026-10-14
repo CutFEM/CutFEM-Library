@@ -63,6 +63,15 @@ struct ProblemOption {
     // keeps the original rule.  This is opt-in because each retry creates four
     // child rules; volume corrections regenerate their matching surface rule.
     int algoim_subdivision_depth_        = 0;
+    // Mesh2 only: build the cut rules from a polynomial arc of this degree
+    // through level-set roots instead of Algoim; see
+    // problem/ParametricCutQuadrature.hpp.  Volume and surface rules then
+    // satisfy the divergence theorem for all polynomial fields of degree
+    // <= algoim_ibp_degree_ without any fitting.  algoim_bernstein_deg_ is the
+    // polynomial degree of the level set and algoim_subdivision_depth_ bounds
+    // the subdivision of triangles the interface does not cut simply.
+    bool parametric_cut_rule_            = false;
+    int parametric_cut_arc_degree_       = 2;
     int order_space_bord_quadrature_    = 5;
     int order_time_quadrature_          = 3;
     std::string solver_name_            = "mumps";

@@ -92,6 +92,8 @@ AlgoimQuadratureRule<Mesh2> subdivide_triangle_rule(const Mesh2::Element &K,
 
 } // namespace algoim_cut_detail
 
+#include "ParametricCutQuadrature.hpp"
+
 // IBP-consistent quadrature correction (triangle multipoly path).
 //
 // Enforces the discrete divergence theorem on each cut element K:
@@ -693,6 +695,8 @@ inline bool correct_volume_rule(AlgoimQuadratureRule<Mesh2> &vol,
 template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const ProblemOption& option) {
 
+    if (option.parametric_cut_rule_) return parametric_cut::volume(K, phi, option, 1);
+
     // Quadrature generation strategy:
     // 1. Map the triangle K in physical coordinates to the reference triangle (0,0)-(1,0)-(0,1) called K_ref
     // 2. K_ref can be defined implicitly as the unit square intersected with {psi < 0} where psi = x+y-1 represents the hypothenuse of K_ref     
@@ -804,6 +808,8 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
 template<typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const ProblemOption& option, int domain) {
     assert(domain == 0 || domain == 1);
+    // both sides are built from the same arc, so phi is not negated here
+    if (option.parametric_cut_rule_) return parametric_cut::volume(K, phi, option, domain);
     if (domain == 0) {
         algoim_cut_detail::NegatedLevelSet<Phi> positive_phi(phi);
         return quadGenVol(K, positive_phi, option);
@@ -813,6 +819,8 @@ AlgoimQuadratureRule<Mesh2> quadGenVol(const Mesh2::Element& K, Phi& phi, const 
 
 template <typename Phi>
 AlgoimQuadratureRule<Mesh2> quadGenSurf(const Mesh2::Element& K, Phi& phi, const ProblemOption& option) {
+    if (option.parametric_cut_rule_) return parametric_cut::surface(K, phi, option);
+
     // Quadrature generation strategy:
     // 1. Map the triangle K in physical coordinates to the reference triangle (0,0)-(1,0)-(0,1) called K_ref
     // 2. K_ref can be defined implicitly as the unit square intersected with {psi < 0} where psi = x+y-1 represents the hypothenuse of K_ref     
