@@ -720,18 +720,18 @@ double L2_norm_cut(const FunFEM<Mesh> &fh, R(fex)(double *, int i, int dom), L &
     double val = 0;
     for (int i = c0; i < num_comp + c0; ++i) {
         auto ui = fh.expr(i);
-        val += L2_norm_cut_2(ui, fex, Th, phi);
+        val += L2_norm_cut_2(ui, fex, Th, phi, order_space);
     }
     return sqrt(val);
 }
 
 template <typename M, typename L>
 double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double *, int i, int dom),
-                     const ActiveMesh<M> &Th, L &phi) {
+                     const ActiveMesh<M> &Th, L &phi, const int order_space = quadrature_order_integration) {
     int nb_dom = Th.get_nb_domain();
     double val = 0.;
     for (int i = 0; i < nb_dom; ++i) {
-        val += L2_norm_cut_2(fh, fex, i, Th, phi);
+        val += L2_norm_cut_2(fh, fex, i, Th, phi, order_space);
     }
     return val;
 }
@@ -795,7 +795,7 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, R(fex)(double
 }*/
 
 template <typeMesh M, typename L, typename FEX>
-double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, int domain, const ActiveMesh<M> &Th, L &phi) {//, const int order_space = quadrature_order_integration) {
+double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fex, int domain, const ActiveMesh<M> &Th, L &phi, const int order_space = quadrature_order_integration) {
     typedef GFESpace<M> FESpace;
     typedef typename FESpace::FElement FElement;
     typedef typename ActiveMesh<M>::Element Element;
@@ -803,7 +803,8 @@ double L2_norm_cut_2(const std::shared_ptr<ExpressionVirtual> &fh, const FEX &fe
     typedef typename FElement::QF QF;
     typedef typename QF::QuadraturePoint QuadraturePoint;
 
-    const QF &qf(*QF_Simplex<typename FElement::RdHat>(quadrature_order_integration));
+    // order_space: uncut elements; cut elements use defaultProblemOption's rules
+    const QF &qf(*QF_Simplex<typename FElement::RdHat>(order_space));
 
     double val = 0.;
     for (int k = Th.first_element(); k < Th.last_element(); k += Th.next_element()) {

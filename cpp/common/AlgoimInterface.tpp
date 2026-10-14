@@ -66,10 +66,11 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
             phi.setElementFromBackMesh(k);
 
             // Cheap narrow-band pre-filter: skip elements that provably cannot be
-            // cut (all nodal values one sign and farther than one cell diagonal
+            // cut (all nodal values one sign and farther than one cell diameter
             // from the interface), avoiding the expensive quadGen call.  Only for
             // FunFEM level sets, where phi(node) is a plain double evaluation.
-            if (narrow_band_diag_factor > 0.0) {
+            // The parametric Mesh2 rules are cheap and decide the cut themselves.
+            if (narrow_band_diag_factor > 0.0 && !options.parametric_cut_rule_) {
                 double min_abs = std::numeric_limits<double>::max();
                 double sign_sum = 0.0;
                 bool has_zero_node = false;
@@ -81,17 +82,22 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
                     min_abs = std::min(min_abs, std::abs(val));
                 }
 
-                // Cell diagonal = distance between diagonally opposite corners
-                // (node 0 and node nv-2: index 2 for a quad, 6 for a hexa).
-                const auto &A = K.at(0);
-                const auto &B = K.at(Element::nv - 2);
-                double diag_sq = 0.0;
-                for (int d = 0; d < mesh_t::Rd::d; ++d)
-                    diag_sq += (B[d] - A[d]) * (B[d] - A[d]);
-                const double diag = std::sqrt(diag_sq);
+                // Cell diameter: the largest distance between two nodes (the
+                // diagonal of a quad or hexa, the longest edge of a simplex).
+                double diam_sq = 0.0;
+                for (int i = 0; i < Element::nv; ++i)
+                    for (int j = i + 1; j < Element::nv; ++j) {
+                        const auto &A = K.at(i);
+                        const auto &B = K.at(j);
+                        double dist_sq = 0.0;
+                        for (int d = 0; d < mesh_t::Rd::d; ++d)
+                            dist_sq += (B[d] - A[d]) * (B[d] - A[d]);
+                        diam_sq = std::max(diam_sq, dist_sq);
+                    }
+                const double diam = std::sqrt(diam_sq);
 
                 const bool all_same_sign = std::abs(sign_sum) == static_cast<double>(Element::nv);
-                if (!has_zero_node && all_same_sign && min_abs > narrow_band_diag_factor * diag)
+                if (!has_zero_node && all_same_sign && min_abs > narrow_band_diag_factor * diam)
                     continue; // element cannot be cut
             }
         }
@@ -100,7 +106,10 @@ template <typeMesh M, typename L> void AlgoimInterface<M, L>::make_algoim_patch(
         for (const double weight : q.weights)
             surface_measure += std::abs(weight);
 
-        const double cut_threshold = 1.0e-12 * std::max(1.0, K.hElement());
+        // A parametric rule is the geometry the assembly integrates over: K is
+        // cut exactly when its rule has an arc, however short, or K and a
+        // neighbour disagree about their shared edge.
+        const double cut_threshold = options.parametric_cut_rule_ ? 0.0 : 1.0e-12 * std::max(1.0, K.hElement());
         if (q.size() == 0 || surface_measure <= cut_threshold) {
             // K is not cut
             continue;

@@ -15,6 +15,24 @@ evidence, locate the relevant private project through the machine's path map.
 - The opt-in direct-SVD surface fit and final-parent moment gate are described in
   [ALGOIM_DIRECT_SVD_FIT.md](ALGOIM_DIRECT_SVD_FIT.md). Moment acceptance does not
   constrain corrected-normal orientation or general surface-integral accuracy.
+- Parametric Mesh2 cut rules (`ProblemOption::parametric_cut_rule_`,
+  `problem/ParametricCutQuadrature.hpp`): build `AlgoimInterface` from the same
+  `ProblemOption`; it then marks an element cut exactly when the rule has an arc. Do not add
+  thresholds (arc length, root distance, narrow band) to the classification or the root
+  finding: neighbours must agree on shared edges, or the divergence theorem summed over the
+  mesh fails. Both sides of the interface use one arc; the 4-argument `quadGenVol` does not
+  negate the level set.
+- The parametric visibility test samples arc nodes: it guarantees positive weights, not that
+  nodes stay inside the triangle. `workfiles:src/stokes/parametric_cut_probe.cpp` checks both.
+- IBP-corrected (moment-fitted) Algoim triangle rules can carry non-positive weights; do not
+  pass them to helpers that assert positive weights (`L2_norm_cut`, `integral_algoim`).
+- The integration helpers in `problem/AlgoimIntegration.hpp` take cut rules from the global
+  `defaultProblemOption` (a `static`, one copy per translation unit); set it explicitly where
+  norms are computed. Stationary `L2_norm_cut` takes `order_space` for uncut elements (default
+  4, i.e. the degree-5 rule); `QF_Simplex<R2>` stops at degree 9.
+- The aggregate extension extrapolates root polynomials over chains of cells and so amplifies
+  noise in its input. Check polynomial reproduction with analytic data, not with derivatives
+  of an interpolant.
 - Patch stabilization integrates its intended full background patch, not physical cut volume.
 - Preserve all CutFEMParameter coefficients in unified assembly.
 - `ListItemVF::reduce()` sums only items that `ItemVF::operator==` deems identical up to the

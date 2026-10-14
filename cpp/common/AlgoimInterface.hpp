@@ -49,13 +49,14 @@ template <typeMesh M, typename L> class AlgoimInterface : public Interface<M> {
     // whether it is cut; only the O(surface) cut cells actually need it.  When
     // narrow_band_diag_factor > 0 (and the level set is a FunFEM), an element
     // whose nodal level-set values are all strictly one sign and whose smallest
-    // nodal magnitude exceeds narrow_band_diag_factor * (cell diagonal) is
-    // skipped without calling quadGen.
+    // nodal magnitude exceeds narrow_band_diag_factor * (cell diameter) is
+    // skipped without calling quadGen.  Not applied with parametric_cut_rule_,
+    // whose rule alone decides whether a Mesh2 element is cut.
     //
     // Rigorously safe (never skips a genuinely cut element) when the level set
     // is |grad phi| <= narrow_band_diag_factor Lipschitz: for any x in the cell
-    // there is a node v within one diagonal, so |phi(x)| >= min_node|phi| -
-    // factor*diag > 0 with constant sign.  The signed-distance level sets used
+    // there is a node v within one diameter, so |phi(x)| >= min_node|phi| -
+    // factor*diam > 0 with constant sign.  The signed-distance level sets used
     // by the active-surface drivers satisfy this with factor = 1; the default
     // 1.5 adds margin for imperfect reinitialization / P2 curvature.  Set to 0
     // to recover the original quadGen-on-every-element behavior.
