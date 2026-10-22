@@ -59,6 +59,16 @@ template <>
 BaseFE_Array<Mesh2, ContinuityType::discontinuous>::BaseFE_Array(int k) : GTypeOfFESum<Mesh2>(this->FE_.at(k)) {}
 LagrangeDC2::LagrangeDC2(int k) : BaseFE_Array<Mesh2, ContinuityType::discontinuous>(k){};
 
+
+template <>
+std::vector<std::vector<const GTypeOfFE<Mesh3> *>> BaseFE_Array<Mesh3, ContinuityType::discontinuous>::FE_ = {
+    {&DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0, &DataFE<Mesh3>::P0},
+    {&DataFE<Mesh3>::P1dc, &DataFE<Mesh3>::P1dc, &DataFE<Mesh3>::P1dc}};
+
+template <>
+BaseFE_Array<Mesh3, ContinuityType::discontinuous>::BaseFE_Array(int k) : GTypeOfFESum<Mesh3>(this->FE_.at(k)) {}
+LagrangeDC3::LagrangeDC3(int k) : BaseFE_Array<Mesh3, ContinuityType::discontinuous>(k){};
+
 // const GTypeOfFE<Mesh2> *TaylorHood2::FE_[3] = {&DataFE<Mesh2>::P2, &DataFE<Mesh2>::P2,
 //                                                &DataFE<Mesh2>::P1}; //&DataFE<Mesh2>::P2;
 //                                                                     // const GTypeOfFE<Mesh2> *Lagrange2::FE_[5][2] =

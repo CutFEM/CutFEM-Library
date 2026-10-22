@@ -47,6 +47,12 @@ class LagrangeDC2 : public BaseFE_Array<Mesh2, ContinuityType::discontinuous> {
 };
 
 
+class LagrangeDC3 : public BaseFE_Array<Mesh3, ContinuityType::discontinuous> {
+  public:
+    LagrangeDC3(int k);
+};
+
+
 // Gustaf 
 class LagrangeHexa3 : public BaseFE_Array<MeshHexa, ContinuityType::continuous> {
   public:
