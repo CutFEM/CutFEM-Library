@@ -497,7 +497,9 @@ void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, const
 template <typename Mesh>
 void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh,
                                   [[maybe_unused]] const FunFEM<Mesh> &ls) {
-
+    
+    std::cout << "DO NOT USE THIS FUNCTION, IT'S BROKEN\n";
+    assert(0);
     using Rd = typename Mesh::Rd;
 
     const auto &Vh_cut = *fh.Vh;
@@ -516,11 +518,48 @@ void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh,
                 double val = 0.;
                 for (int kcut : idx_K)
                     val += fh.eval(kcut, x, ci);
-                uh(FK(i + FK.dfcbegin(ci))) = inv_n * val;
+                uh(FK(i + FK.dfcbegin(ci))) = inv_n * val;  //! this gives a bug, it overwrites existing values between cut and non-cut elements..
             }
         }
     }
 }
+
+template <typename Mesh>
+void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh) {
+    
+    // Idea, loop first over the non-cut elements
+    // then, loop over the cut elements and overwrite the previous values
+
+    using Rd = typename Mesh::Rd;
+
+    const auto &Vh_cut = *fh.Vh;
+    const auto &cutTh  = Vh_cut.get_mesh();
+    const auto &Vh     = *uh.Vh;
+
+    std::ranges::fill(uh.v, 0.);
+    for (int pass = 0; pass < 2; ++pass) {
+        for (int k = 0; k < Vh.NbElement(); ++k) {
+            const auto &FK(Vh[k]);
+
+            std::vector<int> idx_K = cutTh.idxAllElementFromBackMesh(k, -1);
+
+            if (idx_K.empty() || ((pass == 0) != (idx_K.size()==1)))
+                continue;   // in pass == 0, we only want idx_K.size()=1, i.e. no cut elements. In pass == 1 we only want cut elements
+
+            const double inv_n     = 1. / static_cast<double>(idx_K.size());
+            for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
+                Rd x = FK.Pt(i);
+                for (int ci = 0; ci < Rd::d; ++ci) {
+                    double val = 0.;
+                    for (int kcut : idx_K)
+                        val += fh.eval(kcut, x, ci);
+                    uh(FK(i + FK.dfcbegin(ci))) = inv_n * val;  //! this gives a bug, it overwrites existing values between cut and non-cut elements..
+                }
+            }
+        }
+    }
+}
+
 
 // Hdiv-conforming variant (RT, BDM): uses Pi_h to apply the correct flux
 // moment conditions instead of pointwise nodal evaluation.
