@@ -553,7 +553,7 @@ void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh) {
                     double val = 0.;
                     for (int kcut : idx_K)
                         val += fh.eval(kcut, x, ci);
-                    uh(FK(i + FK.dfcbegin(ci))) = inv_n * val;  //! this gives a bug, it overwrites existing values between cut and non-cut elements..
+                    uh(FK(i + FK.dfcbegin(ci))) = inv_n * val; 
                 }
             }
         }
