@@ -494,35 +494,35 @@ void interpolateOnBackGroundMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh, const
 // error (and hence the large spurious divergence) of the sign-pick
 // reconstruction.  On uncut cells (one sub-element) it is identical to
 // interpolateOnBackGroundMesh.
-template <typename Mesh>
-void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh,
-                                  [[maybe_unused]] const FunFEM<Mesh> &ls) {
+// template <typename Mesh>
+// void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh,
+//                                   [[maybe_unused]] const FunFEM<Mesh> &ls) {
     
-    std::cout << "DO NOT USE THIS FUNCTION, IT'S BROKEN\n";
-    assert(0);
-    using Rd = typename Mesh::Rd;
+//     std::cout << "DO NOT USE THIS FUNCTION, IT'S BROKEN\n";
+//     assert(0);
+//     using Rd = typename Mesh::Rd;
 
-    const auto &Vh_cut = *fh.Vh;
-    const auto &cutTh  = Vh_cut.get_mesh();
-    const auto &Vh     = *uh.Vh;
+//     const auto &Vh_cut = *fh.Vh;
+//     const auto &cutTh  = Vh_cut.get_mesh();
+//     const auto &Vh     = *uh.Vh;
 
-    std::ranges::fill(uh.v, 0.);
-    for (int k = 0; k < Vh.NbElement(); ++k) {
-        const auto &FK(Vh[k]);
+//     std::ranges::fill(uh.v, 0.);
+//     for (int k = 0; k < Vh.NbElement(); ++k) {
+//         const auto &FK(Vh[k]);
 
-        std::vector<int> idx_K = cutTh.idxAllElementFromBackMesh(k, -1);
-        const double inv_n     = 1. / static_cast<double>(idx_K.size());
-        for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
-            Rd x = FK.Pt(i);
-            for (int ci = 0; ci < Rd::d; ++ci) {
-                double val = 0.;
-                for (int kcut : idx_K)
-                    val += fh.eval(kcut, x, ci);
-                uh(FK(i + FK.dfcbegin(ci))) = inv_n * val;  //! this gives a bug, it overwrites existing values between cut and non-cut elements..
-            }
-        }
-    }
-}
+//         std::vector<int> idx_K = cutTh.idxAllElementFromBackMesh(k, -1);
+//         const double inv_n     = 1. / static_cast<double>(idx_K.size());
+//         for (int i = FK.dfcbegin(0); i < FK.dfcend(0); ++i) {
+//             Rd x = FK.Pt(i);
+//             for (int ci = 0; ci < Rd::d; ++ci) {
+//                 double val = 0.;
+//                 for (int kcut : idx_K)
+//                     val += fh.eval(kcut, x, ci);
+//                 uh(FK(i + FK.dfcbegin(ci))) = inv_n * val;  //! this gives a bug, it overwrites existing values between cut and non-cut elements..
+//             }
+//         }
+//     }
+// }
 
 template <typename Mesh>
 void interpolateAverageOnBackMesh(FunFEM<Mesh> &uh, const FunFEM<Mesh> &fh) {
